@@ -46,6 +46,8 @@
  * grasps).
  *
  * Altogether it's a lot of math :) But that's what makes it fun.
+ *
+ * Copyright (C) 2023 rianadon. See the LICENSE file for the license.
  */
 
 import { Euler, Matrix4, Vector3, type Vector3Tuple } from 'three';
