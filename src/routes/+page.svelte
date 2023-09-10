@@ -12,7 +12,7 @@
 </svelte:head>
 
 <main class="text-center font-sans bg-slate-900 text-white">
-	<div class="background" style="background-image: url('{base}/keyboard2.png')">
+  <div class="background mx-4 relative" style="background-image: url('{base}/keyboard2.png')">
 		<h1
 			class="capitalize absolute w-full text-2xl top-[min(calc(20vh-2em),4em)] text-purple font-semibold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-amber-600 tracking-tight"
 		>
@@ -20,7 +20,7 @@
 		</h1>
 		<h1 class="sr-only">Cosmos</h1>
 	</div>
-	<p>Cosmos is not yet ready for release. However, if you'd like to beta test, join the discord.</p>
+	<p class="mx-6">Cosmos is not yet ready for release. However, if you'd like to beta test, join the discord.</p>
 	<a
 		class="inline-block font-sans font-semibold rounded-2 border-3 border-teal-500 px-8 py-2 m-2 mt-6 transition shadow-lg hover:shadow-teal-500/50 hover:scale-105 ease-in-out"
 		href={discord}>Join the Discord</a
@@ -67,6 +67,28 @@
 		</p>
 	</div>
 	<img class="h-[4vw]" src="{base}/bg3.png" alt="" />
+    <div class="features max-w-4xl mx-auto mt-24 mb-4 text-xl font-semibold sm:columns-2 md:columns-3  bg-clip-text text-transparent bg-gradient-to-br from-purple-300 to-amber-300">
+      <p>EC11 Encoders</p>
+      <p>Amoeba PCB Holders</p>
+      <p>Trackballs</p>
+      <p>Choc Switches</p>
+      <p>OLED Displays</p>
+      <p>Smart Screw Hole Placement</p>
+      <p>20% Less Filament ¹</p>
+      <p>Angular Key Spread</p>
+      <p>Adapts to Keycap Tilt ²</p>
+      <p>Automatic Model Height</p>
+      <p>Uniform Wall Cross Sections</p>
+      <p>Thin Surface Detection</p>
+      <p>Key Intersection Detection</p>
+      <p>Hand Scanning</p>
+      <p>And More!</p>
+    </div>
+    <div class="mb-18">
+      <p class="text-slate-400">¹ Comparing a 5x5-key model with the <a style="color: unset"
+				                                                 href="https://ryanis.cool/dactyl">Dactyl generator</a>.</p>
+      <p class="text-slate-400">² Compatible with XDA, DSA, SA, MT3—even OEM and Cherry!</p>
+    </div>
 
 	<div class="max-w-5xl m-auto">
 		<HorizontalFeature src="/hand.mp4" reversed>
@@ -120,7 +142,7 @@
 			FAQ
 		</h2>
 		<h3 class="font-bold mb-1 mt-8">When is the generator being released?</h3>
-		<p>By the end of this summer (but hopefully sooner).</p>
+		<p>By the end of this year (but hopefully sooner).</p>
 		<p>
 			If you don't mind buggy software, join the <a href={discord}>Discord</a> and try the beta!
 		</p>
@@ -131,12 +153,13 @@
 			curves generation available for a small fee.
 		</p>
 		<p>Once the project is released, everything else will be open-sourced.</p>
-		<h3 class="font-bold mb-1 mt-8">Is it called Cosmos, Cosmos keyboard, or Cosmos generator?</h3>
+		<h3 class="font-bold mb-1 mt-8">Can I use the generator today?</h3>
 		<p>
-			The real name is actually <span class="italic"
-				>Cosmos Keyboard Generator for Keyboards *cough* of the Cosmos.</span
-			> But you can call it any of the three.
+		  If you're migrating from my <a href="https://ryanis.cool/dactyl">Dactyl generator</a>, you'll find Cosmos already produces more robust models, and I recommend you switch.
 		</p>
+        <p>
+          New features like trackball support, OLED display, and hand scanning have been released, but I do not find their quality to be suitable.
+        </p>
 	</div>
 	<p class="text-sm mb-10">
 		Brought to you by <a href="https://github.com/rianadon">@rianadon</a>.
@@ -158,7 +181,6 @@
 		background-size: contain;
 		background-repeat: no-repeat;
 		background-position: center;
-		width: 100%;
 		height: calc(90vh - 100px);
 		max-height: 600px;
 	}
@@ -174,4 +196,8 @@
 	.faq p {
 		--at-apply: 'mb-1 <sm:text-sm';
 	}
+
+ .features p {
+     --at-apply: 'mb-2 sm:mb-6';
+ }
 </style>
