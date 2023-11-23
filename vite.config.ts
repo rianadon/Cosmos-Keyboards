@@ -1,17 +1,33 @@
-import { sveltekit } from '@sveltejs/kit/vite';
-import { defineConfig } from 'vite';
-import UnoCSS from 'unocss/vite';
-import { mediapipe } from 'vite-plugin-mediapipe';
+import { sveltekit } from '@sveltejs/kit/vite'
+import { existsSync } from 'fs'
+import { resolve } from 'path'
+import UnoCSS from 'unocss/vite'
+import { defineConfig } from 'vite'
+import { mediapipe } from 'vite-plugin-mediapipe'
+
+const proDir = resolve(__dirname, './src/lib/worker/pro')
+const proPatchDir = resolve(__dirname, './src/lib/worker/pro-patch')
+const hasPro = existsSync(proDir)
 
 export default defineConfig({
-	plugins: [
-		UnoCSS(),
-		sveltekit(),
-		mediapipe({
-			'hands.js': ['Hands', 'VERSION']
-		})
-	],
-	ssr: {
-		noExternal: ['three']
-	}
-});
+  resolve: {
+    alias: {
+      '$assets': resolve(__dirname, './src/assets'),
+      '$target': resolve(__dirname, './target'),
+      '@pro': hasPro ? proDir : proPatchDir,
+    },
+  },
+  plugins: [
+    UnoCSS(),
+    sveltekit(),
+    mediapipe({
+      'hands.js': ['Hands', 'VERSION'],
+    }),
+  ],
+  ssr: {
+    noExternal: ['three'],
+  },
+  server: {
+    fs: { allow: ['.'] },
+  },
+})

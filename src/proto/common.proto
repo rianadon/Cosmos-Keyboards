@@ -1,0 +1,34 @@
+syntax = "proto2";
+
+import "google/protobuf/descriptor.proto";
+package dactyl;
+
+message Option {
+  optional string name = 1;
+  optional string value = 2;
+}
+
+message NOption {
+  optional string name = 1;
+  optional int32 n = 2;
+  optional string group = 3;
+}
+
+extend google.protobuf.FieldOptions {
+  optional string name = 50000;
+  optional string help = 50001;
+  optional int32 min = 50002;
+  optional int32 max = 50003;
+  optional bool angle = 50004;
+  repeated Option dropdown = 50005;
+  optional bool special = 50006;
+  optional bool basic = 50007;
+  optional bool decimal = 50008;
+  repeated NOption ndropdown = 50009;
+  optional string icon = 50010;
+  optional bool pro = 50011;
+  optional string tuple = 50012;
+  optional bool plusminus = 50013;
+  optional bool mm = 50014;
+  optional bool wr = 50015;
+}

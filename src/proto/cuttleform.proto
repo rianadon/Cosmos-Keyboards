@@ -1,0 +1,194 @@
+syntax = "proto2";
+
+import "proto/common.proto";
+package dactyl;
+
+enum KEYCAP { DSA = 0; MT3 = 1; OEM = 2; SA = 3; XDA = 4; KCHOC = 5; CHERRY = 6; }
+enum SWITCH { BOX = 0; MX = 1; MX_SNAP_IN = 2; MX_PCB = 3; CHOC = 4; MX_BETTER = 5; ALPS = 6; }
+enum LAST_ROW { TWO = 0; ZERO = 1; FULL = 2; }
+enum EXTRA_COLUMN { NOCOL = 0; KEYS = 1; OLED = 2; CIRQUE_23 = 3; CIRQUE_35 = 4; CIRQUE_40 = 5;  }
+enum CONNECTOR { /* RJ9 = 2; */ TRRS = 3; USB = 4; NONE = 0; /* EXTERNAL = 1; */ }
+enum SCREW_SIZE { M3 = 0; M4 = 1; I4_40 = 2; I6_32 = 3; }
+enum SCREW_TYPE { STRAIGHT_INSERT = 0; TAPERED_INSERT = 1; EXPANDING_INSERT = 2; TAPPED = 3; }
+enum KEY_SIZE { U1 = 0; U125 = 1; U15 = 2; U2 = 3; }
+enum MICROCONTROLLER { NOMC = 0; PIPICO = 1; PROMICRO = 2; PROMICRO_C = 3; ITSYBITSY = 4; ITSYBITSY_BT = 5; KB2040 = 6; RP2040_BLACK = 7; NRFMICRO = 8; XIAO = 9; XIAO_BT = 10; RP2040_ZERO = 11; }
+
+message Cuttleform {
+  message UpperKeys {
+    optional int32 rows = 1 [(min) = 3, (max) = 6, (icon) = "row", (name) = "Number of Rows"];
+    optional int32 columns = 2 [(min) = 4, (max) = 7, (icon) = "column", (name) = "Number of Columns"];
+    optional EXTRA_COLUMN extra_column = 11 [(name) = "Add Extra Column", (basic) = true, (icon) = "add-extra",
+                                             (ndropdown) = {n: 0, name: "None"},
+                                             (ndropdown) = {n: 1, name: "Modifier Keys"},
+                                             (ndropdown) = {n: 2, name: "OLED Display"},
+                                             (ndropdown) = {n: 3, name: "Trackpad (Cirque 23mm)"},
+                                             (ndropdown) = {n: 4, name: "Trackpad (Cirque 35mm)"},
+                                             (ndropdown) = {n: 5, name: "Trackpad (Cirque 40mm)"}];
+    optional KEYCAP keycap_type = 3 [(name) = "Keycaps", (icon) = "keycap", (basic) = true,
+                                     (ndropdown) = {n: 4, name: "XDA (Uniform)"},
+                                     (ndropdown) = {n: 0, name: "DSA (Uniform)"},
+                                     (ndropdown) = {n: 3, name: "SA"},
+                                     (ndropdown) = {n: 1, name: "MT3"},
+                                     (ndropdown) = {n: 2, name: "OEM"},
+                                     (ndropdown) = {n: 6, name: "Cherry"},
+                                     (ndropdown) = {n: 5, name: "Choc (Kailh)"}];
+    optional SWITCH switch_type = 4 [(name) = "Switches", (icon) = "switch", (basic) = true,
+                                     // (ndropdown) = {n: 0, name: "Box (Kailh)"},
+                                     (ndropdown) = {n: 5, name: "MX-Compatible (Cherry, Kailh, Gateron...)"},
+                                     (ndropdown) = {n: 3, name: "MX-Compatible PCB (Amoeba King) ☆️️"},
+                                     (ndropdown) = {n: 4, name: "Choc (Kailh) ☆️️"},
+                                     (ndropdown) = {n: 6, name: "Alps (and clones)"}];
+    optional int32 horizontal_spacing = 5 [(decimal) = true, (icon) = "expand-horizontal", (name) = "Horizontal (X) Spacing", (mm) = true, (help) = "The horizontal distance between key centers when the keys are laid flat"];
+    optional int32 vertical_spacing = 6 [(decimal) = true, (icon) = "expand-vertical", (name) = "Vertical (Y) Spacing", (mm) = true, (help) = "The vertical distance between key centers when the keys are laid flat"];
+    // optional bool wide_pinky = 7 [(name) = "Wide (1.5u) Pinky Keys"];
+    optional KEY_SIZE pinky_size = 10 [(name) = "Pinky Modifier Key Size",
+                                       (ndropdown) = {n: 0, name: "1u"},
+                                       (ndropdown) = {n: 1, name: "1.25u"},
+                                       (ndropdown) = {n: 2, name: "1.5u"},
+                                       (ndropdown) = {n: 3, name: "2u"}];
+    optional bool hide_last_pinky = 8 [(name) = "Hide Bottom Pinky Key", (help) = "See Kinesis Advantage's Layout"];
+    optional LAST_ROW last_row = 9 [(name) = "Last Row Key Count",
+                                    (ndropdown) = {n: 0, name: "Two (Default Dactyl Manuform)"},
+                                    (ndropdown) = {n: 1, name: "No Last Row"},
+                                    (ndropdown) = {n: 2, name: "Use All Keys"}];
+  }
+  message Curvature {
+    optional sint32 beta = 1 [(angle) = true, (name) = "Row's Curvature", (plusminus) = true, (icon) = "row-curve", (basic) = true];
+    optional sint32 alpha = 3 [(angle) = true, (name) = "Column's Curvature", (icon) = "column-curve", (basic) = true];
+    optional int32 pinky_alpha = 4 [(angle) = true, (name) = "Pinky Column's Curvature"];
+    optional sint32 rotate_x = 5 [(angle) = true, (name) = "Rotation Around Row Axis", (icon) = "angle-rotate"];
+    optional sint32 tenting = 6 [(angle) = true, (name) = "Tenting Angle", (icon) = "angle", (basic) = true];
+  }
+  message DefaultThumb {
+    enum KEY_COUNT { ZERO = 0; TWO = 2; THREE = 3; THREE_15 = 13; FOUR = 4; FIVE = 5; SIX = 6; }
+    optional KEY_COUNT thumb_count = 1 [(name) = "Thumb Key Count", (icon) = "numeric", (basic) = true,
+                                        (ndropdown) = {n: 6, name: "6 (Default)"},
+                                        (ndropdown) = {n: 5, name: "5 (Mini)"},
+                                        (ndropdown) = {n: 4, name: "4"},
+                                        (ndropdown) = {n: 13, name: "3 (1.5u)"},
+                                        (ndropdown) = {n: 3, name: "3 (Minidox)"},
+                                        (ndropdown) = {n: 2, name: "2"},
+                                        (ndropdown) = {n: 0, name: "0"}];
+    optional bool encoder = 2 [(name) = "Add Encoder", (icon) = "knob", (basic) = true];
+  }
+  message OrbylThumb {
+    optional sint32 curvature = 1 [(angle) = true, (name) = "Curvature", (plusminus) = true, (icon) = "row-curve", (basic) = true];
+  }
+  message CarbonfetThumb {
+    optional sint32 row_curve = 1 [(angle) = true, (name) = "Row's Curvature", (plusminus) = true, (icon) = "row-curve", (basic) = true];
+    optional sint32 column_curve = 2 [(angle) = true, (name) = "Column's Curvature", (plusminus) = true, (icon) = "column-curve", (basic) = true];
+    optional int32 horizontal_spacing = 3 [(decimal) = true, (icon) = "expand-horizontal", (name) = "Horizontal (X) Spacing", (mm) = true];
+    optional int32 vertical_spacing = 4 [(decimal) = true, (icon) = "expand-vertical", (name) = "Vertical (Y) Spacing", (mm) = true];
+  }
+  message CurvedThumb {
+    enum KEY_COUNT { ZERO = 0; TWO = 2; THREE = 3; THREE_15 = 13; FOUR = 4; FIVE = 5; }
+    optional KEY_COUNT thumb_count = 1 [(name) = "Thumb Key Count", (icon) = "numeric", (basic) = true,
+                                        (ndropdown) = {n: 5, name: "5"},
+                                        (ndropdown) = {n: 4, name: "4"},
+                                        (ndropdown) = {n: 3, name: "3"},
+                                        (ndropdown) = {n: 2, name: "2"},
+                                        (ndropdown) = {n: 0, name: "0"}];
+    optional bool encoder = 2 [(name) = "Add Encoder", (icon) = "knob", (basic) = true];
+    optional sint32 row_curve = 3 [(angle) = true, (plusminus) = true, (name) = "Row's Curvature", (icon) = "row-curve", (basic) = true];
+    optional sint32 column_curve = 4 [(angle) = true, (plusminus) = true, (name) = "Column's Curvature", (icon) = "column-curve", (basic) = true];
+    optional int32 horizontal_spacing = 5 [(decimal) = true, (icon) = "expand-horizontal", (name) = "Horizontal (X) Spacing", (mm) = true];
+    optional int32 vertical_spacing = 6 [(decimal) = true, (icon) = "expand-vertical", (name) = "Vertical (Y) Spacing", (mm) = true];
+  }
+  message CustomThumb {
+    // Array of keys each with position and rotation
+    message Key {
+      optional int64 position = 1 [(tuple) = "xyzt"];
+      optional int64 rotation = 2 [(tuple) = "abgA"];
+      optional sint32 trackball_radius = 3 [(name) = "Trackball Radius"];
+      optional sint32 trackball_sides = 4 [(name) = "Number of Trackball Sides"];
+    }
+    optional Key plane = 1 [(name) = "Plane", (special) = true];
+    repeated Key key = 2 [(name) = "Keys", (special) = true];
+  }
+  message Stagger {
+    optional int64 stagger_inner_index = 6 [(special) = true, (tuple)="xyzo"];
+    optional int64 stagger_index = 1 [(special) = true, (tuple)="xyzo"];
+    optional int64 stagger_middle = 2 [(special) = true, (tuple) = "xyzo"];
+    optional int64 stagger_pinky = 3 [(special) = true, (tuple) = "xyzo"];
+    optional int64 stagger_ring = 4 [(special) = true, (tuple) = "xyzo"];
+    optional int64 stagger_thumb = 5 [(special) = true, (tuple) = "xyzo"];
+  }
+  message Case {
+    optional CONNECTOR connector = 1 [(name) = "Connectivity", (icon) = "usb-port",
+                                      (ndropdown) = {n: 3, name: "TRRS and USB"},
+                                      (ndropdown) = {n: 4, name: "USB only"},
+                                      (ndropdown) = {n: 0, name: "None"}];
+    optional MICROCONTROLLER microcontroller = 15 [(name) = "Microcontroller", (icon) = "microcontroller", (basic) = true,
+                                                   (ndropdown) = {n: 9, name: "Seeed Studio Xiao RP2040/SAMD21 ☆", group: "Small Size"},
+                                                   (ndropdown) = {n: 10, name: "Seeed Studio Xiao nRF52840 (Bluetooth) ☆", group: "Small Size"},
+                                                   (ndropdown) = {n: 11, name: "Waveshare RP2040 Zero", group: "Small Size"},
+                                                   (ndropdown) = {n: 6, name: "Adafruit KB2040 (USB-C) ☆", group: "Medium Size"},
+                                                   (ndropdown) = {n: 7, name: "RP2040 Black from AliExpress (USB-C) ☆", group: "Large Size"},
+                                                   (ndropdown) = {n: 3, name: "Pro Micro (USB-C, Low Storage) ☆", group: "Medium Size"},
+                                                   (ndropdown) = {n: 1, name: "Pi Pico", group: "Large Size"},
+                                                   (ndropdown) = {n: 2, name: "Pro Micro (Low Storage)", group: "Medium Size"},
+                                                   (ndropdown) = {n: 4, name: "Adafruit ItsyBitsy RP2040/M0/M4/32u4", group: "Medium Size"},
+                                                   (ndropdown) = {n: 5, name: "Adafruit ItsyBitsy nRF52840 (Bluetooth)", group: "Medium Size"},
+                                                   (ndropdown) = {n: 8, name: "nRFMicro or Nice!Nano (USB-C, Bluetooth)", group: "Medium Size"},
+                                                   (ndropdown) = {n: 0, name: "None", group: "More"}];
+    optional bool screw_inserts = 2 [(name) = "Fasten Base with Screws", (icon) = "screw", (basic) = true];
+    repeated int32 screw_indices = 9 [(name) = "Number of Screws", (special) = true];
+    optional SCREW_SIZE screw_size = 12 [(name) = "Size of Screws", (basic) = true,
+                                         (ndropdown) = {n: 0, name: "M3 ☆️️"},
+                                         (ndropdown) = {n: 1, name: "M4"},
+                                         (ndropdown) = {n: 2, name: "#4-40 ☆️️"},
+                                         (ndropdown) = {n: 3, name: "#6-32"}];
+    optional SCREW_TYPE screw_type = 13 [(name) = "Fastening of Screws",
+                                         (ndropdown) = {n: 0, name: "Screw Insert"},
+                                         (ndropdown) = {n: 1, name: "Tapered Screw Insert"},
+                                         (ndropdown) = {n: 2, name: "Expanding Screw Insert"},
+                                         (ndropdown) = {n: 3, name: "Tapped Hole"}];
+    optional bool countersink_screws = 14 [(name) = "Countersink Screws"];
+    optional bool rounded_top = 3 [(name) = "Rounded Top Edge", (icon) = "round-top", (basic) = true, (pro) = true];
+    optional bool rounded_side = 4 [(name) = "Rounded Side", (icon) = "round-side", (basic) = true, (pro) = true];
+    optional bool wrist_rest = 5 [(name) = "Show Wrist Rest", (icon) = "hand", (basic) = true, (pro) = true, (wr) = true];
+    optional int32 wrist_rest_length = 19 [(name) = "Wrist Rest Length", (decimal) = true, (mm) = true, (wr) = true];
+    optional int32 wrist_rest_max_width = 21 [(name) = "Wrist Rest Max Width", (decimal) = true, (mm) = true, (wr) = true];
+    optional sint32 wrist_rest_x_offset = 20 [(name) = "Wrist Rest X Offset", (decimal) = true, (plusminus) = true, (mm) = true, (wr) = true];
+    optional sint32 wrist_rest_z_offset = 22 [(name) = "Wrist Rest Z Offset", (decimal) = true, (plusminus) = true, (mm) = true, (wr) = true];
+    optional sint32 wrist_rest_angle = 18 [(name) = "Wrist Rest Side Taper", (angle) = true, (wr) = true];
+    optional sint32 wrist_rest_tenting = 23 [(name) = "Wrist Rest Additional Tenting", (angle) = true, (plusminus) = true, (wr) = true];
+    optional int32 wall_shrouding = 16 [(decimal) = true, (icon) = "shrouding", (name) = "Wall Shrouding", (help) = "Add a lip to the top of the wall to hide switches", (mm) = true];
+    optional int32 web_thickness = 6 [(decimal) = true, (name) = "Web Thickness", (help) = "Top Part of Keyboard Around Keyholes. Setting this to zero makes the thickness automatic, which is what you probably want", (mm) = true];
+    optional int32 wall_thickness = 7 [(decimal) = true, (name) = "Wall Thickness", (help) = "Thickness Around the Keyboard", (mm) = true];
+    optional int32 vertical_clearance = 11 [(decimal) = true, (min) = 0, (max) = 50, (name) = "Vertical Part Clearance", (help) = "Add extra height to keep parts off the ground", (icon) = "expand-vertical", (mm) = true];
+    optional bool clear_screws = 17 [(name) = "Also Clear Screw Inserts", (help) = "Add extra height so that at least 75% of possible screw insert locations are feasible"];
+    optional bool unibody = 24 [(name) = "Make Unibody", (help) = "Joins two keyboard halves into a single keyboard", (wr) = true, (basic) = true, (icon) = "unibody"];
+    optional sint32 unibody_gap = 25 [(name) = "Unibody Gap", (help) = "Distance between the two splits before being merged", (wr) = true, (decimal) = true, (mm) = true];
+    optional sint32 unibody_angle = 26 [(name) = "Unibody Angle", (wr) = true, (angle) = true];
+  }
+  message BasicShell {
+    optional bool lip = 1 [(name) = "Add Lip", (help) = "Add a lip to the bottom plate to hide warping defects"];
+  }
+  message TiltShell {
+    optional sint32 tilt = 1 [(angle) = true, (name) = "Case Tenting Angle", (icon) = "angle", (basic) = true];
+    optional bool pattern = 3 [(name) = "Use Pillars"];
+    optional int32 pattern_width = 4 [(decimal) = true, (name) = "Pillar Width", (mm) = true];
+    optional int32 pattern_gap = 5 [(decimal) = true, (name) = "Pillar Gap", (mm) = true];
+    optional sint32 raise_by = 2 [(decimal) = true, (name) = "Raise Case By", (icon) = "expand-vertical", (mm) = true];
+  }
+  message StiltsShell {
+    optional bool inside = 1 [(name) = "Tuck in Bottom Plate", (basic) = true];
+  }
+  optional UpperKeys upper_keys = 1 [(name) = "Upper Keys", (basic) = true];
+  optional Curvature curvature = 2 [(name) = "Curvature", (basic) = true];
+  oneof thumb_cluster {
+    DefaultThumb default_thumb = 3 [(name) = "Default"];
+    OrbylThumb orbyl_thumb = 4 [(name) = "Orbyl"];
+    CarbonfetThumb carbonfet_thumb = 5 [(name) = "Carbonfet"];
+    CurvedThumb curved_thumb = 6 [(name) = "Curved"];
+    CustomThumb custom_thumb = 11 [(name) = "Custom"];
+  }
+  optional Stagger stagger = 10 [(name) = "Stagger"];
+  optional Case wall = 8 [(name) = "Case", (basic) = true];
+  oneof shell {
+    BasicShell basic_shell = 12 [(name) = "Default"];
+    TiltShell tilt_shell = 13 [(name) = "Tilt"];
+    StiltsShell stilts_shell = 14 [(name) = "Stilts", (pro) = true];
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "lineWidth": 200,
+  "typescript": {
+    "quoteStyle": "preferSingle",
+    "semiColons": "asi"
+  },
+  "prettier": {
+    "associations": [
+      "**/*.{svelte}"
+    ],
+    "singleQuote": true,
+    "semi": false,
+    "printWidth": 100
+  },
+  "json": {
+  },
+  "markdown": {
+  },
+  "includes": ["**/*.{ts,tsx,js,jsx,cjs,mjs,json,md,svelte}"],
+  "excludes": [
+    "**/node_modules",
+    "**/*-lock.json",
+    "build",
+    ".svelte-kit",
+    "package",
+    "target",
+    "**/*.wasm.js",
+    "**/replicad_single*"
+  ],
+  "plugins": [
+    "https://plugins.dprint.dev/typescript-0.88.4.wasm",
+    "https://plugins.dprint.dev/json-0.19.0.wasm",
+    "https://plugins.dprint.dev/markdown-0.16.2.wasm",
+    "https://plugins.dprint.dev/prettier-0.27.0.json@3557a62b4507c55a47d8cde0683195b14d13c41dda66d0f0b0e111aed107e2fe"
+  ]
+}
