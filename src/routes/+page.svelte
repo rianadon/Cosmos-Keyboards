@@ -98,7 +98,7 @@
   </div>
 
   <div class="max-w-5xl m-auto">
-    <HorizontalFeature src="/hand.mp4" reversed>
+    <HorizontalFeature src="/hand.mp4" alt="Scrren recording of the hand model in Cosmos" reversed>
       <span slot="title">A Keyboard for Every Being In the Universe</span>
       <p slot="content">Measure your hand and use it to design the perfect keyboard</p>
       <p slot="description">
@@ -107,7 +107,7 @@
         you to put yourself in the design process.
       </p>
     </HorizontalFeature>
-    <HorizontalFeature src="/cosmos.png">
+    <HorizontalFeature src="/cosmos.png" alt="Controls an Code editor in Cosmos">
       <span slot="title">Intuitive Controls, Everywhere</span>
       <p slot="content">Play with sliders or code, your choice</p>
       <p slot="description">
@@ -117,7 +117,11 @@
         TypeScript to programmatically generate the key layout.
       </p>
     </HorizontalFeature>
-    <HorizontalFeature src="/cosmoboard.png" reversed>
+    <HorizontalFeature
+      src="/cosmoboard.png"
+      alt="Selection of keyboards configured in Cosmos"
+      reversed
+    >
       <span slot="title">The Galaxy is the Limit</span>
       <p slot="content">Design anything, as long as it's a keyboard</p>
       <p slot="description">
@@ -127,7 +131,7 @@
         like the ones on the left in under 5 minutes.
       </p>
     </HorizontalFeature>
-    <HorizontalFeature src="/cad.mp4">
+    <HorizontalFeature src="/cad.mp4" alt="Cosmos model viewed in OnShape CAD software">
       <span slot="title">Compatible With Your 3D Printer And Your CAD Software</span>
       <p slot="content">
         Generate high-quality STLs for printing or STEP files for further editing

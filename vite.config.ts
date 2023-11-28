@@ -25,7 +25,7 @@ export default defineConfig({
     }),
   ],
   ssr: {
-    noExternal: ['three'],
+    noExternal: ['three', '@popperjs/core'],
   },
   server: {
     fs: { allow: ['.'] },

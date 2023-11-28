@@ -1,45 +1,31 @@
-import keyAlps from '$assets/key-alps.step?url'
-import keyChoc from '$assets/key-choc.step?url'
-import keyCirque23 from '$assets/key-cirque-23mm.step?url'
-import keyCirque35 from '$assets/key-cirque-35mm.step?url'
-import keyCirque40 from '$assets/key-cirque-40mm.step?url'
-import keyEC11 from '$assets/key-ec11.step?url'
-import keyMxBetter from '$assets/key-mx-better.step?url'
-import keyMxPCB from '$assets/key-mx-pcb.step?url'
-import keyOLED128x32 from '$assets/key-oled-128x32-0.91in-adafruit.step?url'
-import trackballHolder from '$assets/trackball_holder.step?url'
 import { socketSize } from '$lib/geometry/socketsParts'
-import keyBoxHotswap from '$target/key-box-hotswap.step?url'
-import keyBox from '$target/key-box.step?url'
-import keyChocHotswap from '$target/key-choc-hotswap.step?url'
-import keyMxHotswap from '$target/key-mx-hotswap.step?url'
-import keyMx from '$target/key-mx.step?url'
-import keyMxSnapInHotswap from '$target/key-mxSnapIn-hotswap.step?url'
-import keyMxSnapIn from '$target/key-mxSnapIn.step?url'
 import { drawRoundedRectangle, importSTEP, makeBaseBox, type Solid } from 'replicad'
 import type { CuttleKey } from './config'
 import { makeAsyncCacher } from './modeling/cacher'
 import type Trsf from './modeling/transformation'
 
+const keyMxURL = '/target/key-mx.step'
+
+const keyUrls = import.meta.glob(['$target/*.step', '$assets/*.step'], { as: 'url', eager: true })
 const KEY_URLS = {
-  box: keyBox,
-  mx: keyMx,
-  'mx-original': keyMx,
-  'mx-snap-in': keyMxSnapIn,
-  alps: keyAlps,
-  choc: keyChoc,
-  'box-hotswap': keyBoxHotswap,
-  'mx-hotswap': keyMxHotswap,
-  'mx-snap-in-hotswap': keyMxSnapInHotswap,
-  'mx-better': keyMxBetter,
-  'mx-pcb': keyMxPCB,
-  'choc-hotswap': keyChocHotswap,
-  'trackball': trackballHolder,
-  'ec11': keyEC11,
-  'oled-128x32-0.91in-adafruit': keyOLED128x32,
-  'cirque-23mm': keyCirque23,
-  'cirque-35mm': keyCirque35,
-  'cirque-40mm': keyCirque40,
+  box: '/target/key-box.step',
+  mx: keyMxURL,
+  'mx-original': keyMxURL,
+  'mx-snap-in': '/target/key-mxSnapIn.step',
+  alps: '/src/assets/key-alps.step',
+  choc: '/src/assets/key-choc.step',
+  'box-hotswap': '/target/key-box-hotswap.step',
+  'mx-hotswap': '/target/key-mx-hotswap.step',
+  'mx-snap-in-hotswap': '/target/key-mxSnapIn-hotswap.step',
+  'mx-better': '/src/assets/key-mx-better.step',
+  'mx-pcb': '/src/assets/key-mx-pcb.step',
+  'choc-hotswap': '/target/key-choc-hotswap.step',
+  'trackball': '/src/assets/trackball_holder.step',
+  'ec11': '/src/assets/key-ec11.step',
+  'oled-128x32-0.91in-adafruit': '/src/assets/key-oled-128x32-0.91in-adafruit.step',
+  'cirque-23mm': '/src/assets/key-cirque-23mm.step',
+  'cirque-35mm': '/src/assets/key-cirque-35mm.step',
+  'cirque-40mm': '/src/assets/key-cirque-40mm.step',
   'blank': null,
 }
 
@@ -47,7 +33,8 @@ const keyCacher = makeAsyncCacher(async (key: CuttleKey) => {
   if (key.type == 'blank') return makeBaseBox(18.5, 18.5, 5).translateZ(-5)
   const url = KEY_URLS[key.type]
   if (!url) throw new Error(`No model for key ${key.type}`)
-  return await fetch(url).then(r => r.blob())
+  if (!keyUrls[url]) throw new Error(`Model for url ${url} does not exist`)
+  return await fetch(keyUrls[url]).then(r => r.blob())
     .then(r => importSTEP(r) as Promise<Solid>)
 })
 

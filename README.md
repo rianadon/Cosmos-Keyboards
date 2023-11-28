@@ -23,6 +23,7 @@ git clone https://github.com/rianadon/Cosmos-Keyboards
 cd Cosmos-Keyboards
 npm install
 mkdir target
+export OPENSCAD=/path/to/openscad
 make keycaps-simple # Generates keycaps used for collision detection.
 make keycaps # Generates geometry for all the keycaps. Take a while.
 make parts # Generates the mx switch geometry

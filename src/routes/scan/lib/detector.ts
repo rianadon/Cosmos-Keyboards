@@ -1,9 +1,9 @@
 // https://github.com/google/mediapipe/blob/master/docs/solutions/hands.md
 // https://github.com/tensorflow/tfjs-models/blob/master/hand-pose-detection/src/mediapipe/detector.ts
-import resPackedAssets from '$assets.data?url'
-import resAssetsLoader from '$assets_loader?url'
 import resLandmarks from '@mediapipe/hands/hand_landmark_full.tflite?url'
 import resBinarypbh from '@mediapipe/hands/hands.binarypb?url'
+import resPackedAssets from '@mediapipe/hands/hands_solution_packed_assets.data?url'
+import resAssetsLoader from '@mediapipe/hands/hands_solution_packed_assets_loader?url'
 import resSimdWasm from '@mediapipe/hands/hands_solution_simd_wasm_bin.wasm?url'
 import resSimdWasmJs from '@mediapipe/hands/hands_solution_simd_wasm_bin?url'
 

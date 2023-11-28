@@ -2,6 +2,7 @@
   import { base } from '$app/paths'
 
   export let src: string
+  export let alt: string
 
   let video: HTMLVideoElement
 
@@ -20,7 +21,7 @@
   {#if src}
     <div class="bg flex-0 w-64 h-64 p-10 md:w-96 md:h-96 md:p-16 m-[-1em]">
       {#if src.endsWith('png')}
-        <img class="rounded-4" src={base + src} />
+        <img class="rounded-4" src={base + src} {alt} />
       {:else}
         <video autoplay muted loop bind:this={video} class="rounded-6">
           <source src={base + src} />
