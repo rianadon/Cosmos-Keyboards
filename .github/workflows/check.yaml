@@ -2,6 +2,19 @@ name: Checks
 on: [push]
 
 jobs:
+  lint:
+    name: Ensure the code is formatted
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dprint
+        run: |
+          curl -fsSL https://dprint.dev/install.sh | sh
+          echo "$HOME/.dprint/bin" >> $GITHUB_PATH
+
+      - name: Check formatting
+        run: dprint check
   deploy-test:
     name: Verify the site can be deployed
     runs-on: ubuntu-latest
