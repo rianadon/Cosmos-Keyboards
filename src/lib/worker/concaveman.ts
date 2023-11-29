@@ -1,7 +1,14 @@
 /** Adapted from the source of mapbox/concaveman.
     Lisenced under the ISC License: https://github.com/mapbox/concaveman/blob/master/LICENSE.
 
-    Modified to take in a delaunay triangularization.
+    The code works similarly to concaveman at a high-level:
+    given a convex hull of a region, it collapses in this hull according to certain
+    heuristics of concavity. With Cosmos, there's an extra requirement that every time
+    the boundary is collapsed, it must not lead to intersecting walls (i.e. bad geometry).
+
+    While the concaveman library uses optimized distance checking to collapse walls,
+    Cosmos uses the delaunay triangularization since it's already been calculated
+    for creating the mesh inbetween keys.
 */
 
 import type { Cuttleform } from '$lib/worker/config'

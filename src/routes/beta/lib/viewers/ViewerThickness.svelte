@@ -12,7 +12,7 @@
   import type { Cuttleform, Geometry } from '$lib/worker/config'
   import Viewer from './Viewer.svelte'
   import { allKeyCriticalPoints, webThickness } from '$lib/worker/geometry'
-  import { thickness } from '../thickness'
+  import { thickness } from '$lib/worker/thickness'
 
   export let style: string = ''
   export let center: [number, number, number]

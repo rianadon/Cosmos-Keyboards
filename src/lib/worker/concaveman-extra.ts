@@ -1,5 +1,7 @@
 /**
  * Extra functions for refining meshes generated from my modified concaveman.
+ *
+ * This code performs the check for wall intersections.
  */
 
 import type { Cuttleform } from '$lib/worker/config'
@@ -7,17 +9,17 @@ import type { WallCriticalPoints } from '$lib/worker/geometry'
 import type Trsf from '$lib/worker/modeling/transformation'
 import { Vector3 } from 'three'
 
-function refineBoundary(c, Cuttleform, wallPts: WallCriticalPoints[]) {
-  let intersections: boolean[] = []
+// function refineBoundary(c, Cuttleform, wallPts: WallCriticalPoints[]) {
+//   let intersections: boolean[] = []
 
-  for (let i = 0; i < wallPts.length; i++) {
-    const wall = wallPts[i]
-    const prevWall = wallPts[(i - 1 + wallPts.length) % wallPts.length]
-    const nextWall = wallPts[(i + 1) % wallPts.length]
-    intersections.push(doWallsIntersect(c, prevWall, wall, nextWall))
-  }
-  return intersections
-}
+//   for (let i = 0; i < wallPts.length; i++) {
+//     const wall = wallPts[i]
+//     const prevWall = wallPts[(i - 1 + wallPts.length) % wallPts.length]
+//     const nextWall = wallPts[(i + 1) % wallPts.length]
+//     intersections.push(doWallsIntersect(c, prevWall, wall, nextWall))
+//   }
+//   return intersections
+// }
 
 function subtract(a: Trsf, b: Trsf): [number, number] {
   const ax = a.xyz()

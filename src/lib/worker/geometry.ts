@@ -7,7 +7,7 @@ import { wallBezier, wallCurveRounded, wallSurfacesInnerRoundedTop, wallSurfaces
 import cdt2d from 'cdt2d'
 import boundary from 'simplicial-complex-boundary'
 import { ExtrudeGeometry, Shape } from 'three'
-import concaveman from '../../routes/beta/lib/concaveman'
+import concaveman from './concaveman'
 import type { Cuttleform, CuttleKey, Geometry } from './config'
 import { PLATE_HEIGHT, screwInsertDimensions } from './model'
 import Trsf from './modeling/transformation'

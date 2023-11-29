@@ -15,7 +15,7 @@
   import { boundingSize, fromGeometry } from '$lib/loaders/geometry'
   import { estimateFilament, SUPPORTS_DENSITY } from './lib/filament'
   import * as flags from '$lib/flags'
-  import * as telemetry from './lib/telemetry'
+  import * as telemetry from '$lib/telemetry'
   import Performance from './lib/Performance.svelte'
 
   import UrlView from './lib/dialogs/URLView.svelte'

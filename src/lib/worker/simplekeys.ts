@@ -5,8 +5,6 @@ import { type BufferAttribute, BufferGeometry, Matrix4, Triangle, Vector3 } from
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader'
 import keys from '../../../target/keys-simple.json'
 
-const keyCache: Record<string, Triangle[]> = {}
-
 export class ITriangle extends Triangle {
   constructor(a: Vector3, b: Vector3, c: Vector3, public i: number) {
     super(a, b, c)
@@ -32,7 +30,7 @@ function simpleKeyName(name: string, position: Matrix4, index: number, travel: n
   if (name in keys) {
     // if (!(name in keyCache)) {
     const loader = new STLLoader()
-    const data = Uint8Array.from(window.atob(keys[name]), c => c.charCodeAt(0))
+    const data = Uint8Array.from(window.atob((keys as any)[name]), c => c.charCodeAt(0))
     const geo = loader.parse(data.buffer)
     const positions = geo.attributes.position as BufferAttribute
     const triangles: Triangle[] = []
