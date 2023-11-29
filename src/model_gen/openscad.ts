@@ -39,8 +39,8 @@ import {
   VectorExpr,
 } from 'openscad-parser'
 import { fileURLToPath } from 'url'
+import load from '../assets/openscad.wasm.js'
 import type { GroupOperation, Operation } from './modeling'
-import load from './openscad.wasm.js'
 
 class MyVisitor {
   visitModuleInstantiationStmt(n: ModuleInstantiationStmt): Operation {
@@ -222,7 +222,7 @@ export interface OpenSCAD extends EmscriptenModule {
   callMain(args: string[]): void
 }
 export async function loadOpenSCAD(): Promise<OpenSCAD> {
-  const wasm = fileURLToPath(new URL('openscad.wasm', import.meta.url))
+  const wasm = fileURLToPath(new URL('../assets/openscad.wasm', import.meta.url))
   const fileBuffer = await readFile(wasm)
 
   return new Promise((resolve) => {
