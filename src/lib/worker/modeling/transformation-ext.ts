@@ -12,7 +12,7 @@ import Trsf, { Vector } from './transformation'
  * It keeps a history of transformations so that it can be reversed into TypeScript code and supports
  * extra operations for ease-of-use.
  *
- * It is also unique in that it does not immediately compute any thing.
+ * It is also unique in that it does not immediately compute anything.
  * Instead, operations are placed into the history stack, which is later evaluated
  * when the transformation has the necessary context.
  *
@@ -182,7 +182,7 @@ function impl(trsf: Trsf, context: EvaluationContext, operation: Operation): Trs
     case 'multiply':
       return trsf.multiply(new ETrsf(operation.args[0].history).evaluate(context, trsf.cleared()))
     case 'transformBy':
-      return trsf.preMultiply(new ETrsf(operation.args[0].history).evaluate(context, trsf.cleared()))
+      return trsf.premultiply(new ETrsf(operation.args[0].history).evaluate(context, trsf.cleared()))
     case 'translateBy':
       return trsf.translate(new ETrsf(operation.args[0].history).evaluate(context, trsf.cleared()).xyz())
     case 'placeOnMatrix':

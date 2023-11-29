@@ -398,7 +398,7 @@ interface PlateParams {
 function makeNormalPlate(c: Cuttleform, geo: PlateParams) {
   const sketch = plateSketch(c, geo)
   const plate = sketch.extrude(-PLATE_HEIGHT) as Solid
-  const trsf = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).preTranslate(0, 0, geo.bottomZ)
+  const trsf = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).pretranslate(0, 0, geo.bottomZ)
   return trsf.transform(plate)
 }
 
@@ -406,7 +406,7 @@ function makeAccentPlate(c: Cuttleform, geo: Geometry) {
   const height = PLATE_HEIGHT
 
   const sketch = plateSketch(c, geo, ACCENT_WIDTH)
-  const trsf = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).preTranslate(0, 0, geo.bottomZ)
+  const trsf = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).pretranslate(0, 0, geo.bottomZ)
   const plateUpper = trsf.transform(sketch.clone().extrude(ACCENT_HEIGHT))
   const plateLower = trsf.transform(sketch.extrude(-height))
 
@@ -545,11 +545,11 @@ function tiltBotGeo(c: Cuttleform, geo: TiltGeometry): PlateParams {
 }
 
 function joinTiltPlatesLoft(c: Cuttleform, geo: TiltGeometry) {
-  const topTrsf = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).preTranslate(0, 0, geo.bottomZ)
+  const topTrsf = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).pretranslate(0, 0, geo.bottomZ)
   const topSketch = plateSketch(c, geo).wire
   const topSurface = topTrsf.transform(topSketch)
 
-  const bottomTrsf = new Trsf().preTranslate(0, 0, geo.floorZ)
+  const bottomTrsf = new Trsf().pretranslate(0, 0, geo.floorZ)
   const bottomSketch = plateSketch(c, {
     worldX: new Vector(1, 0, 0),
     worldY: new Vector(0, 1, 0),
@@ -565,7 +565,7 @@ function joinTiltPlatesLoft(c: Cuttleform, geo: TiltGeometry) {
 function joinTiltPlates(c: Cuttleform, geo: TiltGeometry) {
   if (c.shell.type !== 'tilt') throw new Error('oops')
 
-  const topTranslation = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).preTranslate(0, 0, -PLATE_HEIGHT).xyz()
+  const topTranslation = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).pretranslate(0, 0, -PLATE_HEIGHT).xyz()
   const topBoundary = wallBoundaryBeziers(c, geo).map(c => c.map(t => t.translated(topTranslation))) as Curve[]
   const topBoundaryInner = wallBoundaryBeziers(c, geo, 'bi').map(c => c.map(t => t.translated(topTranslation))) as Curve[]
 
@@ -890,7 +890,7 @@ export function boardHolder(c: Cuttleform, geo: Geometry): Solid {
   const connOrigin = geo.connectorOrigin
 
   const connOriginInv = geo.connectorOrigin.inverted()
-  const boardPos = mapObj(boardPosWorld, t => t.preMultiplied(connOriginInv))
+  const boardPos = mapObj(boardPosWorld, t => t.premultiplied(connOriginInv))
 
   let rect = microControllerRectangles(c, connOrigin, boardPosWorld)
     .map(r => drawRectangleByBounds(...r))

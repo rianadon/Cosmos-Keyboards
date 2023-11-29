@@ -7,13 +7,13 @@ export function makeCacher<A, B, C>(fn: (a: A, b: B, c: C) => Solid): (key: stri
 export function makeCacher(fn: any): (...args: any) => Solid {
   const cache: Map<string, Solid> = new Map()
   return (key: string, pos: Trsf | null, ...args: any) => {
-    if (!cache[key]) cache.set(key, fn(...args))
+    if (!cache.has(key)) cache.set(key, fn(...args))
     if (!pos) return cache.get(key)!
     try {
       return pos.transform(cache.get(key)!)
     } catch (e) {
       console.warn('Remaking cached ' + key)
-      cache[key] = fn(...args)
+      cache.set(key, fn(...args))
       return pos.transform(cache.get(key)!)
     }
   }

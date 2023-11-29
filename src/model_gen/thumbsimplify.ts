@@ -102,7 +102,7 @@ function main(th: CuttleKey[], filter = (k: CuttleKey) => true, flatten = false)
   }
 
   for (let i = 0; i < th.length; i++) {
-    const relativeTrsf = th[i].position.evaluate({ flat: false }, new Trsf()).preMultiplied(Rinv) as Trsf
+    const relativeTrsf = th[i].position.evaluate({ flat: false }, new Trsf()).premultiplied(Rinv) as Trsf
     const transform = relativeTrsf.xyz()
     let rotation = trsfToRPY(relativeTrsf)
     if (flatten) {

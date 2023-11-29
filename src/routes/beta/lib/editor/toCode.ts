@@ -4,7 +4,7 @@ import ETrsf, { stringifyObj } from '$lib/worker/modeling/transformation-ext'
 const INDENT = 2
 
 /** A custom implementation of JSON.stringify that deals with special constructs. */
-export function jsonToCode(o: object, level = 0) {
+export function jsonToCode(o: object, level = 0): string {
   if (Array.isArray(o)) {
     if (typeof o[0] != 'object') return '[' + o.map(a => jsonToCode(a, level + 1)).join(', ') + ']'
     return '[\n' + o.map(a => ' '.repeat(INDENT * (level + 1)) + jsonToCode(a, level + 1)).join(',\n') + '\n' + ' '.repeat(INDENT * level)

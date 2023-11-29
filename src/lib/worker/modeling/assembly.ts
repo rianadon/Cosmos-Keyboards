@@ -2,6 +2,7 @@ import type { Handle_TDocStd_Document, OpenCascadeInstance, STEPControl_StepMode
 import { type AnyShape, Compound, getOC, type Plane, type PlaneName, type Point } from 'replicad'
 import { combine } from '.'
 
+/** Builds named assemblies for use in STEP models. */
 export class Assembly {
   private oc: OpenCascadeInstance
   private parts: { name: string; shape: AnyShape }[] = []
@@ -10,10 +11,12 @@ export class Assembly {
     this.oc = getOC()
   }
 
+  /** Add a part with the given name. */
   add(name: string, shape: AnyShape): void {
     this.parts.push({ name, shape })
   }
 
+  /** Mirror the whole assembly. */
   mirror(inputPlane: Plane | PlaneName | Point, origin: Point): Assembly {
     const assembly = new Assembly()
     for (const { name, shape } of this.parts) {
@@ -22,6 +25,10 @@ export class Assembly {
     return assembly
   }
 
+  /**
+   * Return an XDE document representing the assembly.
+   * XDE is the structure OpenCascade uses for storing metadata in the assembly.
+   */
   XDE(): Handle_TDocStd_Document {
     const document = new this.oc.TDocStd_Document(new this.oc.TCollection_ExtendedString_1())
     const shapeTool = this.oc.XCAFDoc_DocumentTool.ShapeTool(document.Main()).get()
@@ -35,14 +42,17 @@ export class Assembly {
     return new this.oc.Handle_TDocStd_Document_2(document)
   }
 
+  /** Turn the assembly into a compound shape. */
   compound(): Compound {
     return combine(this.parts.map(p => p.shape))
   }
 
+  /** Return an STL file of this assembly as a blob. */
   blobSTL(opts?: { tolerance?: number; angularTolerance?: number }): Blob {
     return this.compound().blobSTL(opts)
   }
 
+  /** Return a STEP file of this assembly as a blob. */
   blobSTEP(): Blob {
     const filename = 'blob.step'
     const writer = new this.oc.STEPCAFControl_Writer_1()

@@ -4,33 +4,23 @@
     cuttleConf,
     thumbOrigin,
     type CuttleformProto,
-    type CuttleformThree,
     thumbs,
     matrixToConfig,
     MAP_SCREW_SIZE,
     MAP_SCREW_TYPE,
     screwHeight,
+    type Cuttleform,
+    type Geometry,
   } from '$lib/worker/config'
   import { checkConfig } from '$lib/worker/check'
-  import {
-    allKeyCriticalPoints,
-    allScrewIndices,
-    allWallCriticalPoints,
-    boardIndices,
-    keyHolesTrsfs,
-    screwIndices,
-  } from '$lib/worker/geometry'
   import Section from './Section.svelte'
   import DecimalInput from './DecimalInput.svelte'
   import AngleInput from './AngleInput.svelte'
   import Field from './Field.svelte'
   import manuform from '$assets/manuform.json'
   import Preset from '$lib/presentation/Preset.svelte'
-  import Icon from '$lib/presentation/Icon.svelte'
-  import * as mdi from '@mdi/js'
   import InfoBox from '$lib/presentation/InfoBox.svelte'
   import { TupleStore } from './tuple'
-  import type { Geometry } from '$lib/worker/cachedGeometry'
 
   import { createEventDispatcher } from 'svelte'
   import {
@@ -43,14 +33,12 @@
   } from '$target/proto/cuttleform'
   import { clickedKey, hoveredKey, protoConfig } from '$lib/store'
   import Trsf from '$lib/worker/modeling/transformation'
-  import { Euler, Matrix4, Vector3 } from 'three'
   import { writable } from 'svelte/store'
-  import { keyPosition } from '$lib/worker/modeling/transformation-ext'
   import defaults from '$assets/cuttleform.json'
   import { hasPro } from '@pro'
 
   export let cuttleformConf: CuttleformProto
-  export let conf: CuttleformThree
+  export let conf: Cuttleform
   export let geometry: Geometry
   export let basic: boolean
 
@@ -114,6 +102,7 @@
         oneofKind: 'defaultThumb',
         defaultThumb: {
           thumbCount: Cuttleform_DefaultThumb_KEY_COUNT.SIX,
+          encoder: false,
         },
       }
     else if (type == 'curved')
@@ -125,6 +114,7 @@
           columnCurve: 0,
           horizontalSpacing: 200,
           verticalSpacing: 200,
+          encoder: false,
         },
       }
     else if (type == 'orbyl')
@@ -170,9 +160,7 @@
         },
       }
     } else {
-      cuttleformConf.thumbCluster = {
-        oneofKind: type + 'Thumb',
-      }
+      throw new Error('unknown thumb type')
     }
   }
 

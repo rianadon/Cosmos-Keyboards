@@ -265,7 +265,7 @@ export function wallCriticalPoints(
     const dy = pt.trsf.axis(0, 0, c.wallShrouding).xyz()
     const si = ti.pretranslated(0.5, 0, 0)
     const sm = ti.pretranslated(0.5, 0, 0).translate(dy)
-    to.preTranslate(0, 0, c.wallShrouding)
+    to.pretranslate(0, 0, c.wallShrouding)
 
     // Move mo up a little. This helps
     // mo = to.pretranslated(xOut, 0, -zOut - c.wallShrouding)
@@ -366,7 +366,7 @@ export function blockWallCriticalPoints(
     const dy = pt.trsf.axis(0, 0, c.wallShrouding).xyz()
     const si = ti.pretranslated(0.5, 0, 0)
     const sm = ti.pretranslated(0.5, 0, 0).translate(dy)
-    to.preTranslate(0, 0, c.wallShrouding)
+    to.pretranslate(0, 0, c.wallShrouding)
 
     // Move mo up a little. This helps
     // mo = to.pretranslated(xOut, 0, -zOut - c.wallShrouding)
@@ -451,7 +451,7 @@ export function oldblockWallCriticalPoints(
     const dy = pt.trsf.axis(0, 0, c.wallShrouding).xyz()
     const si = ti.pretranslated(0.5, 0, 0)
     const sm = ti.pretranslated(0.5, 0, 0).translate(dy)
-    to.preTranslate(0, 0, c.wallShrouding)
+    to.pretranslate(0, 0, c.wallShrouding)
 
     // Move mo up a little. This helps
     // mo = to.pretranslated(xOut, 0, -zOut - c.wallShrouding)
@@ -695,7 +695,7 @@ export function applyKeyAdjustment(k: CuttleKey, t: Trsf) {
     .translate(0, 0, -keyInfo(k).depth - switchInfo(k.type).height)
     .rotate(deg, [0, 0, 0], [1, 0, 0])
     .translate(0, 0, KEY_BASE)
-    .preMultiply(t)
+    .premultiply(t)
 }
 
 function keyHoleTrsf(c: Cuttleform, k: CuttleKey, t: Trsf): Trsf {
@@ -1943,7 +1943,7 @@ export function movePointBox(point: ComponentPoint, test: ComponentBox[]) {
 
 export function microControllerRectangles(c: Cuttleform, connOrigin: Trsf, boardPosWorld: Record<string, Trsf>): [number, number, number, number][] {
   const connOriginInv = connOrigin.inverted()
-  const boardPos = mapObj(boardPosWorld, t => t.preMultiplied(connOriginInv))
+  const boardPos = mapObj(boardPosWorld, t => t.premultiplied(connOriginInv))
 
   const hBounds = localHolderBounds(c, false)
   const rects: [number, number, number, number][] = [

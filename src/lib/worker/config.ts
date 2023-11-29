@@ -659,8 +659,8 @@ export function fingers(c: DeepRequired<CuttleformProto>): CuttleKey[] {
   const stag = c.stagger
   // I need to remind myself that premultiply and translate apply their transformations last
   // While multiply and pretranslate go first.
-  const spreadOriginsBot = normalKeys.map(col => col.length > 0 ? keyPosition(col[col.length - 1], false).preTranslate(8.75, -8.75, 0).preMultiply(keyPlaneInv) : null)
-  const spreadOriginsTop = normalKeys.map(col => col.length > 0 ? keyPosition(col[0], false).preTranslate(8.75, 8.75, 0).preMultiply(keyPlaneInv) : null)
+  const spreadOriginsBot = normalKeys.map(col => col.length > 0 ? keyPosition(col[col.length - 1], false).pretranslate(8.75, -8.75, 0).premultiply(keyPlaneInv) : null)
+  const spreadOriginsTop = normalKeys.map(col => col.length > 0 ? keyPosition(col[0], false).pretranslate(8.75, 8.75, 0).premultiply(keyPlaneInv) : null)
   const spreadAngles = [stag.staggerInnerIndex, stag.staggerIndex, stag.staggerMiddle, stag.staggerRing, stag.staggerPinky].map(s => decodeTuple(s)[3] / 45)
   console.log(spreadAngles)
   normalKeys.forEach((col, i) => {

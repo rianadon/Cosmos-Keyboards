@@ -91,7 +91,7 @@
           .rotate(tupleToRot(plane.rotation).beta, [0, 0, 0], [0, 1, 0])
           .rotate(tupleToRot(plane.rotation).gamma, [0, 0, 0], [0, 0, 1])
           .translate(tupleToXYZ(plane.position))
-          .preMultiply(
+          .premultiply(
             thumbOrigin($protoConfig, true).evaluate({ flat: false }, new Trsf()) as Trsf
           )
           .translate(0, 0, addHeight)

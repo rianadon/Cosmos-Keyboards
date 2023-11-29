@@ -73,9 +73,9 @@ export default class Trsf {
     return new Trsf(t.multiply(this.wrapped))
   }
 
-  preTranslate(xDist: number, yDist: number, zDist: number): Trsf
-  preTranslate(vector: Point): Trsf
-  preTranslate(...args: any[]) {
+  pretranslate(xDist: number, yDist: number, zDist: number): Trsf
+  pretranslate(vector: Point): Trsf
+  pretranslate(...args: any[]) {
     const t = new Matrix4()
     if (args.length == 1) t.makeTranslation(args[0][0], args[0][1], args[0][2])
     if (args.length == 3) t.makeTranslation(args[0], args[1], args[2])
@@ -130,14 +130,14 @@ export default class Trsf {
     return this
   }
 
-  preMultiply(t: Trsf) {
+  premultiply(t: Trsf) {
     this.wrapped = this.wrapped.premultiply(t.wrapped)
     this._vertex = null
     this._point = null
     return this
   }
 
-  preMultiplied(t: Trsf) {
+  premultiplied(t: Trsf) {
     return new Trsf(new Matrix4().multiplyMatrices(t.wrapped, this.wrapped))
   }
 
