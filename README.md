@@ -16,14 +16,17 @@ Most generator code lives at [`src/lib`] and[`src/routes/beta`]. Some files used
 [`src/routes/beta`]: https://github.com/rianadon/Cosmos-Keyboards/tree/main/src/routes/beta
 [`src/model_gen`]: https://github.com/rianadon/Cosmos-Keyboards/tree/main/src/model_gen
 
-To run the generator locally:
+To run the generator locally, you'll need to [clone] the repository and [have installed Node.js][nodejs] and [OpenSCAD]. Then run these commands on the command line:
+
+[clone]: https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository
+[nodejs]: https://nodejs.org/en/learn/getting-started/how-to-install-nodejs
+[OpenSCAD]: https://openscad.org/downloads.html
 
 ```bash
-git clone https://github.com/rianadon/Cosmos-Keyboards
 cd Cosmos-Keyboards
 npm install
 mkdir target
-export OPENSCAD=/path/to/openscad
+export OPENSCAD=/path/to/openscad # should end in .exe on Windows
 make keycaps-simple # Generates keycaps used for collision detection.
 make keycaps # Generates geometry for all the keycaps. Take a while.
 make parts # Generates the mx switch geometry
