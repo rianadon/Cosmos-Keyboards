@@ -22,7 +22,7 @@ export const PART_NAMES: Record<CuttleKey['type'], string> = {
 }
 
 export function socketSize(key: CuttleKey): Vector {
-  if (key.type == 'blank') return new Vector(18.5, 18.5, 5)
+  if (key.type == 'blank') return new Vector(key.size?.width ?? 18.5, key.size?.height ?? 18.5, 5)
   if (key.type == 'mx-pcb') return new Vector(19.2, 19.2, 4.7)
   if (key.type == 'mx-better') return new Vector(18, 18, 4.7)
   if (key.type == 'choc') return new Vector(18, 18, 2.2)

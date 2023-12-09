@@ -145,18 +145,45 @@ interface CuttleKeycapKey extends CuttleBaseKey {
 }
 
 interface CuttleBasicKey extends CuttleBaseKey {
-  type: 'blank' | 'ec11' | 'oled-128x32-0.91in-adafruit'
+  type: 'ec11' | 'oled-128x32-0.91in-adafruit'
 }
 
+interface CuttleBlankKey extends CuttleBaseKey {
+  type: 'blank'
+  keycap?: Keycap
+  size: { width: number; height: number }
+}
+
+type RoundSize = { radius: number; sides: number }
 interface CuttleTrackballKey extends CuttleBaseKey {
-  type: 'trackball' | 'cirque-23mm' | 'cirque-35mm' | 'cirque-40mm'
-  trackball: {
-    radius: number
-    sides: number
+  type: 'trackball'
+  size: RoundSize
+}
+
+interface CuttleTrackpadKey extends CuttleBaseKey {
+  type: 'cirque-23mm' | 'cirque-35mm' | 'cirque-40mm'
+  size: { sides: number }
+}
+
+export type CuttleKey = CuttleKeycapKey | CuttleBasicKey | CuttleTrackballKey | CuttleTrackpadKey | CuttleBlankKey
+
+export function keyRoundSize(key: CuttleKey): RoundSize | undefined {
+  switch (key.type) {
+    case 'trackball':
+      // @ts-ignore: for backwards compatibility.
+      return key.size ?? key.trackball
+    case 'cirque-23mm':
+    case 'cirque-35mm':
+    case 'cirque-40mm':
+      return {
+        // @ts-ignore: for backwards compatibility.
+        sides: key.size?.sides ?? key.trackball.sides,
+        radius: cirqueRadius(key.type),
+      }
+    default:
+      return undefined
   }
 }
-
-export type CuttleKey = CuttleKeycapKey | CuttleBasicKey | CuttleTrackballKey
 
 export const MAP_SCREW_SIZE: Record<SCREW_SIZE, Cuttleform['screwSize']> = {
   [SCREW_SIZE.M3]: 'M3',
@@ -563,10 +590,7 @@ export function fingers(c: DeepRequired<CuttleformProto>): CuttleKey[] {
       type: 'cirque-23mm',
       aspect: 1,
       cluster: 'fingers',
-      trackball: {
-        radius: cirqueRadius('cirque-23mm'),
-        sides: 20,
-      },
+      size: { sides: 20 },
       position: new ETrsf().placeOnMatrix(mergedCurvature(c, false, {
         column: -1 - centerCol,
         row: 2.2 - centerRow,
@@ -578,10 +602,7 @@ export function fingers(c: DeepRequired<CuttleformProto>): CuttleKey[] {
       type: 'cirque-35mm',
       aspect: 1,
       cluster: 'fingers',
-      trackball: {
-        radius: cirqueRadius('cirque-35mm'),
-        sides: 20,
-      },
+      size: { sides: 20 },
       position: new ETrsf().placeOnMatrix(mergedCurvature(c, false, {
         column: -1 - centerCol,
         row: 2.5 - centerRow,
@@ -593,10 +614,7 @@ export function fingers(c: DeepRequired<CuttleformProto>): CuttleKey[] {
       type: 'cirque-40mm',
       aspect: 1,
       cluster: 'fingers',
-      trackball: {
-        radius: cirqueRadius('cirque-40mm'),
-        sides: 20,
-      },
+      size: { sides: 20 },
       position: new ETrsf().placeOnMatrix(mergedCurvature(c, false, {
         column: -1 - centerCol,
         row: 2.2 - centerRow,
@@ -632,19 +650,21 @@ export function fingers(c: DeepRequired<CuttleformProto>): CuttleKey[] {
       [LAST_ROW.TWO]: row != lastRow || [2, 3].includes(column),
       [LAST_ROW.FULL]: row != lastRow || ![0, 1].includes(column),
     }, true))(
-      (column, row) => ({
-        type: (c.upperKeys.lastRow == LAST_ROW.FULL && c.upperKeys.hideLastPinky
-            && row == lastRow && column == lastCol)
-          ? 'blank'
-          : switchType(c),
-        keycap: keycapInfo(c, row2Row(row), column),
-        aspect: usesWidePinky(column, row) ? pinkySize : 1,
-        cluster: 'fingers',
-        position: new ETrsf().placeOnMatrix(mergedCurvature(c, column >= 4, {
-          column: column - centerCol + (usesWidePinky(column, row) ? (pinkySize - 1) / 2 : 0),
-          row: row - centerRow,
-        })).translate(dmColumnOffset(column)).transformBy(keyPlane),
-      }),
+      (column, row) => {
+        const isBlank = c.upperKeys.lastRow == LAST_ROW.FULL && c.upperKeys.hideLastPinky
+          && row == lastRow && column == lastCol
+        return {
+          type: isBlank ? 'blank' : switchType(c),
+          keycap: keycapInfo(c, row2Row(row), column),
+          aspect: usesWidePinky(column, row) ? pinkySize : 1,
+          size: isBlank ? { width: 18.5, height: 18.5 } : undefined,
+          cluster: 'fingers',
+          position: new ETrsf().placeOnMatrix(mergedCurvature(c, column >= 4, {
+            column: column - centerCol + (usesWidePinky(column, row) ? (pinkySize - 1) / 2 : 0),
+            row: row - centerRow,
+          })).translate(dmColumnOffset(column)).transformBy(keyPlane),
+        } as CuttleKey
+      },
     )
 
   // Compute finger splay after all the keys have been laid out with stagger etc.
@@ -848,17 +868,14 @@ function customThumbs(keyType: KeyType, capType: CapType, custom: Cuttleform_Cus
       return {
         ...newKey,
         type: customType,
-        trackball: {
-          radius: cirqueRadius(customType),
-          sides: k.trackballSides,
-        },
-      } as CuttleTrackballKey
+        size: { sides: k.trackballSides },
+      } as CuttleTrackpadKey
     }
     if (k.trackballRadius && k.trackballSides) {
       return {
         ...newKey,
         type: 'trackball',
-        trackball: {
+        size: {
           radius: k.trackballRadius / 10,
           sides: k.trackballSides,
         },
@@ -1254,7 +1271,7 @@ export function orbylThumbs(keyType: KeyType, capType: CapType, opts: Cuttleform
     type: 'trackball',
     aspect: 1,
     cluster: 'thumbs',
-    trackball: {
+    size: {
       radius: 20.9,
       sides: 20,
     },
@@ -1277,17 +1294,18 @@ export function matrixToConfig(m: Matrix4, key: CuttleKey | undefined = undefine
   const aspect = key?.aspect || 1
   const keyType = key ? TYPE_TO_ID[key.type] : 0
 
+  const roundSize = key ? keyRoundSize(key) : undefined
   return {
     position: encodeTuple([Math.round(translation.x * 10), Math.round(translation.y * 10), Math.round(translation.z * 10), keyType]),
     rotation: encodeTuple([Math.round(rpy[0] * 45), Math.round(rpy[1] * 45), Math.round(rpy[2] * 45), Math.round((aspect < 1 ? -1 / aspect : aspect) * 100)]),
-    trackballRadius: key?.type == 'trackball' ? Math.round(key.trackball.radius * 10) : undefined,
+    trackballRadius: key?.type == 'trackball' ? Math.round(roundSize!.radius * 10) : undefined,
     /* @ts-ignore */
-    trackballSides: key?.type && (key.type == 'trackball' || key.type.startsWith('cirque')) ? key.trackball.sides : undefined,
+    trackballSides: roundSize?.sides,
   }
 }
 
 export function findKeyByAttr(config: Cuttleform, attr: 'home' | 'letter', value: string) {
-  return config.keys.find(k => 'keycap' in k && k.keycap[attr] == value)
+  return config.keys.find(k => 'keycap' in k && k.keycap && k.keycap[attr] == value)
 }
 
 function cirqueRadius(type: string) {

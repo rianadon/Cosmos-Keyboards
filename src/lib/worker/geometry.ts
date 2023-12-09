@@ -8,7 +8,7 @@ import cdt2d from 'cdt2d'
 import boundary from 'simplicial-complex-boundary'
 import { ExtrudeGeometry, Shape } from 'three'
 import concaveman from './concaveman'
-import type { Cuttleform, CuttleKey, Geometry } from './config'
+import { type Cuttleform, type CuttleKey, type Geometry, keyRoundSize } from './config'
 import { PLATE_HEIGHT, screwInsertDimensions } from './model'
 import Trsf from './modeling/transformation'
 import { Vector } from './modeling/transformation'
@@ -97,10 +97,11 @@ export function offsetBisector(p1: Trsf, p2: Trsf, p3: Trsf, offset: number, z: 
 }
 
 export function keyCriticalPoints(c: Cuttleform, key: CuttleKey, hole: Trsf): CriticalPoints {
-  if ('trackball' in key) {
+  const roundSize = keyRoundSize(key)
+  if (roundSize) {
     const pts: Trsf[] = []
-    const r = key.trackball.radius
-    const sides = key.trackball.sides
+    const r = roundSize.radius
+    const sides = roundSize.sides
     for (let j = 0; j < sides; j++) {
       pts.push(hole.pretranslated(r * Math.cos(2 * Math.PI / sides * j), r * Math.sin(2 * Math.PI / sides * j), 0))
     }

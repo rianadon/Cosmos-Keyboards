@@ -30,7 +30,7 @@ const KEY_URLS = {
 }
 
 const keyCacher = makeAsyncCacher(async (key: CuttleKey) => {
-  if (key.type == 'blank') return makeBaseBox(18.5, 18.5, 5).translateZ(-5)
+  if (key.type == 'blank') return makeBaseBox(key.size?.width ?? 18.5, key.size?.height ?? 18.5, 5).translateZ(-5)
   const url = KEY_URLS[key.type]
   if (!url) throw new Error(`No model for key ${key.type}`)
   if (!keyUrls[url]) throw new Error(`Model for url ${url} does not exist`)
@@ -39,7 +39,9 @@ const keyCacher = makeAsyncCacher(async (key: CuttleKey) => {
 })
 
 const extendedKeyCacher = makeAsyncCacher(async (key: CuttleKey) => {
-  return extendPlate(await keyCacher(key.type, null, key), key)
+  let cacheKey = key.type
+  if (key.type == 'blank') cacheKey += `-${key.size?.width}x${key.size?.height}`
+  return extendPlate(await keyCacher(cacheKey, null, key), key)
 })
 
 function extendPlate(plate: Solid, key: CuttleKey) {
@@ -57,6 +59,7 @@ function extendPlate(plate: Solid, key: CuttleKey) {
 }
 
 export function keyHole(key: CuttleKey, trsf: Trsf) {
-  const cacheKey = key.type + ':' + key.aspect
+  let cacheKey = key.type + ':' + key.aspect
+  if (key.type == 'blank') cacheKey += `-${key.size?.width}x${key.size?.height}`
   return extendedKeyCacher(cacheKey, trsf, key)
 }
