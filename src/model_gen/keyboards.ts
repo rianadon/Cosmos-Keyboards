@@ -1,7 +1,8 @@
 import { type Cuttleform, type CuttleKey, orbylThumbs } from '$lib/worker/config'
 import ETrsf from '$lib/worker/modeling/transformation-ext'
 import { for2, range } from '$lib/worker/util'
-import { type Part, render, renderMulti, type RenderOptions, setup } from './node-model'
+import { type Part, setup } from './node-model'
+import { render, renderMulti, type RenderOptions } from './node-render'
 import { PromisePool } from './promisePool'
 
 const COLOR = 'purple'

@@ -3,7 +3,8 @@ import { cuttleConf, type CuttleformProto } from '$lib/worker/config'
 
 import { fromGeometry } from '$lib/loaders/geometry'
 import { CONNECTOR, KEYCAP, SWITCH } from '../../target/proto/cuttleform'
-import { generate, render, setup } from './node-model'
+import { generate, setup } from './node-model'
+import { render } from './node-render'
 
 function getCuttleform(): CuttleformProto {
   return JSON.parse(JSON.stringify(cuttleform.options))

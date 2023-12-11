@@ -6,7 +6,8 @@ import { fromGeometry } from '$lib/loaders/geometry'
 import ETrsf from '$lib/worker/modeling/transformation-ext'
 import type { Color } from 'sharp'
 import { CONNECTOR, KEYCAP, SWITCH } from '../../target/proto/cuttleform'
-import { generate, modelZoom, render, setup } from './node-model'
+import { generate, setup } from './node-model'
+import { modelZoom, render } from './node-render'
 
 const BACKGROUND: Color = { r: 15, g: 23, b: 42 }
 
