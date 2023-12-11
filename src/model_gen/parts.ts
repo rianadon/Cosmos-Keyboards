@@ -1,5 +1,4 @@
 import { fromGeometry } from '$lib/loaders/geometry'
-import { exportGLTF } from '$lib/loaders/gltfExport'
 import { KEY_URLS } from '$lib/worker/socketsLoader'
 import { readFile } from 'fs/promises'
 import { join } from 'path'
@@ -7,6 +6,7 @@ import { importSTEP, makeBaseBox } from 'replicad'
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader'
 import { fileURLToPath } from 'url'
 import { PART_NAMES } from '../lib/geometry/socketsParts'
+import { exportGLTF } from './exportGLTF'
 import { setup } from './node-model'
 
 const assetsDir = fileURLToPath(new URL('../assets', import.meta.url))

@@ -25,7 +25,7 @@
   const socketPromise = browser ? loadGLTF('/target/socket-' + part + '.glb') : NULL
   const path = KEY_URLS[part]
   const source = path.startsWith('/src/assets')
-    ? `https://github.com/rianadon/Cosmos-Keyboards/tree/rest-of-site${path}`
+    ? `https://github.com/rianadon/Cosmos-Keyboards/tree/main${path}`
     : null
 
   const size = socketSize({ type: part } as any)

@@ -5,7 +5,6 @@
   import * as THREE from 'three'
   import type { WorkerPool } from './workerPool'
   import { newGeometry, type Cuttleform } from '$lib/worker/config'
-  import { newDoc, toGLTF } from '$lib/loaders/gltfExport'
   import { fromGeometry } from '$lib/loaders/geometry'
   import { WebIO } from '@gltf-transform/core'
   import { download } from './browser'

@@ -5,7 +5,7 @@ import { join } from 'path'
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader'
 import { fileURLToPath } from 'url'
 import { promisify } from 'util'
-import exportGLTF from './exportGLTF'
+import { exportGLTF } from './exportGLTF'
 import { PromisePool } from './promisePool'
 
 const targetDir = fileURLToPath(new URL('../../target', import.meta.url))

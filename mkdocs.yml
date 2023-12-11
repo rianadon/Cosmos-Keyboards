@@ -25,6 +25,7 @@ plugins:
   - search
   - awesome-pages
   - blog:
+      post_url_format: "{slug}"
       archive: false
       categories: false
       authors: false
