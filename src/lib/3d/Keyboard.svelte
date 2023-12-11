@@ -84,7 +84,7 @@
 
   function offsetHeight(k: CuttleKey) {
     const switchHeight = switchInfo(k.type).height
-    return k.type == 'trackball' ? -2.5 : switchHeight
+    return k.type == 'trackball' ? -4 : switchHeight
   }
 </script>
 

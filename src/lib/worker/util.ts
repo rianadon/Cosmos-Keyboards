@@ -57,3 +57,7 @@ export function sum(n: number[]) {
 export function reverseMap<A extends string | number, B extends string | number>(m: Record<A, B>): Record<B, A> {
   return Object.fromEntries(Object.entries(m).map(([a, b]) => [b, a]))
 }
+
+export function notNull<E>(a: E[]): Exclude<E, undefined | null>[] {
+  return a.filter(e => !!e) as Exclude<E, undefined | null>[]
+}

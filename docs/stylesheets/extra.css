@@ -1,0 +1,110 @@
+/* Change the color scheme */
+[data-md-color-scheme="default"] {
+    --md-primary-fg-color: #e84aed;
+    --md-primary-fg-color--light: var(--md-primary-fg-color);
+    --md-primary-fg-color--dark: var(--md-primary-fg-color);
+
+    /* Needed to meet AA guidelines for text */
+    --md-typeset-a-color: #cb15d1;
+
+    --md-footer-bg-color: #F3F4F6;
+    --md-footer-bg-color--dark: var(--md-footer-bg-color);
+    --md-footer-bg-color--light: var(--md-footer-bg-color);
+
+    --md-footer-fg-color: #71717A;
+    --md-footer-fg-color--dark: var(--md-footer-fg-color);
+    --md-footer-fg-color--light: var(--md-footer-fg-color);
+    --md-footer-fg-color--lighter: var(--md-footer-fg-color);
+}
+
+.md-typeset a:focus, .md-typeset a:hover {
+    /* Increase contrast for AA */
+    color: #018573;
+}
+
+/* Give all images a border-radius */
+img {
+    border-radius: 0.2rem;
+}
+
+/* Image Utilities */
+.center {
+    display: block;
+    margin: 0 auto;
+}
+
+/* For auto-generated images that need extra padding */
+.pad {
+    padding: 1rem 2rem;
+}
+
+/* Add extra padding + border radius for header images in posts */
+img.header {
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+.md-post--excerpt img.header {
+    margin-bottom: 0;
+}
+
+/* Change admonition colors */
+.md-typeset .admonition.info,
+.md-typeset details.info {
+    border-color: #00bfa5;
+}
+.md-typeset .info > .admonition-title,
+.md-typeset .info > summary {
+    background-color: rgba(0, 191, 165, 0.1);
+}
+.md-typeset .info > .admonition-title::before,
+.md-typeset .info > summary::before {
+    background-color: #00bfa5;
+}
+
+/* Styles copied from Dactyl configurator */
+.callout {
+    background-image: url(https://ryanis.cool/dactyl/stars.png),linear-gradient(to right,#f3e8ff, #ccfbf1);
+    background-repeat: repeat,no-repeat;
+    background-size: auto 100%,auto auto;
+    background-position: center,0% 0%;
+    padding: .5rem;
+    justify-content: space-between;
+    align-items: center;
+    display: flex;
+    position: relative;
+    margin-top: 1rem;
+    border-radius: 0.2rem;
+}
+.callout>.content {
+    mix-blend-mode: luminosity;
+    padding-top: .5rem;
+    padding-bottom: .5rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    background-color: #eaecfccc;
+    border-radius: .25rem;
+}
+
+.callout>.button {
+    transition-property: box-shadow;
+    transition-timing-function: cubic-bezier(.4,0,.2,1);
+    transition-duration: .15s;
+    color: #fff;
+    font-weight: 600;
+    padding-top: .5rem;
+    padding-bottom: .5rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    --gradient-stops: #3c0d61, #374151;
+    background-image: linear-gradient(to bottom right,var(--gradient-stops));
+    border-radius: .25rem;
+    flex: none;
+    margin-right: 1rem;
+    text-decoration: inherit;
+}
+
+.callout>.button:hover {
+    color: #fff;
+    box-shadow: 0 4px 6px -1px rgb(19 78 74 / .3), 0 2px 4px -2px rgb(19 78 74 / .3);
+    --gradient-stops: #7e22ce, #115e59;
+}

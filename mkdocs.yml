@@ -1,0 +1,55 @@
+site_name: Cosmos Keyboard Generator
+site_dir: target/mkdocs
+site_url: https://ryanis.cool/cosmos/
+site_description: Design a keyboard that fits your hand perfectly.
+repo_name: rianadon/Cosmos-Keyboards
+repo_url: https://github.com/rianadon/Cosmos-Keyboards
+theme:
+  name: material
+  custom_dir: docs/overrides
+  logo: assets/cosmos-icon.png
+  favicon: assets/cosmos-icon.png
+  palette:
+    primary: custom
+    accent: teal
+  icon:
+    repo: fontawesome/brands/github
+    admonition:
+      tip: material/fountain-pen-tip
+  features:
+    - navigation.top
+    - navigation.tabs
+    - content.code.copy
+
+plugins:
+  - search
+  - awesome-pages
+  - blog:
+      archive: false
+      categories: false
+      authors: false
+  - rss:
+      match_path: blog/posts/.*
+      date_from_meta:
+        as_creation: date
+
+hooks:
+  - src/mkdocs/video.py
+  - src/mkdocs/image.py
+  - src/mkdocs/social.py
+
+extra:
+  analytics:
+    provider: custom
+extra_css:
+  - stylesheets/extra.css
+
+markdown_extensions:
+  - attr_list
+  - admonition
+  - md_in_html
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.snippets

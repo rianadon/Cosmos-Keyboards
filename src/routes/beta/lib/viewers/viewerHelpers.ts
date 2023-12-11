@@ -110,3 +110,23 @@ export function drawLinedRectangle(x: number, y: number, w: number, h: number, w
   shape.holes = [hole]
   return new THREE.ShapeGeometry(shape)
 }
+
+export function drawLinedRectangleOutside(x: number, y: number, w: number, h: number, width = 0.2) {
+  const shape = new THREE.Shape()
+  shape.moveTo(x - width, y - width)
+  shape.lineTo(x + w + width, y - width)
+  shape.lineTo(x + w + width, y + h + width)
+  shape.lineTo(x - width, y + h + width)
+
+  const hole = new THREE.Path()
+  hole.moveTo(x, y)
+  hole.lineTo(x + w, y)
+  hole.lineTo(x + w, y + h)
+  hole.lineTo(x, y + h)
+  shape.holes = [hole]
+  return new THREE.ShapeGeometry(shape)
+}
+
+export function makeBox(cx: number, cy: number, cz: number, w: number, h: number, d: number) {
+  return new THREE.BoxGeometry(w, h, d).translate(cx, cy, cz)
+}

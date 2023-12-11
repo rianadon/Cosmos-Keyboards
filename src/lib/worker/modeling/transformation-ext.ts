@@ -123,11 +123,11 @@ export default class ETrsf {
   rotated(angle: number, position?: Point, direction?: Point, inFlat = true) {
     return this.applied({ name: 'rotate', args: [angle, position, direction, inFlat] })
   }
-  rotateTowards(vector: Point, angle: number) {
-    return this.apply({ name: 'rotateTowards', args: [vector, angle] })
+  rotateTowards(vector: Point, fraction: number) {
+    return this.apply({ name: 'rotateTowards', args: [vector, fraction] })
   }
-  rotateToVertical(angle: number) {
-    return this.apply({ name: 'rotateTowards', args: [[0, 0, 1], angle] })
+  rotateToVertical(fraction: number) {
+    return this.apply({ name: 'rotateTowards', args: [[0, 0, 1], fraction] })
   }
 
   mirror(axis: Point, origin?: Point) {

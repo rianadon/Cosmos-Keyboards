@@ -11,6 +11,11 @@
   <link rel="canonical" href="https://ryanis.cool/cosmos/" />
 </svelte:head>
 
+<header class="flex justify-end gap-4 px-8 pt-2">
+  <a href="blog/">Blog</a>
+  <a href="docs/">Docs</a>
+  <a href="https://github.com/rianadon/Cosmos-Keyboards">GitHub</a>
+</header>
 <main class="text-center font-sans bg-slate-900 text-white">
   <div class="background mx-4 relative" style="background-image: url('{base}/keyboard2.png')">
     <h1
@@ -211,7 +216,7 @@
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
-    height: calc(80vh - 150px);
+    height: calc(80vh - 170px);
     max-height: 600px;
   }
 
@@ -229,5 +234,9 @@
 
   .features p {
     --at-apply: 'mb-2 sm:mb-6';
+  }
+
+  :root header a[href] {
+    color: #c28f80;
   }
 </style>

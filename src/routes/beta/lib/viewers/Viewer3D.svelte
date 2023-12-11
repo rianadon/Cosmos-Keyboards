@@ -218,17 +218,21 @@
 
   let handMatrixInitialized = false
   $: if (conf && geometry && !handMatrixInitialized) {
-    if (conf.wristRest) {
-      const wrGeo = wristRestGeometry(conf, geometry)
-      handMatrix = new Matrix4().setPosition(
-        wrGeo.leftEnd
-          .lerp(wrGeo.rightEnd, 0.5)
-          .sub(new Vector3(...center))
-          .add(new Vector3(0, 5, 10))
-      )
-      handPosition = new Vector3().setFromMatrixPosition(handMatrix).toArray()
+    try {
+      if (conf.wristRest) {
+        const wrGeo = wristRestGeometry(conf, geometry)
+        handMatrix = new Matrix4().setPosition(
+          wrGeo.leftEnd
+            .lerp(wrGeo.rightEnd, 0.5)
+            .sub(new Vector3(...center))
+            .add(new Vector3(0, 5, 10))
+        )
+        handPosition = new Vector3().setFromMatrixPosition(handMatrix).toArray()
+      }
+      handMatrixInitialized = true
+    } catch (e) {
+      console.warn('Could not determine hand position', e)
     }
-    handMatrixInitialized = true
   }
 
   let debug = new Matrix4()

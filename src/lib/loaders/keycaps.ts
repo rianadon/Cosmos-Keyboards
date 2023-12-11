@@ -2,6 +2,7 @@ import { closestAspect, UNIFORM } from '$lib/geometry/keycaps'
 import { switchInfo } from '$lib/geometry/switches'
 import type { CuttleKey } from '$lib/worker/config'
 import type Trsf from '$lib/worker/modeling/transformation'
+import { notNull } from '$lib/worker/util'
 import { BufferAttribute, Quaternion, SphereGeometry, Vector3 } from 'three'
 import { makeAsyncCacher } from './cacher'
 import loadGLTF from './gltfLoader'
@@ -21,27 +22,30 @@ async function fetchKeyBy(profile: string, aspect: number, row: number, rotate: 
 }
 
 export async function keyGeometries(trsfs: Trsf[], keys: CuttleKey[]) {
-  return (await Promise.all(keys.map(async (k, i) => {
-    const trsf = trsfs[keys.indexOf(k)]
-    let key: THREE.BufferGeometry
-    if (k.type == 'trackball') {
-      key = new SphereGeometry(17.5, 64, 32)
-    } else if (k.type == 'ec11' || k.type == 'blank') {
-      return null
-    } else if ('keycap' in k && k.keycap) {
-      const aspect = closestAspect(k.aspect)
-      key = await fetchKeyBy(k.keycap.profile, aspect, k.keycap.row, k.aspect < 1)
-    } else {
-      return null
-    }
-    const switchHeight = switchInfo(k.type).height
-    return {
-      i,
-      geometry: key,
-      key: k,
-      matrix: trsf.pretranslated(0, 0, k.type == 'trackball' ? -2.5 : switchHeight).Matrix4(),
-    }
-  }))).filter(k => k != null)
+  return notNull(
+    await Promise.all(keys.map(async (k, i) => {
+      const trsf = trsfs[keys.indexOf(k)]
+      let key: THREE.BufferGeometry
+      if (k.type == 'trackball') {
+        return null
+        key = new SphereGeometry(17.5, 64, 32)
+      } else if (k.type == 'ec11' || k.type == 'blank') {
+        return null
+      } else if ('keycap' in k && k.keycap) {
+        const aspect = closestAspect(k.aspect)
+        key = await fetchKeyBy(k.keycap.profile, aspect, k.keycap.row, k.aspect < 1)
+      } else {
+        return null
+      }
+      const switchHeight = switchInfo(k.type).height
+      return {
+        i,
+        geometry: key,
+        key: k,
+        matrix: trsf.pretranslated(0, 0, k.type == 'trackball' ? -2.5 : switchHeight).Matrix4(),
+      }
+    })),
+  )
 }
 
 function makeUv(geometry: THREE.BufferGeometry) {

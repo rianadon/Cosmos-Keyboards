@@ -1,5 +1,7 @@
 import type { CuttleKey } from '$lib/worker/config'
 import type Trsf from '$lib/worker/modeling/transformation'
+import { notNull } from '$lib/worker/util'
+import { SphereGeometry } from 'three'
 import { makeAsyncCacher } from './cacher'
 import loadGLTF from './gltfLoader'
 
@@ -27,15 +29,33 @@ const cacher = makeAsyncCacher(async (sw: Switch) => {
   return await loadGLTF(url)
 })
 
+export async function partGeometry(type: Switch) {
+  if (type == 'trackball') return new SphereGeometry(17.5, 64, 32).translate(0, 0, -4)
+  if (!(type in PART_URLS)) return undefined
+  let part = await cacher(type, type)
+  const offset = offsetPart(type)
+  if (offset[2] != 0) part = part.clone().translate(...offset)
+  return part
+}
+
 export async function partGeometries(trsfs: Trsf[], keys: CuttleKey[]) {
-  return (await Promise.all(keys.map(async (k, i) => {
-    if (!(k.type in PART_URLS)) return null
-    return {
-      i: i,
-      geometry: await cacher(k.type, k.type),
-      matrix: trsfs[keys.indexOf(k)].pretranslated(offsetPart(k.type)).Matrix4(),
-    }
-  }))).filter(k => k !== null)
+  return notNull(
+    await Promise.all(keys.map(async (k, i) => {
+      if (k.type == 'trackball') {
+        return {
+          i: i,
+          geometry: new SphereGeometry(17.5, 64, 32),
+          matrix: trsfs[keys.indexOf(k)].pretranslated(0, 0, -2.5).Matrix4(),
+        }
+      }
+      if (!(k.type in PART_URLS)) return null
+      return {
+        i: i,
+        geometry: await cacher(k.type, k.type),
+        matrix: trsfs[keys.indexOf(k)].pretranslated(offsetPart(k.type)).Matrix4(),
+      }
+    })),
+  )
 }
 
 export function offsetPart(sw: Switch): [number, number, number] {

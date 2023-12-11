@@ -956,8 +956,8 @@ function findBoardWalls(c: Cuttleform, walls: WallCriticalPoints[], origin: Trsf
   return { indices: labeledIdx, error, errors: [e1, e2, e3] }
 }
 
-export function boardIndices(c: Cuttleform, connOrigin: Trsf, walls: WallCriticalPoints[], select: string[], optimize = false): LabeledBoardInd {
-  if (!c.microcontroller) return {}
+export function boardIndices(c: Cuttleform, connOrigin: Trsf | null, walls: WallCriticalPoints[], select: string[], optimize = false): LabeledBoardInd {
+  if (!c.microcontroller || !connOrigin) return {}
   const { indices, error } = findBoardWalls(c, walls, connOrigin, select, optimize)
 
   if (error == Infinity) throw new Error('Could not find attachment points for the bold holder. Perhaps the board is too close to the edge?')
@@ -1729,7 +1729,7 @@ export function joinWalls(conf: Cuttleform, surfaces: Line[][], worldZ: Vector, 
     const next = surfaces[(i + 1) % surfaces.length]
     const nextnext = surfaces[(i + 2) % surfaces.length]
     const prev = surfaces[(i - 1 + surfaces.length) % surfaces.length]
-    return joinedWall(conf, prev, surf, next, nextnext, worldZ, bottomZ)
+    return joinedWall(conf, nextnext, next, surf, prev, worldZ, bottomZ)
   })
 }
 

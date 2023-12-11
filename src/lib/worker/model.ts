@@ -27,8 +27,8 @@ import {
   wallSurfacesOuter,
   webThickness,
 } from './geometry'
-import { buildFixedSolid, buildSewnSolid, buildSolid, combine, getOC, makeQuad, makeTriangle } from './modeling'
 import { makeCacher } from './modeling/cacher'
+import { buildFixedSolid, buildSewnSolid, buildSolid, combine, getOC, makeQuad, makeTriangle } from './modeling/index'
 import { Splitter } from './modeling/splitter'
 import Trsf from './modeling/transformation'
 import { Vector } from './modeling/transformation'
@@ -848,7 +848,8 @@ export function makeConnector(c: Cuttleform, conn: keyof typeof connectors, orig
 
 export function makeWalls(c: Cuttleform, wallPts: WallCriticalPoints[], worldZ: Vector, bottomZ: number, sew: boolean) {
   const polygons = joinWalls(c, wallPts.map(w => wallSurfaces(c, w)), worldZ, bottomZ).map(bezierFace)
-  return sew ? buildSewnSolid(polygons) : buildFixedSolid(polygons)
+  return buildSolid(polygons)
+  // return sew ? buildSewnSolid(polygons) : buildFixedSolid(polygons)
 }
 
 function drawRectangleByBounds(minx: number, maxx: number, miny: number, maxy: number) {

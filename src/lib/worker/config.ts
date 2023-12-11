@@ -1,5 +1,5 @@
 import type manuform from '$assets/manuform.json'
-import { hasPro } from '@pro'
+import { hasPro } from '@pro/index'
 import { StiltsGeometry } from '@pro/stiltsGeo'
 import { Matrix4, Vector3 } from 'three'
 import {

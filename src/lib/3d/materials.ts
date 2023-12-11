@@ -112,7 +112,7 @@ export const COLORCONFIG = {
     keySaturation: new Vector3(0.2, 0.2, 0.2),
   },
 }
-type ColorScheme = keyof typeof COLORCONFIG
+export type ColorScheme = keyof typeof COLORCONFIG
 
 export class CaseMaterial extends KeyboardMaterial {
   constructor(opacity: number, brightness = 1, colorScheme: ColorScheme) {
@@ -123,6 +123,15 @@ export class CaseMaterial extends KeyboardMaterial {
       saturation: COLORCONFIG[colorScheme].caseSaturation,
     })
   }
+}
+
+export function drawLetter(canvas: HTMLCanvasElement, letter: string, flip: boolean, color = 'white') {
+  const ctx = canvas.getContext('2d')!
+  if (flip) ctx.scale(-1, 1)
+  ctx.font = '168px "Segoe UI", Candara, "Bitstream Vera Sans", "DejaVu Sans", "Bitstream Vera Sans", "Trebuchet MS", Verdana, "Verdana Ref", sans-serif'
+  ctx.textAlign = 'center'
+  ctx.fillStyle = color
+  ctx.fillText(letter, flip ? -256 : 256, 315)
 }
 
 export class KeyMaterial extends KeyboardMaterial {
@@ -137,12 +146,7 @@ export class KeyMaterial extends KeyboardMaterial {
       const canvas = document.createElement('canvas')
       canvas.width = 512
       canvas.height = 512
-      const ctx = canvas.getContext('2d')!
-      if (flip) ctx.scale(-1, 1)
-      ctx.font = '168px "Segoe UI", Candara, "Bitstream Vera Sans", "DejaVu Sans", "Bitstream Vera Sans", "Trebuchet MS", Verdana, "Verdana Ref", sans-serif'
-      ctx.textAlign = 'center'
-      ctx.fillStyle = 'white'
-      ctx.fillText(letter, flip ? -256 : 256, 315)
+      drawLetter(canvas, letter, flip)
       this.uniforms.tLetter.value = new THREE.CanvasTexture(canvas)
     }
   }

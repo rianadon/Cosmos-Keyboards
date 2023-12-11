@@ -1,0 +1,20 @@
+<script>
+  function track(url) {
+    fetch('https://analytics.ryanis.cool', {
+        method: 'POST',
+        body: JSON.stringify({
+          url: url,
+          language: window.navigator.language,
+          referrer: document.referrer,
+        })
+    }).then(r => r.text())
+  }
+
+  document.addEventListener("DOMContentLoaded", function() {
+    track(window.location.href)
+
+    location$.subscribe(function(url) {
+      track(url)
+    })
+  })
+</script>

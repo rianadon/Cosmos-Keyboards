@@ -86,6 +86,7 @@ export class BaseGeometry<C extends Cuttleform = SpecificCuttleform<BasicShell>>
   protected selectedBoardIndices = ['topLeft', 'topRight', 'bottomLeft']
   @Memoize()
   get boardIndices() {
+    if (!this.c.microcontroller) return {}
     return boardIndices(this.c, this.connectorOrigin, this.allWallCriticalPoints(), this.selectedBoardIndices)
   }
   get boardIndicesThatAreScrewsToo() {
@@ -108,6 +109,7 @@ export class BaseGeometry<C extends Cuttleform = SpecificCuttleform<BasicShell>>
 
   @Memoize()
   get connectorOrigin() {
+    if (!this.c.microcontroller && !this.c.connector) return null
     const wall = this.c.connectorIndex < 0 ? this.autoConnectorIndex : this.c.connectorIndex
     const innerSurfaces = this.allWallCriticalPoints().map(w => wallSurfacesInner(this.c, w))
     return originForConnector(this.c, this.allWallCriticalPoints(), innerSurfaces, wall)

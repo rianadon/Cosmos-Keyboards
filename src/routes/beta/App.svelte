@@ -15,7 +15,7 @@
   import { boundingSize, fromGeometry } from '$lib/loaders/geometry'
   import { estimateFilament, SUPPORTS_DENSITY } from './lib/filament'
   import * as flags from '$lib/flags'
-  import * as telemetry from '$lib/telemetry'
+  import { trackEvent } from '$lib/telemetry'
   import Performance from './lib/Performance.svelte'
 
   import UrlView from './lib/dialogs/URLView.svelte'
@@ -146,7 +146,7 @@
       .executeNow((w) => w.getSTEP(config, flip, stitchWalls))
       .then(
         (blob) => {
-          telemetry.trackEvent('cosmos-step', {
+          trackEvent('cosmos-step', {
             model: 'keyboard',
             time: window.performance.now() - begin,
           })
@@ -169,7 +169,7 @@
       .executeNow((w) => w.getSTL(config, model, flip))
       .then(
         (blob) => {
-          telemetry.trackEvent('cosmos-stl', { model, time: window.performance.now() - begin })
+          trackEvent('cosmos-stl', { model, time: window.performance.now() - begin })
           download(blob, model + (flip ? '-left' : '-right') + '.stl')
           generatingError = undefined
           generatingSTL = false
@@ -370,8 +370,6 @@
     }
     mode = newMode
   }
-
-  if (browser) telemetry.trackPageView()
 </script>
 
 <svelte:window on:popstate={onHashChange} />
@@ -1043,6 +1041,11 @@
               basic/advanced view to enable them or add them to your expert mode configuration.
             </p>
           {/if}
+        {/if}
+        {#if flags.glb}
+          {#await import('./lib/GlbExport.svelte') then c}
+            <svelte:component this={c.default} {pool} {config} />
+          {/await}
         {/if}
         {#if generatingSTEP || generatingSTL}
           <p class="mt-4">Generating... Please be patient.</p>

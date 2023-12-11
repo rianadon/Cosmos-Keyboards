@@ -17,6 +17,7 @@ export const theme = storable('theme', 'purple')
 export const showHand = storable('showHand', true)
 export const bomMultiplier = storable('bomMultiplier', '2')
 export const stiltsMsg = storable('stiltsMsg', true)
+export const developer = storable('developer', false)
 
 /** A Svelte store that writes and reads from localStorage. */
 function storable<T>(name: string, data: T): Writable<T> {

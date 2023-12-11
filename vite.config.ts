@@ -29,5 +29,13 @@ export default defineConfig({
   },
   server: {
     fs: { allow: ['.'] },
+    proxy: {
+      '/blog': 'http://localhost:8000/cosmos',
+      '/docs': 'http://localhost:8000/cosmos',
+      '/assets': 'http://localhost:8000/cosmos',
+      '/stylesheets': 'http://localhost:8000/cosmos',
+      '/livereload': 'http://localhost:8000',
+      '/search': 'http://localhost:8000/cosmos',
+    },
   },
 })

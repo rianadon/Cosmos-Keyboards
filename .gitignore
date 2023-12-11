@@ -12,3 +12,5 @@ target
 pro
 .npmrc
 updateSite
+venv
+__pycache__

@@ -38,7 +38,7 @@
   .input {
     --at-apply: 'focus:border-teal-500 border border-transparent text-gray-700 focus:outline-none';
     --at-apply: 'border-gray-200 dark:border-transparent bg-gray-100 dark:bg-gray-700 dark:text-gray-100';
-    --at-apply: 'appearance-none rounded ml-2.5 text-ellipsis px-2;';
+    --at-apply: 'appearance-none rounded ml-2.5 text-ellipsis px-2';
   }
 
   .input-units {

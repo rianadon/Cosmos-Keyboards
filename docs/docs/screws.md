@@ -1,4 +1,4 @@
-# Screws and inserts
+# Screws and Inserts
 
 Screws are used to hold the keyboard base plate onto the rest of the keyboard case. Since this connection experiences low stress, strength is of little concern in which size screws or type of insert you use. Instead, all these combinations of mounting methods and screw sizes are provided so that you can use the parts you already have or are easiest for you to buy.
 
