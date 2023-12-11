@@ -45,7 +45,6 @@
     "@unocss/transformer-directives": "^0.52.7",
     "canvas": "^2.11.2",
     "concurrently": "^8.2.2",
-    "gl": "^6.0.2",
     "lint-staged": "^15.1.0",
     "meshoptimizer": "^0.20.0",
     "ml-matrix": "^6.10.4",
@@ -65,6 +64,9 @@
     "unocss": "^0.52.7",
     "vite": "^4.3.0",
     "vite-plugin-mediapipe": "^0.0.7"
+  },
+  "optionalDependencies": {
+    "gl": "^6.0.2"
   },
   "type": "module",
   "simple-git-hooks": {
