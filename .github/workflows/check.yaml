@@ -42,11 +42,12 @@ jobs:
           make keycaps-simple
           make keycaps
 
-      - name: Build Parts
-        run: make parts
-
       - name: Compile Code
         run: make
+
+      # Disabled since this requires the clojure parts to be built
+      # - name: Build Parts
+      #   run: make parts
 
       - name: Build site
         run: npm run build

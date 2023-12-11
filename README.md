@@ -29,8 +29,8 @@ mkdir target
 export OPENSCAD=/path/to/openscad # should end in .exe on Windows
 make keycaps-simple # Generates keycaps used for collision detection.
 make keycaps # Generates geometry for all the keycaps. Take a while.
-make parts # Generates the mx switch geometry
 make # Compiles protobuf files
+make parts # Generates the mx switch geometry
 npm run dev
 
 # Optional
