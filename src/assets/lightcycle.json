@@ -1,0 +1,43 @@
+{
+  "keyboard": "lightcycle",
+  "options": {
+    "keys": {
+      "columns": 6,
+      "numRow": true,
+      "lastRow": true,
+      "switchType": "box",
+      "thumbCount": "five",
+      "hideLastPinky": false
+    },
+    "curve": {
+      "alpha": 675,
+      "beta": 225,
+      "tenting": 675,
+      "thumbAlpha": 225,
+      "thumbBeta": 225,
+      "thumbTenting": 338
+    },
+    "connector": {
+      "external": false
+    },
+    "form": {
+      "hotswap": false,
+      "thickWall": false,
+      "manuformOffset": false,
+      "wallThickness": null,
+      "webThickness": 7.0,
+      "thumbOffsetX": 52,
+      "widePinky": false,
+      "thumbOffsetZ": 27,
+      "border": true,
+      "zOffset": 18,
+      "thumbOffsetY": 45
+    },
+    "misc": {
+      "rightSide": true,
+      "plate": false,
+      "screwInserts": false,
+      "useCase": false
+    }
+  }
+}

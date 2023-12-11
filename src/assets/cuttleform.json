@@ -1,0 +1,75 @@
+{
+  "keyboard": "cf",
+  "options": {
+    "upperKeys": {
+      "rows": 5,
+      "columns": 5,
+      "keycapType": 4,
+      "switchType": 5,
+      "horizontalSpacing": 215,
+      "verticalSpacing": 205,
+      "hideLastPinky": false,
+      "lastRow": 0,
+      "pinkySize": 2,
+      "extraColumn": 0
+    },
+    "curvature": {
+      "beta": 225,
+      "centercol": 4,
+      "alpha": 675,
+      "pinkyAlpha": 675,
+      "rotateX": 45,
+      "tenting": 540
+    },
+    "thumbCluster": {
+      "oneofKind": "curvedThumb",
+      "curvedThumb": {
+        "thumbCount": 5,
+        "rowCurve": 0,
+        "columnCurve": 0,
+        "horizontalSpacing": 200,
+        "verticalSpacing": 200
+      }
+    },
+    "stagger": {
+      "staggerThumb": "5268304",
+      "staggerInnerIndex": "0",
+      "staggerIndex": "0",
+      "staggerMiddle": "25245696",
+      "staggerRing": "0",
+      "staggerPinky": "2013430528"
+    },
+    "wall": {
+      "connector": 3,
+      "verticalClearance": 1,
+      "clearScrews": true,
+      "wristRest": true,
+      "microcontroller": 6,
+      "screwInserts": true,
+      "screwIndices": [0, 0, 0, 0, 0, 0, 0],
+      "screwType": 0,
+      "screwSize": 0,
+      "countersinkScrews": true,
+      "roundedTop": false,
+      "roundedSide": false,
+      "webThickness": 0,
+      "wallThickness": 40,
+      "wallShrouding": 0,
+      "wristRestLength": 500,
+      "wristRestAngle": 450,
+      "wristRestXOffset": 100,
+      "wristRestZOffset": 0,
+      "wristRestMaxWidth": 1000,
+      "wristRestTenting": 0,
+      "unibody": false,
+      "unibodyGap": 300,
+      "unibodyAngle": 450
+    },
+    "shell": {
+      "oneofKind": "basicShell",
+      "basicShell": {
+        "lip": false
+      }
+    }
+  }
+}

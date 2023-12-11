@@ -1,0 +1,131 @@
+syntax = "proto2";
+
+import "proto/common.proto";
+package dactyl;
+
+message Manuform {
+  message Keys {
+    optional int32 columns = 1 [(min) = 4, (max) = 7, (name) = "Number of Columns (4–7)"];
+    optional int32 rows = 2 [(min) = 3, (max) = 6, (name) = "Number of Rows (3–6)"];
+    optional string thumb_count = 3 [(name) = "Thumb Key Count",
+                                     (dropdown) = { value: "six", name: "6 (Default)" },
+                                     (dropdown) = { value: "five", name: "5 (Mini)" },
+                                     (dropdown) = { value: "four", name: "4" },
+                                     (dropdown) = { value: "three", name: "3 (1.5u)" },
+                                     (dropdown) = { value: "three-mini", name: "3 (Minidox)" },
+                                     (dropdown) = { value: "two", name: "2" }];
+    optional string thumb_type = 8 [(name) = "Thumb Cluster",
+                                     (dropdown) = { value: "default", name: "Default" },
+                                     (dropdown) = { value: "orbyl", name: "Orbyl" },
+                                     (dropdown) = { value: "carbonfet", name: "Carbonfet" },
+                                     (dropdown) = { value: "curved", name: "Curved" }];
+    optional string last_row = 4 [(name) = "Last Row Key Count",
+                                  (dropdown) = { value: "two", name: "Two (Default Dactyl Manuform)" },
+                                  (dropdown) = { value: "zero", name: "No Last Row" },
+                                  (dropdown) = { value: "full", name: "Use All Keys" }];
+    optional string switch_type = 5 [(name) = "Key Hole",
+                                     (dropdown) = { value: "box", name: "Box and MX" },
+                                     (dropdown) = { value: "mx", name: "MX" },
+                                     (dropdown) = { value: "mx-snap-in", name: "MX snap-in (one way)" },
+                                     (dropdown) = { value: "alps", name: "Alps" },
+                                     (dropdown) = { value: "choc", name: "Choc (Experimental)" },
+                                     (dropdown) = { value: "kailh", name: "Kailh (Experimental" }];
+    optional string inner_column = 6 [(name) = "Inner Index Finger's Column",
+                                      (dropdown) = { value: "normie", name: "Normal" },
+                                      (dropdown) = { value: "outie", name: "Use inner column" },
+                                      (dropdown) = { value: "innie", name: "Without" }];
+    optional bool hide_last_pinky = 7 [(name) = "Hide Bottom Pinky?", (help) = "See Kinesis Advantage's Layout"];
+  }
+  message Curve {
+    optional sint32 alpha = 1 [(angle) = true, (name) = "Column's Curvature"];
+    optional int32 pinky_alpha = 2 [(angle) = true, (name) = "Pinky Column's Curvature"];
+    optional sint32 beta = 3 [(angle) = true, (name) = "Row's Curvature"];
+    optional int32 centercol = 4 [(name) = "Center of the Curvature for the Column"];
+    optional sint32 tenting = 5 [(angle) = true, (name) = "Tenting Angle"];
+    optional sint32 rotate_x = 6 [(angle) = true, (name) = "Rotation Around Row Axis"];
+  }
+  message Connector {
+    optional bool external = 1 [(name) = "Use External Holder"];
+    optional string type = 2 [(name) = "USB Hole",
+                              (dropdown) = { value: "rj9", name: "RJ9" },
+                              (dropdown) = { value: "trrs", name: "TRRS" },
+                              (dropdown) = { value: "usb", name: "USB only" },
+                              (dropdown) = { value: "none", name: "None" }];
+    // optional bool micro_usb = 3 [(name) = "Micro USB Hole"];
+  }
+  message Form {
+    optional float height_offset = 10 [(min) = 4, (max) = 50, (name) = "Height Offset"];
+    optional bool hotswap = 3 [(name) = "Hotswap Socket", (help) = "Use the Kailh (Dongguan Kaihua) Hot Swap Sockets"];
+    optional bool screw_inserts = 4 [(name) = "Screw Inserts"];
+    optional float web_thickness = 11 [(name) = "Web Thickness", (help) = "Top Part of Keyboard Around Keyholes"];
+    optional float wall_thickness = 12 [(name) = "Wall Thickness", (help) = "Thickness Around the Keyboard"];
+    optional bool wide_pinky = 8 [(name) = "Wide Pinky"];
+    optional bool wire_post = 9 [(name) = "Wire Posts"];
+  }
+  message Shaping {
+    optional float extra_width = 50 [(name) = "Horizontal (X) Spacing", (help) = "Spacing between adjacent keys. Adjust this based on no. of rows and the size of your hand."];
+    optional float extra_height = 51 [(name) = "Vertical (Y) Spacing", (help) = "Spacing between adjacent keys. Adjust this based on the size of your hand"];
+    optional bool custom_thumb_cluster = 48 [(name) = "Custom Thumb Cluster"];
+    optional bool stagger = 49 [(name) = "Stagger"];
+    optional float stagger_index_y = 1 [(special) = true];
+    optional float stagger_index_z = 2 [(special) = true];
+    optional float stagger_middle_y = 3 [(special) = true];
+    optional float stagger_middle_z = 4 [(special) = true];
+    optional float stagger_pinky_y = 5 [(special) = true];
+    optional float stagger_pinky_z = 6 [(special) = true];
+    optional float stagger_ring_y = 7 [(special) = true];
+    optional float stagger_ring_z = 8 [(special) = true];
+    optional float thumb_cluster_offset_x = 9 [(special) = true];
+    optional float thumb_cluster_offset_y = 10 [(special) = true];
+    optional float thumb_cluster_offset_z = 11 [(special) = true];
+    optional float thumb_bottom_left_offset_x = 12 [(special) = true];
+    optional float thumb_bottom_left_offset_y = 13 [(special) = true];
+    optional float thumb_bottom_left_offset_z = 14 [(special) = true];
+    optional sint32 thumb_bottom_left_tenting_x = 15 [(angle) = true, (special) = true];
+    optional sint32 thumb_bottom_left_tenting_y = 16 [(angle) = true, (special) = true];
+    optional sint32 thumb_bottom_left_tenting_z = 17 [(angle) = true, (special) = true];
+    optional float thumb_bottom_right_offset_x = 18 [(special) = true];
+    optional float thumb_bottom_right_offset_y = 19 [(special) = true];
+    optional float thumb_bottom_right_offset_z = 20 [(special) = true];
+    optional sint32 thumb_bottom_right_tenting_x = 21 [(angle) = true, (special) = true];
+    optional sint32 thumb_bottom_right_tenting_y = 22 [(angle) = true, (special) = true];
+    optional sint32 thumb_bottom_right_tenting_z = 23 [(angle) = true, (special) = true];
+    optional float thumb_middle_left_offset_x = 24 [(special) = true];
+    optional float thumb_middle_left_offset_y = 25 [(special) = true];
+    optional float thumb_middle_left_offset_z = 26 [(special) = true];
+    optional sint32 thumb_middle_left_tenting_x = 27 [(angle) = true, (special) = true];
+    optional sint32 thumb_middle_left_tenting_y = 28 [(angle) = true, (special) = true];
+    optional sint32 thumb_middle_left_tenting_z = 29 [(angle) = true, (special) = true];
+    optional float thumb_middle_right_offset_x = 30 [(special) = true];
+    optional float thumb_middle_right_offset_y = 31 [(special) = true];
+    optional float thumb_middle_right_offset_z = 32 [(special) = true];
+    optional sint32 thumb_middle_right_tenting_x = 33 [(angle) = true, (special) = true];
+    optional sint32 thumb_middle_right_tenting_y = 34 [(angle) = true, (special) = true];
+    optional sint32 thumb_middle_right_tenting_z = 35 [(angle) = true, (special) = true];
+    optional float thumb_top_left_offset_x = 36 [(special) = true];
+    optional float thumb_top_left_offset_y = 37 [(special) = true];
+    optional float thumb_top_left_offset_z = 38 [(special) = true];
+    optional sint32 thumb_top_left_tenting_x = 39 [(angle) = true, (special) = true];
+    optional sint32 thumb_top_left_tenting_y = 40 [(angle) = true, (special) = true];
+    optional sint32 thumb_top_left_tenting_z = 41 [(angle) = true, (special) = true];
+    optional float thumb_top_right_offset_x = 42 [(special) = true];
+    optional float thumb_top_right_offset_y = 43 [(special) = true];
+    optional float thumb_top_right_offset_z = 44 [(special) = true];
+    optional sint32 thumb_top_right_tenting_x = 45 [(angle) = true, (special) = true];
+    optional sint32 thumb_top_right_tenting_y = 46 [(angle) = true, (special) = true];
+    optional sint32 thumb_top_right_tenting_z = 47 [(angle) = true, (special) = true];
+  }
+  message Misc {
+    optional bool keycaps = 1 [(name) = "Show Keycaps"];
+    optional bool right_side = 2 [(name) = "Right Side"];
+    optional bool plate = 3 [(name) = "Show Plate"];
+    optional bool roundedtop = 4 [(name) = "Rounded Top"];
+    optional bool roundedside = 5 [(name) = "Rounded Side"];
+  }
+  optional Keys keys = 1 [(name) = "Keys"];
+  optional Curve curve = 2 [(name) = "Curve"];
+  optional Connector connector = 3 [(name) = "Connector"];
+  optional Form form = 4 [(name) = "Form"];
+  optional Shaping shaping = 6 [(name) = "Shaping", (special) = true];
+  optional Misc misc = 5 [(name) = "Misc"];
+}

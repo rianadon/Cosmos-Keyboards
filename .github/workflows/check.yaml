@@ -1,0 +1,48 @@
+name: Checks
+on: [push]
+
+jobs:
+  lint:
+    name: Ensure the code is formatted
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dprint
+        run: |
+          curl -fsSL https://dprint.dev/install.sh | sh
+          echo "$HOME/.dprint/bin" >> $GITHUB_PATH
+
+      - name: Check formatting
+        run: dprint check
+  deploy-test:
+    name: Verify the site can be deployed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 21
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Install openscad
+        run: sudo apt-get install -y openscad
+
+      - name: Build keycaps
+        run: |
+          mkdir target
+          export OPENSCAD=$(which openscad)
+          make keycaps-simple
+          make keycaps
+
+      - name: Build Parts
+        run: make parts
+
+      - name: Compile Code
+        run: make
+
+      - name: Build site
+        run: npm run build

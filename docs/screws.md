@@ -5,7 +5,7 @@ Screws are used to hold the keyboard base plate onto the rest of the keyboard ca
 > **Abbreviations** OD: Outer Hole Diameter, H: Height, T: Angle Tapered In from Outer Diameter
 
 | Screw size /<br>Attachment Method | ![Img][SI] Screw Insert | ![Img][TSI] Tapered Screw Insert | ![Img][ESI] Screw-to-Expand<br>Screw Insert | ![Img][Tap] Tapped Hole |
-|-----------------------------------|-------------------------|----------------------------------|---------------------------------------------|-------------------------|
+| --------------------------------- | ----------------------- | -------------------------------- | ------------------------------------------- | ----------------------- |
 | **Equipment Needed**              | Soldering Iron          | Soldering Iron                   | Possibly a Mallet                           | Tap                     |
 | M3                                | OD: 4mm<br>H: 5.1mm     | OD: 5mm<br>H: 4.6mm<br>T: 8°     | OD: 4mm<br>H: 4.8mm                         | OD: 2.5mm<br>H: 4.8mm   |
 | M4                                | OD: 5.6mm<br>H: 5.5mm   | OD: 5.6mm<br>H: 5.5mm<br>T: 8°   | OD: 5.6mm<br>H: 6.4mm                       | OD: 3.3mm<br>H: 6.4mm   |
@@ -22,7 +22,7 @@ The sizes are taken from the recommended parameters in [McMaster-Carr's](https:/
 These sizes below are taken from the ANSI standards:
 
 | Screw size | OD, Hole in Bottom Plate | OD, Countersunk Hole in Bottom Plate |
-|------------|--------------------------|--------------------------------------|
+| ---------- | ------------------------ | ------------------------------------ |
 | M3         | 3.4mm (medium fit)       | 6.3mm, 45° taper                     |
 | M4         | 4.5mm (medium fit)       | 9.4mm, 45° taper                     |
 | #4-40      | 0.1285" (free fit)       | 0.28125", 41° taper                  |

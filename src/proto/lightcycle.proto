@@ -1,0 +1,56 @@
+syntax = "proto2";
+
+import "proto/common.proto";
+package dactyl;
+
+message Lightcycle {
+  message Keys {
+    optional int32 columns = 1 [(min) = 4, (max) = 7, (name) = "Number of Columns (4–7)"];
+    optional bool num_row = 2 [(name) = "Use Number Row"];
+    optional bool last_row = 3 [(name) = "Use Bottom Row"];
+    optional string switch_type = 4 [(name) = "Key Hole",
+                                     (dropdown) = { value: "box", name: "Box and MX" },
+                                     (dropdown) = { value: "mx", name: "MX" },
+                                     (dropdown) = { value: "mx-snap-in", name: "MX snap-in (one way)" },
+                                     (dropdown) = { value: "alps", name: "Alps" },
+                                     (dropdown) = { value: "choc", name: "Choc (Experimental)" }];
+    optional string thumb_count = 5 [(name) = "Thumb Key Count",
+                                     (dropdown) = { value: "two", name: "2" },
+                                     (dropdown) = { value: "three", name: "3" },
+                                     (dropdown) = { value: "five", name: "5" },
+                                     (dropdown) = { value: "six", name: "6" },
+                                     (dropdown) = { value: "eight", name: "8" }];
+    optional bool hide_last_pinky = 6 [(name) = "Hide Bottom Pinky?", (help) = "See Kinesis Advantage's Layout"];
+  }
+  message Curve {
+    optional sint32 alpha = 1 [(angle) = true, (name) = "Column Curvature"];
+    optional sint32 beta = 2 [(angle) = true, (name) = "Row Curvature"];
+    optional sint32 tenting = 3 [(angle) = true, (name) = "Tenting Angle"];
+    optional sint32 thumb_alpha = 4 [(angle) = true, (name) = "Thumb's Column Curvature"];
+    optional sint32 thumb_beta = 5 [(angle) = true, (name) = "Thumb's Row Curvature"];
+    optional sint32 thumb_tenting = 6 [(angle) = true, (name) = "Thumb Tenting Angle"];
+  }
+  message Connector {
+    optional bool external = 1 [(name) = "Use External Holder"];
+  }
+  message Form {
+    optional bool hotswap = 1 [(name) = "Hotswap Socket", (help) = "Use the Kailh (Dongguan Kaihua) Hot Swap Sockets"];
+    optional bool thick_wall = 2 [(name) = "Thick walls"];
+    optional bool manuform_offset = 3 [(name) = "Dactyl Manuform Columnar Stager"];
+    optional int32 web_thickness = 4 [(name) = "Web Thickness", (help) = "Top Part of Keyboard Around Keyholes"];
+    optional bool wide_pinky = 5 [(name) = "Wide Pinky"];
+    optional bool border = 6 [(name) = "Border"];
+    optional int32 z_offset = 7 [(min) = 10, (max) = 34, (name) = "Height Offset"];
+  }
+  message Misc {
+    optional bool screw_inserts = 1 [(name) = "Screw Inserts"];
+    optional bool right_side = 2 [(name) = "Right Side"];
+    optional bool use_case = 3 [(name) = "Include case"];
+    optional bool plate = 4 [(name) = "Generate Plate Instead"];
+  }
+  optional Keys keys = 1 [(name) = "Keys"];
+  optional Curve curve = 2 [(name) = "Curve"];
+  optional Connector connector = 3 [(name) = "Connector"];
+  optional Form form = 4 [(name) = "Form"];
+  optional Misc misc = 5 [(name) = "Misc"];
+}

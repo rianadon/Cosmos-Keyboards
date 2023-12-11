@@ -1,0 +1,145 @@
+<script lang="ts">
+  import type monaco from 'monaco-editor'
+  import { onMount } from 'svelte'
+  import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
+  import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker'
+  import { newGeometry, type Cuttleform, type CuttleformProto } from '$lib/worker/config'
+  import { toCode } from './toCode'
+  import { serializeEditor } from '../serialize'
+  import { WorkerPool } from '../workerPool'
+  import ETrsf from '$lib/worker/modeling/transformation-ext'
+  import { codeError } from '$lib/store'
+  import libSource from '$target/editorDeclarations.d.ts?raw'
+
+  export let manuformConf: CuttleformProto
+  export let darkMode: boolean
+
+  let element: HTMLElement | null = null
+  let editor: monaco.editor.IStandaloneCodeEditor
+  let Monaco: typeof import('monaco-editor')
+  let content: string
+  export let hashContent: string | undefined
+  export let initialContent: string | undefined
+  let tooLong = false
+
+  export let conf: Cuttleform
+  $: if (content) run(content)
+  $: Monaco && Monaco.editor.setTheme(darkMode ? 'cuttleform-dark' : 'vs')
+  $: uninit = false // !conf && !content
+
+  const pool = new WorkerPool<typeof import('$lib/runner/api')>(1, () => {
+    return new Worker(new URL('$lib/runner?worker', import.meta.url), { type: 'module' })
+  })
+
+  async function arun(content: string) {
+    const { newConf, err } = await pool.executeNow((w) => w.run(content))
+    if (err) {
+      codeError.set(err)
+      return
+    }
+    codeError.set(null)
+    if (JSON.stringify(newConf) != JSON.stringify(conf)) {
+      const geo = newGeometry(newConf!)
+      try {
+        // Check that we can do some simple stuff
+        for (const k of newConf!.keys) k.position = new ETrsf(k.position.history)
+        geo.keyHolesTrsfs
+      } catch (err) {
+        codeError.set(err)
+        return
+      }
+      conf = newConf!
+    }
+  }
+
+  function run(content: string) {
+    arun(content).catch((e) => console.warn(e))
+  }
+  const LIB_URI = 'ts:filename/definitions.d.ts'
+
+  function updateHash(content: string) {
+    initialContent = content
+    hashContent = serializeEditor(content)
+    tooLong = hashContent.length >= 3000
+    if (tooLong) {
+      console.log('hash length is', hashContent.length)
+      hashContent = undefined
+    }
+  }
+
+  onMount(async () => {
+    // @ts-ignore
+    self.MonacoEnvironment = {
+      getWorker: function (_moduleId: any, label: string) {
+        if (label === 'typescript' || label === 'javascript') {
+          return new tsWorker()
+        }
+        return new editorWorker()
+      },
+    }
+
+    Monaco = (await import('./customMonaco')).default
+    Monaco.languages.typescript.typescriptDefaults.addExtraLib(libSource, LIB_URI)
+
+    Monaco.editor.defineTheme('cuttleform-dark', {
+      base: 'vs-dark',
+      inherit: true,
+      rules: [],
+      colors: {
+        'editor.background': '#1F2938',
+      },
+    })
+
+    const initialCode = initialContent || toCode(manuformConf)
+    updateHash(initialCode)
+    editor = Monaco.editor.create(element!, {
+      value: initialCode,
+      language: 'typescript',
+    })
+
+    // Wait for typescript to initialize, then fetch the worker
+    let worker:
+      | ((...uris: monaco.Uri[]) => Promise<monaco.languages.typescript.TypeScriptWorker>)
+      | null = null
+    for (let i = 0; i < 100; i++) {
+      try {
+        worker = await Monaco.languages.typescript.getTypeScriptWorker()
+        break
+      } catch (e) {
+        await new Promise((r) => setTimeout(r, 100))
+      }
+    }
+    if (!worker) throw new Error('Timed out waiting for TypeScript to initialize.')
+    const model = editor.getModel()!
+    const client = await worker(model.uri)
+
+    model.onDidChangeContent(() => {
+      console.log('change')
+      client.getEmitOutput(model.uri.toString()).then((e) => {
+        content = e.outputFiles[0].text
+        updateHash(editor.getValue())
+      })
+    })
+
+    client.getEmitOutput(model.uri.toString()).then((e) => {
+      content = e.outputFiles[0].text
+    })
+
+    return () => {
+      editor.dispose()
+      pool.reset()
+    }
+  })
+</script>
+
+{#if tooLong}
+  <p class="mb-4 mt-2">Your code will <b>NOT</b> be saved! It is too long to fit in the URL.</p>
+{/if}
+
+{#if uninit}
+  <p class="mb-4 mt-2">
+    For security reasons this code is not automatically run. Please take a look over the code to
+    make sure there's nothing malicious. Then, make any change (like adding a space) to run it.
+  </p>
+{/if}
+<div bind:this={element} class="h-[30rem] w-[32rem]" />

@@ -1,10 +1,10 @@
 <script lang="ts">
-	import type { Statistics } from './stats';
+  import type { Statistics } from './stats'
 
-	export let stat: Statistics;
+  export let stat: Statistics
 
-	$: means = Object.values(stat.means).flat();
-	$: stds = Object.values(stat.stds).flat();
+  $: means = Object.values(stat.means).flat()
+  $: stds = Object.values(stat.stds).flat()
 </script>
 
 <pre>
