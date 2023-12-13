@@ -6,14 +6,14 @@ import loadGLTF from './gltfLoader'
 type Microcontroller = Exclude<Cuttleform['microcontroller'], null>
 const MICROCONTROLLER_URLS: Record<Microcontroller, string> = {
   'pi-pico': '/src/assets/pico.glb',
-  'rp2040-black-usb-c-aliexpress': '/src/assets/rp2040-black-usb-c-aliexpress.glb',
-  'promicro-usb-c': '/src/assets/promicro-usb-c.glb',
-  'promicro': '/src/assets/promicro.glb',
+  'rp2040-black-usb-c-aliexpress': '/target/rp2040-black-usb-c-aliexpress.glb',
+  'promicro-usb-c': '/target/promicro-usb-c.glb',
+  'promicro': '/target/promicro.glb',
   'itsybitsy-adafruit': '/src/assets/itsybitsy-adafruit.glb',
   'kb2040-adafruit': '/src/assets/kb2040-adafruit.glb',
   'nrfmicro-or-nicenano': '/src/assets/nrfmicro-or-nicenano.glb',
   'seeed-studio-xiao': '/src/assets/seeed-studio-xiao.glb',
-  'waveshare-rp2040-zero': '/src/assets/waveshare-rp2040-zero.glb',
+  'waveshare-rp2040-zero': '/target/waveshare-rp2040-zero.glb',
 }
 
 const CONNECTOR_URLS: Record<Connector, string> = {

@@ -235,7 +235,6 @@
 
         case MICROCONTROLLER.ITSYBITSY_BT:
         case MICROCONTROLLER.XIAO_BT:
-
         case MICROCONTROLLER.NRFMICRO:
           cuttleformConf.wall.connector = CONNECTOR.USB
           break
