@@ -27,6 +27,7 @@ export const KEY_URLS: Record<string, string> = {
   'trackball': '/src/assets/trackball_holder.step',
   'ec11': '/src/assets/key-ec11.step',
   'oled-128x32-0.91in-adafruit': '/src/assets/key-oled-128x32-0.91in-adafruit.step',
+  'oled-128x32-0.91in-dfrobot': '/target/key-oled-128x32-0.91in-dfrobot.step',
   'cirque-23mm': '/src/assets/key-cirque-23mm.step',
   'cirque-35mm': '/src/assets/key-cirque-35mm.step',
   'cirque-40mm': '/src/assets/key-cirque-40mm.step',

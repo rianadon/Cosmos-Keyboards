@@ -16,6 +16,7 @@ export const PART_NAMES: Record<CuttleKey['type'], string> = {
   'trackball': '34 mm (1.34") Trackballs',
   'blank': 'Ignore this',
   'oled-128x32-0.91in-adafruit': 'Adafruit 128x32 1" Diagonal OLEDs',
+  'oled-128x32-0.91in-dfrobot': 'DFRobot 128x32 0.91" Diagonal OLEDs (DFR0647)',
   'cirque-23mm': 'Cirque 23 mm Flat Circle Trackpads',
   'cirque-35mm': 'Cirque 35 mm Flat Circle Trackpads',
   'cirque-40mm': 'Cirque 40 mm Flat Circle Trackpads',
@@ -28,6 +29,7 @@ export function socketSize(key: CuttleKey): Vector {
   if (key.type == 'choc') return new Vector(18, 18, 2.2)
   if (key.type == 'ec11') return new Vector(14.5, 14.5, 4.5)
   if (key.type == 'oled-128x32-0.91in-adafruit') return new Vector(22.044, 33.22, 5)
+  if (key.type == 'oled-128x32-0.91in-dfrobot') return new Vector(11.6, 41.18, 2.84)
   if (key.type == 'alps') return new Vector(18.6, 17, 5)
   if (key.type.startsWith('cirque')) return new Vector(0, 0, 3)
   return new Vector(18, 18, 5)
@@ -52,6 +54,9 @@ export function partBottom(sw: CuttleKey['type'] | undefined): [number, number, 
   }
   if (sw == 'ec11') {
     return [box(12, 12, 14.5)]
+  }
+  if (sw == 'oled-128x32-0.91in-dfrobot') {
+    return [box(11.5, 24.4, 4.3)]
   }
   return [box(10, 10, 2)]
 }

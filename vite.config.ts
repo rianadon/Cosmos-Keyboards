@@ -28,6 +28,10 @@ export default defineConfig({
     noExternal: ['three', '@popperjs/core'],
   },
   server: {
+    watch: {
+      followSymlinks: false,
+      ignored: ['.git', 'node_modules', 'venv'],
+    },
     fs: { allow: ['.'] },
     proxy: {
       '/blog': 'http://localhost:8000/cosmos',

@@ -5,9 +5,9 @@ import { SphereGeometry } from 'three'
 import { makeAsyncCacher } from './cacher'
 import loadGLTF from './gltfLoader'
 
-const PART_URLS = {
+const PART_URLS: Record<Switch, string> = {
   'mx-snap-in': '/target/switch-cherry-mx.glb',
-  'mx': '/target/switch-cherry-mx.glb',
+  // 'mx': '/target/switch-cherry-mx.glb',
   'mx-better': '/target/switch-cherry-mx.glb',
   'mx-original': '/target/switch-cherry-mx.glb',
   'mx-pcb': '/target/switch-cherry-mx.glb',
@@ -18,6 +18,7 @@ const PART_URLS = {
   'cirque-23mm': '/src/assets/switch-cirque-23mm.glb',
   'cirque-35mm': '/src/assets/switch-cirque-35mm.glb',
   'cirque-40mm': '/src/assets/switch-cirque-40mm.glb',
+  'oled-128x32-0.91in-dfrobot': '/target/switch-oled-128x32-0.91in-dfrobot.glb',
 }
 
 type Switch = CuttleKey['type']

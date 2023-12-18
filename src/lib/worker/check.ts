@@ -96,23 +96,28 @@ export function checkConfig(conf: Cuttleform, geometry: Geometry, check3d = true
 
   if (!check3d) return null
 
-  const trsfs3d = geometry.keyHolesTrsfs
-  const cpts3d = geometry.allKeyCriticalPoints
-  const { triangles } = geometry.solveTriangularization
-  const flatpts = cpts3d.flat()
-  const tris = triangles.map(([a, b, c]) => new ITriangle(flatpts[a].origin(), flatpts[b].origin(), flatpts[c].origin(), -1))
+  try {
+    const trsfs3d = geometry.keyHolesTrsfs
+    const cpts3d = geometry.allKeyCriticalPoints
+    const { triangles } = geometry.solveTriangularization
+    const flatpts = cpts3d.flat()
+    const tris = triangles.map(([a, b, c]) => new ITriangle(flatpts[a].origin(), flatpts[b].origin(), flatpts[c].origin(), -1))
 
-  // @ts-ignore
-  for (const intersection of keycapIntersections(conf, trsfs3d, tris)) {
-    console.log(intersection)
-    return intersection
-  }
-  const wallPts = geometry.allWallCriticalPoints()
-  for (const idx of conf.screwIndices) {
-    if (idx >= wallPts.length) return { type: 'oob', idx, item: 'screwIndices', len: wallPts.length }
-  }
-  if (conf.connectorIndex >= wallPts.length) {
-    return { type: 'oob', idx: conf.connectorIndex, item: 'connectorIndex', len: wallPts.length }
+    // @ts-ignore
+    for (const intersection of keycapIntersections(conf, trsfs3d, tris)) {
+      console.log(intersection)
+      return intersection
+    }
+    const wallPts = geometry.allWallCriticalPoints()
+    for (const idx of conf.screwIndices) {
+      if (idx >= wallPts.length) return { type: 'oob', idx, item: 'screwIndices', len: wallPts.length }
+    }
+    if (conf.connectorIndex >= wallPts.length) {
+      return { type: 'oob', idx: conf.connectorIndex, item: 'connectorIndex', len: wallPts.length }
+    }
+  } catch (e) {
+    console.error(e)
+    return { type: 'exception', when: 'laying out the walls', error: e }
   }
 
   try {
