@@ -14,7 +14,7 @@ import { isPro } from './check'
 import { type Cuttleform, newGeometry } from './config'
 import { boardHolder, cutWithConnector, keyHoles, makeConnector, makePlate, makerScrewInserts, makeWalls, type ScrewInsertTypes, webSolid } from './model'
 import { Assembly } from './modeling/assembly'
-import { combine } from './modeling/index'
+import { blobSTL, combine } from './modeling/index'
 import { supportMesh } from './modeling/supports'
 
 let oc: OpenCascadeInstance
@@ -231,7 +231,7 @@ async function getModel(conf: Cuttleform, name: string, stitchWalls: boolean) {
 export async function getSTL(conf: Cuttleform, name: string, flip: boolean) {
   let model = await getModel(conf, name, true)
   if (flip) model = model.mirror('YZ', [0, 0, 0])
-  return model.blobSTL({ tolerance: 1e-2, angularTolerance: 1 })
+  return blobSTL(model, { tolerance: 1e-2, angularTolerance: 1 })
 }
 
 export async function getSTEP(conf: Cuttleform, flip: boolean, stitchWalls: boolean) {

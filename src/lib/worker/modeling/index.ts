@@ -1,5 +1,6 @@
 import type { OpenCascadeInstance, TopoDS_Vertex } from '$assets/replicad_single'
 import { type AnyShape, Compound, downcast, Face, getOC as ogetOC, Solid } from 'replicad'
+import { Assembly } from './assembly'
 import type Trsf from './transformation'
 
 export function getOC() {
@@ -84,4 +85,30 @@ export function buildSolid(polygons: Face[]) {
   }
   const solid = new oc.BRepBuilderAPI_MakeSolid_3(shell).Solid()
   return new Solid(solid)
+}
+
+export function blobSTL(shape: AnyShape | Assembly, opts?: {
+  tolerance?: number | undefined
+  angularTolerance?: number | undefined
+}): Blob {
+  if (shape instanceof Assembly) return shape.blobSTL(opts)
+  const oc = getOC()
+
+  // @ts-ignore
+  shape._mesh(opts)
+  const filename = 'blob.stl'
+  // Convert to a .STEP File
+  const done = oc.StlAPI.Write(shape.wrapped, filename, false)
+
+  if (done) {
+    // Read the STEP File from the filesystem and clean up
+    const file = oc.FS.readFile('/' + filename)
+    oc.FS.unlink('/' + filename)
+
+    // Return the contents of the STEP File
+    const blob = new Blob([file], { type: 'application/sla' })
+    return blob
+  } else {
+    throw new Error('WRITE STL FILE FAILED.')
+  }
 }
