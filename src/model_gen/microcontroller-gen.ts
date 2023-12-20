@@ -26,11 +26,13 @@ export interface MicrocontrollerProps {
   /* Fillet of corners */
   fillet: number
   connector: 'usb-c' | 'micro-usb'
+  connector_y_offset: number
 }
 
 export const DEFAULT_PROPS: MicrocontrollerProps = {
   fillet: 0,
   connector: 'usb-c',
+  connector_y_offset: 0,
 }
 
 // For loading STEP files and caching them
@@ -73,6 +75,6 @@ export async function ucModel(name: Microcontroller, opts: MicrocontrollerProps,
 
   // Add the connector
   let connector = (await loadModel(opts.connector + '.step')).clone()
-  connector = connector.translate(0, 0, size.z)
+  connector = connector.translate(0, opts.connector_y_offset, size.z)
   return combine([uc, connector]) as Solid
 }

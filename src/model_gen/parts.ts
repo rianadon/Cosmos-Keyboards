@@ -77,6 +77,10 @@ async function main() {
     { start: 3.92, end: 3.92, align: { side: 'bottom', offset: 1.38 }, ...defaults },
     { start: 3.92, end: 3.92, align: { side: 'bottom', offset: 0 }, ...defaults },
   ])
+  await genUC('weact-studio-ch552t', { connector_y_offset: -1.5 }, [
+    { start: 1.48, align: { side: 'left', offset: 1.38 }, ...defaults },
+    { start: 1.48, align: { side: 'right', offset: 1.38 }, ...defaults },
+  ])
   for (const socket of Object.keys(PART_NAMES)) {
     try {
       await genSocket(socket)
