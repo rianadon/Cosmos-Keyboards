@@ -117,6 +117,15 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     cutouts: [],
     sidecutout: 2,
   },
+  'weact-studio-ch552t': {
+    name: 'WeAct Studio CH552T',
+    size: new Vector(18.288, 25.908, 1.57),
+    boundingBoxZ: 5,
+    offset: new Vector(0, 0, 1.835),
+    holes: [],
+    cutouts: [],
+    sidecutout: 3.1,
+  },
 }
 
 // Use a constant set of board properties for layout so

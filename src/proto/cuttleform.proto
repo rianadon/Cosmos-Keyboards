@@ -11,7 +11,7 @@ enum CONNECTOR { /* RJ9 = 2; */ TRRS = 3; USB = 4; NONE = 0; /* EXTERNAL = 1; */
 enum SCREW_SIZE { M3 = 0; M4 = 1; I4_40 = 2; I6_32 = 3; }
 enum SCREW_TYPE { STRAIGHT_INSERT = 0; TAPERED_INSERT = 1; EXPANDING_INSERT = 2; TAPPED = 3; }
 enum KEY_SIZE { U1 = 0; U125 = 1; U15 = 2; U2 = 3; }
-enum MICROCONTROLLER { NOMC = 0; PIPICO = 1; PROMICRO = 2; PROMICRO_C = 3; ITSYBITSY = 4; ITSYBITSY_BT = 5; KB2040 = 6; RP2040_BLACK = 7; NRFMICRO = 8; XIAO = 9; XIAO_BT = 10; RP2040_ZERO = 11; }
+enum MICROCONTROLLER { NOMC = 0; PIPICO = 1; PROMICRO = 2; PROMICRO_C = 3; ITSYBITSY = 4; ITSYBITSY_BT = 5; KB2040 = 6; RP2040_BLACK = 7; NRFMICRO = 8; XIAO = 9; XIAO_BT = 10; RP2040_ZERO = 11; WEACT_CH552T = 12; }
 
 message Cuttleform {
   message UpperKeys {
@@ -122,6 +122,7 @@ message Cuttleform {
                                                    (ndropdown) = {n: 9, name: "Seeed Studio Xiao RP2040/SAMD21 ☆", group: "Small Size"},
                                                    (ndropdown) = {n: 10, name: "Seeed Studio Xiao nRF52840 (Bluetooth) ☆", group: "Small Size"},
                                                    (ndropdown) = {n: 11, name: "Waveshare RP2040 Zero", group: "Small Size"},
+                                                   (ndropdown) = {n: 12, name: "WeAct Studio CH552T (Low Storage)", group: "Small Size"},
                                                    (ndropdown) = {n: 6, name: "Adafruit KB2040 (USB-C) ☆", group: "Medium Size"},
                                                    (ndropdown) = {n: 7, name: "RP2040 Black from AliExpress (USB-C) ☆", group: "Large Size"},
                                                    (ndropdown) = {n: 3, name: "Pro Micro (USB-C, Low Storage) ☆", group: "Medium Size"},

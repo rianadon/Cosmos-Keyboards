@@ -14,6 +14,7 @@ const MICROCONTROLLER_URLS: Record<Microcontroller, string> = {
   'nrfmicro-or-nicenano': '/src/assets/nrfmicro-or-nicenano.glb',
   'seeed-studio-xiao': '/src/assets/seeed-studio-xiao.glb',
   'waveshare-rp2040-zero': '/target/waveshare-rp2040-zero.glb',
+  'weact-studio-ch552t': '/target/weact-studio-ch552t.glb',
 }
 
 const CONNECTOR_URLS: Record<Connector, string> = {

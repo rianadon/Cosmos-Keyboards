@@ -78,6 +78,7 @@ export interface SpecificCuttleform<S> {
     | 'nrfmicro-or-nicenano'
     | 'seeed-studio-xiao'
     | 'waveshare-rp2040-zero'
+    | 'weact-studio-ch552t'
     | null
   /** Additional height to add to the model. */
   verticalClearance: number
@@ -219,6 +220,7 @@ export const MAP_MICROCONTROLLER: Record<MICROCONTROLLER, Cuttleform['microcontr
   [MICROCONTROLLER.XIAO]: 'seeed-studio-xiao',
   [MICROCONTROLLER.XIAO_BT]: 'seeed-studio-xiao',
   [MICROCONTROLLER.RP2040_ZERO]: 'waveshare-rp2040-zero',
+  [MICROCONTROLLER.WEACT_CH552T]: 'weact-studio-ch552t',
 }
 
 export const MAP_CONNECTOR: Record<CONNECTOR, Cuttleform['connector']> = {
