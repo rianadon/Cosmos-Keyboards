@@ -49,6 +49,7 @@ markdown_extensions:
   - attr_list
   - admonition
   - md_in_html
+  - sane_lists
   - pymdownx.details
   - pymdownx.superfences
   - pymdownx.highlight
