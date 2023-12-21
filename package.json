@@ -62,8 +62,7 @@
     "typescript": "^5.0.0",
     "typescript-memoize": "^1.1.1",
     "unocss": "^0.52.7",
-    "vite": "^4.3.0",
-    "vite-plugin-mediapipe": "^0.0.7"
+    "vite": "^4.3.0"
   },
   "optionalDependencies": {
     "gl": "^6.0.2"

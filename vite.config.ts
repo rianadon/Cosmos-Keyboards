@@ -1,9 +1,8 @@
 import { sveltekit } from '@sveltejs/kit/vite'
-import { existsSync } from 'fs'
-import { resolve } from 'path'
+import { existsSync, readFileSync } from 'fs'
+import { basename, resolve } from 'path'
 import UnoCSS from 'unocss/vite'
-import { defineConfig } from 'vite'
-import { mediapipe } from 'vite-plugin-mediapipe'
+import { defineConfig, type PluginOption } from 'vite'
 
 const proDir = resolve(__dirname, './src/lib/worker/pro')
 const proPatchDir = resolve(__dirname, './src/lib/worker/pro-patch')
@@ -18,6 +17,7 @@ export default defineConfig({
     },
   },
   plugins: [
+    removeFS(),
     UnoCSS(),
     sveltekit(),
     mediapipe({
@@ -43,3 +43,37 @@ export default defineConfig({
     },
   },
 })
+
+/**
+ * Add exports to mediapipe.
+ * Simplified from the vite-plugin-mediapipe npm repo.
+ */
+function mediapipe(config: Record<string, string[]>): PluginOption {
+  return {
+    name: 'mediapipe',
+    load(id: string) {
+      const fileName = basename(id)
+      if (!(fileName in config)) return null
+
+      let code = readFileSync(id, 'utf-8')
+      for (const name of config[fileName]) {
+        code += `exports.${name} = ${name};`
+      }
+      return { code }
+    },
+  }
+}
+
+/* Remove any fs imports so vite doesn't try anything smart. */
+function removeFS(): PluginOption {
+  return {
+    name: 'remove fs import',
+    async transform(code, _id) {
+      if (code.includes('process.env.FS')) {
+        return code.replaceAll('import(process.env.FS!)', 'Promise.resolve(false)').replaceAll('!!import.meta.env', 'true')
+      }
+      return undefined
+    },
+    enforce: 'pre',
+  }
+}

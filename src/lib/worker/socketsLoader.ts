@@ -43,7 +43,7 @@ const keyCacher = makeAsyncCacher(async (key: CuttleKey) => {
   return browser
     ? await fetch(keyUrls[url]).then(r => r.blob())
       .then(r => importSTEP(r) as Promise<Solid>)
-    : (await import('fs/promises')).readFile(keyUrls[url])
+    : (await import(process.env.FS!)).readFile(keyUrls[url])
       .then(r => importSTEP(new Blob([r])) as Promise<Solid>)
 })
 
