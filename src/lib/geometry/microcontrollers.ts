@@ -5,6 +5,9 @@ import { PLATE_HEIGHT, screwInsertDimensions } from '$lib/worker/model'
 import { closestScrewHeight, SCREWS } from './screws'
 
 const STOPPER_HEIGHT = 2 // Size of stopper used to align board
+export const STOPPER_WIDTH = 2
+const RAIL_WIDTH = 1.5 // Size of rails to add around the board
+const RAIL_RADIUS = 1 // How far in the rails stick
 
 const IN = 25.4 // in to mm
 
@@ -151,6 +154,18 @@ export interface BoardElement {
   offset: Vector
   size: Vector
   boundingBoxZ: number
+  rails?: {
+    /** Width of the rails in mm */
+    width: number
+    /** Include a backstop so the part doesn't slip backwards */
+    backstop: boolean
+    /** The nubs that hold in the part */
+    clamps: {
+      side: 'left' | 'right' | 'back'
+      /** Radius of the nub (how far in it sticks) */
+      radius: number
+    }[]
+  }
 }
 
 interface BoardOffset {
@@ -165,8 +180,21 @@ export function boardOffsetInfo(config: Cuttleform): BoardOffset {
     case 'trrs':
       return {
         connectors: [
-          { model: 'trrs', offset: new Vector(-14.5, 0, 2.5), size: new Vector(6.1, 12.2, 5), boundingBoxZ: 6 },
-          { model: 'box', size: new Vector(2, 14.2, 5), offset: new Vector(-14.5 - 6.1 / 2 - 1, 0, 2.5), boundingBoxZ: 5 },
+          {
+            model: 'trrs',
+            offset: new Vector(-14.5, 0, 2.5),
+            size: new Vector(6.1, 12.2, 5),
+            boundingBoxZ: 6,
+            rails: {
+              width: RAIL_WIDTH,
+              backstop: true,
+              clamps: [
+                { side: 'left', radius: 0.4 },
+                { side: 'right', radius: 0.4 },
+                { side: 'back', radius: RAIL_RADIUS * 1.5 },
+              ],
+            },
+          },
         ],
       }
     case 'usb':
@@ -188,6 +216,14 @@ export function boardElements(config: Cuttleform, layout: boolean): BoardElement
       offset: BOARD_PROPERTIES[config.microcontroller].offset,
       size: BOARD_PROPERTIES[config.microcontroller].size,
       boundingBoxZ: BOARD_PROPERTIES[config.microcontroller].boundingBoxZ,
+      rails: {
+        width: RAIL_WIDTH,
+        backstop: true,
+        clamps: [
+          { side: 'left', radius: RAIL_RADIUS },
+          { side: 'right', radius: RAIL_RADIUS },
+        ],
+      },
     },
     ...offset.connectors,
   ]
@@ -201,11 +237,12 @@ export function boardConnectorOffset(config: Cuttleform): Vector {
   return BOARD_PROPERTIES[config.microcontroller!].offset
 }
 
+const sizePlusRails = (b: BoardElement) => b.size.x + (b.rails?.width || 0) * 2
 export function localHolderBounds(c: Cuttleform, layout: boolean) {
   const elements = boardElements(c, layout)
   return {
-    minx: Math.min(...elements.map(conn => conn.offset.x - conn.size.x / 2)),
-    maxx: Math.max(...elements.map(conn => conn.offset.x + conn.size.x / 2)),
+    minx: Math.min(...elements.map(conn => conn.offset.x - sizePlusRails(conn) / 2)),
+    maxx: Math.max(...elements.map(conn => conn.offset.x + sizePlusRails(conn) / 2)),
     miny: Math.min(...elements.map(conn => conn.offset.y - conn.size.y)) - STOPPER_HEIGHT,
     maxy: Math.max(...elements.map(conn => conn.offset.y)),
   }

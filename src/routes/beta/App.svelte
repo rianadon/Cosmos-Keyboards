@@ -32,7 +32,12 @@
 
   import { download } from './lib/browser'
   import { WorkerPool, type TaskError } from './lib/workerPool'
-  import { newGeometry, type Cuttleform, type CuttleformProto } from '$lib/worker/config'
+  import {
+    newGeometry,
+    type Cuttleform,
+    type CuttleformProto,
+    type Geometry,
+  } from '$lib/worker/config'
   import { checkConfig, isPro, type ConfError } from '$lib/worker/check'
   import VisualEditor from './lib/editor/VisualEditor.svelte'
   import { Vector3, type BufferGeometry } from 'three'
@@ -143,7 +148,8 @@
     const begin = window.performance.now()
     generatingSTEP = true
     pool
-      .executeNow((w) => w.getSTEP(config, flip, stitchWalls))
+      .executeNow((w) => w.getSTEP(config, flip, stitchWalls) as Promise<Blob>)
+      .then(addMetadataToSTEP)
       .then(
         (blob) => {
           trackEvent('cosmos-step', {
@@ -162,11 +168,19 @@
       )
   }
 
+  async function addMetadataToSTEP(blob: Blob) {
+    const text = await blob.text()
+    const replaced = text
+      .replace("FILE_DESCRIPTION(('Open CASCADE Model')", "FILE_DESCRIPTION(('Cosmos Model')")
+      .replace("FILE_NAME('Open CASCADE Shape Model'", `FILE_NAME('${location.href}'`)
+    return new Blob([replaced], { type: blob.type })
+  }
+
   function downloadSTL(model: string, flip: boolean) {
     const begin = window.performance.now()
     generatingSTL = true
     pool
-      .executeNow((w) => w.getSTL(config, model, flip))
+      .executeNow((w) => w.getSTL(config, model, flip) as Promise<Blob>)
       .then(
         (blob) => {
           trackEvent('cosmos-stl', { model, time: window.performance.now() - begin })
@@ -180,6 +194,13 @@
           generatingError = e
         }
       )
+  }
+
+  /** Unused: While technically valid, prusaslicer does not like trailing metadata. */
+  async function addMetadataToSTL(blob: Blob) {
+    const contents = await blob.arrayBuffer()
+    const trailing = '\0Exported from ' + location.href
+    return new Blob([contents, trailing], { type: blob.type })
   }
 
   let wristBuf: BufferGeometry | undefined

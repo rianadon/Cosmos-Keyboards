@@ -133,6 +133,7 @@ message Cuttleform {
                                                    (ndropdown) = {n: 5, name: "Adafruit ItsyBitsy nRF52840 (Bluetooth)", group: "Medium Size"},
                                                    (ndropdown) = {n: 8, name: "nRFMicro or Nice!Nano (USB-C, Bluetooth)", group: "Medium Size"},
                                                    (ndropdown) = {n: 0, name: "None", group: "More"}];
+    optional bool fasten_microcontroller = 27 [(name) = "Fasten Microcontroller", (help) = "Add clamps above the microcontroller to hold it inside its holder"];
     optional bool screw_inserts = 2 [(name) = "Fasten Base with Screws", (icon) = "screw", (basic) = true];
     repeated int32 screw_indices = 9 [(name) = "Number of Screws", (special) = true];
     optional SCREW_SIZE screw_size = 12 [(name) = "Size of Screws", (basic) = true,

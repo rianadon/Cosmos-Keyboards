@@ -80,6 +80,7 @@ export interface SpecificCuttleform<S> {
     | 'waveshare-rp2040-zero'
     | 'weact-studio-ch552t'
     | null
+  fastenMicrocontroller: boolean
   /** Additional height to add to the model. */
   verticalClearance: number
   clearScrews: boolean
@@ -328,6 +329,7 @@ export function cuttleConf(c: DeepRequired<CuttleformProto>): Cuttleform {
       : undefined,
     wristRestOrigin: thumbOrigin(c, true),
     microcontroller: MAP_MICROCONTROLLER[c.wall.microcontroller],
+    fastenMicrocontroller: c.wall.fastenMicrocontroller,
     verticalClearance: c.wall.verticalClearance / 10,
     clearScrews: c.wall.clearScrews,
     shell: cuttleConfShell(c),

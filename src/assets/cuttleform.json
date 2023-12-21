@@ -45,6 +45,7 @@
       "clearScrews": true,
       "wristRest": true,
       "microcontroller": 6,
+      "fastenMicrocontroller": true,
       "screwInserts": true,
       "screwIndices": [0, 0, 0, 0, 0, 0, 0],
       "screwType": 0,

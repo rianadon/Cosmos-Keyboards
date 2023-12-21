@@ -1,5 +1,5 @@
 import type { TopoDS_Shell } from '$assets/replicad_single'
-import { BOARD_PROPERTIES, type BoardElement, boardElements, holderOuterRadius, holderThickness } from '$lib/geometry/microcontrollers'
+import { BOARD_PROPERTIES, type BoardElement, boardElements, holderOuterRadius, holderThickness, STOPPER_WIDTH } from '$lib/geometry/microcontrollers'
 import { SCREWS } from '$lib/geometry/screws'
 import { wallBezier } from '@pro/rounded'
 import { makeStiltsPlate, splitStiltsScrewInserts } from '@pro/stiltsModel'
@@ -857,15 +857,18 @@ function drawRectangleByBounds(minx: number, maxx: number, miny: number, maxy: n
     .translate((minx + maxx) / 2, (miny + maxy) / 2)
 }
 
-function boardBox(element: BoardElement, origin: Vector, tol: number, infinite = false): Solid {
+function boardBox(element: BoardElement, tol: number, infinite = false): Solid {
   let yExtra = infinite ? 100 : 0
   const bottom = drawRectangleByBounds(
-    origin.x + element.offset.x - element.size.x / 2 - tol,
-    origin.x + element.offset.x + element.size.x / 2 + tol,
-    origin.y + element.offset.y - element.size.y - tol,
-    origin.y + element.offset.y + tol + yExtra,
+    element.offset.x - element.size.x / 2 - tol,
+    element.offset.x + element.size.x / 2 + tol,
+    element.offset.y - element.size.y - tol,
+    element.offset.y + tol + yExtra,
   )
   return bottom.sketchOnPlane('XY').extrude(element.size.z + 2 * tol).translateZ(element.offset.z - tol) as Solid
+}
+function boardBoxBox({ offset, size }: { offset: Vector; size: Vector }) {
+  return boardBox({ model: 'box', offset, size, boundingBoxZ: 5 }, 0)
 }
 
 class FilletFinder extends CornerFinder {
@@ -886,11 +889,107 @@ class FilletFinder extends CornerFinder {
   }
 }
 
+/**
+ * Creates the following shape:
+ *
+ *     y
+ *     |###\\
+ *     |#####|
+ *     |###//
+ *     |______________ x
+ */
+function railJig(railWidth: number, r: number, h: number): Solid {
+  return draw()
+    .movePointerTo([0, -r])
+    .hLineTo(railWidth)
+    .ellipse(0, 2 * r, r, r, 0, false, true)
+    .hLineTo(0)
+    .close()
+    .sketchOnPlane('XY')
+    .extrude(h) as Solid
+}
+
+function addRails(c: Cuttleform, solid: Solid, element: BoardElement): Solid {
+  if (!element.rails) return solid
+
+  solid = solid.fuse(boardBoxBox({
+    offset: new Vector(
+      element.offset.x + element.size.x / 2 + element.rails.width / 2 + BOARD_COMPONENT_TOL / 2,
+      element.offset.y - STOPPER_WIDTH,
+      BOARD_TOLERANCE_Z,
+    ),
+    size: new Vector(element.rails.width - BOARD_COMPONENT_TOL, element.size.y, element.size.z + element.offset.z),
+  }))
+  solid = solid.fuse(boardBoxBox({
+    offset: new Vector(
+      element.offset.x - element.size.x / 2 - element.rails.width / 2 - BOARD_COMPONENT_TOL / 2,
+      element.offset.y - STOPPER_WIDTH,
+      BOARD_TOLERANCE_Z,
+    ),
+    size: new Vector(element.rails.width - BOARD_COMPONENT_TOL, element.size.y, element.size.z + element.offset.z),
+  }))
+
+  // Add backstop
+  if (element.rails.backstop) {
+    solid = solid.fuse(boardBoxBox({
+      offset: new Vector(element.offset.x, element.offset.y - element.size.y, BOARD_TOLERANCE_Z),
+      size: new Vector(element.size.x + BOARD_COMPONENT_TOL * 2, STOPPER_WIDTH, element.size.z + element.offset.z + 0.5),
+    }))
+  }
+
+  for (const clamp of c.fastenMicrocontroller ? element.rails.clamps : []) {
+    const jig = railJig(element.rails.width, clamp.radius, clamp.radius * 2 < 1 ? 0.5 : 1)
+    const transformations: Trsf[] = []
+    if (clamp.side == 'left') {
+      transformations.push(
+        new Trsf().translate(
+          element.offset.x - element.size.x / 2 - element.rails.width,
+          element.offset.y - clamp.radius - STOPPER_WIDTH,
+          element.size.z + element.offset.z + BOARD_COMPONENT_TOL,
+        ),
+        new Trsf().translate(
+          element.offset.x - element.size.x / 2 - element.rails.width,
+          element.offset.y - element.size.y + clamp.radius,
+          element.size.z + element.offset.z + BOARD_COMPONENT_TOL,
+        ),
+      )
+    } else if (clamp.side == 'right') {
+      transformations.push(
+        new Trsf().mirror([1, 0, 0]).translate(
+          element.offset.x + element.size.x / 2 + element.rails.width,
+          element.offset.y - clamp.radius - STOPPER_WIDTH,
+          element.size.z + element.offset.z + BOARD_COMPONENT_TOL,
+        ),
+        new Trsf().mirror([1, 0, 0]).translate(
+          element.offset.x + element.size.x / 2 + element.rails.width,
+          element.offset.y - element.size.y + clamp.radius,
+          element.size.z + element.offset.z + BOARD_COMPONENT_TOL,
+        ),
+      )
+    } else if (clamp.side == 'back') {
+      const backJig = railJig(STOPPER_WIDTH, clamp.radius, 1)
+      solid = solid.fuse(
+        new Trsf().rotate(90).translate(
+          element.offset.x,
+          element.offset.y - element.size.y - STOPPER_WIDTH,
+          element.size.z + element.offset.z + BOARD_COMPONENT_TOL,
+        ).transform(backJig),
+      )
+      backJig.delete()
+    }
+    transformations.forEach(t => {
+      solid = solid.fuse(t.transform(jig))
+    })
+    jig.delete()
+  }
+  return solid
+}
+
 export function boardHolder(c: Cuttleform, geo: Geometry): Solid {
   const boardPosWorld = geo.boardPositions
-  const connOrigin = geo.connectorOrigin
+  const connOrigin = geo.connectorOrigin!
 
-  const connOriginInv = geo.connectorOrigin.inverted()
+  const connOriginInv = connOrigin.inverted()
   const boardPos = mapObj(boardPosWorld, t => t.premultiplied(connOriginInv))
 
   let rect = microControllerRectangles(c, connOrigin, boardPosWorld)
@@ -931,7 +1030,8 @@ export function boardHolder(c: Cuttleform, geo: Geometry): Solid {
 
   for (const hole of boardProps.holes) {
     const location = hole
-    rect = rect.cut(drawCircle(boardProps.tappedHoleDiameter! / 2).translate(location.xy()))
+    if (!boardProps.tappedHoleDiameter) throw new Error('Missing hole diameter')
+    rect = rect.cut(drawCircle(boardProps.tappedHoleDiameter / 2).translate(location.xy()))
   }
 
   // Normal size hole for first boardPos
@@ -947,20 +1047,13 @@ export function boardHolder(c: Cuttleform, geo: Geometry): Solid {
 
   for (const element of elements) {
     if (element.model !== 'box') continue
-    solid = solid.fuse(boardBox(element, new Vector(), 0))
+    solid = solid.fuse(boardBox(element, 0))
   }
 
-  // Add backstop
-  solid = solid.fuse(boardBox(
-    {
-      model: 'box',
-      offset: new Vector(0, -elements[0].size.y, BOARD_TOLERANCE_Z),
-      size: new Vector(elements[0].size.x, 2, elements[0].size.z + elements[0].offset.z + 0.5),
-      boundingBoxZ: 5,
-    },
-    new Vector(),
-    0,
-  ))
+  // Add rails
+  for (const element of elements) {
+    solid = addRails(c, solid, element)
+  }
 
   solid = connOrigin.transform(solid)
 
@@ -977,7 +1070,8 @@ export function boardHolder(c: Cuttleform, geo: Geometry): Solid {
   }
   for (const element of elements) {
     if (element.model !== 'box') {
-      splitter.addTool(connOrigin.transform(boardBox(element, new Vector(), BOARD_COMPONENT_TOL, true)))
+      // The 0.99 is a hack to deal with other elements offset a board_component_toler away from the board
+      splitter.addTool(connOrigin.transform(boardBox(element, BOARD_COMPONENT_TOL * 0.99, true)))
     }
   }
   splitter.perform()
