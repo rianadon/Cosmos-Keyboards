@@ -350,6 +350,7 @@
                   <option value="green">Galactic Green</option>
                   <option value="frost">Interstellar Ice</option>
                   <option value="yellow">Solar Sunflower</option>
+                  <option value="normals">How It Used to Be</option>
                 </select>
                 <div
                   class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-700 dark:text-gray-100"
@@ -398,7 +399,7 @@
     --at-apply: 'max-w-[7rem] px-6';
   }
   .input.long {
-    --at-apply: 'max-w-none w-40';
+    --at-apply: 'max-w-none w-44';
   }
 
   .info {

@@ -22,6 +22,11 @@ void main() {
     gl_Position = projectionMatrix * vPosition;
 }
 `
+
+/** Shading is done with two components:
+ *   - An HSV part which takes into account lambertian reflectance (matte/diffuse)
+ *   - An irridescent-ish part which is computed from surface normals
+ */
 const FRAGMENT_SHADER = `
 varying vec2 vUv;
 varying vec3 vNormal;
@@ -51,7 +56,7 @@ void main() {
     vec3 cnorm = vNormal.xyz * 0.5 + 0.5;
     float value = light * min(1.0, max(0.0, dot(n, l)) + uAmbient);
     vec3 letter = texture2D( tLetter, vUv ).rgb;
-vec3 hsv = vec3(uColor.r, uColor.g, uColor.b * value * uBrightness - letter.g*0.5);
+    vec3 hsv = vec3(uColor.r, uColor.g, uColor.b * value * uBrightness - letter.g*0.5);
     gl_FragColor = vec4(hsv2rgb(hsv) + cnorm*uSaturation, uOpacity);
 }
 `
@@ -106,10 +111,16 @@ export const COLORCONFIG = {
     keySaturation: new Vector3(0.5, 0.2, 0.25),
   },
   yellow: {
-    caseColor: new Vector3(0.15, 1, 0.95),
+    caseColor: new Vector3(0.14, 0.9, 0.95),
     caseSaturation: new Vector3(0.2, 0.2, 0.2),
-    keyColor: new Vector3(0.15, 0.8, 1),
+    keyColor: new Vector3(0.15, 0.8, 0.95),
     keySaturation: new Vector3(0.2, 0.2, 0.2),
+  },
+  normals: {
+    caseColor: new Vector3(0, 0, 0),
+    caseSaturation: new Vector3(1, 1, 1),
+    keyColor: new Vector3(0, 0, 0),
+    keySaturation: new Vector3(1, 1, 1),
   },
 }
 export type ColorScheme = keyof typeof COLORCONFIG
