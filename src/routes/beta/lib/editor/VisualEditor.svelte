@@ -507,9 +507,7 @@
           {/if}and {tScrewInserts}
           {MAP_SCREW_TYPE[cuttleformConf.wall.screwType]}s in order to fasten the base plate to the
           case. Check the
-          <a
-            class="text-pink-600 underline"
-            href="https://github.com/rianadon/Cosmos-Keyboards/blob/main/docs/screws.md"
+          <a class="text-pink-600 underline" href="https://ryanis.cool/cosmos/docs/screws"
             >Screws Documentation</a
           > to make sure you have the correctly sized parts.
         </p>
