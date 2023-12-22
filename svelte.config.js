@@ -23,8 +23,8 @@ const config = {
       handleHttpError: ({ path, message }) => {
         // Ignore links to docs and blogs
         // These are handled by mkdocs, and sveltekit does not know about them
-        if (path === process.env.BASE_PATH + '/blog/') return
-        if (path === process.env.BASE_PATH + '/docs/') return
+        if (path === (process.env.BASE_PATH || '') + '/blog/') return
+        if (path === (process.env.BASE_PATH || '') + '/docs/') return
 
         // otherwise fail the build
         throw new Error(message)
