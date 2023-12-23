@@ -10,7 +10,7 @@ const loader = new GLTFLoader()
 
 const load = async (url: string) =>
   browser
-    ? loader.loadAsync(glbUrls[url])
+    ? loader.loadAsync(url)
     : loader.parseAsync((await (await import(process.env.FS!)).readFile(url)).buffer, '')
 
 const cacher = makeAsyncCacher(async (url: string) => {
