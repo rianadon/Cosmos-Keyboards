@@ -228,7 +228,7 @@ export function isPro(conf: Cuttleform) {
 }
 
 // https://stackoverflow.com/questions/7113344/find-whether-two-triangles-intersect-or-not
-function doTrianglesIntersect(t1: Triangle, t2: Triangle) {
+export function doTrianglesIntersect(t1: Triangle, t2: Triangle) {
   /*
     Adapated from section "4.1 Separation of Triangles" of:
 
@@ -269,8 +269,13 @@ function doTrianglesIntersect(t1: Triangle, t2: Triangle) {
   const n1 = new Vector3().copy(N).normalize()
   const n2 = new Vector3().copy(M).normalize()
 
-  // They are coplanar
+  // They have the same normal vector
   if (1 - n1.dot(n2) < 1e-9) {
+    // If the triangles lie on different planes, they do not intersect
+    if (Math.abs(t1.a.dot(n1) - t2.a.dot(n2)) > 1e-5) {
+      return false
+    }
+    // They are coplanar!
     // Create two axes perpendicular to the normal vector. I'll use Gram–Schmidt.
     // F0 and F1 are already perpendicular to the normal vector, so there's no need
     // to subtract out their projections
