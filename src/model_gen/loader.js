@@ -17,6 +17,7 @@ export function resolve(specifier, context, defaultResolver) {
     specifier = `${mappedSpecifier}.js`
   } else if (
     !specifier.endsWith('.ts') && !specifier.endsWith('.js')
+    && !specifier.endsWith('.cjs')
     && (specifier.includes('three/') || specifier.includes('./'))
   ) {
     specifier = specifier + '.js'

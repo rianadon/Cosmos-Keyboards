@@ -1,6 +1,6 @@
 import type { Handle_TDocStd_Document, OpenCascadeInstance, STEPControl_StepModelType, XCAFDoc_ShapeTool } from '$assets/replicad_single'
 import { type AnyShape, Compound, getOC, type Plane, type PlaneName, type Point } from 'replicad'
-import { blobSTL, combine } from '.'
+import { blobSTL, combine } from './index'
 
 /** Builds named assemblies for use in STEP models. */
 export class Assembly {

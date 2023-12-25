@@ -1,16 +1,10 @@
-import loadOC from '$assets/replicad_single'
 import { exec } from 'child_process'
 import { writeFile } from 'fs/promises'
 import { dirname } from 'path'
-import { setOC } from 'replicad'
 import { fileURLToPath } from 'url'
 import { promisify } from 'util'
 import * as modeling from './modeling'
-
-// patch require and __dirname so that opencascade can import
-globalThis.__dirname = 'src/routes/beta/assets'
-import { createRequire } from 'module'
-globalThis.require = createRequire(import.meta.url)
+import { setup } from './node-model'
 
 // async function generateMXPCB() {
 //     const ops = await parse("src/assets/key_hole.csg.scad")
@@ -42,8 +36,7 @@ async function generateKey(name: string, options: any) {
 }
 
 async function main() {
-  const oc = await loadOC()
-  setOC(oc)
+  await setup()
 
   console.log('Compiling ClojureScript...')
   await promisify(exec)('lein cljsbuild once keyholes', {
