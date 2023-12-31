@@ -2,3 +2,4 @@ nav:
   - Home: .
   - ...
   - blog
+  - Parts: ./parts

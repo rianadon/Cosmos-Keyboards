@@ -49,7 +49,9 @@ markdown_extensions:
   - attr_list
   - admonition
   - md_in_html
+  - smarty
   - sane_lists
+  - footnotes
   - pymdownx.details
   - pymdownx.superfences
   - pymdownx.highlight

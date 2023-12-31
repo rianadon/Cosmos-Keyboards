@@ -17,6 +17,11 @@
     --md-footer-fg-color--lighter: var(--md-footer-fg-color);
 }
 
+.md-typeset {
+    text-align: justify;
+    text-justify: inter-word;
+}
+
 .md-typeset a:focus, .md-typeset a:hover {
     /* Increase contrast for AA */
     color: #018573;
@@ -36,6 +41,16 @@ img {
 /* For auto-generated images that need extra padding */
 .pad {
     padding: 1rem 2rem;
+}
+
+/* Clearfix for cases where an image is aligned in a box */
+.clearfix::after {
+  content: "";
+  clear: both;
+  display: table;
+}
+.clearfix img[align] {
+    margin-bottom: 0;
 }
 
 /* Add extra padding + border radius for header images in posts */

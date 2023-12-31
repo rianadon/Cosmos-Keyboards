@@ -62,7 +62,4 @@ I'm also be adding two new case styles to the generator to give you even more fl
 
 So if you haven't already, go [try out the generator](https://ryanis.cool/cosmos-beta) and [give it a star on GitHub][GitHub]. And be sure to share whatever you come up with! Since the introduction of draggable keys, I've seen some really novel key placements, and I can't wait to see them catch on.
 
-<p class="callout" markdown>
-  <span class="content" markdown>**Want to stay up to date?** Subscribe to my newsletter for updates.</span>
-  [Subscribe](https://newsletter.ryanis.cool/subscribe){ .button}
-</p>
+--8<-- "docs/blog/.footer.md"
