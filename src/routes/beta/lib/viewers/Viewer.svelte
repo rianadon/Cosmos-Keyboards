@@ -2,6 +2,7 @@
   import type * as THREE from 'three'
   import * as SC from 'svelte-cubed'
   import PerspectiveCamera from '$lib/3d/PerspectiveCamera.svelte'
+  import Canvas from '$lib/3d/Canvas.svelte'
   import WebGL from 'three/examples/jsm/capabilities/WebGL'
   import { setContext } from 'svelte'
   import { writable } from 'svelte/store'
@@ -55,7 +56,7 @@
 
 {#if WebGL.isWebGLAvailable()}
   <div class="container" bind:this={canvas} {style}>
-    <SC.Canvas antialias alpha={true}>
+    <Canvas antialias alpha={true}>
       {#if $camera}
         <SC.Group rotation={[is3D ? -Math.PI / 2 : 0, 0, 0]} scale={[flip ? -1 : 1, 1, 1]}>
           <SC.Group position={[-center[0], -center[1], -center[2]]}>
@@ -69,7 +70,7 @@
       {/if}
       <PerspectiveCamera fov={cameraFOV} bind:self={$camera} bind:root />
       <SC.OrbitControls {enableZoom} {enableRotate} {enablePan} on:start on:end />
-    </SC.Canvas>
+    </Canvas>
   </div>
 {:else}
   <div class="border-2 border-red-400 py-2 px-4 m-2 rounded bg-white dark:bg-gray-900">
