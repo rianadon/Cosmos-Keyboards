@@ -62,7 +62,11 @@ async function findLocalOpenSCAD(): Promise<boolean> {
 /** Determine the OpenSCAD download URL for this system. */
 function downloadURL(): string | null {
   if (process.platform == 'linux' && process.arch == 'x64') {
-    return 'https://files.openscad.org/OpenSCAD-2021.01-x86_64.AppImage'
+    // THe CI needs an older version of OpenSCAD
+    if (process.env['CI']) {
+      return 'https://files.openscad.org/OpenSCAD-2021.01-x86_64.AppImage'
+    }
+    return 'https://files.openscad.org/snapshots/OpenSCAD-2023.12.31.ai17940-x86_64.AppImage'
   }
   return null
 }

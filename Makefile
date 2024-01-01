@@ -1,4 +1,4 @@
-.PHONY : build keycaps keycaps-simple keyholes switches venv optimize docs keyboards ci ci-setup vite-build
+.PHONY : build keycaps keycaps-simple keyholes switches venv optimize docs docs-ci keyboards ci ci-setup vite-build
 build: target/openscad target/proto/manuform.ts target/proto/lightcycle.ts target/proto/cuttleform.ts target/editorDeclarations.d.ts
 
 NODE = node  --loader ./src/model_gen/loader.js
@@ -38,10 +38,12 @@ venv:
 	if test ! -d venv; then python3 -m venv venv; source venv/bin/activate && pip install mkdocs-material[imaging]==9.4.14 mkdocs-awesome-pages-plugin==2.9.2 mkdocs-rss-plugin==1.9.0; fi
 docs: venv
 	source venv/bin/activate && MKDOCS_BUILD=1 mkdocs build && cp -r target/mkdocs/* build/
+docs-ci: venv
+	source venv/bin/activate && mkdocs build && cp -r target/mkdocs/* build/
 
 # CI Specific tasks
 ci-setup:
 	mkdir -p target
 vite-build:
 	npm run build
-ci: ci-setup build keycaps-simple keycaps parts optimize keyboards vite-build docs
+ci: ci-setup build keycaps-simple keycaps parts keyboards vite-build docs-ci
