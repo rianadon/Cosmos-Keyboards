@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from 'child_process'
-import { accessSync, constants, createWriteStream, existsSync, linkSync, lstatSync, readdirSync, rmSync, writeFileSync } from 'fs'
+import { accessSync, constants, createWriteStream, existsSync, lstatSync, symlinkSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import * as readline from 'readline/promises'
 import { Readable } from 'stream'
@@ -21,7 +21,7 @@ const rl = readline.createInterface({ input: process.stdin, output: process.stdo
 function linkOpenSCAD(path: string) {
   console.log(`Linking ${path} to ${destination}`)
   try {
-    linkSync(path, destination)
+    symlinkSync(path, destination)
   } catch (e) {
     console.log()
     console.error(`    Could not link OpenSCAD: ${e}`)
