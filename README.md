@@ -26,10 +26,9 @@ To run the generator locally, you'll need to [clone] the repository and [have in
 cd Cosmos-Keyboards
 npm install
 mkdir target
-export OPENSCAD=/path/to/openscad # should end in .exe on Windows
+make # Compiles protobuf files, prompts you to install OpenSCAD
 make keycaps-simple # Generates keycaps used for collision detection.
 make keycaps # Generates geometry for all the keycaps. Take a while.
-make # Compiles protobuf files
 make parts # Generates the mx switch geometry
 npm run dev
 
@@ -40,6 +39,16 @@ make keyholes # (requires Java and Leiningen): Generates keyholes used in the Da
 Then visit [`http://localhost:5173/beta`](http://localhost:5173/beta).
 
 If you're using Windows and don't have access to the `make` command, you can piece together the commands that are run by referencing the `Makefile` and running them yourself. Or just [install make](https://stackoverflow.com/a/73862277) :)
+
+If OpenSCAD is not available for your system or you're having trouble installing it, you can alternatively `make keycaps-simple2 keycaps2`. These experimental scripts use web assembly versions of OpenSCAD and Manifold to render models, but the translation layer I wrote is not 100% accurate so expect inaccuracies.
+
+To generate docs there are a few more commands:
+
+```bash
+npm install --include=optional # Make sure optional dependencies are installed
+make keyboards # Generates images of keyboards used in the docs.
+npm run doc
+```
 
 ### Contributing
 
