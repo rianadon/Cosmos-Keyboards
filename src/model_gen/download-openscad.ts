@@ -134,7 +134,7 @@ async function main() {
       cwd: targetDir,
     }))
     rmSync(destination)
-    linkOpenSCAD(join(targetDir, 'squashfs-root/usr/bin/openscad'))
+    linkOpenSCAD(join(targetDir, 'squashfs-root/AppRun'))
   }
 }
 
