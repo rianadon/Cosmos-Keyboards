@@ -1,7 +1,7 @@
-.PHONY : build keycaps keycaps-simple keyholes switches venv optimize docs docs-ci keyboards ci ci-setup vite-build
+.PHONY : build keycaps keycaps-simple keycaps2 keycaps-simple2 keyholes switches venv optimize docs docs-ci keyboards ci ci-setup vite-build
 build: target/openscad target/proto/manuform.ts target/proto/lightcycle.ts target/proto/cuttleform.ts target/editorDeclarations.d.ts
 
-NODE = node  --loader ./src/model_gen/loader.js
+NODE = node --disable-warning=ExperimentalWarning --loader ./src/model_gen/loader.js
 
 target/openscad:
 	$(NODE) src/model_gen/download-openscad.ts
@@ -25,6 +25,10 @@ keycaps: target/KeyV2
 	$(NODE) src/model_gen/keycaps.ts
 keycaps-simple: target/KeyV2
 	$(NODE) src/model_gen/keycaps-simple.ts
+keycaps2: target/KeyV2
+	$(NODE) src/model_gen/keycaps2.ts
+keycaps-simple2: target/KeyV2
+	$(NODE) src/model_gen/keycaps-simple2.ts
 keyholes:
 	$(NODE) src/model_gen/keyholes.ts
 parts:
@@ -46,4 +50,4 @@ ci-setup:
 	mkdir -p target
 vite-build:
 	npm run build
-ci: ci-setup build keycaps-simple keycaps parts keyboards vite-build docs-ci
+ci: ci-setup build keycaps-simple2 keycaps2 parts keyboards vite-build docs-ci
