@@ -50,4 +50,4 @@ ci-setup:
 	mkdir -p target
 vite-build:
 	npm run build
-ci: ci-setup build keycaps-simple2 keycaps2 parts keyboards vite-build docs-ci
+ci: ci-setup build keycaps-simple2 keycaps2 parts vite-build docs-ci
