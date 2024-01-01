@@ -32,8 +32,8 @@ jobs:
       - name: Install npm dependencies
         run: npm ci --omit=optional
 
-      # - name: Install openscad
-      #   run: sudo apt-get install -y openscad
+      - name: Install openscad
+        run: sudo apt-get install -y openscad
 
       - name: Compile Code
         run: mkdir target && make
@@ -44,6 +44,9 @@ jobs:
       #     export OPENSCAD=$(which openscad)
       #     make keycaps-simple
       #     make keycaps
+
+      - name: Build simple keycaps
+        run: OPENSCAD=$(which openscad) make keycaps-simple2
 
       # Disabled since this requires the clojure parts to be built
       # - name: Build Parts
