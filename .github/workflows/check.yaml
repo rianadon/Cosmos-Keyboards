@@ -35,15 +35,15 @@ jobs:
       - name: Install openscad
         run: sudo apt-get install -y openscad
 
+      - name: Compile Code
+        run: make
+
       - name: Build keycaps
         run: |
           mkdir target
           export OPENSCAD=$(which openscad)
           make keycaps-simple
           make keycaps
-
-      - name: Compile Code
-        run: make
 
       # Disabled since this requires the clojure parts to be built
       # - name: Build Parts

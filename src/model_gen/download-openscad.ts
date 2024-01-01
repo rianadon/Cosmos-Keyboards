@@ -129,7 +129,9 @@ async function main() {
   if (process.platform == 'linux' && process.env['CI']) {
     // Some CI systems (like Vercel) don't have FUSE, so extract the appimage.
     console.log('Extracting AppImage...')
-    execFileSync(destination, ['--appimage-extract'])
+    console.log(execFileSync(destination, ['--appimage-extract'], {
+      cwd: targetDir,
+    }))
     console.log(readdirSync(targetDir))
   }
 }
