@@ -1,7 +1,10 @@
-.PHONY : mk-target build keycaps keycaps-simple keyholes switches venv optimize docs keyboards ci vite-build
-build: target/proto/manuform.ts target/proto/lightcycle.ts target/proto/cuttleform.ts target/editorDeclarations.d.ts
+.PHONY : build keycaps keycaps-simple keyholes switches venv optimize docs keyboards ci ci-setup vite-build
+build: target/openscad target/proto/manuform.ts target/proto/lightcycle.ts target/proto/cuttleform.ts target/editorDeclarations.d.ts
 
 NODE = node  --loader ./src/model_gen/loader.js
+
+target/openscad:
+	$(NODE) src/model_gen/download-openscad.ts
 
 target/proto/manuform.ts: src/proto/manuform.proto
 	npx protoc --ts_out target --proto_path src $<
@@ -37,8 +40,8 @@ docs: venv
 	source venv/bin/activate && MKDOCS_BUILD=1 mkdocs build && cp -r target/mkdocs/* build/
 
 # CI Specific tasks
-mk-target:
+ci-setup:
 	mkdir -p target
 vite-build:
 	npm run build
-ci: mk-target keycaps-simple keycaps build parts optimize keyboards vite-build docs
+ci: ci-setup build keycaps-simple keycaps parts optimize keyboards vite-build docs

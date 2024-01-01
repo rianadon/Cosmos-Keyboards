@@ -32,7 +32,7 @@ async function genKey(config: { profile: string; u: number; row?: number }, fold
   const stemFn = config.profile == 'choc' ? '$stem_type = "choc";' : ''
   const keyFn = `${config.profile}_row(${row})`
   await writeFile(scadName, header + `${stemFn} u(${config.u}) ${keyFn} key();`)
-  await promisify(execFile)(process.env.OPENSCAD || '/Applications/OpenSCAD.app/Contents/MacOS/OpenSCAD', [scadName, '-o', stlName])
+  await promisify(execFile)(process.env.OPENSCAD || join(targetDir, 'openscad'), [scadName, '-o', stlName])
 
   const loader = new STLLoader()
   const stl = await readFile(stlName)
