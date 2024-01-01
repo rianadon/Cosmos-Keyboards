@@ -121,8 +121,9 @@ async function main() {
     process.exit(1)
   }
 
+  console.log(`Downloading to ${destination}`)
   const res = await fetch(url)
-  const fileStream = createWriteStream(destination, { flags: 'wx' })
+  const fileStream = createWriteStream(destination, { flags: 'wx', mode: 0o777 })
   await finished(Readable.fromWeb(res.body).pipe(fileStream))
 }
 
