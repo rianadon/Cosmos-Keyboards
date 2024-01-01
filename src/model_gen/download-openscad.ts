@@ -130,9 +130,10 @@ async function main() {
     // Some CI systems (like Vercel) don't have FUSE, so extract the appimage.
     console.log('Extracting AppImage...')
     console.log(execFileSync(destination, ['--appimage-extract'], {
+      encoding: 'utf-8',
       cwd: targetDir,
     }))
-    console.log(readdirSync(targetDir))
+    console.log(readdirSync(join(targetDir, 'squashfs-root')))
   }
 }
 
