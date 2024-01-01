@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from 'child_process'
-import { accessSync, constants, createWriteStream, existsSync, linkSync, lstatSync, readdirSync } from 'fs'
+import { accessSync, constants, createWriteStream, existsSync, linkSync, lstatSync, readdirSync, rmSync } from 'fs'
 import { join } from 'path'
 import * as readline from 'readline/promises'
 import { Readable } from 'stream'
@@ -133,7 +133,8 @@ async function main() {
       encoding: 'utf-8',
       cwd: targetDir,
     }))
-    console.log(readdirSync(join(targetDir, 'squashfs-root')))
+    rmSync(destination)
+    linkOpenSCAD(join(targetDir, 'squashfs-root/usr/bin/openscad'))
   }
 }
 
