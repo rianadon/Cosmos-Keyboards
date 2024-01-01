@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from 'child_process'
-import { accessSync, constants, createWriteStream, existsSync, linkSync, lstatSync, readdirSync, rmSync } from 'fs'
+import { accessSync, constants, createWriteStream, existsSync, linkSync, lstatSync, readdirSync, rmSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import * as readline from 'readline/promises'
 import { Readable } from 'stream'
@@ -133,8 +133,14 @@ async function main() {
       encoding: 'utf-8',
       cwd: targetDir,
     }))
-    rmSync(destination)
-    linkOpenSCAD(join(targetDir, 'squashfs-root/AppRun'))
+    writeFileSync(
+      destination,
+      `#!/bin/sh
+SELF=$(readlink -f "$0")
+HERE=\${SELF%/*}
+exec $HERE/squashfs-root/AppRun "$@"
+`,
+    )
   }
 }
 
