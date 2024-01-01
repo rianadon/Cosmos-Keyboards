@@ -16,7 +16,7 @@ Most generator code lives at [`src/lib`] and[`src/routes/beta`]. Some files used
 [`src/routes/beta`]: https://github.com/rianadon/Cosmos-Keyboards/tree/main/src/routes/beta
 [`src/model_gen`]: https://github.com/rianadon/Cosmos-Keyboards/tree/main/src/model_gen
 
-To run the generator locally, you'll need to [clone] the repository and [have installed Node.js][nodejs] and [OpenSCAD]. Then run these commands on the command line:
+To run the generator locally, you'll need to [clone] the repository and [have installed Node.js][nodejs] and [OpenSCAD] (if you're on 64-bit Linux, the build process will automatically download OpenSCAD for you). Then run these commands on the command line:
 
 [clone]: https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository
 [nodejs]: https://nodejs.org/en/learn/getting-started/how-to-install-nodejs
