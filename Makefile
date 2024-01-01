@@ -43,7 +43,7 @@ venv:
 docs: venv
 	source venv/bin/activate && MKDOCS_BUILD=1 mkdocs build && cp -r target/mkdocs/* build/
 docs-ci: venv
-	source venv/bin/activate && mkdocs build && cp -r target/mkdocs/* public/
+	source venv/bin/activate && mkdocs build && cp -r target/mkdocs/* .vercel/output/static/
 
 # CI Specific tasks
 ci-setup:
