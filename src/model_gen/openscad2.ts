@@ -88,11 +88,11 @@ class MyVisitor {
         if (!operands) return null
         const matrix: number[][] = this.nthArg(n.args, 0)
         const transpose = matrix[0].map((_col, i) => matrix.map(row => row[i]))
-        if (!(operands instanceof mf.Manifold || operands instanceof mf.Manifold)) {
+        if (!(operands instanceof mf.Manifold || operands instanceof mf.CrossSection)) {
           throw new Error('multmatrix expects CrossSection or Manifold')
         }
         for (let i = 0; i < 4; i++) {
-          return operands!.transform(transpose.flat() as Mat4)
+          return operands!.transform(transpose.flat() as any)
         }
       }
       case 'cube': {
