@@ -1,5 +1,5 @@
-import { spawnSync } from 'child_process'
-import { accessSync, constants, createWriteStream, existsSync, linkSync, lstatSync } from 'fs'
+import { execFileSync, spawnSync } from 'child_process'
+import { accessSync, constants, createWriteStream, existsSync, linkSync, lstatSync, readdirSync } from 'fs'
 import { join } from 'path'
 import * as readline from 'readline/promises'
 import { Readable } from 'stream'
@@ -125,6 +125,13 @@ async function main() {
   const res = await fetch(url)
   const fileStream = createWriteStream(destination, { flags: 'wx', mode: 0o777 })
   await finished(Readable.fromWeb(res.body).pipe(fileStream))
+
+  if (process.platform == 'linux' && process.env['CI']) {
+    // Some CI systems (like Vercel) don't have FUSE, so extract the appimage.
+    console.log('Extracting AppImage...')
+    execFileSync(destination, ['--appimage-extract'])
+    console.log(readdirSync(targetDir))
+  }
 }
 
 main().catch(e => {
