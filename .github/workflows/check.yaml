@@ -32,17 +32,18 @@ jobs:
       - name: Install npm dependencies
         run: npm ci --omit=optional
 
-      - name: Install openscad
-        run: sudo apt-get install -y openscad
+      # - name: Install openscad
+      #   run: sudo apt-get install -y openscad
 
       - name: Compile Code
         run: mkdir target && make
 
-      - name: Build keycaps
-        run: |
-          export OPENSCAD=$(which openscad)
-          make keycaps-simple
-          make keycaps
+      # Disabled since Verel does this now, and I like the GitHub checks to be fast.
+      # - name: Build keycaps
+      #   run: |
+      #     export OPENSCAD=$(which openscad)
+      #     make keycaps-simple
+      #     make keycaps
 
       # Disabled since this requires the clojure parts to be built
       # - name: Build Parts
