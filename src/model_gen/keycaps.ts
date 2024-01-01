@@ -1,4 +1,5 @@
 import { execFile } from 'child_process'
+import { existsSync } from 'fs'
 import { mkdtemp, readFile, rm, writeFile } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
@@ -9,6 +10,7 @@ import { exportGLTF } from './exportGLTF'
 import { PromisePool } from './promisePool'
 
 const targetDir = fileURLToPath(new URL('../../target', import.meta.url))
+const openscadFile = fileURLToPath(new URL('./openscad.js', import.meta.url))
 
 const header = `
 include <${join(targetDir, 'KeyV2', 'includes.scad')}>
@@ -32,7 +34,13 @@ async function genKey(config: { profile: string; u: number; row?: number }, fold
   const stemFn = config.profile == 'choc' ? '$stem_type = "choc";' : ''
   const keyFn = `${config.profile}_row(${row})`
   await writeFile(scadName, header + `${stemFn} u(${config.u}) ${keyFn} key();`)
-  await promisify(execFile)(process.env.OPENSCAD || join(targetDir, 'openscad'), [scadName, '-o', stlName])
+
+  const openscadExe = process.env.OPENSCAD || join(targetDir, 'openscad')
+  // if (existsSync(openscadExe)) {
+  await promisify(execFile)(openscadExe, [scadName, '-o', stlName])
+  // } else {
+  // await promisify(execFile)('node', [openscadFile, scadName, stlName])
+  // }
 
   const loader = new STLLoader()
   const stl = await readFile(stlName)

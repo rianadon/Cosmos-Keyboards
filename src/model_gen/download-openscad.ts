@@ -62,7 +62,7 @@ async function findLocalOpenSCAD(): Promise<boolean> {
 /** Determine the OpenSCAD download URL for this system. */
 function downloadURL(): string | null {
   if (process.platform == 'linux' && process.arch == 'x64') {
-    return 'https://files.openscad.org/snapshots/OpenSCAD-2023.12.31.ai17940-x86_64.AppImage'
+    return 'https://files.openscad.org/OpenSCAD-2021.01-x86_64.AppImage'
   }
   return null
 }
@@ -129,10 +129,10 @@ async function main() {
   if (process.platform == 'linux' && process.env['CI']) {
     // Some CI systems (like Vercel) don't have FUSE, so extract the appimage.
     console.log('Extracting AppImage...')
-    console.log(execFileSync(destination, ['--appimage-extract'], {
+    execFileSync(destination, ['--appimage-extract'], {
       encoding: 'utf-8',
       cwd: targetDir,
-    }))
+    })
     writeFileSync(
       destination,
       `#!/bin/sh
