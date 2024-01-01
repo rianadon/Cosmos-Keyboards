@@ -1,7 +1,7 @@
 .PHONY : build keycaps keycaps-simple keycaps2 keycaps-simple2 keyholes switches venv optimize docs docs-ci keyboards ci ci-setup vite-build
 build: target/openscad target/proto/manuform.ts target/proto/lightcycle.ts target/proto/cuttleform.ts target/editorDeclarations.d.ts
 
-NODE_OPTS = $(shell node --disable-warning=ExperimentalWarning --version 2>&1>/dev/null && echo "--disable-warning=ExperimentalWarning")
+NODE_OPTS = $(shell node --disable-warning=ExperimentalWarning --version >/dev/null 2>&1 && echo "--disable-warning=ExperimentalWarning")
 NODE = node $(NODE_OPTS) --loader ./src/model_gen/loader.js
 
 target/openscad:
