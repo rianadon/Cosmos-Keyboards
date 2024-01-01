@@ -14,5 +14,5 @@ export const noWall = search.includes('NoWall')
 export const intersection = search.includes('Intersection')
 export const timing = search.includes('Timing')
 export const fast = search.includes('Fast')
-export const theme = search.includes('Theme')
+export const theme = true
 export const glb = search.includes('glb')
