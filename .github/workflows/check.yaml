@@ -35,15 +35,18 @@ jobs:
       - name: Install openscad
         run: sudo apt-get install -y openscad
 
-      - name: Build keycaps
-        run: |
-          mkdir target
-          export OPENSCAD=$(which openscad)
-          make keycaps-simple
-          make keycaps
-
       - name: Compile Code
-        run: make
+        run: mkdir target && make
+
+      # Disabled since Verel does this now, and I like the GitHub checks to be fast.
+      # - name: Build keycaps
+      #   run: |
+      #     export OPENSCAD=$(which openscad)
+      #     make keycaps-simple
+      #     make keycaps
+
+      - name: Build simple keycaps
+        run: OPENSCAD=$(which openscad) make keycaps-simple
 
       # Disabled since this requires the clojure parts to be built
       # - name: Build Parts

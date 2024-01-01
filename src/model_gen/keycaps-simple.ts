@@ -48,7 +48,7 @@ async function genKey(config: { profile: string; u: number; row?: number }, fold
   const scadName = join(folder, name + '.scad')
   const stlName = join(folder, name + '.stl')
   await writeFile(scadName, header + `u(${config.u}) ${config.profile}_row(${row}) overrides() key();`)
-  await promisify(execFile)(process.env.OPENSCAD || '/Applications/OpenSCAD.app/Contents/MacOS/OpenSCAD', [scadName, '-o', stlName])
+  await promisify(execFile)(process.env.OPENSCAD || join(targetDir, 'openscad'), [scadName, '-o', stlName])
   const contents = await readFile(stlName, 'utf8')
   const stl = loader.parse(contents)
   const binary = exporter.parse(new Mesh(stl), { binary: true })

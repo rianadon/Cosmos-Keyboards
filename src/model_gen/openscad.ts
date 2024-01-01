@@ -84,8 +84,8 @@ class MyVisitor {
       }
       case 'offset': {
         const r = this.findArgMaybe(n.args, 'r')
-        const delta = this.findArgMaybe(n.args, 'r')
-        const chamfer = this.findArgMaybe(n.args, 'r')
+        const delta = this.findArgMaybe(n.args, 'delta')
+        const chamfer = this.findArgMaybe(n.args, 'chamfer')
         return { op: 'offset', r, delta, chamfer, ...this.findSubdivisionArgs(n.args), obj: this.processBlock('union', n.child) }
       }
       case 'circle': {

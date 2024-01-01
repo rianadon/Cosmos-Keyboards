@@ -1,12 +1,10 @@
-.PHONY : all build test keycaps keycaps-simple keyholes switches venv optimize docs keyboards
-build: target/proto/manuform.ts target/proto/lightcycle.ts target/proto/cuttleform.ts target/editorDeclarations.d.ts
+.PHONY : build keycaps keycaps-simple keycaps2 keycaps-simple2 keyholes switches venv optimize docs docs-ci keyboards ci ci-setup vite-build
+build: target/openscad target/proto/manuform.ts target/proto/lightcycle.ts target/proto/cuttleform.ts target/editorDeclarations.d.ts
 
-NODE = node  --loader ./src/model_gen/loader.js
+NODE = node --import ./src/model_gen/register_loader.js
 
-test:
-	$(MAKE) -C test
-
-all: build test
+target/openscad:
+	$(NODE) src/model_gen/download-openscad.ts
 
 target/proto/manuform.ts: src/proto/manuform.proto
 	npx protoc --ts_out target --proto_path src $<
@@ -27,6 +25,10 @@ keycaps: target/KeyV2
 	$(NODE) src/model_gen/keycaps.ts
 keycaps-simple: target/KeyV2
 	$(NODE) src/model_gen/keycaps-simple.ts
+keycaps2: target/KeyV2
+	$(NODE) src/model_gen/keycaps2.ts
+keycaps-simple2: target/KeyV2
+	$(NODE) src/model_gen/keycaps-simple2.ts
 keyholes:
 	$(NODE) src/model_gen/keyholes.ts
 parts:
@@ -37,6 +39,15 @@ keyboards:
 	$(NODE) src/model_gen/keyboards.ts
 
 venv:
-	if test ! -d venv; then python3 -m venv venv; source venv/bin/activate && pip install mkdocs-material[imaging]==9.4.14 mkdocs-awesome-pages-plugin==2.9.2 mkdocs-rss-plugin==1.9.0; fi
+	if test ! -d venv; then python3 -m venv venv; source venv/bin/activate && pip install mkdocs-material[imaging]==9.4.14 mkdocs-awesome-pages-plugin==2.9.2 mkdocs-rss-plugin==1.9.0 lxml==4.9.3; fi
 docs: venv
 	source venv/bin/activate && MKDOCS_BUILD=1 mkdocs build && cp -r target/mkdocs/* build/
+docs-ci: venv
+	source venv/bin/activate && mkdocs build && cp -r target/mkdocs/* .vercel/output/static/
+
+# CI Specific tasks
+ci-setup:
+	mkdir -p target
+vite-build:
+	npm run build
+ci: ci-setup build keycaps-simple2 keycaps2 parts vite-build docs-ci
