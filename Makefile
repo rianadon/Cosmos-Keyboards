@@ -1,12 +1,7 @@
-.PHONY : all build test keycaps keycaps-simple keyholes switches venv optimize docs keyboards
+.PHONY : mk-target build keycaps keycaps-simple keyholes switches venv optimize docs keyboards ci vite-build
 build: target/proto/manuform.ts target/proto/lightcycle.ts target/proto/cuttleform.ts target/editorDeclarations.d.ts
 
 NODE = node  --loader ./src/model_gen/loader.js
-
-test:
-	$(MAKE) -C test
-
-all: build test
 
 target/proto/manuform.ts: src/proto/manuform.proto
 	npx protoc --ts_out target --proto_path src $<
@@ -40,3 +35,10 @@ venv:
 	if test ! -d venv; then python3 -m venv venv; source venv/bin/activate && pip install mkdocs-material[imaging]==9.4.14 mkdocs-awesome-pages-plugin==2.9.2 mkdocs-rss-plugin==1.9.0; fi
 docs: venv
 	source venv/bin/activate && MKDOCS_BUILD=1 mkdocs build && cp -r target/mkdocs/* build/
+
+# CI Specific tasks
+mk-target:
+	mkdir -p target
+vite-build:
+	npm run build
+ci: mk-target keycaps-simple keycaps build parts optimize keyboards vite-build docs
