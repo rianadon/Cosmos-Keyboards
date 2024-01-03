@@ -16,7 +16,7 @@ Most generator code lives at [`src/lib`] and[`src/routes/beta`]. Some files used
 [`src/routes/beta`]: https://github.com/rianadon/Cosmos-Keyboards/tree/main/src/routes/beta
 [`src/model_gen`]: https://github.com/rianadon/Cosmos-Keyboards/tree/main/src/model_gen
 
-To run the generator locally, you'll need to [clone] the repository and [have installed Node.js][nodejs] and [OpenSCAD] (if you're on 64-bit Linux, the build process will automatically download OpenSCAD for you). Then run these commands on the command line:
+To run the generator locally, you'll need to [clone] the repository and [have installed Node.js][nodejs]. Then run these commands on the command line:
 
 [clone]: https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository
 [nodejs]: https://nodejs.org/en/learn/getting-started/how-to-install-nodejs
@@ -24,23 +24,26 @@ To run the generator locally, you'll need to [clone] the repository and [have in
 
 ```bash
 cd Cosmos-Keyboards
-npm install
+npm install # Installs dependencies
 mkdir target
-make # Compiles protobuf files, prompts you to install OpenSCAD
-make keycaps-simple # Generates keycaps used for collision detection.
-make keycaps # Generates geometry for all the keycaps. Take a while.
+make # Compiles protobuf files
 make parts # Generates the mx switch geometry
-npm run dev
+make keycaps-simple2  # Generates keycaps used for collision detection; Ignore the errors
+make keycaps2 # Generates geometry for all the keycaps
+npm run dev # Hosts and live-reloads the webpage
 
 # Optional
-make keyholes # (requires Java and Leiningen): Generates keyholes used in the Dactyl generator
+make keyholes # (requires Java and Leiningen): Generates backwards-compatible Dactyl keyholes
+export OPENSCAD=$(which openscad) # For the next 2 commands: sets var to openscad executable
+make keycaps-simple # Alternative to make keycaps-simple2; Requires OpenSCAD
+make keycaps # Alternative to make keycaps2; Requires OpenSCAD
 ```
 
 Then visit [`http://localhost:5173/beta`](http://localhost:5173/beta).
 
 If you're using Windows and don't have access to the `make` command, you can piece together the commands that are run by referencing the `Makefile` and running them yourself. Or just [install make](https://stackoverflow.com/a/73862277) :)
 
-If OpenSCAD is not available for your system or you're having trouble installing it, you can alternatively `make keycaps-simple2 keycaps2`. These experimental scripts use web assembly versions of OpenSCAD and Manifold to render models, but the translation layer I wrote is not 100% accurate so expect inaccuracies.
+The `make keycaps-simple2 keycaps2` scripts use a web assembly version of Manifold to render models (and OpenSCAD for running the scripting parts of the scad files), but the translation layer I wrote is not 100% accurate. _Some stuff will be broken, like collision detection for OEM keycaps (expect error-like message to be printed). The relative proportions of keys are not fully correct either, but the scripts are more than good enough for local development._ The `make keycaps-simple keycaps` scripts are what I use for the production site, but they require a recent version of [OpenSCAD](https://openscad.org/downloads.html) (at least 2023) and the Linux version of OpenSCAD seems to struggle rendering the keycaps for some reason. If you wish to use these, either set the `OPENSCAD` environment variable to the location of the OpenSCAD executable or symlink the executable to `target/openscad`.
 
 To generate docs there are a few more commands:
 
