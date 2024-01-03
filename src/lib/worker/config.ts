@@ -427,6 +427,7 @@ function keycapType(c: DeepRequired<CuttleformProto>): Required<CuttleKeycapKey>
   if (c.upperKeys.keycapType == KEYCAP.SA) return 'sa'
   if (c.upperKeys.keycapType == KEYCAP.XDA) return 'xda'
   if (c.upperKeys.keycapType == KEYCAP.KCHOC) return 'choc'
+  if (c.upperKeys.keycapType == KEYCAP.DES) return 'des'
   return 'dsa'
 }
 

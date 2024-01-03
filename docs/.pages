@@ -3,3 +3,4 @@ nav:
   - ...
   - blog
   - Parts: ./parts
+  - Keycaps: ./keycaps

@@ -6,6 +6,7 @@ import { STLLoader } from 'three/examples/jsm/loaders/STLLoader'
 import { fileURLToPath } from 'url'
 import { promisify } from 'util'
 import { exportGLTF } from './exportGLTF'
+import { pseudoFiles, pseudoMirror, psuedoKeyId } from './keycapsPseudoHelper'
 import { PromisePool } from './promisePool'
 
 const targetDir = fileURLToPath(new URL('../../target', import.meta.url))
@@ -29,9 +30,19 @@ async function genKey(config: { profile: string; u: number; row?: number }, fold
     : config.profile + '-' + config.row + '-' + config.u
   const scadName = join(folder, name + '.scad')
   const stlName = join(folder, name + '.stl')
-  const stemFn = config.profile == 'choc' ? '$stem_type = "choc";' : ''
-  const keyFn = `${config.profile}_row(${row})`
-  await writeFile(scadName, header + `${stemFn} u(${config.u}) ${keyFn} key();`)
+
+  if (pseudoFiles[config.profile]) {
+    const base = await readFile(join(targetDir, 'PseudoProfiles', pseudoFiles[config.profile]), { encoding: 'utf-8' })
+    const scadContents = base
+      .replace(/keyID\s*=\s*\d+/, 'keyID = ' + psuedoKeyId(config.u, config.row!))
+      .replace(/use </g, `use <${targetDir}/PseudoProfiles/`)
+      .replace('mirror([0,0,0])', pseudoMirror(config.u, config.row!))
+    await writeFile(scadName, scadContents)
+  } else {
+    const stemFn = config.profile == 'choc' ? '$stem_type = "choc";' : ''
+    const keyFn = `${config.profile}_row(${row})`
+    await writeFile(scadName, header + `${stemFn} u(${config.u}) ${keyFn} key();`)
+  }
 
   const openscadExe = process.env.OPENSCAD || join(targetDir, 'openscad')
   await promisify(execFile)(openscadExe, [scadName, '-o', stlName])
@@ -47,13 +58,14 @@ async function genKeys() {
 
   const pool = new PromisePool()
   const profiles = [
-    ...US.map(u => ({ profile: 'dsa', u })),
-    ...US.map(u => ({ profile: 'xda', u })),
-    ...US.map(u => ({ profile: 'choc', u })),
-    ...US.flatMap(u => ROWS.map(r => ({ profile: 'mt3', u, row: r }))),
-    ...US.flatMap(u => ROWS.map(r => ({ profile: 'oem', u, row: r }))),
-    ...US.flatMap(u => ROWS.map(r => ({ profile: 'sa', u, row: r }))),
-    ...US.flatMap(u => ROWS.map(r => ({ profile: 'cherry', u, row: r }))),
+    // ...US.map(u => ({ profile: 'dsa', u })),
+    // ...US.map(u => ({ profile: 'xda', u })),
+    // ...US.map(u => ({ profile: 'choc', u })),
+    // ...US.flatMap(u => ROWS.map(r => ({ profile: 'mt3', u, row: r }))),
+    // ...US.flatMap(u => ROWS.map(r => ({ profile: 'oem', u, row: r }))),
+    // ...US.flatMap(u => ROWS.map(r => ({ profile: 'sa', u, row: r }))),
+    // ...US.flatMap(u => ROWS.map(r => ({ profile: 'cherry', u, row: r }))),
+    ...US.flatMap(u => ROWS.map(r => ({ profile: 'des', u, row: r }))),
   ]
 
   profiles.forEach(p => {

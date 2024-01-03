@@ -2,7 +2,7 @@ import { fork } from 'child_process'
 import { join, resolve } from 'path'
 import { fileURLToPath } from 'url'
 import { exportGLTF } from './exportGLTF'
-import { copyToFS, loadManifold, loadOpenSCAD, type OpenSCAD, parseString } from './openscad2'
+import { copyToFS, loadManifold, loadOpenSCAD, parseString } from './openscad2'
 import { PromisePool } from './promisePool'
 
 const targetDir = fileURLToPath(new URL('../../target', import.meta.url))

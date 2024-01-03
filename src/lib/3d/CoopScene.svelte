@@ -37,6 +37,7 @@
 
       root.renderer.setSize(_width, _height)
       root.renderer.render(root.scene, root.camera.object)
+      if (!root.canvas) return
       const ctx = root.canvas.getContext('2d')!
       ctx.clearRect(0, 0, root.canvas.width, root.canvas.height)
       ctx.drawImage(root.renderer.domElement, 0, 0)

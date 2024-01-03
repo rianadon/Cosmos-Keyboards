@@ -20,10 +20,14 @@ target/editorDeclarations.d.ts: src/lib/worker/config.ts src/lib/worker/modeling
 
 target/KeyV2:
 	git clone -b choc https://github.com/rianadon/KeyV2 target/KeyV2
+target/PseudoProfiles:
+	git clone https://github.com/rianadon/PseudoMakeMeKeyCapProfiles target/PseudoProfiles
+target/PseudoProfiles/libraries: target/PseudoProfiles
+	cd target/PseudoProfiles && unzip libraries.zip && mv libraries/* .
 
-keycaps: target/KeyV2
+keycaps: target/KeyV2 target/PseudoProfiles/libraries
 	$(NODE) src/model_gen/keycaps.ts
-keycaps-simple: target/KeyV2
+keycaps-simple: target/KeyV2 target/PseudoProfiles/libraries
 	$(NODE) src/model_gen/keycaps-simple.ts
 keycaps2: target/KeyV2
 	$(NODE) src/model_gen/keycaps2.ts

@@ -8,6 +8,7 @@ import { STLExporter } from 'three/examples/jsm/exporters/STLExporter.js'
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
 import { fileURLToPath } from 'url'
 import { promisify } from 'util'
+import { pseudoFiles, pseudoMirror, psuedoKeyId } from './keycapsPseudoHelper'
 import { PromisePool } from './promisePool'
 
 const targetDir = fileURLToPath(new URL('../../target', import.meta.url))
@@ -32,6 +33,15 @@ module overrides() {
 }
 `
 
+const pseudo_header = `
+module x() {
+  union() {
+    translate([0, 0, -3.5]) linear_extrude(height = 3.5) projection(cut = true) hull() children();
+    hull() children();
+  }
+}
+`
+
 const blobs = {}
 
 const US = [1, 1.25, 1.5, 2]
@@ -47,7 +57,21 @@ async function genKey(config: { profile: string; u: number; row?: number }, fold
     : config.profile + '-' + config.row + '-' + config.u
   const scadName = join(folder, name + '.scad')
   const stlName = join(folder, name + '.stl')
-  await writeFile(scadName, header + `u(${config.u}) ${config.profile}_row(${row}) overrides() key();`)
+
+  if (pseudoFiles[config.profile]) {
+    const base = await readFile(join(targetDir, 'PseudoProfiles', pseudoFiles[config.profile]), { encoding: 'utf-8' })
+    const scadContents = base
+      .replace(/keyID\s*=\s*\d+/, 'keyID = ' + psuedoKeyId(config.u, config.row!))
+      .replace(/use </g, `use <${targetDir}/PseudoProfiles/`)
+      .replace('mirror([0,0,0])', pseudo_header + 'x()' + pseudoMirror(config.u, config.row!))
+      .replace(/Stem\s*= true/, 'Stem = false')
+      .replace(/Dish\s*= true/, 'Dish = false')
+      .replace(/fn\s*= \d+/, 'fn = 2')
+      .replace(/layers\s*= \d+/, 'layers = 2')
+    await writeFile(scadName, scadContents)
+  } else {
+    await writeFile(scadName, header + `u(${config.u}) ${config.profile}_row(${row}) overrides() key();`)
+  }
   await promisify(execFile)(process.env.OPENSCAD || join(targetDir, 'openscad'), [scadName, '-o', stlName])
   const contents = await readFile(stlName, 'utf8')
   const stl = loader.parse(contents)
@@ -71,6 +95,7 @@ async function genKeys() {
     ...US.flatMap(u => ROWS.map(r => ({ profile: 'oem', u, row: r }))),
     ...US.flatMap(u => ROWS.map(r => ({ profile: 'sa', u, row: r }))),
     ...US.flatMap(u => ROWS.map(r => ({ profile: 'cherry', u, row: r }))),
+    ...US.flatMap(u => ROWS.map(r => ({ profile: 'des', u, row: r }))),
   ]
 
   profiles.forEach(p => {
