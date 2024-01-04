@@ -67,7 +67,9 @@ async function genKey(config: { profile: string; u: number; row?: number }, fold
       .replace(/Stem\s*= true/, 'Stem = false')
       .replace(/Dish\s*= true/, 'Dish = false')
       .replace(/fn\s*= \d+/, 'fn = 2')
-      .replace(/layers\s*= \d+/, 'layers = 2')
+      .replace(/layers\s*= \d+/, 'layers = 3')
+      .replace(/stepsize\s*= \d+/, 'stepsize = 1')
+      .replace(/step\s*= \d+/, 'step = 60')
     await writeFile(scadName, scadContents)
   } else {
     await writeFile(scadName, header + `u(${config.u}) ${config.profile}_row(${row}) overrides() key();`)

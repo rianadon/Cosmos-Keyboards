@@ -712,10 +712,20 @@ function keyHoleTrsf(c: Cuttleform, k: CuttleKey, t: Trsf): Trsf {
   //     .translate(0, 0, c.zOffset);
   const deg = keyInfo(k).tilt
 
+  // This is the radius of rotation
+  const depth = keyInfo(k).depth + switchInfo(k.type).height
+  // There is a compromise between rotating about the top of the key and the bottom
+  // of the key. One keeps the top of the key in the same place, which is great for
+  // the curvature. The other one keeps the base in place, which minimizes the chance
+  // keys collide.
+  // Translating by -depth*Math.tan(deg*Math.PI/180)/2 is a compromise between these two modes.
+  // -depth*Math.tan(deg*Math.PI/180) = how much I'd need to translate to keep the base in
+  // the same spot. I divide by 2 to keep the key halfway between where it started and where
+  // it would otherwise end up.
   return new ETrsf(k.position.history).evaluate(
     { flat: false, key: k },
     t
-      .translate(0, 0, -keyInfo(k).depth - switchInfo(k.type).height)
+      .translate(0, -depth * Math.tan(deg * Math.PI / 180) / 2, -depth)
       .rotate(deg, [0, 0, 0], [1, 0, 0])
       .translate(0, 0, KEY_BASE),
   )
