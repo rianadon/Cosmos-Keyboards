@@ -162,7 +162,7 @@
 
       if (Object.values(boardInd).includes(i) && conf.microcontroller) {
         size = 3
-        color = boardInd[0] == i ? [0x33dd33, 0x0000ff] : 0x33dd33
+        color = screwInd.includes(i) ? [0x33dd33, 0x0000ff] : 0x33dd33
       } else if (screwInd.includes(i)) {
         size = 3
         color = 0x0000ff

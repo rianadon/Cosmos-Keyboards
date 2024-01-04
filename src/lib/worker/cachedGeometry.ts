@@ -10,6 +10,7 @@ import {
   flattenKeyCriticalPoints,
   keyHolesTrsfs,
   keyHolesTrsfs2D,
+  type LabeledBoardInd,
   originForConnector,
   positionsImpl,
   positionsImplMap,
@@ -73,7 +74,7 @@ export class BaseGeometry<C extends Cuttleform = SpecificCuttleform<BasicShell>>
     return screwIndices(this.c, this.allWallCriticalPoints(), this.connectorOrigin, this.boardIndices, this.boardIndicesThatAreScrewsToo, this.worldZ, this.bottomZ)
   }
   get screwIndices() {
-    return this.boardIndicesThatAreScrewsToo.map(i => this.boardIndices[i]).concat(this.justScrewIndices)
+    return this.boardIndicesThatAreScrewsToo.map((i) => this.boardIndices[i as keyof LabeledBoardInd]!).concat(this.justScrewIndices)
   }
   @Memoize()
   get justScrewPositions() {
@@ -87,7 +88,7 @@ export class BaseGeometry<C extends Cuttleform = SpecificCuttleform<BasicShell>>
   @Memoize()
   get boardIndices() {
     if (!this.c.microcontroller) return {}
-    return boardIndices(this.c, this.connectorOrigin, this.allWallCriticalPoints(), this.selectedBoardIndices)
+    return boardIndices(this.c, this.connectorOrigin, this.allWallCriticalPoints(), this.worldZ, this.bottomZ, this.selectedBoardIndices)
   }
   get boardIndicesThatAreScrewsToo() {
     return this.c.microcontroller ? ['topLeft'] : []
@@ -100,7 +101,7 @@ export class BaseGeometry<C extends Cuttleform = SpecificCuttleform<BasicShell>>
   @Memoize()
   get autoConnectorIndex() {
     const innerSurfaces = this.allWallCriticalPoints().map(w => wallSurfacesInner(this.c, w))
-    return connectorIndex(this.c, this.allWallCriticalPoints(), innerSurfaces, this.selectedBoardIndices)
+    return connectorIndex(this.c, this.allWallCriticalPoints(), innerSurfaces, this.worldZ, this.bottomZ, this.selectedBoardIndices)
   }
 
   get connectorIndex() {
@@ -173,7 +174,7 @@ export class TiltGeometry extends BaseGeometry<SpecificCuttleform<TiltShell>> {
 
   @Memoize()
   get plateScrewPositions() {
-    return positionsImpl(this.c, this.allWallCriticalPoints(), this.worldZ.clone().negate(), this.justScrewIndices)
+    return positionsImpl(this.c, this.allWallCriticalPoints(), this.worldZ.clone().negate(), this.screwIndices)
   }
   @Memoize()
   get bottomScrewIndices() {

@@ -1,5 +1,5 @@
 import type { Cuttleform } from '../config'
-import type { WallCriticalPoints } from '../geometry'
+import type { Line, WallCriticalPoints } from '../geometry'
 import type { Vector } from '../modeling/transformation'
 import type Trsf from '../modeling/transformation'
 
@@ -11,10 +11,10 @@ export function wallCurveRounded(_conf: Cuttleform, _a: Trsf, _b: Trsf, _c: Trsf
   throw new Error('Not implemented')
 }
 
-export function wallSurfacesOuterRoundedTop(_c: Cuttleform, _wall: WallCriticalPoints) {
+export function wallSurfacesOuterRoundedTop(_c: Cuttleform, _wall: WallCriticalPoints): Line[] {
   throw new Error('Not implemented')
 }
 
-export function wallSurfacesInnerRoundedTop(_c: Cuttleform, _wall: WallCriticalPoints) {
+export function wallSurfacesInnerRoundedTop(_c: Cuttleform, _wall: WallCriticalPoints): Line[] {
   throw new Error('Not implemented')
 }

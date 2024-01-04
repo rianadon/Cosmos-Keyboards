@@ -1071,7 +1071,9 @@
         {#if generatingSTEP || generatingSTL}
           <p class="mt-4">Generating... Please be patient.</p>
         {:else if generatingError}
-          <div class="bg-red-200 m-4 mb-2 rounded p-4 dark:bg-red-700 font-mono text-sm">
+          <div
+            class="bg-red-200 m-4 mb-2 rounded p-4 dark:bg-red-700 font-mono text-sm whitespace-pre-wrap"
+          >
             {generatingError.message}
           </div>
           <p>Check the browser console for more details.</p>

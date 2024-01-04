@@ -104,11 +104,21 @@ export async function generate(config: Cuttleform, stitchWalls: boolean) {
   console.timeEnd('Calculating geometry')
 
   console.time('Creating walls')
-  walls = makeWalls(config, wallPts, geo.worldZ, geo.bottomZ, stitchWalls)
+  try {
+    walls = makeWalls(config, wallPts, geo.worldZ, geo.bottomZ, stitchWalls)
+  } catch (e) {
+    throw new Error('Error Generating the Walls: ' + e + "\n\nThis is caused by bad geometry. Check that the walls don't intersect themselves.")
+  }
+
   console.timeEnd('Creating walls')
 
   console.time('Making web')
-  const web = webSolid(config, geo, true)
+  let web: Solid
+  try {
+    web = webSolid(config, geo, true)
+  } catch (e) {
+    throw new Error('Error Generating the Key Web: ' + e + "\n\nThis is caused by bad geometry. Check that the walls don't intersect the key sockets in any part of the model.")
+  }
   console.timeEnd('Making web')
   console.time('Creating holes')
   const holes = await keyHoles(config, transforms.flat())
