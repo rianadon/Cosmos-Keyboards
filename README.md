@@ -50,8 +50,10 @@ To generate docs there are a few more commands:
 ```bash
 npm install --include=optional # Make sure optional dependencies are installed
 make keyboards # Generates images of keyboards used in the docs.
-npm run doc
+npm run doc # Serves the documentation
 ```
+
+If you'd like to run the dev servers for the generator and docs simultaneously, use `npm run dev:all`. Vite is set up to proxy the documentation, so you can go to the main page, click the link to the docs, and view your local changes.
 
 ### Contributing
 
