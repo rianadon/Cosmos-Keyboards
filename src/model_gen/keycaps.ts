@@ -58,13 +58,13 @@ async function genKeys() {
 
   const pool = new PromisePool()
   const profiles = [
-    // ...US.map(u => ({ profile: 'dsa', u })),
-    // ...US.map(u => ({ profile: 'xda', u })),
-    // ...US.map(u => ({ profile: 'choc', u })),
-    // ...US.flatMap(u => ROWS.map(r => ({ profile: 'mt3', u, row: r }))),
-    // ...US.flatMap(u => ROWS.map(r => ({ profile: 'oem', u, row: r }))),
-    // ...US.flatMap(u => ROWS.map(r => ({ profile: 'sa', u, row: r }))),
-    // ...US.flatMap(u => ROWS.map(r => ({ profile: 'cherry', u, row: r }))),
+    ...US.map(u => ({ profile: 'dsa', u })),
+    ...US.map(u => ({ profile: 'xda', u })),
+    ...US.map(u => ({ profile: 'choc', u })),
+    ...US.flatMap(u => ROWS.map(r => ({ profile: 'mt3', u, row: r }))),
+    ...US.flatMap(u => ROWS.map(r => ({ profile: 'oem', u, row: r }))),
+    ...US.flatMap(u => ROWS.map(r => ({ profile: 'sa', u, row: r }))),
+    ...US.flatMap(u => ROWS.map(r => ({ profile: 'cherry', u, row: r }))),
     ...US.flatMap(u => ROWS.map(r => ({ profile: 'des', u, row: r }))),
   ]
 
