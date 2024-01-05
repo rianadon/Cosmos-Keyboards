@@ -786,12 +786,15 @@ export function thumbOrigin(c: DeepRequired<CuttleformProto>, wristRest = false)
       .rotate(rot.gamma, CENTER, Z)
       .translate(tupleToXYZ(custom.plane.position))
   } else if (c.thumbCluster.oneofKind == 'defaultThumb') {
+    // The first two rotations used to be marked as 3d-only (last optional arg = false)
+    // However, this caused issues confusion with custom thumbs mode, which does not
+    // support distinctions between 3d-only and 3d+2d transforms (see issue #7).
     origin
-      .rotate(28.868421430528564, [0, 0, 0], [1, 0, 0], false)
-      .rotate(12.366106707859005, [0, 0, 0], [0, 1, 0], false)
+      .rotate(28.868421430528564, [0, 0, 0], [1, 0, 0])
+      .rotate(12.366106707859005, [0, 0, 0], [0, 1, 0])
       .rotate(-47.28407717451374, [0, 0, 0], [0, 0, 1])
       .translate(-42, -43, -8)
-      .translate(5, 10, 0, false)
+      .translate(5, 10, 0) // Above comment applies to this translate too
   } else if (c.thumbCluster.oneofKind == 'curvedThumb') {
     origin
       .rotate(-11.890346750358203, [0, 0, 0], [1, 0, 0])
