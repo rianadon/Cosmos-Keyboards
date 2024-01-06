@@ -16,6 +16,7 @@ import { boardHolder, cutWithConnector, keyHoles, makeConnector, makePlate, make
 import { Assembly } from './modeling/assembly'
 import { blobSTL, combine } from './modeling/index'
 import { supportMesh } from './modeling/supports'
+import Trsf, { Vector } from './modeling/transformation'
 
 let oc: OpenCascadeInstance
 let keys: Solid
@@ -224,7 +225,12 @@ async function getModel(conf: Cuttleform, name: string, stitchWalls: boolean) {
   await ensureOC()
   const geometry = newGeometry(conf)
   if (name == 'model') {
-    const { assembly } = await generate(conf, stitchWalls)
+    let { assembly } = await generate(conf, stitchWalls)
+    if (conf.shell.type == 'tilt') {
+      // Invert the tilt cases's tilting to the model lies flat
+      const geo = newGeometry(conf)
+      assembly = assembly.transform(new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).invert())
+    }
     return assembly
   } else if (name == 'plate') {
     const { top, bottom } = makePlate(conf, geometry, true, true)

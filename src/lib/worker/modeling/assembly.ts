@@ -1,6 +1,7 @@
 import type { Handle_TDocStd_Document, OpenCascadeInstance, STEPControl_StepModelType, XCAFDoc_ShapeTool } from '$assets/replicad_single'
 import { type AnyShape, Compound, getOC, type Plane, type PlaneName, type Point } from 'replicad'
 import { blobSTL, combine } from './index'
+import type Trsf from './transformation'
 
 /** Builds named assemblies for use in STEP models. */
 export class Assembly {
@@ -21,6 +22,15 @@ export class Assembly {
     const assembly = new Assembly()
     for (const { name, shape } of this.parts) {
       assembly.add(name, shape.mirror(inputPlane, origin))
+    }
+    return assembly
+  }
+
+  /** Return a new assembly with everything transformed. */
+  transform(trsf: Trsf): Assembly {
+    const assembly = new Assembly()
+    for (const { name, shape } of this.parts) {
+      assembly.add(name, trsf.transform(shape))
     }
     return assembly
   }

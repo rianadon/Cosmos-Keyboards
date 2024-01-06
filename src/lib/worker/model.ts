@@ -44,6 +44,7 @@ const ACCENT_TOLERANCE = 0.05
 const BOARD_TOLERANCE_XY = 0.5
 const BOARD_TOLERANCE_Z = 0.1
 const BOARD_COMPONENT_TOL = 0.1 // Added to sides of cutouts on board holder
+const TILT_PARTS_SEPARATION = 0.05 // How far apart the two components of tilts plate should be
 
 const SMOOTHAPEX = false
 
@@ -434,7 +435,7 @@ export function makePlate(c: Cuttleform, geo: Geometry, cut = false, inserts = f
         // cutPlateWithHoles(c, makeNormalPlate(c, geo), positions),
         joinTiltPlates(c, geo as any),
         plateRing(c, geo, -PLATE_HEIGHT),
-        plateRing(c, tiltBotGeo(c, tiltGeo), PLATE_HEIGHT),
+        plateRing(c, tiltBotGeo(c, tiltGeo), PLATE_HEIGHT).translateZ(TILT_PARTS_SEPARATION),
         inserts ? makerScrewInserts(c, geo, ['plate']) : null,
       ]),
       bottom: cutPlateWithHoles(c, makeBottomestPlate(c, tiltGeo), tiltGeo.bottomScrewPositions).translateZ(-0.01),
@@ -565,11 +566,13 @@ function joinTiltPlatesLoft(c: Cuttleform, geo: TiltGeometry) {
 function joinTiltPlates(c: Cuttleform, geo: TiltGeometry) {
   if (c.shell.type !== 'tilt') throw new Error('oops')
 
+  // Create boundaries for both the top and bottom of the joining surface.
+  // These will later get joined.
   const topTranslation = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).pretranslate(0, 0, -PLATE_HEIGHT).xyz()
   const topBoundary = wallBoundaryBeziers(c, geo).map(c => c.map(t => t.translated(topTranslation))) as Curve[]
   const topBoundaryInner = wallBoundaryBeziers(c, geo, 'bi').map(c => c.map(t => t.translated(topTranslation))) as Curve[]
 
-  const botTranslation = [0, 0, PLATE_HEIGHT] as [number, number, number]
+  const botTranslation = [0, 0, PLATE_HEIGHT + TILT_PARTS_SEPARATION] as [number, number, number]
   const botGeo = tiltBotGeo(c, geo)
   const bottomBoundary = wallBoundaryBeziers(c, botGeo).map(c => c.map(t => t.translated(botTranslation))) as Curve[]
   const bottomBoundaryInner = wallBoundaryBeziers(c, botGeo, 'bi').map(c => c.map(t => t.translated(botTranslation))) as Curve[]
@@ -740,7 +743,7 @@ function makeScrewInserts(c: Cuttleform, geo: Geometry, types: ScrewInsertTypes)
   if (c.shell.type == 'tilt' && types.includes('plate')) {
     inserts.push(
       ...(geo as TiltGeometry).plateScrewPositions.map(p => makeScrewInsert(c, solidWallSurface, p, true)),
-      ...(geo as TiltGeometry).bottomScrewPositions.map(p => makeScrewInsert(c, solidWallSurface, p, false)),
+      ...(geo as TiltGeometry).bottomScrewPositions.map(p => makeScrewInsert(c, solidWallSurface, p, false).translateZ(TILT_PARTS_SEPARATION)),
     )
   }
   return inserts
