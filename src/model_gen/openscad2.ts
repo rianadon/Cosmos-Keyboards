@@ -329,12 +329,12 @@ export async function loadManifold(): Promise<void> {
 }
 
 /** Copy a directory of scad files to the OpenSCAD filesystem */
-export function copyToFS(openscad: OpenSCAD, local: string, dir: string) {
-  openscad.FS.mkdir(dir)
+export function copyToFS(openscad: OpenSCAD, local: string, dir?: string) {
+  if (dir) openscad.FS.mkdir(dir)
   const dirents = readdirSync(local, { withFileTypes: true })
   for (const dirent of dirents) {
     const loc = resolve(local, dirent.name)
-    const dr = join(dir, dirent.name)
+    const dr = dir ? join(dir, dirent.name) : dirent.name
     if (dirent.isDirectory() && !dirent.name.endsWith('git')) {
       copyToFS(openscad, loc, dr)
     } else if (dirent.name.endsWith('.scad')) {
