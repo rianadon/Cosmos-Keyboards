@@ -6,6 +6,6 @@ export function splitStiltsScrewInserts(_c: SpecificCuttleform<StiltsShell>, _ge
   throw new Error('Not implemented')
 }
 
-export function makeStiltsPlate(_c: Cuttleform, _geo: Geometry, _cut = false): { top: Solid; bottom?: Solid } {
+export function makeStiltsPlate(_c: Cuttleform, _geo: Geometry, _cut = false): { top: () => Solid; bottom?: () => Solid } {
   throw new Error('Not implemented')
 }

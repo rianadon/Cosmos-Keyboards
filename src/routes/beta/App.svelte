@@ -947,18 +947,48 @@
           </div>
           <div class="break-inside-avoid">
             <h3 class="mb-2 mt-4 text-lg semibold text-black dark:text-white">Plate</h3>
-            <div class="inline-flex items-center gap-2">
-              <button
-                class="button flex items-center gap-2"
-                on:click={() => downloadSTL('plate', true)}
-                ><Icon path={mdi.mdiHandBackLeft} />Left</button
-              >
-              <button
-                class="button flex items-center gap-2"
-                on:click={() => downloadSTL('plate', false)}
-                ><Icon path={mdi.mdiHandBackRight} />Right</button
-              >
-            </div>
+            {#if config.shell.type == 'tilt' || config.shell.type == 'stilts'}
+              <div class="inline-flex items-center gap-2">
+                <button
+                  class="button flex items-center gap-2"
+                  on:click={() => downloadSTL('platetop', true)}
+                  ><Icon path={mdi.mdiHandBackLeft} />L / Top</button
+                >
+                <button
+                  class="button flex items-center gap-2"
+                  on:click={() => downloadSTL('platetop', false)}
+                  ><Icon path={mdi.mdiHandBackRight} />R / Top</button
+                >
+              </div>
+              <div class="inline-flex items-center gap-2 mt-2">
+                <button
+                  class="button flex items-center gap-2"
+                  on:click={() => downloadSTL('platebottom', true)}
+                  ><Icon path={mdi.mdiHandBackLeft} />L / Bot</button
+                >
+                <button
+                  class="button flex items-center gap-2"
+                  on:click={() => downloadSTL('platebottom', false)}
+                  ><Icon path={mdi.mdiHandBackRight} />R / Bot</button
+                >
+              </div>
+              <div class="text-sm opacity-70 text-center mt-2 pb-1">
+                Download both the Top and Bot models
+              </div>
+            {:else}
+              <div class="inline-flex items-center gap-2">
+                <button
+                  class="button flex items-center gap-2"
+                  on:click={() => downloadSTL('plate', true)}
+                  ><Icon path={mdi.mdiHandBackLeft} />Left</button
+                >
+                <button
+                  class="button flex items-center gap-2"
+                  on:click={() => downloadSTL('plate', false)}
+                  ><Icon path={mdi.mdiHandBackRight} />Right</button
+                >
+              </div>
+            {/if}
           </div>
           {#if config.microcontroller}
             <div class="break-inside-avoid">

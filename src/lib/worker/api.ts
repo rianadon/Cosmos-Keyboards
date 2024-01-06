@@ -84,8 +84,8 @@ export async function generatePlate(config: Cuttleform, cut = false) {
   const geo = newGeometry(config)
   const { top, bottom } = makePlate(config, geo, cut)
   return {
-    top: meshWithVolume(top),
-    bottom: bottom ? meshWithVolume(bottom) : { mesh: null, mass: 0 },
+    top: meshWithVolume(top()),
+    bottom: bottom ? meshWithVolume(bottom()) : { mesh: null, mass: 0 },
   }
 }
 
@@ -232,9 +232,11 @@ async function getModel(conf: Cuttleform, name: string, stitchWalls: boolean) {
       assembly = assembly.transform(new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).invert())
     }
     return assembly
-  } else if (name == 'plate') {
-    const { top, bottom } = makePlate(conf, geometry, true, true)
-    return combine([top, bottom])
+  } else if (name == 'plate' || name == 'platetop') {
+    return makePlate(conf, geometry, true, true).top()
+  } else if (name == 'platebottom') {
+    const bot = makePlate(conf, geometry, true, true).bottom
+    return bot ? bot() : undefined
   } else if (name == 'holder') {
     return boardHolder(conf, geometry)
   } else if (name == 'wristrest') {
@@ -254,7 +256,7 @@ export async function getSTEP(conf: Cuttleform, flip: boolean, stitchWalls: bool
   const geometry = newGeometry(conf)
   let { assembly } = await generate(conf, stitchWalls)
   const { top, bottom } = makePlate(conf, geometry, true, true)
-  assembly.add('Bottom Plate', combine([top, bottom]))
+  assembly.add('Bottom Plate', combine([top(), bottom ? bottom() : undefined]))
   assembly.add('Microcontroller Holder', boardHolder(conf, geometry))
 
   if ((await getUser()).sponsor && conf.wristRest) {

@@ -348,8 +348,9 @@ function screwCountersunkProfile(c: Cuttleform, height = PLATE_HEIGHT, margin = 
   const screwInfo = SCREWS[c.screwSize]
   const countersunkHeight = (screwInfo.countersunkDiameter - screwInfo.plateDiameter) / 2 / Math.tan(screwInfo.countersunkAngle * Math.PI / 360)
   return draw()
-    .hLine(screwInfo.plateDiameter / 2)
-    .vLine(-height + countersunkHeight)
+    .movePointerTo([0, margin])
+    .hLineTo(screwInfo.plateDiameter / 2)
+    .vLineTo(-height + countersunkHeight)
     .lineTo([screwInfo.countersunkDiameter / 2, -height])
     .vLine(-margin)
     .lineTo([0, -height - margin])
@@ -420,8 +421,8 @@ function makeAccentPlate(c: Cuttleform, geo: Geometry) {
 }
 
 interface Plate {
-  top: Solid
-  bottom?: Solid
+  top: () => Solid
+  bottom?: () => Solid
 }
 export function makePlate(c: Cuttleform, geo: Geometry, cut = false, inserts = false): Plate {
   const positions = [...geo.screwPositions]
@@ -431,20 +432,21 @@ export function makePlate(c: Cuttleform, geo: Geometry, cut = false, inserts = f
   if (c.shell.type == 'tilt') {
     const tiltGeo = geo as TiltGeometry
     return {
-      top: combine([
-        // cutPlateWithHoles(c, makeNormalPlate(c, geo), positions),
-        joinTiltPlates(c, geo as any),
-        plateRing(c, geo, -PLATE_HEIGHT),
-        plateRing(c, tiltBotGeo(c, tiltGeo), PLATE_HEIGHT).translateZ(TILT_PARTS_SEPARATION),
-        inserts ? makerScrewInserts(c, geo, ['plate']) : null,
-      ]),
-      bottom: cutPlateWithHoles(c, makeBottomestPlate(c, tiltGeo), tiltGeo.bottomScrewPositions).translateZ(-0.01),
+      top: () =>
+        combine([
+          // cutPlateWithHoles(c, makeNormalPlate(c, geo), positions),
+          joinTiltPlates(c, geo as any),
+          plateRing(c, geo, -PLATE_HEIGHT),
+          plateRing(c, tiltBotGeo(c, tiltGeo), PLATE_HEIGHT).translateZ(TILT_PARTS_SEPARATION),
+          inserts ? makerScrewInserts(c, geo, ['plate']) : null,
+        ]),
+      bottom: () => cutPlateWithHoles(c, makeBottomestPlate(c, tiltGeo), tiltGeo.bottomScrewPositions),
     }
   }
   if (c.shell.type == 'basic' && c.shell.lip) {
-    return { top: cutPlateWithHoles(c, makeAccentPlate(c, geo), positions) }
+    return { top: () => cutPlateWithHoles(c, makeAccentPlate(c, geo), positions) }
   }
-  return { top: cutPlateWithHoles(c, makeNormalPlate(c, geo), positions) }
+  return { top: () => cutPlateWithHoles(c, makeNormalPlate(c, geo), positions) }
 }
 
 export function makeBottomestPlate(c: Cuttleform, geo: TiltGeometry) {
