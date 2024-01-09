@@ -1021,10 +1021,10 @@ export function boardHolder(c: Cuttleform, geo: Geometry): Solid {
     const maxy1 = boardPos.topLeft ? Math.min(maxy, boardPos.topLeft.origin().y - outerRadius) : maxy
     const maxy2 = boardPos.topRight ? Math.min(maxy, boardPos.topRight.origin().y - outerRadius) : maxy
     if (maxy1 - miny12 > 4) {
-      rect = rect.cut(drawRectangleByBounds(minx, minx + boardProps.sidecutout, miny12, maxy1))
+      rect = rect.cut(drawRectangleByBounds(minx, minx + boardProps.sidecutout, miny, maxy))
     }
     if (maxy2 - miny12 > 4) {
-      rect = rect.cut(drawRectangleByBounds(maxx - boardProps.sidecutout, maxx, miny12, maxy2))
+      rect = rect.cut(drawRectangleByBounds(maxx - boardProps.sidecutout, maxx, miny, maxy))
     }
   }
 
