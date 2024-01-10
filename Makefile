@@ -29,9 +29,9 @@ keycaps: target/KeyV2 target/PseudoProfiles/libraries
 	$(NODE) src/model_gen/keycaps.ts
 keycaps-simple: target/KeyV2 target/PseudoProfiles/libraries
 	$(NODE) src/model_gen/keycaps-simple.ts
-keycaps2: target/KeyV2
+keycaps2: target/KeyV2 target/PseudoProfiles/libraries
 	$(NODE) src/model_gen/keycaps2.ts
-keycaps-simple2: target/KeyV2
+keycaps-simple2: target/KeyV2 target/PseudoProfiles/libraries
 	$(NODE) src/model_gen/keycaps-simple2.ts
 keyholes:
 	$(NODE) src/model_gen/keyholes.ts
