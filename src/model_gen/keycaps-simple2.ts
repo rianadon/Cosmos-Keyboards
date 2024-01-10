@@ -1,10 +1,11 @@
-import { fork } from 'child_process'
-import { mkdtemp, rm, writeFile } from 'fs/promises'
-import { tmpdir } from 'os'
-import { join, resolve } from 'path'
+import { fork } from 'node:child_process'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { Mesh } from 'three'
 import { STLExporter } from 'three/examples/jsm/exporters/STLExporter.js'
-import { fileURLToPath } from 'url'
+import { pseudoFiles, pseudoMirror, psuedoKeyId } from './keycapsPseudoHelper'
 import { copyToFS, loadManifold, loadOpenSCAD, parseString } from './openscad2'
 import { PromisePool } from './promisePool'
 
@@ -24,11 +25,21 @@ module overrides() {
   $dish_type = "disable";
   $height_slices = 1; // min($height_slices, 2);
   union() {
+    translate([0, 0, $stem_inset-3.5]) linear_extrude(height = 3.5) projection(cut = true) translate([0, 0, -$stem_inset]) hull() children();
+    hull() children();
+  }
+}
+`
+
+const pseudo_header = `
+module x() {
+  union() {
     translate([0, 0, -3.5]) linear_extrude(height = 3.5) projection(cut = true) hull() children();
     hull() children();
   }
 }
 `
+
 type SMap = Record<string, string>
 const blobs: SMap = {}
 
@@ -37,7 +48,6 @@ const ROWS = [0, 1, 2, 3, 4, 5]
 
 async function genKey(config: { profile: string; u: number; row?: number }) {
   const [openscad, _] = await Promise.all([loadOpenSCAD(), loadManifold()])
-  copyToFS(openscad, resolve(targetDir, 'KeyV2'), 'KeyV2')
 
   const exporter = new STLExporter()
   const row = config.profile == 'dsa' ? 3 : config.row
@@ -45,7 +55,23 @@ async function genKey(config: { profile: string; u: number; row?: number }) {
   const name = UNIFORM.includes(config.profile)
     ? config.profile + '-' + config.u
     : config.profile + '-' + config.row + '-' + config.u
-  openscad.FS.writeFile(name + '.scad', header + `u(${config.u}) ${config.profile}_row(${row}) overrides() key();`)
+  if (pseudoFiles[config.profile]) {
+    copyToFS(openscad, resolve(targetDir, 'PseudoProfiles'))
+    const base = await readFile(join(targetDir, 'PseudoProfiles', pseudoFiles[config.profile]), { encoding: 'utf-8' })
+    const scadContents = base
+      .replace(/keyID\s*=\s*\d+/, 'keyID = ' + psuedoKeyId(config.u, config.row!))
+      .replace('mirror([0,0,0])', pseudo_header + 'x()' + pseudoMirror(config.u, config.row!))
+      .replace(/Stem\s*= true/, 'Stem = false')
+      .replace(/Dish\s*= true/, 'Dish = false')
+      .replace(/fn\s*= \d+/, 'fn = 2')
+      .replace(/layers\s*= \d+/, 'layers = 3')
+      .replace(/stepsize\s*= \d+/, 'stepsize = 1')
+      .replace(/step\s*= \d+/, 'step = 60')
+    openscad.FS.writeFile(name + '.scad', scadContents)
+  } else {
+    copyToFS(openscad, resolve(targetDir, 'KeyV2'), 'KeyV2')
+    openscad.FS.writeFile(name + '.scad', header + `u(${config.u}) ${config.profile}_row(${row}) overrides() key();`)
+  }
   openscad.callMain([name + '.scad', '-o', name + '.csg'])
   const csg = openscad.FS.readFile(name + '.csg', { encoding: 'utf8' })
   const geometry = await parseString(csg)
@@ -68,6 +94,7 @@ async function genKeys() {
     ...US.flatMap(u => ROWS.map(r => ({ profile: 'oem', u, row: r }))),
     ...US.flatMap(u => ROWS.map(r => ({ profile: 'sa', u, row: r }))),
     ...US.flatMap(u => ROWS.map(r => ({ profile: 'cherry', u, row: r }))),
+    ...US.flatMap(u => ROWS.map(r => ({ profile: 'des', u, row: r }))),
   ]
 
   profiles.forEach(p => {

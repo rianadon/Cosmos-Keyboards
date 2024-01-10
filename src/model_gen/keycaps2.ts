@@ -1,7 +1,9 @@
-import { fork } from 'child_process'
-import { join, resolve } from 'path'
-import { fileURLToPath } from 'url'
+import { fork } from 'node:child_process'
+import { readFile } from 'node:fs/promises'
+import { join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { exportGLTF } from './exportGLTF'
+import { pseudoFiles, pseudoMirror, psuedoKeyId } from './keycapsPseudoHelper'
 import { copyToFS, loadManifold, loadOpenSCAD, parseString } from './openscad2'
 import { PromisePool } from './promisePool'
 
@@ -20,7 +22,6 @@ const UNIFORM = ['dsa', 'xda', 'choc']
 
 async function genKey(config: { profile: string; u: number; row?: number }) {
   const [openscad, _] = await Promise.all([loadOpenSCAD(), loadManifold()])
-  copyToFS(openscad, resolve(targetDir, 'KeyV2'), 'KeyV2')
 
   const row = config.profile == 'dsa' ? 3 : config.row
 
@@ -29,7 +30,17 @@ async function genKey(config: { profile: string; u: number; row?: number }) {
     : config.profile + '-' + config.row + '-' + config.u
   const stemFn = config.profile == 'choc' ? '$stem_type = "choc";' : ''
   const keyFn = `${config.profile}_row(${row})`
-  openscad.FS.writeFile(name + '.scad', header + `${stemFn} u(${config.u}) ${keyFn} key();`)
+  if (pseudoFiles[config.profile]) {
+    copyToFS(openscad, resolve(targetDir, 'PseudoProfiles'))
+    const base = await readFile(join(targetDir, 'PseudoProfiles', pseudoFiles[config.profile]), { encoding: 'utf-8' })
+    const scadContents = base
+      .replace(/keyID\s*=\s*\d+/, 'keyID = ' + psuedoKeyId(config.u, config.row!))
+      .replace('mirror([0,0,0])', pseudoMirror(config.u, config.row!))
+    openscad.FS.writeFile(name + '.scad', scadContents)
+  } else {
+    copyToFS(openscad, resolve(targetDir, 'KeyV2'), 'KeyV2')
+    openscad.FS.writeFile(name + '.scad', header + `${stemFn} u(${config.u}) ${keyFn} key();`)
+  }
   openscad.callMain([name + '.scad', '-o', name + '.csg'])
   const csg = openscad.FS.readFile(name + '.csg', { encoding: 'utf8' })
   const geometry = await parseString(csg)
@@ -47,6 +58,7 @@ async function genKeys() {
     ...US.flatMap(u => ROWS.map(r => ({ profile: 'oem', u, row: r }))),
     ...US.flatMap(u => ROWS.map(r => ({ profile: 'sa', u, row: r }))),
     ...US.flatMap(u => ROWS.map(r => ({ profile: 'cherry', u, row: r }))),
+    ...US.flatMap(u => ROWS.map(r => ({ profile: 'des', u, row: r }))),
   ]
 
   profiles.forEach(p => {

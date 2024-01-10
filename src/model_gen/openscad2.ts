@@ -17,7 +17,7 @@ import type { CrossSection, Manifold, ManifoldToplevel, Mat4, Polygons, Vec2, Ve
 import loadMF from 'manifold-3d'
 import * as parser from 'openscad-parser'
 import { join, resolve } from 'path'
-import { BufferAttribute, BufferGeometry, Vector2 } from 'three'
+import { BufferAttribute, BufferGeometry, Vector2, Vector3 } from 'three'
 import { fileURLToPath } from 'url'
 import load from '../assets/openscad.wasm.js'
 
@@ -144,6 +144,34 @@ class MyVisitor {
         const size: Vec2 = this.findArg(n.args, 'size')
         const center: boolean = this.findArg(n.args, 'center')
         return mf.CrossSection.square(size, center)
+      }
+      case 'polyhedron': {
+        const points: Vec3[] = this.findArg(n.args, 'points')
+        const faces: number[][] = this.findArg(n.args, 'faces')
+
+        const triVerts: number[] = []
+        for (const face of faces) {
+          if (face.length == 3) triVerts.push(...face.reverse())
+          else {
+            const a = points[face[0]]
+            const b = points[face[1]]
+            const c = points[face[2]]
+            const x = new Vector3(a[0] - b[0], a[1] - b[1], a[2] - b[2])
+            const y = new Vector3(c[0] - b[0], c[1] - b[1], c[2] - b[2])
+            const triangulation = mf.triangulate(face.map(v => {
+              const vec = new Vector3(...points[v])
+              return [vec.dot(x), vec.dot(y)]
+            }))
+            triVerts.push(...triangulation.flatMap(t => t.map(i => face[i]).reverse()))
+          }
+        }
+
+        const mesh = new mf.Mesh({
+          numProp: 3,
+          vertProperties: new Float32Array(points.flat()),
+          triVerts: new Uint32Array(triVerts),
+        })
+        return new mf.Manifold(mesh)
       }
       // case 'polyhedron':
       // return { op: 'polyhedron', faces: this.findArg(n.args, 'faces'), points: this.findArg(n.args, 'points') }

@@ -27,7 +27,7 @@ module overrides() {
   $dish_type = "disable";
   $height_slices = 1; // min($height_slices, 2);
   union() {
-    translate([0, 0, -3.5]) linear_extrude(height = 3.5) projection(cut = true) hull() children();
+    translate([0, 0, $stem_inset*1.001-3.5]) linear_extrude(height = 3.5) projection(cut = true) translate([0, 0, -$stem_inset*1.001]) hull() children();
     hull() children();
   }
 }
