@@ -1,14 +1,15 @@
 import { cpus } from 'os'
 
-type R = string | void
+type R = string | void | { key: string; result: any; output?: string }
 type QueueItem = { name: string; f: () => Promise<R> }
 type WorkingItem = { promise: Promise<R>; began: number; name: string }
 export class PromisePool {
-  private queue: QueueItem[] = []
-  private working: WorkingItem[] = []
-  private interactive: boolean
+  protected queue: QueueItem[] = []
+  protected working: WorkingItem[] = []
+  protected interactive: boolean
+  public results: Record<string, any> = {}
 
-  constructor(private size = cpus().length, interactive?: boolean) {
+  constructor(protected size = cpus().length, interactive?: boolean) {
     this.interactive = interactive ?? (process.stdout.moveCursor != null)
   }
 
@@ -47,6 +48,25 @@ export class PromisePool {
     console.log()
   }
 
+  protected updateResult(name: string, time: number, result: R) {
+    let output: string | undefined = ''
+    if (typeof result === 'object' && result) {
+      output = result.output
+      this.results[result.key] = result.result
+    } else if (typeof result == 'string') {
+      output = result
+    }
+    if (this.interactive && output) {
+      process.stdout.moveCursor(0, -this.size - 1)
+      console.log(name + ' in ' + time + 's: ' + output)
+      console.log('\n'.repeat(this.size))
+      this.updateConsole()
+    } else if (!this.interactive) {
+      console.log(`[${time}s] Finished ${name}`)
+      if (output) console.log('  ↳ ' + output)
+    }
+  }
+
   /** Execute all tasks in the queue */
   async run(): Promise<void> {
     for (let i = 0; i < this.size; i++) {
@@ -64,15 +84,7 @@ export class PromisePool {
       const toRemove = await Promise.race(this.working.map(w => w.promise.then(() => w)))
       const result = await toRemove.promise
       const time = Math.round((Date.now() - toRemove.began) / 1000)
-      if (this.interactive && result) {
-        process.stdout.moveCursor(0, -this.size - 1)
-        console.log(toRemove.name + ' in ' + time + 's: ' + result)
-        console.log('\n'.repeat(this.size))
-        this.updateConsole()
-      } else if (!this.interactive) {
-        console.log(`[${time}s] Finished ${toRemove.name}`)
-        if (result) console.log('  ↳ ' + result)
-      }
+      this.updateResult(toRemove.name, time, result)
       this.working.splice(this.working.indexOf(toRemove), 1)
       if (this.queue.length > 0) this.working.push(this.toWorking(this.queue.shift()!))
     }

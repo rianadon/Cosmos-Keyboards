@@ -1,4 +1,3 @@
-import { fork } from 'node:child_process'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -7,7 +6,7 @@ import { Mesh } from 'three'
 import { STLExporter } from 'three/examples/jsm/exporters/STLExporter.js'
 import { pseudoFiles, pseudoMirror, psuedoKeyId } from './keycapsPseudoHelper'
 import { copyToFS, loadManifold, loadOpenSCAD, parseString } from './openscad2'
-import { PromisePool } from './promisePool'
+import { ProcessPool } from './processPool'
 
 const targetDir = fileURLToPath(new URL('../../target', import.meta.url))
 
@@ -40,15 +39,11 @@ module x() {
 }
 `
 
-type SMap = Record<string, string>
-const blobs: SMap = {}
-
 const US = [1, 1.25, 1.5, 2]
 const ROWS = [0, 1, 2, 3, 4, 5]
 
 async function genKey(config: { profile: string; u: number; row?: number }) {
-  const [openscad, _] = await Promise.all([loadOpenSCAD(), loadManifold()])
-
+  const openscad = await loadOpenSCAD()
   const exporter = new STLExporter()
   const row = config.profile == 'dsa' ? 3 : config.row
 
@@ -78,14 +73,15 @@ async function genKey(config: { profile: string; u: number; row?: number }) {
 
   const binary = exporter.parse(new Mesh(geometry), { binary: true })
   // @ts-ignore
-  const bstring = Buffer.from(binary.buffer).toString('base64')
-  process.send({ name, bstring })
+  return { key: name, result: Buffer.from(binary.buffer).toString('base64') }
 }
 
 async function genKeys() {
   const folder = await mkdtemp(join(tmpdir(), 'keycaps'))
 
-  const pool = new PromisePool()
+  const pool = new ProcessPool()
+  if (pool.isWorker) await loadManifold()
+
   const profiles = [
     ...US.map(u => ({ profile: 'dsa', u })),
     ...US.map(u => ({ profile: 'xda', u })),
@@ -99,25 +95,14 @@ async function genKeys() {
 
   profiles.forEach(p => {
     const name = `${p.u}u${'row' in p ? ` r${p.row}` : ''} ${p.profile}`
-    pool.add(name, () => {
-      const child = fork(fileURLToPath(import.meta.url), [JSON.stringify(p)])
-      child.on('message', ({ name, bstring }: SMap) => blobs[name] = bstring)
-      return new Promise((resolve, reject) => {
-        child.addListener('error', reject)
-        child.addListener('exit', resolve)
-      })
-    })
+    pool.add(name, () => genKey(p))
   })
 
   await pool.run()
 
   const filename = join(targetDir, `keys-simple.json`)
-  await writeFile(filename, JSON.stringify(blobs))
+  await writeFile(filename, JSON.stringify(pool.results))
   await rm(folder, { recursive: true })
 }
 
-if (process.argv[2]?.startsWith('{')) {
-  genKey(JSON.parse(process.argv[2]))
-} else {
-  genKeys()
-}
+genKeys()

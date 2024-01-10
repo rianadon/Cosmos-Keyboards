@@ -1,11 +1,10 @@
-import { fork } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { exportGLTF } from './exportGLTF'
 import { pseudoFiles, pseudoMirror, psuedoKeyId } from './keycapsPseudoHelper'
 import { copyToFS, loadManifold, loadOpenSCAD, parseString } from './openscad2'
-import { PromisePool } from './promisePool'
+import { ProcessPool } from './processPool'
 
 const targetDir = fileURLToPath(new URL('../../target', import.meta.url))
 
@@ -21,7 +20,7 @@ const ROWS = [0, 1, 2, 3, 4, 5]
 const UNIFORM = ['dsa', 'xda', 'choc']
 
 async function genKey(config: { profile: string; u: number; row?: number }) {
-  const [openscad, _] = await Promise.all([loadOpenSCAD(), loadManifold()])
+  const openscad = await loadOpenSCAD()
 
   const row = config.profile == 'dsa' ? 3 : config.row
 
@@ -49,7 +48,8 @@ async function genKey(config: { profile: string; u: number; row?: number }) {
 }
 
 async function genKeys() {
-  const pool = new PromisePool()
+  const pool = new ProcessPool()
+  if (pool.isWorker) await loadManifold()
   const profiles = [
     ...US.map(u => ({ profile: 'dsa', u })),
     ...US.map(u => ({ profile: 'xda', u })),
@@ -63,20 +63,10 @@ async function genKeys() {
 
   profiles.forEach(p => {
     const name = `${p.u}u${'row' in p ? ` r${p.row}` : ''} ${p.profile}`
-    pool.add(name, () => {
-      const child = fork(fileURLToPath(import.meta.url), [JSON.stringify(p)])
-      return new Promise((resolve, reject) => {
-        child.addListener('error', reject)
-        child.addListener('exit', resolve)
-      })
-    })
+    pool.add(name, () => genKey(p))
   })
 
   await pool.run()
 }
 
-if (process.argv[2]?.startsWith('{')) {
-  genKey(JSON.parse(process.argv[2]))
-} else {
-  genKeys()
-}
+genKeys()
