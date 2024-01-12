@@ -1044,8 +1044,8 @@
         <p class="mb-4 text-gray-500 dark:text-gray-200 max-w-lg mx-auto">
           These models are editable in Fusion and Onshape and include all parts. Check the <a
             class="text-teal-500 dark:text-teal-300 hover:underline"
-            href="https://discord.gg/nXjqkfgtGy">#faq</a
-          > channel in Discord for importing instructions.
+            href="https://ryanis.cool/cosmos/docs/cad">#faq</a
+          > docs for importing instructions.
         </p>
         <div class="flex items-center justify-center mb-2 gap-1">
           <!-- svelte-ignore a11y-label-has-associated-control-->
