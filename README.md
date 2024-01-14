@@ -16,7 +16,17 @@ Most generator code lives at [`src/lib`] and[`src/routes/beta`]. Some files used
 [`src/routes/beta`]: https://github.com/rianadon/Cosmos-Keyboards/tree/main/src/routes/beta
 [`src/model_gen`]: https://github.com/rianadon/Cosmos-Keyboards/tree/main/src/model_gen
 
-To run the generator locally, you'll need to [clone] the repository and [have installed Node.js][nodejs]. Then run these commands on the command line:
+To run the generator locally, you have two options:
+
+1. **Docker Setup** (Recommended for a quick start):
+   - Ensure you have Docker and Docker compose installed.
+   - Clone the repository.
+   - Run `docker compose up` in the project root directory.
+     - To avoid running the make scripts next build, set `SKIP_MAKE_FILES=true` in your .env file. This can reduce build time if all target files and docs have already been created.
+
+2. **Manual Setup**:
+   - [Clone] the repository and [have installed Node.js][nodejs].
+   - Then execute the following commands in your terminal:
 
 [clone]: https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository
 [nodejs]: https://nodejs.org/en/learn/getting-started/how-to-install-nodejs
@@ -41,14 +51,16 @@ make keycaps # Alternative to make keycaps2; Requires OpenSCAD
 
 Then visit [`http://localhost:5173/beta`](http://localhost:5173/beta).
 
-If you're using Windows and don't have access to the `make` command, you can piece together the commands that are run by referencing the `Makefile` and running them yourself. Or just [install make](https://stackoverflow.com/a/73862277) :)
+If you're using Windows and don't have access to the `make` command, you can piece together the commands that are run by referencing the `Makefile` and running them yourself, either use the docker setup, or just [install make](https://stackoverflow.com/a/73862277) :)
 
 The `make keycaps-simple2 keycaps2` scripts use a web assembly version of Manifold to render models (and OpenSCAD for running the scripting parts of the scad files), but the translation layer I wrote is not 100% accurate. _The relative proportions of keys are not fully correct, but the scripts are more than good enough for local development._ The `make keycaps-simple keycaps` scripts are what I use for the production site, but they require a recent version of [OpenSCAD](https://openscad.org/downloads.html) (at least 2023) and the Linux version of OpenSCAD seems to struggle rendering the keycaps for some reason. If you wish to use these, either set the `OPENSCAD` environment variable to the location of the OpenSCAD executable or symlink the executable to `target/openscad`.
 
-To generate docs there are a few more commands:
+If using the docker setup, you should already have docs running. Otherwise to generate docs Python 3 and venv must be installed. Then run the following commands:
 
 ```bash
 npm install --include=optional # Make sure optional dependencies are installed
+make venv # Creates virtual environment and installs python dependencies.
+make docs # Generates docs through mkdocs.
 make keyboards # Generates images of keyboards used in the docs.
 npm run doc # Serves the documentation
 ```
