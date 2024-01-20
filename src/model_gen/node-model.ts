@@ -49,7 +49,7 @@ export async function generate(config: Cuttleform, parts = DEFAULT_PARTS) {
     web: async () => webSolid(config, geo, false),
     holes: async () => keyHoles(config, geo.keyHolesTrsfs.flat()),
     inserts: async () => geo.screwPositions.length ? makerScrewInserts(config, geo, ['base']) : undefined,
-    plate: async () => combine(Object.values(makePlate(config, geo, true, true))),
+    plate: async () => combine(Object.values(makePlate(config, geo, true, true)).map(a => a())),
   }
 
   const models: Models = {}
