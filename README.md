@@ -60,7 +60,6 @@ If using the docker setup, you should already have docs running. Otherwise to ge
 ```bash
 npm install --include=optional # Make sure optional dependencies are installed
 make venv # Creates virtual environment and installs python dependencies.
-make docs # Generates docs through mkdocs.
 make keyboards # Generates images of keyboards used in the docs.
 npm run doc # Serves the documentation
 ```
