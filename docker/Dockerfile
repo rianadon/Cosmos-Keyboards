@@ -26,6 +26,8 @@ RUN if [ -f ./.env ]; then set -a && . ./.env && set +a; fi && \
         echo "Skipping make commands..."; \
     fi
 
-COPY entrypoint.sh /entrypoint.sh
+RUN mkdir -p /Cosmos-Keyboards
+WORKDIR /Cosmos-Keyboards
+COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
