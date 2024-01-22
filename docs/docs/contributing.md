@@ -1,5 +1,62 @@
 # Contributing to Cosmos
 
+## Building the Project
+
+For quick instructions, refer to the [README](https://github.com/rianadon/Cosmos-Keyboards/blob/main/README.md#start-of-content). If you'd like more details on the build system, here you go:
+
+### Building Documentation
+
+I've omited instructions for building docs from the README because they're all just Markdown, and submitting a PR will trigger a preview build of the site, with documentation, on Vercel. Additionally, if you are using the docker setup, the docs server will be started as well.
+
+To generate docs, install Python 3 and venv then run the following commands:
+
+```bash
+npm install --include=optional # Make sure optional dependencies are installed
+make venv # Creates virtual environment and installs python dependencies.
+make keyboards # Generates images of keyboards used in the docs.
+npm run doc # Serves the documentation
+```
+
+If you'd like to run the dev servers for the generator and docs simultaneously, use `npm run dev:all`. Vite is set up to proxy the documentation, so you can go to the main page, click the link to the docs, and view your local changes.
+
+### Quickstart, in Detail
+
+The `make quickstart` command recommended in the README bundles together several useful commands in the `Makefile`:
+
+```bash
+npm install --omit=optional # Installs dependencies
+mkdir target
+make # Compiles protobuf files and expert mode autocompletions
+make parts # Generates the mx switch geometry
+make keycaps-simple2  # Generates keycaps used for collision detection
+make keycaps2 # Generates geometry for all the keycaps
+```
+
+This will set you up for a pretty complete generator. There are a few more commands available for building the production site, which are not included in `make quickstart` since they require optional dependencies
+
+```bash
+make keyholes # (requires Java and Leiningen): Generates backwards-compatible Dactyl keyholes
+export OPENSCAD=$(which openscad) # For the next 2 commands: sets var to openscad executable
+make keycaps-simple # Alternative to make keycaps-simple2; Requires OpenSCAD
+make keycaps # Alternative to make keycaps2; Requires OpenSCAD
+```
+
+??? info "What's the difference between keycaps and keycaps2?"
+
+    The `make keycaps-simple2 keycaps2` scripts use a web assembly version of Manifold to render models (and OpenSCAD for running the scripting parts of the scad files), but the translation layer I wrote is not 100% accurate.
+
+    _The relative proportions of keys are not fully correct, but the scripts are more than good enough for local development._
+
+    The `make keycaps-simple keycaps` scripts are what I use for the production site, but they require a recent version of [OpenSCAD](https://openscad.org/downloads.html) (at least 2023) and the Linux version of OpenSCAD seems to struggle rendering the keycaps for some reason. If you wish to use these, either set the `OPENSCAD` environment variable to the location of the OpenSCAD executable or symlink the executable to `target/openscad`.
+
+### Why so many Make targets?
+
+Everything except `make` (i.e. running `make` by itself which triggers the default target) will trigger a script that takes several minutes to execute and depends on too many files to use Make's dependency system. They're broken up so that you don't need to re-run the entire build process if you have, say, only added a new keycap.
+
+You'll probably find yourself needing to run `make` (the default target) once in a while, which is intelligent enough to only re-compile things that have changed.
+
+## Contributing Guides
+
 ### Contributing Parts
 
 In the codebase, the part integrated into the keyboard that holds a switch, trackball, screen, etc. is called a **socket**. Whatever is placed within the socket is called a **part**. Both the socket and part share the same name, which is used in Expert mode as the `type` property for a key. This short guide covers adding a new socket & part to the codebase.

@@ -1,4 +1,4 @@
-.PHONY : build keycaps keycaps-simple keycaps2 keycaps-simple2 keyholes switches venv optimize docs docs-ci keyboards ci ci-setup vite-build
+.PHONY : build keycaps keycaps-simple keycaps2 keycaps-simple2 keyholes switches venv optimize docs docs-ci keyboards ci ci-setup vite-build quickstart npm-install
 build: target/proto/manuform.ts target/proto/lightcycle.ts target/proto/cuttleform.ts target/editorDeclarations.d.ts
 
 NODE = node --import ./src/model_gen/register_loader.js
@@ -43,11 +43,11 @@ keyboards:
 	$(NODE) src/model_gen/keyboards.ts
 
 venv:
-	if test ! -d venv; then python3 -m venv venv; source venv/bin/activate && pip install mkdocs-material[imaging]==9.4.14 mkdocs-awesome-pages-plugin==2.9.2 mkdocs-rss-plugin==1.9.0 lxml==4.9.3; fi
+	if test ! -d venv; then python3 -m venv venv; . venv/bin/activate && pip install mkdocs-material[imaging]==9.4.14 mkdocs-awesome-pages-plugin==2.9.2 mkdocs-rss-plugin==1.9.0 lxml==4.9.3; fi
 docs: venv
-	source venv/bin/activate && MKDOCS_BUILD=1 mkdocs build && cp -r target/mkdocs/* build/
+	. venv/bin/activate && mkdir -p ./build  && MKDOCS_BUILD=1 mkdocs build && cp -r target/mkdocs/* build/
 docs-ci: venv
-	source venv/bin/activate && mkdocs build && cp -r target/mkdocs/* .vercel/output/static/
+	. venv/bin/activate && mkdocs build && cp -r target/mkdocs/* .vercel/output/static/
 
 # CI Specific tasks
 ci-setup:
@@ -55,3 +55,6 @@ ci-setup:
 vite-build:
 	npm run build
 ci: ci-setup build keycaps-simple2 keycaps2 parts vite-build docs-ci
+npm-install:
+	npm install --omit=optional
+quickstart: npm-install ci-setup build keycaps-simple2 keycaps2 parts
