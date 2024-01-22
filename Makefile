@@ -1,4 +1,4 @@
-.PHONY : build keycaps keycaps-simple keycaps2 keycaps-simple2 keyholes switches venv optimize docs docs-ci keyboards ci ci-setup vite-build
+.PHONY : build keycaps keycaps-simple keycaps2 keycaps-simple2 keyholes switches venv optimize docs docs-ci keyboards ci ci-setup vite-build quickstart npm-install
 build: target/proto/manuform.ts target/proto/lightcycle.ts target/proto/cuttleform.ts target/editorDeclarations.d.ts
 
 NODE = node --import ./src/model_gen/register_loader.js
@@ -55,3 +55,6 @@ ci-setup:
 vite-build:
 	npm run build
 ci: ci-setup build keycaps-simple2 keycaps2 parts vite-build docs-ci
+npm-install:
+	npm install --omit=optional
+quickstart: npm-install ci-setup build keycaps-simple2 keycaps2 parts
