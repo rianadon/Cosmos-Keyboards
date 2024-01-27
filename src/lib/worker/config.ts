@@ -12,6 +12,7 @@ import {
   Cuttleform_DefaultThumb,
   Cuttleform_DefaultThumb_KEY_COUNT as DTKEYS,
   type Cuttleform_OrbylThumb,
+  ENCODER,
   EXTRA_COLUMN,
   KEY_SIZE,
   KEYCAP,
@@ -147,7 +148,7 @@ interface CuttleKeycapKey extends CuttleBaseKey {
 }
 
 interface CuttleBasicKey extends CuttleBaseKey {
-  type: 'ec11' | 'oled-128x32-0.91in-adafruit' | 'oled-128x32-0.91in-dfrobot'
+  type: 'ec11' | 'oled-128x32-0.91in-adafruit' | 'oled-128x32-0.91in-dfrobot' | 'evqwgd001'
 }
 
 interface CuttleBlankKey extends CuttleBaseKey {
@@ -228,6 +229,11 @@ export const MAP_CONNECTOR: Record<CONNECTOR, Cuttleform['connector']> = {
   [CONNECTOR.NONE]: null,
   [CONNECTOR.TRRS]: 'trrs',
   [CONNECTOR.USB]: 'usb',
+}
+
+export const MAP_ENCODER: Record<ENCODER, 'ec11' | 'evqwgd001'> = {
+  [ENCODER.EC11]: 'ec11',
+  [ENCODER.EVQWGD001]: 'evqwgd001',
 }
 
 export function cScrewHeight(size: string) {
@@ -820,8 +826,20 @@ export function thumbs(c: DeepRequired<CuttleformProto>): CuttleKey[] {
   const cluster = c.thumbCluster
   const offset = thumbOrigin(c)
 
-  if (cluster.oneofKind === 'defaultThumb') return theDefaultThumbs(switchType(c), keycapType(c), cluster.defaultThumb.thumbCount, false, offset, cluster.defaultThumb.encoder)
-  if (cluster.oneofKind == 'curvedThumb') return defaultThumbs(switchType(c), keycapType(c), cluster.curvedThumb.thumbCount as any, true, cluster.curvedThumb, offset, cluster.curvedThumb.encoder)
+  if (cluster.oneofKind === 'defaultThumb') {
+    return theDefaultThumbs(switchType(c), keycapType(c), cluster.defaultThumb.thumbCount, false, offset, cluster.defaultThumb.encoder && MAP_ENCODER[cluster.defaultThumb.encoderType])
+  }
+  if (cluster.oneofKind == 'curvedThumb') {
+    return defaultThumbs(
+      switchType(c),
+      keycapType(c),
+      cluster.curvedThumb.thumbCount as any,
+      true,
+      cluster.curvedThumb,
+      offset,
+      cluster.curvedThumb.encoder && MAP_ENCODER[cluster.curvedThumb.encoderType],
+    )
+  }
   if (cluster.oneofKind == 'orbylThumb') return orbylThumbs(switchType(c), keycapType(c), cluster.orbylThumb, offset)
   if (cluster.oneofKind == 'carbonfetThumb') return carbonfetThumbs(switchType(c), keycapType(c), cluster.carbonfetThumb, offset)
   if (cluster.oneofKind == 'customThumb') return customThumbs(switchType(c), keycapType(c), cluster.customThumb, offset)
@@ -855,6 +873,7 @@ const ID_TO_TYPE: Record<number, CuttleKey['type']> = {
   3: 'cirque-23mm',
   4: 'cirque-35mm',
   5: 'cirque-40mm',
+  6: 'evqwgd001',
 }
 const TYPE_TO_ID = reverseMap(ID_TO_TYPE)
 
@@ -908,7 +927,7 @@ function customThumbs(keyType: KeyType, capType: CapType, custom: Cuttleform_Cus
   })
 }
 
-function theDefaultThumbs(keyType: KeyType, capType: CapType, count: DTKEYS, five: boolean, offset: ETrsf, encoder = false): CuttleKey[] {
+function theDefaultThumbs(keyType: KeyType, capType: CapType, count: DTKEYS, five: boolean, offset: ETrsf, encoder?: 'ec11' | 'evqwgd001' | false): CuttleKey[] {
   if (count == DTKEYS.ZERO) return []
 
   const topAspect = five || count == DTKEYS.THREE ? 1 : 1 / 1.5
@@ -986,21 +1005,21 @@ function theDefaultThumbs(keyType: KeyType, capType: CapType, count: DTKEYS, fiv
   if (encoder) {
     if (count == DTKEYS.SIX || count == DTKEYS.FIVE) {
       bottomLeft = {
-        type: 'ec11',
+        type: encoder,
         aspect: bottomLeft.aspect,
         position: bottomLeft.position,
         cluster: 'thumbs',
       }
     } else if (count == DTKEYS.FOUR || count == DTKEYS.THREE || count == DTKEYS.THREE_15) {
       middleLeft = {
-        type: 'ec11',
+        type: encoder,
         aspect: middleLeft.aspect,
         position: middleLeft.position,
         cluster: 'thumbs',
       }
     } else {
       topLeft = {
-        type: 'ec11',
+        type: encoder,
         aspect: topLeft.aspect,
         position: topLeft.position,
         cluster: 'thumbs',
@@ -1024,7 +1043,7 @@ function theDefaultThumbs(keyType: KeyType, capType: CapType, count: DTKEYS, fiv
   return thumbs
 }
 
-function defaultThumbs(keyType: KeyType, capType: CapType, count: DTKEYS, five: boolean, opts: Required<Cuttleform_CurvedThumb>, offset: ETrsf, encoder = false): CuttleKey[] {
+function defaultThumbs(keyType: KeyType, capType: CapType, count: DTKEYS, five: boolean, opts: Required<Cuttleform_CurvedThumb>, offset: ETrsf, encoder?: 'ec11' | 'evqwgd001' | false): CuttleKey[] {
   if (count == DTKEYS.ZERO) return []
 
   const topAspect = five || count == DTKEYS.THREE ? 1 : 1 / 1.5
@@ -1127,21 +1146,21 @@ function defaultThumbs(keyType: KeyType, capType: CapType, count: DTKEYS, five: 
   if (encoder) {
     if (count == DTKEYS.FIVE) {
       bottomLeft = {
-        type: 'ec11',
+        type: encoder,
         aspect: bottomLeft.aspect,
         position: bottomLeft.position,
         cluster: 'thumbs',
       }
     } else if (count == DTKEYS.FOUR || count == DTKEYS.THREE) {
       middleLeft = {
-        type: 'ec11',
+        type: encoder,
         aspect: middleLeft.aspect,
         position: middleLeft.position,
         cluster: 'thumbs',
       }
     } else {
       topLeft = {
-        type: 'ec11',
+        type: encoder,
         aspect: topLeft.aspect,
         position: topLeft.position,
         cluster: 'thumbs',

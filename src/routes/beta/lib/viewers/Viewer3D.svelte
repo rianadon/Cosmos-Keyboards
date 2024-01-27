@@ -586,9 +586,8 @@
     const position = decodeTuple(
       $protoConfig.thumbCluster.customThumb.key[selectedKey - 1].position
     )
-    if (position[3] == 1) return
     protoConfig.update((p) => {
-      const customType = 1
+      const customType = { 1: 6, 6: 1 }[position[3]] ?? 1
       p.thumbCluster.customThumb.key[selectedKey - 1].position = encodeTuple([
         position[0],
         position[1],
@@ -723,9 +722,9 @@
           >
           <button
             class="button"
-            class:selected={conf.keys[
-              conf.keys.length - cluster.customThumb.key.length + selectedKey - 1
-            ].type == 'ec11'}
+            class:selected={['ec11', 'evqwgd001'].includes(
+              conf.keys[conf.keys.length - cluster.customThumb.key.length + selectedKey - 1].type
+            )}
             on:click|stopPropagation={() => makeEncoder()}
             ><Icon size="24px" name="knob" />Encoder (l)</button
           >
