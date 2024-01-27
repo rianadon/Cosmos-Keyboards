@@ -5,6 +5,7 @@ import { SphereGeometry } from 'three'
 import { makeAsyncCacher } from './cacher'
 import loadGLTF from './gltfLoader'
 
+// evqwgd001 encoder from https://grabcad.com/library/evqwgd001-2
 const PART_URLS: Record<Switch, string> = {
   'mx-snap-in': '/target/switch-cherry-mx.glb',
   // 'mx': '/target/switch-cherry-mx.glb',
@@ -15,6 +16,7 @@ const PART_URLS: Record<Switch, string> = {
   'alps': '/src/assets/switch-alps.glb',
   'choc': '/src/assets/switch-choc.glb',
   'ec11': '/src/assets/switch-ec11.glb',
+  'evqwgd001': '/target/switch-evqwgd001.glb',
   'cirque-23mm': '/src/assets/switch-cirque-23mm.glb',
   'cirque-35mm': '/src/assets/switch-cirque-35mm.glb',
   'cirque-40mm': '/src/assets/switch-cirque-40mm.glb',

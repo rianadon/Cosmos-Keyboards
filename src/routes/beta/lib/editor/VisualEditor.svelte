@@ -29,6 +29,7 @@
     Cuttleform_DefaultThumb_KEY_COUNT,
     KEYCAP,
     MICROCONTROLLER,
+    ENCODER,
     SWITCH,
   } from '$target/proto/cuttleform'
   import { clickedKey, hoveredKey, protoConfig } from '$lib/store'
@@ -385,8 +386,19 @@
         <Field schema={key} bind:value={cuttleformConf.thumbCluster[whichThumb][key.var]} />
       {/if}
     {/each}
-    {#if (cuttleformConf.thumbCluster.oneofKind == 'defaultThumb' && cuttleformConf.thumbCluster.defaultThumb.encoder) || (cuttleformConf.thumbCluster.oneofKind == 'curvedThumb' && cuttleformConf.thumbCluster.curvedThumb.encoder)}
-      <InfoBox>You'll need an EC11 encoder (I measured the keebio one) and a knob.</InfoBox>
+    {#if cuttleformConf.thumbCluster.oneofKind == 'defaultThumb' && cuttleformConf.thumbCluster.defaultThumb.encoder}
+      <InfoBox
+        >You'll need an {cuttleformConf.thumbCluster.defaultThumb.encoderType == ENCODER.EC11
+          ? 'EC11 encoder (I measured the keebio one)'
+          : 'EVQWGD001 encoder'} and a knob.</InfoBox
+      >
+    {/if}
+    {#if cuttleformConf.thumbCluster.oneofKind == 'curvedThumb' && cuttleformConf.thumbCluster.curvedThumb.encoder}
+      <InfoBox
+        >You'll need an {cuttleformConf.thumbCluster.curvedThumb.encoderType == ENCODER.EC11
+          ? 'EC11 encoder (I measured the keebio one)'
+          : 'EVQWGD001 encoder'} and a knob.</InfoBox
+      >
     {/if}
   </svelte:fragment>
 </Section>

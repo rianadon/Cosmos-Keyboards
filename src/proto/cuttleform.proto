@@ -12,6 +12,7 @@ enum SCREW_SIZE { M3 = 0; M4 = 1; I4_40 = 2; I6_32 = 3; }
 enum SCREW_TYPE { STRAIGHT_INSERT = 0; TAPERED_INSERT = 1; EXPANDING_INSERT = 2; TAPPED = 3; }
 enum KEY_SIZE { U1 = 0; U125 = 1; U15 = 2; U2 = 3; }
 enum MICROCONTROLLER { NOMC = 0; PIPICO = 1; PROMICRO = 2; PROMICRO_C = 3; ITSYBITSY = 4; ITSYBITSY_BT = 5; KB2040 = 6; RP2040_BLACK = 7; NRFMICRO = 8; XIAO = 9; XIAO_BT = 10; RP2040_ZERO = 11; WEACT_CH552T = 12; }
+enum ENCODER { EC11 = 0; EVQWGD001 = 1; }
 
 message Cuttleform {
   message UpperKeys {
@@ -72,6 +73,9 @@ message Cuttleform {
                                         (ndropdown) = {n: 2, name: "2"},
                                         (ndropdown) = {n: 0, name: "0"}];
     optional bool encoder = 2 [(name) = "Add Encoder", (icon) = "knob", (basic) = true];
+    optional ENCODER encoderType = 3 [(name) = "Encoder Type",
+                                      (ndropdown) = {n: 0, name: "Vertical (EC11)" },
+                                      (ndropdown) = {n: 1, name: "Horizontal (EVQWGD001)" }];
   }
   message OrbylThumb {
     optional sint32 curvature = 1 [(angle) = true, (name) = "Curvature", (plusminus) = true, (icon) = "row-curve", (basic) = true];
@@ -91,6 +95,9 @@ message Cuttleform {
                                         (ndropdown) = {n: 2, name: "2"},
                                         (ndropdown) = {n: 0, name: "0"}];
     optional bool encoder = 2 [(name) = "Add Encoder", (icon) = "knob", (basic) = true];
+    optional ENCODER encoderType = 7 [(name) = "Encoder Type",
+                                      (ndropdown) = {n: 0, name: "Vertical (EC11)" },
+                                      (ndropdown) = {n: 1, name: "Horizontal (EVQWGD001)" }];
     optional sint32 row_curve = 3 [(angle) = true, (plusminus) = true, (name) = "Row's Curvature", (icon) = "row-curve", (basic) = true];
     optional sint32 column_curve = 4 [(angle) = true, (plusminus) = true, (name) = "Column's Curvature", (icon) = "column-curve", (basic) = true];
     optional int32 horizontal_spacing = 5 [(decimal) = true, (icon) = "expand-horizontal", (name) = "Horizontal (X) Spacing", (mm) = true];

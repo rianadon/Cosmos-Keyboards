@@ -46,7 +46,7 @@
   $: console.log(keycaps(conf, Number($multiplier)))
 
   function switchIcon(item: CuttleKey['type']) {
-    if (item == 'ec11') return 'knob'
+    if (item == 'ec11' || item == 'evqwgd001') return 'knob'
     if (item == 'trackball') return 'trackball'
     if (item == 'oled-128x32-0.91in-adafruit') return 'oled'
     if (item.startsWith('cirque')) return 'knob'
