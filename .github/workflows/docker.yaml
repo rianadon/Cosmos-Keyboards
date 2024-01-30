@@ -1,0 +1,11 @@
+name: Verify Docker Build
+on: [push]
+
+jobs:
+  docker:
+    name: Verify that Docker can build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the Dockerfile
+        run: docker-compose build
