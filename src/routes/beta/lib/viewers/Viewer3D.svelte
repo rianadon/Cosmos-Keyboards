@@ -430,7 +430,7 @@
 
   let timer = 0
   function scanHand() {
-    const win = window.open('https://ryanis.cool/cosmos/scan')
+    const win = window.open('scan')
     timer = setInterval(() => {
       if (win.closed) {
         clearInterval(timer)
