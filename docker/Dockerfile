@@ -15,7 +15,7 @@ RUN ln -s /usr/bin/python3.11 /usr/bin/python
 RUN mkdir -p target && mkdir -p docs/assets/target
 RUN npm install --include=optional
 
-RUN if [ -f ./.env ]; then set -a && . ./.env && set +a; fi && \
+RUN if [ -f docker/.env ]; then set -a && . docker/.env && set +a; fi && \
     if [ "$SKIP_MAKE_FILES" != "true" ]; then \
         make; \
         make parts; \
