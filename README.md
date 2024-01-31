@@ -27,7 +27,7 @@ To run the generator locally, you have two options:
 2. **Docker Setup** (Recommended for Windows†):
    - [Clone] the repository and install [Docker and Docker compose](https://docs.docker.com/get-docker/).
    - Run `docker compose up` in the project root directory.
-     - To avoid running the make scripts when rebuilding, add `SKIP_MAKE_FILES=true` to the file `docker/.env`. This reduces build time if all target files and docs have already been created.
+     - To avoid running the make scripts when rebuilding, create the file `docker/.env` with contents `SKIP_MAKE_FILES=true`. This skips rebuilding target files and docs.
    - Visit [`http://localhost:5173/beta`](http://localhost:5173/beta).
 
 † Docker is recommended on Windows since you'll need `make` and a ideally Linux shell. You can alternatively [use in Cygwin](https://www.cygwin.com/), [install make](https://stackoverflow.com/a/73862277), or piece together what you need to run from the `Makefile` :)

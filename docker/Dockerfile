@@ -1,8 +1,6 @@
 # syntax=docker/dockerfile:1
 FROM node:21.5
 
-ENV SKIP_MAKE_FILES=${SKIP_MAKE_FILES}
-
 COPY . /Cosmos-Keyboards/
 WORKDIR /Cosmos-Keyboards
 
