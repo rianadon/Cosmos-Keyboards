@@ -11,7 +11,3 @@ services:
       - "5173:5173"
       - "8000:8000"
     restart: unless-stopped
-    env_file:
-      - .env
-    environment:
-      - SKIP_MAKE_FILES=${SKIP_MAKE_FILES}
