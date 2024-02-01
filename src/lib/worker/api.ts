@@ -259,7 +259,7 @@ export async function getSTEP(conf: Cuttleform, flip: boolean, stitchWalls: bool
   assembly.add('Bottom Plate', combine([top(), bottom ? bottom() : undefined]))
   assembly.add('Microcontroller Holder', boardHolder(conf, geometry))
 
-  if ((await getUser()).sponsor && conf.wristRest) {
+  if (conf.wristRest && (await getUser()).sponsor) {
     assembly.add('Wrist Rest', wristRest(conf, geometry))
   }
 
