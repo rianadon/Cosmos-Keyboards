@@ -10,7 +10,7 @@ The most adaptable generator for ergonomic mechanical keyboards there is.
 
 ---
 
-Everything from here on is fairly technical. If you can't program but know CAD, read [this tutorial](https://ryanis.cool/contributing#super-simple-contributing) to learn how you can help improve (or reference) the generator's models.
+Everything from here on is fairly technical. If you can't program but know CAD, read [this tutorial](https://ryanis.cool/cosmos/docs/contributing#super-simple-contributing) to learn how you can help improve (or reference) the generator's models.
 
 ---
 
