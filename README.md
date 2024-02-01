@@ -8,6 +8,12 @@ The most adaptable generator for ergonomic mechanical keyboards there is.
 
 [Cosmos](https://ryanis.cool/cosmos) is released under an open-core model. 95% of the generator is free and open-source. Pro features (rounded edges, the stilts model, and wrist rests) are not.
 
+---
+
+Everything from here on is fairly technical. If you can't program but know CAD, read [this tutorial](https://ryanis.cool/contributing#super-simple-contributing) to learn how you can help improve (or reference) the generator's models.
+
+---
+
 ## Generator
 
 Most generator code lives at [`src/lib`] and[`src/routes/beta`]. Some files used for pre-generating STEP & GLB files used in the generator are located at [`src/model_gen`].
