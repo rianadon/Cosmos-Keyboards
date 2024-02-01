@@ -66,16 +66,16 @@ The end goal is that you'll be able to create a pull request [like these](https:
 1. Fork the [the repository](https://github.com/rianadon/Cosmos-Keyboards/) by clicking the Fork button at the top right. A fork is a copy of the repository in which you can make your changes.
 2. Open the fork in [GitHub Desktop](https://desktop.github.com/). You can find this button by clicking the green Code button. In the likely case you don't have GitHub desktop installed, the button will take you to the download page.
 
-   ![Screenshot of the GitHub Desktop button's location](../../assets/open-gh.png)
+   ![Screenshot of the GitHub Desktop button's location](../assets/open-gh.png)
 
 3. Open GitHub Desktop once it's downloaded. You'll be prompted to sign in. Create a GitHub account if you don't already have one.
 4. Click on the forked repository in GitHub Desktop then click the blue Clone button (alternatively, follow step #1 again). At this point you'll be asked to choose a Local Path for the repository. This is the place on your computer where all the files will be downloaded.
 
-   ![Screenshot of cloning in GitHub Desktop](../../assets/gh-clone.png){ width=500 .center }
+   ![Screenshot of cloning in GitHub Desktop](../assets/gh-clone.png){ width=500 .center }
 
 5. Click Clone, make sure Contribute to the parent project is selected, and then click Initialize Git LFS. GitHub will place you on the main branch, but it's cleaner to put each big change in a new branch so that we can discuss each change independently. To create a new branch, click "Current branch" at the top, then "New Branch", and give the branch a name.
 
-   ![Screenshot of creating a new branch](../../assets/gh-branch.png){ width=400 .center }
+   ![Screenshot of creating a new branch](../assets/gh-branch.png){ width=400 .center }
 
 6. Now you can view and open the files on your computer! All CAD assets are stored in the `src/assets` folder. Go ahead and make your modifications.
 
@@ -83,7 +83,7 @@ The end goal is that you'll be able to create a pull request [like these](https:
 
 8. Upload your changes to GitHub by clicking Publish branch.
 
-   ![Screenshot of Push Origin button](../../assets/gh-push.png){ width=600 .center }
+   ![Screenshot of Push Origin button](../assets/gh-push.png){ width=600 .center }
 
 9. This button will be replaced with a new button to create a Pull Request with your changes. Write up what work you've done, and we'll discuss the changes in the comments section in the Pull Request!
 
@@ -93,7 +93,7 @@ The end goal is that you'll be able to create a pull request [like these](https:
 
 In the codebase, the part integrated into the keyboard that holds a switch, trackball, screen, etc. is called a **socket**. Whatever is placed within the socket is called a **part**. Both the socket and part share the same name, which is used in Expert mode as the `type` property for a key. This short guide covers adding a new socket & part to the codebase.
 
-![Labeled Part and Socket](../../assets/socket.png){ width=550 .center }
+![Labeled Part and Socket](../assets/socket.png){ width=550 .center }
 
 Some notes about sockets:
 
