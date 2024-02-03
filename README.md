@@ -25,19 +25,17 @@ Most generator code lives at [`src/lib`] and[`src/routes/beta`]. Some files used
 To run the generator locally, you have two options:
 
 1. **Manual Setup**:
-   - [Clone]† the repository [install Node.js][nodejs].
+   - [Clone] the repository [install Node.js][nodejs].
    - Run `make quickstart` to compile and build the necessary files.
    - Read the [dev documentation](https://ryanis.cool/cosmos/docs/contributing/#building-the-project) if you wish to compile the docs or create a production build.
    - Finally, run `npm run dev` to start a dev server and visit [`http://localhost:5173/beta`](http://localhost:5173/beta).
 
-2. **Docker Setup** (Recommended for Windows‡):
-   - [Clone]† the repository and install [Docker and Docker compose](https://docs.docker.com/get-docker/).
+2. **Docker Setup** (Recommended for Windows†):
+   - [Clone] the repository and install [Docker and Docker compose](https://docs.docker.com/get-docker/).
    - Run `docker compose up` in the project root directory.
      - To avoid running the make scripts when rebuilding, set `SKIP_MAKE_FILES=true` in your .env file. This reduces build time if all target files and docs have already been created.
 
-† The repository uses [Git LFS][lfs] since there are a few big files. Some Git distributions come with it. If you see any errors when cloning, you can install it by following the instructions on the [Git LFS homepage][lfs] or (Linux only) running `sudo apt install git-lfs && git lfs install`
-
-‡ Docker is recommended on Windows since you'll need `make` and a ideally Linux shell. You can alternatively [use in Cygwin](https://www.cygwin.com/), [install make](https://stackoverflow.com/a/73862277), or piece together what you need to run from the `Makefile` :)
+† Docker is recommended on Windows since you'll need `make` and a ideally Linux shell. You can alternatively [use in Cygwin](https://www.cygwin.com/), [install make](https://stackoverflow.com/a/73862277), or piece together what you need to run from the `Makefile` :)
 
 [lfs]: https://git-lfs.com/
 [Clone]: https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository
