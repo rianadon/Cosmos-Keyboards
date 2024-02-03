@@ -1,5 +1,5 @@
-import type { OpenCascadeInstance, TopoDS_Vertex } from '$assets/replicad_single'
-import { type AnyShape, Compound, downcast, Face, getOC as ogetOC, Solid } from 'replicad'
+import type { OpenCascadeInstance, TopAbs_ShapeEnum, TopoDS_Shell, TopoDS_Vertex } from '$assets/replicad_single'
+import { type AnyShape, Compound, downcast, Face, getOC as ogetOC, shapeType, Solid } from 'replicad'
 import { Assembly } from './assembly'
 import type Trsf from './transformation'
 
@@ -46,45 +46,67 @@ export function makePolygon(pts: TopoDS_Vertex[]) {
   return new Face(face)
 }
 
-export function buildSewnSolid(polygons: Face[]) {
+/** Convert a list of replicad faces to a TopoDS_Shell. Side effect: deletes the original faces. */
+function _facesToShell(polygons: Face[]) {
   const oc = getOC()
   const builder = new oc.BRep_Builder()
   const shell = new oc.TopoDS_Shell()
   builder.MakeShell(shell)
-  for (const poly of polygons) {
-    builder.Add(shell, poly.wrapped)
-  }
+  polygons.forEach(poly => builder.Add(shell, poly.wrapped))
+  builder.delete()
+  polygons.forEach(poly => poly.delete())
+  return shell
+}
+
+/** Builds a TopoDS_Shell into a replicad Solid object. Side effect: deletes the original shell. */
+function _shellToSolid(shell: TopoDS_Shell, fix: boolean) {
+  const oc = getOC()
+  const solid = fix
+    ? new oc.ShapeFix_Solid_1().SolidFromShell(shell)
+    : new oc.BRepBuilderAPI_MakeSolid_3(shell).Solid()
+  shell.delete()
+  return new Solid(solid)
+}
+
+/**
+ * Sew a shell together.
+ *
+ * If the shell is made up of multiple distinct bodies, then a compound object
+ * with each solid body is returned.
+ */
+export function buildSewnSolid(polygons: Face[]) {
+  const oc = getOC()
+  const shell = _facesToShell(polygons)
   const sewing = new oc.BRepBuilderAPI_Sewing(1e-6, true, true, true, false)
   sewing.Add(shell)
   sewing.Perform(new oc.Message_ProgressRange_1())
-  const newShell = downcast(sewing.SewedShape())
-  const solid = new oc.ShapeFix_Solid_1().SolidFromShell(newShell)
-  return new Solid(solid)
+  shell.delete()
+  const unknownShape = sewing.SewedShape()
+  switch (shapeType(unknownShape)) {
+    case oc.TopAbs_ShapeEnum.TopAbs_SHELL:
+      return _shellToSolid(downcast(unknownShape), true)
+    case oc.TopAbs_ShapeEnum.TopAbs_COMPOUND: {
+      const explorer = new oc.TopExp_Explorer_2(downcast(unknownShape), oc.TopAbs_ShapeEnum.TopAbs_SHELL as TopAbs_ShapeEnum, oc.TopAbs_ShapeEnum.TopAbs_SHAPE as TopAbs_ShapeEnum)
+      const solids: Solid[] = []
+      while (explorer.More()) {
+        solids.push(_shellToSolid(downcast(explorer.Value()), true))
+        explorer.Next()
+      }
+      explorer.delete()
+      unknownShape.delete()
+      return combine(solids)
+    }
+    default:
+      throw new Error('Sewn solid is of unexpected shape type')
+  }
 }
 
 export function buildFixedSolid(polygons: Face[]) {
-  const oc = getOC()
-  const builder = new oc.BRep_Builder()
-  const shell = new oc.TopoDS_Shell()
-  builder.MakeShell(shell)
-  for (const poly of polygons) {
-    builder.Add(shell, poly.wrapped)
-  }
-  const newShell = shell
-  const solid = new oc.ShapeFix_Solid_1().SolidFromShell(newShell)
-  return new Solid(solid)
+  return _shellToSolid(_facesToShell(polygons), true)
 }
 
 export function buildSolid(polygons: Face[]) {
-  const oc = getOC()
-  const builder = new oc.BRep_Builder()
-  const shell = new oc.TopoDS_Shell()
-  builder.MakeShell(shell)
-  for (const poly of polygons) {
-    builder.Add(shell, poly.wrapped)
-  }
-  const solid = new oc.BRepBuilderAPI_MakeSolid_3(shell).Solid()
-  return new Solid(solid)
+  return _shellToSolid(_facesToShell(polygons), false)
 }
 
 export function blobSTL(shape: AnyShape | Assembly, opts?: {
