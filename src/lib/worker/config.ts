@@ -4,6 +4,7 @@ import { StiltsGeometry } from '@pro/stiltsGeo'
 import { Matrix4, Vector3 } from 'three'
 import {
   CONNECTOR,
+  CONNECTOR_SIZE,
   type Cuttleform as CuttleformProtoP,
   Cuttleform_CarbonfetThumb,
   Cuttleform_CurvedThumb,
@@ -52,6 +53,7 @@ export interface SpecificCuttleform<S> {
   webThickness: number
   keys: CuttleKey[]
   connector: 'usb' | 'trrs' | null
+  connectorSizeUSB: 'slim' | 'average' | 'big'
   /** The index of the wall by which the connector is placed. */
   connectorIndex: number
   /** The indices of the walls at which to place screw inserts. */
@@ -133,7 +135,7 @@ interface CuttleBaseKey {
 }
 
 export interface Keycap {
-  profile: 'dsa' | 'mt3' | 'oem' | 'sa' | 'xda' | 'choc' | 'cherry'
+  profile: 'dsa' | 'mt3' | 'oem' | 'sa' | 'xda' | 'choc' | 'cherry' | 'des'
   /** Some keycaps (eg mt3) have different profiles depending on the row the keycap is meant for. */
   row: number
   /** The QWERTY keyboard letter this key is for. */
@@ -236,6 +238,12 @@ export const MAP_ENCODER: Record<ENCODER, 'ec11' | 'evqwgd001'> = {
   [ENCODER.EVQWGD001]: 'evqwgd001',
 }
 
+export const MAP_CONNECTOR_SIZE: Record<CONNECTOR_SIZE, Cuttleform['connectorSizeUSB']> = {
+  [CONNECTOR_SIZE.SLIM]: 'slim',
+  [CONNECTOR_SIZE.AVERAGE]: 'average',
+  [CONNECTOR_SIZE.BIG]: 'big',
+}
+
 export function cScrewHeight(size: string) {
   switch (size) {
     case 'M3':
@@ -322,6 +330,7 @@ export function cuttleConf(c: DeepRequired<CuttleformProto>): Cuttleform {
       side: c.wall.roundedSide ? { divisor: 3 } : undefined,
     },
     connector: MAP_CONNECTOR[c.wall.connector],
+    connectorSizeUSB: MAP_CONNECTOR_SIZE[c.wall.connectorSizeUsb],
     connectorIndex: -1,
     wristRest: c.wall.wristRest && hasPro
       ? {

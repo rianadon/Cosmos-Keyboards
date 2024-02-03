@@ -41,6 +41,7 @@
     },
     "wall": {
       "connector": 3,
+      "connectorSizeUsb": 1,
       "verticalClearance": 1,
       "clearScrews": true,
       "wristRest": true,

@@ -86,6 +86,9 @@ export function checkConfig(conf: Cuttleform, geometry: Geometry, check3d = true
   if (!SCREWS[conf.screwSize].mounting[conf.screwType]) {
     return { type: 'invalid', item: 'screwType', value: conf.screwType, valid: Object.keys(SCREWS[conf.screwSize].mounting) }
   }
+  if (!['average', 'slim', 'big', undefined].includes(conf.connectorSizeUSB)) {
+    return { type: 'invalid', item: 'connectorSizeUSB', value: conf.connectorSizeUSB, valid: ['average', 'slim', 'big'] }
+  }
 
   const cpts = geometry.allKeyCriticalPoints2D
   const pts = cpts.map(a => a.map(x => new Vector2(...x.xy())))

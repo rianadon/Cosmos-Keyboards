@@ -779,6 +779,17 @@ function makeScrewInsert(c: Cuttleform, solidWallSurface: TopoDS_Shell, pos: Trs
   }
 }
 
+function rectangleForUSB(c: Cuttleform) {
+  switch (c.connectorSizeUSB) {
+    case 'slim':
+      return drawRoundedRectangle(10.5, 6.5, 3)
+    case 'big':
+      return drawRoundedRectangle(13, 8, 3)
+    default: // average
+      return drawRoundedRectangle(12, 7, 3)
+  }
+}
+
 export const connectors: Record<string, { positive: (c: Cuttleform) => Solid | null; negative: (c: Cuttleform) => Solid }> = {
   rj9: {
     positive(c: Cuttleform) {
@@ -807,7 +818,7 @@ export const connectors: Record<string, { positive: (c: Cuttleform) => Solid | n
     },
     negative(c: Cuttleform) {
       return drawCircle(3.2).translate(-14.5, 0) // trrs hole
-        .fuse(drawRoundedRectangle(10.5, 6.5, 3)) // usb hole
+        .fuse(rectangleForUSB(c)) // usb hole
         .sketchOnPlane('XZ')
         .extrude(c.wallThickness * 10)
         .translate(0, c.wallThickness * 10, 5) as Solid
@@ -818,7 +829,7 @@ export const connectors: Record<string, { positive: (c: Cuttleform) => Solid | n
       return null
     },
     negative(c: Cuttleform) {
-      return drawRoundedRectangle(10.5, 6.5, 3) // usb hole
+      return rectangleForUSB(c) // usb hole
         .sketchOnPlane('XZ')
         .extrude(c.wallThickness * 10)
         .translate(0, c.wallThickness * 10, 5) as Solid

@@ -8,6 +8,7 @@ enum SWITCH { BOX = 0; MX = 1; MX_SNAP_IN = 2; MX_PCB = 3; CHOC = 4; MX_BETTER =
 enum LAST_ROW { TWO = 0; ZERO = 1; FULL = 2; }
 enum EXTRA_COLUMN { NOCOL = 0; KEYS = 1; OLED = 2; OLED_DF = 6; CIRQUE_23 = 3; CIRQUE_35 = 4; CIRQUE_40 = 5;  }
 enum CONNECTOR { /* RJ9 = 2; */ TRRS = 3; USB = 4; NONE = 0; /* EXTERNAL = 1; */ }
+enum CONNECTOR_SIZE { SLIM = 0; AVERAGE = 1; BIG = 2; }
 enum SCREW_SIZE { M3 = 0; M4 = 1; I4_40 = 2; I6_32 = 3; }
 enum SCREW_TYPE { STRAIGHT_INSERT = 0; TAPERED_INSERT = 1; EXPANDING_INSERT = 2; TAPPED = 3; }
 enum KEY_SIZE { U1 = 0; U125 = 1; U15 = 2; U2 = 3; }
@@ -127,6 +128,10 @@ message Cuttleform {
                                       (ndropdown) = {n: 3, name: "TRRS and USB"},
                                       (ndropdown) = {n: 4, name: "USB only"},
                                       (ndropdown) = {n: 0, name: "None"}];
+    optional CONNECTOR_SIZE connector_size_usb = 28 [(name) = "USB Connector Size",
+                                      (ndropdown) = {n: 0, name: "Slim (Apple cables)"},
+                                      (ndropdown) = {n: 1, name: "Average (most cables)"},
+                                      (ndropdown) = {n: 2, name: "Big (fits everything)"}];
     optional MICROCONTROLLER microcontroller = 15 [(name) = "Microcontroller", (icon) = "microcontroller", (basic) = true,
                                                    (ndropdown) = {n: 9, name: "Seeed Studio Xiao RP2040/SAMD21 ☆", group: "Small Size"},
                                                    (ndropdown) = {n: 10, name: "Seeed Studio Xiao nRF52840 (Bluetooth) ☆", group: "Small Size"},
