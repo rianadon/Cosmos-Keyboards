@@ -8,10 +8,8 @@ import { makeAsyncCacher } from './cacher'
 import loadGLTF from './gltfLoader'
 
 const cacher = makeAsyncCacher(async (key: string, rotate: boolean) => {
-  const geo = await loadGLTF(`/target/key-${key}.glb`).then(geo => {
-    if (rotate) geo.applyQuaternion(new Quaternion().setFromAxisAngle(new Vector3(0, 0, 1), Math.PI / 2))
-    return geo
-  })
+  let geo = await loadGLTF(`/target/key-${key}.glb`)
+  if (rotate) geo = geo.clone().applyQuaternion(new Quaternion().setFromAxisAngle(new Vector3(0, 0, 1), Math.PI / 2))
   return makeUv(geo)
 })
 
@@ -28,7 +26,6 @@ export async function keyGeometries(trsfs: Trsf[], keys: CuttleKey[]) {
       let key: THREE.BufferGeometry
       if (k.type == 'trackball') {
         return null
-        key = new SphereGeometry(17.5, 64, 32)
       } else if (k.type == 'ec11' || k.type == 'blank') {
         return null
       } else if ('keycap' in k && k.keycap) {
