@@ -101,6 +101,14 @@
         count: sockets['mx-pcb'].count,
       }
     }
+    const nHotswap = sockets['mx-hotswap']?.count || 0
+    if (nHotswap > 0) {
+      sockets['pcb-hotswap'] = {
+        item: 'Kailh Hotswap Sockets',
+        icon: 'hotswap',
+        count: nHotswap,
+      }
+    }
     const nTrackball = sockets['trackball']?.count || 0
     if (nTrackball > 0) {
       sockets['trackball-dowel'] = {

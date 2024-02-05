@@ -336,6 +336,16 @@
           plastics, you'll need to tap the holes.
         </p>
       </InfoBox>
+    {:else if cuttleformConf.upperKeys.switchType == SWITCH.MX_HOTSWAP}
+      <InfoBox>
+        <p>
+          This variant requires Kailh MX hotswap sockets and a well-tuned 3D printer. Try <a
+            class="text-pink-600 underline"
+            href="https://www.printables.com/model/158559">these printable hotswap sockets</a
+          >, together with the MX-Compatible (no hotswap) setting, if you'd like a solution that
+          prints better and doesn't require buying sockets.
+        </p>
+      </InfoBox>
     {/if}
   </svelte:fragment>
 </Section>
