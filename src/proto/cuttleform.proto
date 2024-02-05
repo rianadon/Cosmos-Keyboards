@@ -4,7 +4,7 @@ import "proto/common.proto";
 package dactyl;
 
 enum KEYCAP { DSA = 0; MT3 = 1; OEM = 2; SA = 3; XDA = 4; KCHOC = 5; CHERRY = 6; DES = 7; }
-enum SWITCH { BOX = 0; MX = 1; MX_SNAP_IN = 2; MX_PCB = 3; CHOC = 4; MX_BETTER = 5; ALPS = 6; }
+enum SWITCH { BOX = 0; MX = 1; MX_HOTSWAP = 2; MX_PCB = 3; CHOC = 4; MX_BETTER = 5; ALPS = 6; }
 enum LAST_ROW { TWO = 0; ZERO = 1; FULL = 2; }
 enum EXTRA_COLUMN { NOCOL = 0; KEYS = 1; OLED = 2; OLED_DF = 6; CIRQUE_23 = 3; CIRQUE_35 = 4; CIRQUE_40 = 5;  }
 enum CONNECTOR { /* RJ9 = 2; */ TRRS = 3; USB = 4; NONE = 0; /* EXTERNAL = 1; */ }
@@ -39,6 +39,7 @@ message Cuttleform {
     optional SWITCH switch_type = 4 [(name) = "Switches", (icon) = "switch", (basic) = true,
                                      // (ndropdown) = {n: 0, name: "Box (Kailh)"},
                                      (ndropdown) = {n: 5, name: "MX-Compatible (Cherry, Kailh, Gateron...)"},
+                                     (ndropdown) = {n: 2, name: "MX-Compatible with 3D-Printed Hotswap Holder"},
                                      (ndropdown) = {n: 3, name: "MX-Compatible PCB (Amoeba King) ☆️️"},
                                      (ndropdown) = {n: 4, name: "Choc (Kailh) ☆️️"},
                                      (ndropdown) = {n: 6, name: "Alps (and clones)"}];

@@ -66,7 +66,8 @@
       sockets[key.type].count += multiplier
     }
     const nDiodes =
-      (sockets['mx']?.count || 0) +
+      (sockets['old-mx']?.count || 0) +
+      (sockets['mx-hotswap']?.count || 0) +
       (sockets['mx-better']?.count || 0) +
       (sockets['mx-pcb']?.count || 0) +
       (sockets['box']?.count || 0) +

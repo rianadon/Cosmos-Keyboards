@@ -11,7 +11,7 @@
   import * as flags from '$lib/flags'
   import type { KeyStatus } from './keyboardKey'
   import { keyGeometries } from '$lib/loaders/keycaps'
-  import { offsetPart, partGeometries } from '$lib/loaders/parts'
+  import { partGeometries } from '$lib/loaders/parts'
 
   export let config: Cuttleform
   export let transparency: number
@@ -72,7 +72,7 @@
         geometry: x.geometry,
         brightness: 0.7,
         matrix: x.matrix,
-        offset: offsetPart(config.keys[x.i].type)[2],
+        offset: 0,
         translation: 0,
       })
     }

@@ -1,5 +1,17 @@
 import type { gp_Trsf, OpenCascadeInstance } from '$assets/replicad_single'
-import { draw, getOC, makeCylinder, makePolygon, makeSolid, type Point, Solid, Transformation } from 'replicad'
+import { buildSewnSolid, makeTriangle } from '$lib/worker/modeling/index'
+import Trsf from '$lib/worker/modeling/transformation'
+import { writeFileSync } from 'fs'
+import loadMF from 'manifold-3d'
+import type { CrossSection, Manifold, ManifoldToplevel } from 'manifold-3d'
+import { draw, drawCircle, Drawing, drawRectangle, Face, getOC, makeCylinder, makeFace, makePolygon, makeSolid, type Point, revolution, Sketch, Solid, Transformation } from 'replicad'
+import { Matrix4, Triangle, Vector3 } from 'three'
+
+let mf: ManifoldToplevel
+export async function loadManifold(): Promise<void> {
+  mf = await loadMF()
+  mf.setup()
+}
 
 type subdivArgs = { fn: number; fa: number; fs: number }
 
@@ -16,6 +28,7 @@ type TranslateOp = { op: 'translate'; x: number; y: number; z: number; obj: Oper
 type MultmatrixOp = { op: 'multmatrix'; matrix: number[][]; obj: Operation }
 type MirrorOp = { op: 'mirror'; x: number; y: number; z: number; obj: Operation }
 type LinearExtrudeOp = { op: 'linear_extrude'; height: number; obj: Operation } & subdivArgs
+type RotateExtrudeOp = { op: 'rotate_extrude'; angle: number; obj: Operation } & subdivArgs
 type OffsetOp = { op: 'offset'; r?: number; delta?: number; chamfer?: boolean; obj: Operation } & subdivArgs
 
 type UnionOp = { op: 'union'; shapes: Operation[] }
@@ -25,7 +38,7 @@ type HullOp = { op: 'hull'; shapes: Operation[] }
 
 export type PlaneOperation = CircleOp | SquareOp
 export type GeometryOperation = CubeOp | CylinderOp | PolyhedronOp | SideNubOp | SphereOp
-export type TransformOperation = TranslateOp | MultmatrixOp | MirrorOp | LinearExtrudeOp | OffsetOp
+export type TransformOperation = TranslateOp | MultmatrixOp | MirrorOp | LinearExtrudeOp | OffsetOp | RotateExtrudeOp
 export type GroupOperation = UnionOp | DifferenceOp | IntersectionOp | HullOp
 export type Operation = PlaneOperation | GeometryOperation | TransformOperation | GroupOperation
 
@@ -47,6 +60,7 @@ export function simplify(op: Operation) {
       return op
     case 'mirror':
     case 'linear_extrude':
+    case 'rotate_extrude':
     case 'offset':
     case 'multmatrix':
     case 'translate':
@@ -70,6 +84,7 @@ export function stringifyOperation(op: Operation, indent = 0): string {
     case 'multmatrix': return `multmatrix(matrix=${op.matrix}) ` + stringifyOperation(op.obj, indent)
     case 'offset': return `offset(r=${op.r}, delta=${op.delta}, chamfer=${op.chamfer}) ` + stringifyOperation(op.obj, indent)
     case 'linear_extrude': return `linear_extrude(height=${op.height}) ` + stringifyOperation(op.obj, indent)
+    case 'rotate_extrude': return `rotate_extrude(angle=${op.angle}) ` + stringifyOperation(op.obj, indent)
     case 'mirror': return `mirror() ` + stringifyOperation(op.obj, indent)
     case 'union': return `union() ` + stringifyBlock(op.shapes, indent)
     case 'difference': return `difference() ` + stringifyBlock(op.shapes, indent)
@@ -88,6 +103,15 @@ export const translate = (x, y, z, obj) => ({ op: 'translate', x, y, z, obj })
 export const mirror = (x, y, z, obj) => ({ op: 'mirror', x, y, z, obj })
 export const union = (shapes) => ({ op: 'union', shapes: filter(shapes) })
 export const difference = (shapes) => ({ op: 'difference', shapes: filter(shapes) })
+export const hull = (shapes) => ({ op: 'hull', shapes: filter(shapes) })
+export const square = (x, y) => ({ op: 'square', x, y })
+export const circle = (r) => ({ op: 'circle', r })
+export const extrudeLinear = (c, obj) => ({ op: 'linear_extrude', height: c.height, obj })
+export const extrudeRotate = (c, obj) => ({ op: 'rotate_extrude', angle: c.angle, obj })
+export const scale = (x, y, z, obj) => ({ op: 'multmatrix', matrix: to2d(new Matrix4().makeScale(x, y, z).transpose().elements), obj })
+export const rotate = (a, x, y, z, obj) => ({ op: 'multmatrix', matrix: to2d(new Trsf().rotate(a * 180 / Math.PI, [0, 0, 0], [x, y, z]).matrix()), obj })
+
+const to2d = (m: number[]) => [m.slice(0, 4), m.slice(4, 8), m.slice(8, 12), m.slice(12, 16)]
 
 export function sideNub(nubHeight: number) {
   return { op: 'sidenub', nubHeight }
@@ -113,6 +137,63 @@ function makePolyhedron(points: Point[], faces: number[][]) {
   return solid
 }
 
+/** Convert OpenCascade B-REP to triangle mesh for Manifold */
+function solidToMF(solid: Solid): Manifold {
+  const occmesh = solid.mesh({ tolerance: 0.1, angularTolerance: 10 })
+
+  // OpenCascade likes to return duplicated points.
+  // However, manifold does not accept these!
+  // So I need to merge points that have the same vertices
+  const points: string[] = []
+  const vertices: number[] = []
+  function ptIndex(i: number) {
+    const vert = new Vector3().fromArray(occmesh.vertices, i * 3).toArray()
+    const pt = vert.join(',')
+    let idx = points.indexOf(pt)
+    if (idx >= 0) return idx
+    idx = points.length
+    points.push(pt)
+    vertices.push(...vert)
+    return idx
+  }
+
+  for (let i = 0; i < occmesh.triangles.length; i += 3) {
+    occmesh.triangles[i] = ptIndex(occmesh.triangles[i])
+    occmesh.triangles[i + 1] = ptIndex(occmesh.triangles[i + 1])
+    occmesh.triangles[i + 2] = ptIndex(occmesh.triangles[i + 2])
+  }
+
+  const mesh = new mf.Mesh({
+    numProp: 3,
+    vertProperties: new Float32Array(vertices),
+    triVerts: new Uint32Array(occmesh.triangles),
+  })
+  return new mf.Manifold(mesh)
+}
+
+/** Convert Manifold triangle mesh to OpenCascade B-REP */
+function mfToSolid(man: Manifold): Solid {
+  const mesh = man.getMesh()
+  const tv = mesh.triVerts
+  const vp = mesh.vertProperties
+  const polygons: Face[] = []
+  for (let i = 0; i < tv.length; i += 3) {
+    const p1 = new Trsf().translate(new Vector3().fromArray(vp, tv[i] * 3).toArray())
+    const p2 = new Trsf().translate(new Vector3().fromArray(vp, tv[i + 1] * 3).toArray())
+    const p3 = new Trsf().translate(new Vector3().fromArray(vp, tv[i + 2] * 3).toArray())
+    polygons.push(makeTriangle(p1, p2, p3))
+  }
+  const sol = buildSewnSolid(polygons)
+  return sol
+}
+
+/** Hulls by converting to triangles, then converting back to B-Rep. */
+function makeHull(shapes: Solid[]) {
+  const manifolds = shapes.map(solidToMF)
+  const hull = mf.Manifold.hull(manifolds)
+  return mfToSolid(hull)
+}
+
 export function compute(op: Operation): Solid {
   const oc = getOC()
   switch (op.op) {
@@ -121,6 +202,10 @@ export function compute(op: Operation): Solid {
       const corner = new oc.gp_Pnt_3(-x / 2, -y / 2, -z / 2)
       return new Solid(new oc.BRepPrimAPI_MakeBox_3(corner, x, y, z).Shape())
     }
+    case 'square':
+      return drawRectangle(op.x, op.y) as any
+    case 'circle':
+      return drawCircle(op.r) as any
     case 'cylinder':
       return makeCylinder(op.r, op.h, [0, 0, -op.h / 2])
     case 'translate':
@@ -135,13 +220,25 @@ export function compute(op: Operation): Solid {
       return makeSidenub(op.nubHeight)
     case 'polyhedron':
       return makePolyhedron(op.points, op.faces)
+    case 'hull':
+      return makeHull(op.shapes.map(compute))
+    case 'linear_extrude':
+      return ((compute(op.obj) as any as Drawing).sketchOnPlane('XY') as Sketch).extrude(op.height)
+    case 'rotate_extrude': {
+      const sketch = (compute(op.obj) as any as Drawing).sketchOnPlane('XY') as Sketch
+      const face = makeFace(sketch.wire)
+      const solid = revolution(face, sketch.defaultOrigin, undefined, op.angle)
+      face.delete()
+      sketch.delete()
+      return solid
+    }
     case 'multmatrix': {
       const transform = new Transformation() // @ts-ignore
       ;(transform.wrapped as gp_Trsf).SetValues(...op.matrix.slice(0, 3).flat())
       return new Solid(transform.transform(compute(op.obj).wrapped))
     }
     default:
-      throw new Error(`Cannot compute unknown op`)
+      throw new Error(`Cannot compute unknown op ${op.op}`)
   }
 }
 

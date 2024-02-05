@@ -145,7 +145,7 @@ export interface Keycap {
 }
 
 interface CuttleKeycapKey extends CuttleBaseKey {
-  type: 'box' | 'mx-original' | 'mx-better' | 'mx-snap-in' | 'alps' | 'choc' | 'mx-pcb' | 'mx-hotswap' | 'mx-snap-in-hotswap' | 'choc-hotswap'
+  type: 'old-box' | 'old-mx' | 'mx-better' | 'old-mx-snap-in' | 'alps' | 'choc' | 'mx-pcb' | 'old-mx-hotswap' | 'old-mx-snap-in-hotswap' | 'choc-hotswap' | 'mx-hotswap'
   keycap: Keycap
 }
 
@@ -447,9 +447,9 @@ function keycapType(c: DeepRequired<CuttleformProto>): Required<CuttleKeycapKey>
 }
 
 function switchType(c: DeepRequired<CuttleformProto>): Required<CuttleKeycapKey>['type'] {
-  if (c.upperKeys.switchType == SWITCH.MX) return 'mx-original'
+  if (c.upperKeys.switchType == SWITCH.MX) return 'old-mx'
+  if (c.upperKeys.switchType == SWITCH.MX_HOTSWAP) return 'mx-hotswap'
   if (c.upperKeys.switchType == SWITCH.MX_BETTER) return 'mx-better'
-  if (c.upperKeys.switchType == SWITCH.MX_SNAP_IN) return 'mx-snap-in'
   if (c.upperKeys.switchType == SWITCH.MX_PCB) return 'mx-pcb'
   if (c.upperKeys.switchType == SWITCH.CHOC) return 'choc'
   if (c.upperKeys.switchType == SWITCH.ALPS) return 'alps'

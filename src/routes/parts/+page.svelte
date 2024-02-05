@@ -7,12 +7,12 @@
   import SharedRenderer from '$lib/3d/SharedRenderer.svelte'
 
   const BACK_COMPATIBLE = [
-    'mx-original',
+    'old-mx',
     'choc-hotswap',
-    'mx-snap-in',
-    'mx-hotswap',
-    'box',
-    'mx-snap-in-hotswap',
+    'old-mx-snap-in',
+    'old-mx-hotswap',
+    'old-box',
+    'old-mx-snap-in-hotswap',
   ]
   const BLOCK = ['blank']
 

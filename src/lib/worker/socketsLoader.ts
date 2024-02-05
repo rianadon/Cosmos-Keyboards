@@ -4,23 +4,20 @@ import type { CuttleKey } from './config'
 import { makeAsyncCacher } from './modeling/cacher'
 import type Trsf from './modeling/transformation'
 
-const keyMxURL = '/target/key-mx.step'
-
 const browser = !!import.meta.env
 let keyUrls: Record<string, string> = browser
   ? import.meta.glob(['$target/*.step', '$assets/*.step'], { as: 'url', eager: true })
   : {}
 
-export const KEY_URLS: Record<string, string> = {
-  box: '/target/key-box.step',
-  mx: keyMxURL,
-  'mx-original': keyMxURL,
-  'mx-snap-in': '/target/key-mxSnapIn.step',
+export const KEY_URLS: Record<CuttleKey['type'], string> = {
+  'old-box': '/target/key-old-box.step',
+  'old-mx': '/target/key-old-mx.step',
+  'old-mx-snap-in': '/target/key-mxSnapIn.step',
   alps: '/src/assets/key-alps.step',
   choc: '/src/assets/key-choc.step',
-  'box-hotswap': '/target/key-box-hotswap.step',
   'mx-hotswap': '/target/key-mx-hotswap.step',
-  'mx-snap-in-hotswap': '/target/key-mxSnapIn-hotswap.step',
+  'old-mx-hotswap': '/target/key-old-mx-hotswap.step',
+  'old-mx-snap-in-hotswap': '/target/key-old-mxSnapIn-hotswap.step',
   'mx-better': '/src/assets/key-mx-better.step',
   'mx-pcb': '/src/assets/key-mx-pcb.step',
   'choc-hotswap': '/target/key-choc-hotswap.step',

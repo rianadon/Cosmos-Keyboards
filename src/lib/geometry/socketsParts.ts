@@ -3,13 +3,14 @@ import { Vector } from '../worker/modeling/transformation'
 
 export const PART_NAMES: Record<CuttleKey['type'], string> = {
   'mx-better': 'MX-Compatible Switches',
-  'mx-original': 'MX-Compatible Switches',
+  'old-mx': 'MX-Compatible Switches',
   'mx-pcb': 'MX-Compatible Switches',
-  'mx-snap-in': 'MX-Compatible Switches',
   'mx-hotswap': 'MX-Compatible Switches',
-  'mx-snap-in-hotswap': 'MX-Compatible Switches',
+  'old-mx-snap-in': 'MX-Compatible Switches',
+  'old-mx-hotswap': 'MX-Compatible Switches',
+  'old-mx-snap-in-hotswap': 'MX-Compatible Switches',
   'alps': 'Alps Switches',
-  'box': 'Kailh Box Switches',
+  'old-box': 'Kailh Box Switches',
   'choc': 'Kailh Choc Switches',
   'choc-hotswap': 'Kailh Choc Switches',
   'ec11': 'EC11 Encoders',
@@ -27,6 +28,7 @@ export function socketSize(key: CuttleKey): Vector {
   if (key.type == 'blank') return new Vector(key.size?.width ?? 18.5, key.size?.height ?? 18.5, 5)
   if (key.type == 'mx-pcb') return new Vector(19.2, 19.2, 4.7)
   if (key.type == 'mx-better') return new Vector(18, 18, 4.7)
+  if (key.type == 'mx-hotswap') return new Vector(18, 18, 5.85)
   if (key.type == 'choc') return new Vector(18, 18, 2.2)
   if (key.type == 'ec11') return new Vector(14.5, 14.5, 4.5)
   if (key.type == 'evqwgd001') return new Vector(19.2, 19.2, 4.7)
@@ -41,7 +43,10 @@ export function partBottom(sw: CuttleKey['type'] | undefined): [number, number, 
   if (sw == 'mx-pcb') {
     return [box(14, 14, 8.5), box(19.4, 19.4, 6.6)]
   }
-  if (sw == 'box' || sw?.startsWith('mx')) {
+  if (sw == 'mx-hotswap') {
+    return [box(16.9, 16.8, 8)]
+  }
+  if (sw == 'box' || sw?.startsWith('mx') || sw?.startsWith('old-mx')) {
     return [box(14, 14, 8.5)]
   }
   if (sw == 'choc') {
