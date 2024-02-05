@@ -68,9 +68,9 @@ async function main() {
   await modeling.loadManifold()
 
   console.log('Compiling ClojureScript...')
-  // await promisify(exec)('lein cljsbuild once keyholes', {
-  // cwd: dirname(fileURLToPath(import.meta.url)),
-  // })
+  await promisify(exec)('lein cljsbuild once keyholes', {
+    cwd: dirname(fileURLToPath(import.meta.url)),
+  })
 
   await Promise.all([
     // generateMXPCB(),
