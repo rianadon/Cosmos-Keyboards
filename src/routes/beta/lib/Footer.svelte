@@ -14,10 +14,9 @@
   >.
 </p>
 <p class="mb-2 text-gray-500 dark:text-gray-400">
-  Special thanks to everyone who has made the Dactyl keyboard possible. View a list of <a
+  Special thanks to everyone who has made Cosmos possible. View a list of <a
     class="darka"
-    href="https://github.com/rianadon/dactyl-configurator/blob/main/RESOURCES.md"
-    >thanks and inspiration</a
+    href="docs/credits/">credits and inspiration</a
   >.
 </p>
 <p class="mb-2 text-gray-500 dark:text-gray-400">
