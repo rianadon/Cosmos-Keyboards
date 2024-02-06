@@ -76,6 +76,11 @@ export function stringifyObj(a: any, indent: number) {
 function opToString({ name, args }: Operation, indent: number) {
   /* @ts-ignore */
   if ((name === 'rotate' || name === 'translate') && args[3]) args = args.slice(0, 3)
+  for (let i = args.length - 1; i >= 0; i--) {
+    /* @ts-ignore */
+    if (typeof args[i] == 'undefined') args = args.slice(0, i)
+    else break
+  }
   return name + '(' + args.map(a => stringifyObj(a, indent)).join(', ') + ')'
 }
 

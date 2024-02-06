@@ -939,7 +939,8 @@ function customThumbs(keyType: KeyType, capType: CapType, custom: Cuttleform_Cus
 function theDefaultThumbs(keyType: KeyType, capType: CapType, count: DTKEYS, five: boolean, offset: ETrsf, encoder?: 'ec11' | 'evqwgd001' | false): CuttleKey[] {
   if (count == DTKEYS.ZERO) return []
 
-  const topAspect = five || count == DTKEYS.THREE ? 1 : 1 / 1.5
+  const topAspect = five || count == DTKEYS.THREE ? 1 : 1.5
+  const topTrsf = () => topAspect > 1 ? new ETrsf().rotate(90) : new ETrsf()
   const thumbBase = {
     type: keyType,
     keycap: {
@@ -953,7 +954,7 @@ function theDefaultThumbs(keyType: KeyType, capType: CapType, count: DTKEYS, fiv
     ...thumbBase,
     keycap: { profile: capType, row: 5, letter: ' ', home: 'thumb' },
     aspect: topAspect,
-    position: new ETrsf()
+    position: topTrsf()
       // .rotate(-15, [0, 0, 0], [1, 0, 0])
       .rotate(-3, [0, 0, 0], [0, 1, 0])
       .rotate(66, [0, 0, 0], [0, 0, 1])
@@ -963,7 +964,7 @@ function theDefaultThumbs(keyType: KeyType, capType: CapType, count: DTKEYS, fiv
   let topRight: CuttleKey = {
     ...thumbBase,
     aspect: topAspect,
-    position: new ETrsf()
+    position: topTrsf()
       // .rotate(-15, [0, 0, 0], [1, 0, 0])
       .rotate(-3, [0, 0, 0], [0, 1, 0])
       .rotate(66, [0, 0, 0], [0, 0, 1])
@@ -1239,8 +1240,8 @@ export function carbonfetThumbs(keyType: KeyType, capType: CapType, opts: Requir
   }, {
     ...thumbBase,
     keycap: { profile: capType, row: 5, home: 'thumb' },
-    aspect: 1 / 1.5,
-    position: new ETrsf().placeOnMatrix(mergeCurvature(curvature, {
+    aspect: 1.5,
+    position: new ETrsf().rotate(-90).placeOnMatrix(mergeCurvature(curvature, {
       column: 0,
       row: 0.575,
     }, 'thumbCurvature')).transformBy(offset),
@@ -1253,8 +1254,8 @@ export function carbonfetThumbs(keyType: KeyType, capType: CapType, opts: Requir
     }, 'thumbCurvature')).transformBy(offset),
   }, {
     ...thumbBase,
-    aspect: 1 / 1.5,
-    position: new ETrsf().placeOnMatrix(mergeCurvature(curvature, {
+    aspect: 1.5,
+    position: new ETrsf().rotate(-90).placeOnMatrix(mergeCurvature(curvature, {
       column: 1,
       row: 0.45,
     }, 'thumbCurvature')).transformBy(offset),
