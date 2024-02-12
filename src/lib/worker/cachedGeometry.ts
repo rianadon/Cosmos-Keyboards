@@ -14,10 +14,13 @@ import {
   originForConnector,
   positionsImpl,
   positionsImplMap,
+  reinforceTriangles,
   screwIndices,
+  separateSockets2D,
   solveTriangularization,
   wallCriticalPoints,
   wallSurfacesInner,
+  webThickness,
 } from './geometry'
 import { PLATE_HEIGHT } from './model'
 import Trsf from './modeling/transformation'
@@ -31,8 +34,9 @@ export class BaseGeometry<C extends Cuttleform = SpecificCuttleform<BasicShell>>
     return keyHolesTrsfs(this.c, new Trsf())
   }
   @Memoize()
-  get keyHolesTrsfs2D() {
-    return keyHolesTrsfs2D(this.c, new Trsf())
+  get keyHolesTrsfs2D(): Trsf[] {
+    const trsfs = keyHolesTrsfs2D(this.c, new Trsf())
+    return separateSockets2D(trsfs, allKeyCriticalPoints(this.c, trsfs))
   }
   @Memoize()
   get allKeyCriticalPoints() {
@@ -56,17 +60,48 @@ export class BaseGeometry<C extends Cuttleform = SpecificCuttleform<BasicShell>>
   protected allWallCriticalPointsBottomZ(bottomZ = 0, wallOffset = 0) {
     const allPts = flattenKeyCriticalPoints(this.c, this.allKeyCriticalPoints, this.keyHolesTrsfs)
 
-    const { boundary: b } = this.solveTriangularization
+    const { boundary: b, removedTriangles } = this.solveTriangularization
     return b.map((pt, i) => {
       const prevPt = b[(i - 1 + b.length) % b.length]
       const nextPt = b[(i + 1) % b.length]
-      return wallCriticalPoints(this.c, allPts[prevPt], allPts[pt], allPts[nextPt], pt, wallOffset, bottomZ, this.worldZ)
+      const pts = wallCriticalPoints(this.c, allPts[prevPt], allPts[pt], allPts[nextPt], pt, wallOffset, bottomZ, this.worldZ)
+      if (removedTriangles.find(x => x.includes(pt) && x.includes(nextPt))) pts.nRoundNext = true
+      if (removedTriangles.find(x => x.includes(pt) && x.includes(prevPt))) pts.nRoundPrev = true
+      return pts
     })
   }
 
   @Memoize()
-  allWallCriticalPoints(wallOffset = 0) {
+  allWallCriticalPointsBase(wallOffset = 0) {
     return this.allWallCriticalPointsBottomZ(this.bottomZ, wallOffset)
+  }
+
+  @Memoize()
+  reinforcedTriangles(wallOffset = 0) {
+    const walls = this.allWallCriticalPointsBase(wallOffset)
+    const topCPts = this.allKeyCriticalPoints
+    const botCPts = allKeyCriticalPoints(
+      this.c,
+      this.keyHolesTrsfs.map((t, i) => {
+        return t.pretranslated(0, 0, -webThickness(this.c, this.c.keys[i]))
+      }),
+    )
+    const topReinf = reinforceTriangles(this.c, this, topCPts, true, walls)
+    const botReinf = reinforceTriangles(this.c, this, botCPts, false, topReinf.walls)
+    return {
+      topReinf,
+      botReinf,
+      walls: botReinf.walls!,
+      topCPts,
+      botCPts,
+    }
+  }
+
+  @Memoize()
+  allWallCriticalPoints(wallOffset = 0) {
+    // return this.allWallCriticalPointsBase(wallOffset)
+    // TODO: Eventually uncomment this
+    return this.reinforcedTriangles(wallOffset).walls
   }
 
   @Memoize()

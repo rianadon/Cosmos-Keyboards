@@ -1,13 +1,13 @@
 import type { Cuttleform } from '../config'
-import type { Line, WallCriticalPoints } from '../geometry'
+import type { Curve, Line, WallCriticalPoints } from '../geometry'
 import type { Vector } from '../modeling/transformation'
 import type Trsf from '../modeling/transformation'
 
-export function wallBezier(_conf: Cuttleform, _a: Trsf, _b: Trsf, _c: Trsf, _d: Trsf, _worldZ: Vector, _bottomZ: number): [Trsf, Trsf, Trsf, Trsf] {
+export function wallBezier(_conf: Cuttleform, _a: Trsf, _b: Trsf, _c: Trsf, _d: Trsf, _wb: WallCriticalPoints, _wc: WallCriticalPoints, _worldZ: Vector, _bottomZ: number): [Trsf, Trsf, Trsf, Trsf] {
   throw new Error('Not implemented')
 }
 
-export function wallCurveRounded(_conf: Cuttleform, _a: Trsf, _b: Trsf, _c: Trsf, _d: Trsf, _worldZ: Vector, _bottomZ: number) {
+export function wallCurveRounded(_conf: Cuttleform, _a: Trsf, _b: Trsf, _c: Trsf, _d: Trsf, _wb: WallCriticalPoints, _wc: WallCriticalPoints, _worldZ: Vector, _bottomZ: number): Curve {
   throw new Error('Not implemented')
 }
 

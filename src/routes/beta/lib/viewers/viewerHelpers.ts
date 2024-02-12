@@ -1,4 +1,5 @@
 import type { Cuttleform } from '$lib/worker/config'
+import type { WallCriticalPoints } from '$lib/worker/geometry'
 import type { Vector } from '$lib/worker/modeling/transformation'
 import type Trsf from '$lib/worker/modeling/transformation'
 import { wallBezier } from '@pro/rounded'
@@ -75,12 +76,14 @@ function drawBezier(p0: [number, number], p1: [number, number], p2: [number, num
   return shape
 }
 
-export function drawBezierWall(conf: Cuttleform, walls: Trsf[], worldZ: Vector, bottomZ: number, width = 0.2) {
+export function drawBezierWall(conf: Cuttleform, walls: Trsf[], wallCs: WallCriticalPoints[], worldZ: Vector, bottomZ: number, width = 0.2) {
   const shapes = walls.map((a, i) => {
     const b = walls[(i + 1) % walls.length]
     const c = walls[(i + 2) % walls.length]
     const d = walls[(i + 3) % walls.length]
-    const [p0, p1, p2, p3] = wallBezier(conf, a, b, c, d, worldZ, bottomZ).map(p => p.xy())
+    const wb = wallCs[(i + 1) % walls.length]
+    const wc = wallCs[(i + 2) % walls.length]
+    const [p0, p1, p2, p3] = wallBezier(conf, a, b, c, d, wb, wc, worldZ, bottomZ).map(p => p.xy())
     return drawBezier(p0, p1, p2, p3, width)
   })
   return new THREE.ShapeGeometry(shapes)

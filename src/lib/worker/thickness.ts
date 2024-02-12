@@ -1,4 +1,5 @@
-import { Triangle, Vector3 } from 'three'
+import { Triangle } from 'three/src/math/Triangle'
+import { Vector3 } from 'three/src/math/Vector3'
 
 export function thickness(pta: Vector3, ptb: Vector3, ptc: Vector3, pba: Vector3, pbb: Vector3, pbc: Vector3) {
   const topTri = new Triangle(pta, ptb, ptc)

@@ -1,17 +1,19 @@
 import { BOARD_PROPERTIES } from '$lib/geometry/microcontrollers'
 import { SCREWS } from '$lib/geometry/screws'
+import { socketSize } from '$lib/geometry/socketsParts'
 import { switchInfo } from '$lib/geometry/switches'
-import { Triangle, Vector2, Vector3 } from 'three'
+import type { Triangle } from 'three'
 import { Octree } from 'three/examples/jsm/math/Octree'
+import { Vector2 } from 'three/src/math/Vector2'
 import type { Cuttleform, CuttleKey, Geometry } from './config'
-import { allKeyCriticalPoints, allWallCriticalPoints, boardIndices, keyHolesTrsfs, keyHolesTrsfs2D, solveTriangularization } from './geometry'
-import Trsf from './modeling/transformation'
+import type { CriticalPoints } from './geometry'
+import Trsf, { Vector } from './modeling/transformation'
 import ETrsf from './modeling/transformation-ext'
 import { ITriangle, simpleKey, simplekeyGeo, simpleTris } from './simplekeys'
 
 interface IntersectionError {
   type: 'intersection'
-  what: 'hole' | 'keycap'
+  what: 'hole' | 'keycap' | 'socket'
   i: number
   j: number
   travel?: number[]
@@ -100,18 +102,18 @@ export function checkConfig(conf: Cuttleform, geometry: Geometry, check3d = true
   if (!check3d) return null
 
   try {
-    const trsfs3d = geometry.keyHolesTrsfs
-    const cpts3d = geometry.allKeyCriticalPoints
-    const { triangles } = geometry.solveTriangularization
-    const flatpts = cpts3d.flat()
-    const tris = triangles.map(([a, b, c]) => new ITriangle(flatpts[a].origin(), flatpts[b].origin(), flatpts[c].origin(), -1))
+    // const trsfs3d = geometry.keyHolesTrsfs
+    // const cpts3d = geometry.allKeyCriticalPoints
+    // const { triangles } = geometry.solveTriangularization
+    // const flatpts = cpts3d.flat()
+    // const tris = triangles.map(([a, b, c]) => new ITriangle(flatpts[a].origin(), flatpts[b].origin(), flatpts[c].origin(), -1))
 
     // @ts-ignore
-    for (const intersection of keycapIntersections(conf, trsfs3d, tris)) {
-      console.log(intersection)
-      return intersection
-    }
-    const wallPts = geometry.allWallCriticalPoints()
+    // for (const intersection of keycapIntersections(conf, trsfs3d, tris)) {
+    //   console.log(intersection)
+    //   return intersection
+    // }
+    const wallPts = geometry.allWallCriticalPointsBase()
     for (const idx of conf.screwIndices) {
       if (idx >= wallPts.length) return { type: 'oob', idx, item: 'screwIndices', len: wallPts.length }
     }
@@ -120,14 +122,14 @@ export function checkConfig(conf: Cuttleform, geometry: Geometry, check3d = true
     }
   } catch (e) {
     console.error(e)
-    return { type: 'exception', when: 'laying out the walls', error: e }
+    return { type: 'exception', when: 'laying out the walls', error: e as Error }
   }
 
   try {
     const boardInd = geometry.boardIndices
   } catch (e) {
     console.error(e)
-    return { type: 'exception', when: 'positioning the board', error: e }
+    return { type: 'exception', when: 'positioning the board', error: e as Error }
   }
 
   return null
@@ -148,12 +150,30 @@ export function* holeIntersections(polys: Vector2[][]): Generator<IntersectionEr
   }
 }
 
+/** Return triangles covering a prism defined by its top face & depth.
+ * The triangle is centered at XY and extrudes down, like a socket */
+function prismTriangles(facePoints: Trsf[], center: Trsf, depth: number, index: number) {
+  const topCenter = center.origin()
+  const botCenter = center.pretranslated(0, 0, -depth).origin()
+  const topPts = facePoints.map(p => p.origin())
+  const botPts = facePoints.map(p => p.pretranslated(0, 0, -depth).origin())
+  return facePoints.flatMap((_, i) => {
+    const j = (i + 1) % facePoints.length
+    return [
+      new ITriangle(topPts[i], topPts[j], topCenter, index), // Top
+      new ITriangle(botPts[j], botPts[i], botCenter, index), // Bottom
+      new ITriangle(topPts[i], botPts[i], topPts[j], index), // First side
+      new ITriangle(botPts[i], botPts[j], topPts[j], index), // Second side
+    ]
+  })
+}
+
 function travel(k: CuttleKey) {
   const swInfo = switchInfo(k.type)
   return swInfo.height - swInfo.pressedHeight
 }
 
-function* keycapIntersections(conf: Cuttleform, trsfs: Trsf[], web: ITriangle[]) {
+export function* keycapIntersections(conf: Cuttleform, trsfs: Trsf[], web: ITriangle[]) {
   const tree = new Octree()
   for (const tri of web) {
     tree.addTriangle(tri)
@@ -172,10 +192,23 @@ function* keycapIntersections(conf: Cuttleform, trsfs: Trsf[], web: ITriangle[])
     }
   }
   tree.build()
-  yield* treeIntersections(conf, tree)
+  yield* treeIntersections(conf, tree, 'keycap')
 }
 
-function* treeIntersections(conf: Cuttleform, tree: Octree) {
+export function* socketIntersections(conf: Cuttleform, trsfs: Trsf[], critPts: CriticalPoints[]) {
+  const tree = new Octree()
+  for (let i = 0; i < trsfs.length; i++) {
+    const size = socketSize(conf.keys[i])
+    const prism = prismTriangles(critPts[i], trsfs[i], size.z, i)
+    for (const triangle of prism) {
+      tree.addTriangle(triangle)
+    }
+  }
+  tree.build()
+  yield* treeIntersections(conf, tree, 'socket')
+}
+
+function* treeIntersections(conf: Cuttleform, tree: Octree, what: 'keycap' | 'socket'): Generator<ConfError> {
   const triangles = tree.triangles as ITriangle[]
   for (let i = 0; i < triangles.length; i++) {
     for (let j = 0; j < i; j++) {
@@ -188,7 +221,7 @@ function* treeIntersections(conf: Cuttleform, tree: Octree) {
         simpleTris.update(t => [...t, triangles[i], triangles[j]])
         yield {
           type: 'intersection',
-          what: 'keycap',
+          what,
           i: ti,
           j: tj,
           travel: trvl,
@@ -197,12 +230,12 @@ function* treeIntersections(conf: Cuttleform, tree: Octree) {
     }
   }
   for (const sub of tree.subTrees) {
-    yield* treeIntersections(conf, sub)
+    yield* treeIntersections(conf, sub, what)
   }
 }
 
 /** Determine whether two 2D polygons intersect each other. */
-function intersects(a: Vector2[], b: Vector2[]) {
+export function intersects(a: Vector2[], b: Vector2[]) {
   for (let i = 0; i < a.length; i++) {
     const side = new Vector2().copy(a[i]).sub(a[(i + 1) % a.length]).normalize()
     const normal = new Vector2(-side.y, side.x)
@@ -269,8 +302,8 @@ export function doTrianglesIntersect(t1: Triangle, t2: Triangle) {
   var D = B0.clone().sub(A0)
 
   // START ADDITIONS: Detect coplanar
-  const n1 = new Vector3().copy(N).normalize()
-  const n2 = new Vector3().copy(M).normalize()
+  const n1 = new Vector().copy(N).normalize()
+  const n2 = new Vector().copy(M).normalize()
 
   // They have the same normal vector
   if (1 - n1.dot(n2) < 1e-9) {
@@ -283,7 +316,7 @@ export function doTrianglesIntersect(t1: Triangle, t2: Triangle) {
     // F0 and F1 are already perpendicular to the normal vector, so there's no need
     // to subtract out their projections
     const a = F0
-    const b = new Vector3().copy(F1).addScaledVector(a, -a.dot(F1)).normalize()
+    const b = new Vector().copy(F1).addScaledVector(a, -a.dot(F1)).normalize()
     // Project the triangle points onto these axes
     const ptsA = [
       new Vector2(t1.a.dot(a), t1.a.dot(b)),
@@ -300,7 +333,7 @@ export function doTrianglesIntersect(t1: Triangle, t2: Triangle) {
 
   // END ADDITIONS
 
-  function areProjectionsSeparated(p0, p1, p2, q0, q1, q2) {
+  function areProjectionsSeparated(p0: number, p1: number, p2: number, q0: number, q1: number, q2: number) {
     var min_p = Math.min(p0, p1, p2),
       max_p = Math.max(p0, p1, p2),
       min_q = Math.min(q0, q1, q2),

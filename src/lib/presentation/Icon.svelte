@@ -35,6 +35,7 @@
       case 'trackball': return mdi.mdiCircleSlice8
       case 'oled': return mdi.mdiCellphone
       case 'microcontroller': return mdi.mdiMemory
+      case 'bulge': return "M5.62 3C7.13 5.27 8 8.55 8 12 8 15.44 7.13 18.72 5.62 21L4 19.96C5.26 18.07 6 15.13 6 12 6 8.87 5.26 5.92 4 4.03L5.62 3M18.38 3 20 4.04C18.74 5.92 18 8.87 18 12 18 15.13 18.74 18.08 20 19.96L18.38 21C16.87 18.73 16 15.45 16 12 16 8.55 16.87 5.27 18.38 3Z"
     }
   }
 </script>

@@ -33,6 +33,7 @@ interface MatrixOptions {
   curvatureOfRow: number
   spacingOfColumns: number
   spacingOfRows: number
+  arc?: number
 }
 
 interface SphereOptions {
@@ -250,6 +251,13 @@ function placeOnMatrixImpl(t: Trsf, opts: Unmerged<MatrixOptions>, c: Evaluation
     }
   }
   rotateRow(options, c, t)
+  // t.rotate(90 * Math.tanh(options.column * options.row / 20))
+  if (options.arc && options.arc != 0) {
+    // 28.636 comes from ensuring rotation = 1deg when options.column * options.row = 1 and arc = 1.
+    // I chose atan because it's odd, has two horizontal asymptotes, and it's trig so intuitively seems well-suited for geometry stuff.
+    // 90 / Math*PI ensures the asymptotes occur at +- 45 degrees.
+    t.rotate(90 / Math.PI * Math.atan(options.arc * options.column * options.row / 28.636))
+  }
   rotateCol(options, c, t)
   return t
 }

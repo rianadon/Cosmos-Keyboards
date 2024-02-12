@@ -61,3 +61,16 @@ export function reverseMap<A extends string | number, B extends string | number>
 export function notNull<E>(a: E[]): Exclude<E, undefined | null>[] {
   return a.filter(e => !!e) as Exclude<E, undefined | null>[]
 }
+
+export class DefaultMap<K, V> extends Map<K, V> {
+  constructor(private cons: () => V) {
+    super()
+  }
+
+  get(k: K): V {
+    if (this.has(k)) return super.get(k)!
+    const v = this.cons()
+    super.set(k, v)
+    return v
+  }
+}

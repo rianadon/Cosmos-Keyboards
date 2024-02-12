@@ -77,6 +77,7 @@
         ? drawBezierWall(
             conf,
             walls2.map((w) => w.bi),
+            walls2,
             geo.worldZ,
             geo.bottomZ
           )
@@ -105,12 +106,24 @@
         ? drawBezierWall(
             conf,
             walls2.map((w) => w.bo),
+            walls2,
             geo.worldZ,
             geo.bottomZ
           )
         : drawLinedWall(walls2.map((w) => w.bo.xy())),
       material: new THREE.MeshBasicMaterial({ color: 0xeedd33 }),
     })
+
+    // geos.push(
+    //   ...walls2.map((w) => ({
+    //     geometry: rectangle(...w.bo.xy(), 0.3),
+    //     material: new THREE.MeshBasicMaterial({ color: 0x000000 }),
+    //   })),
+    //   ...walls2.map((w) => ({
+    //     geometry: rectangle(...w.bi.xy(), 0.3),
+    //     material: new THREE.MeshBasicMaterial({ color: 0x000000 }),
+    //   }))
+    // )
 
     if (conf.microcontroller) {
       const connOrigin = geo.connectorOrigin
@@ -216,7 +229,7 @@
 </script>
 
 <div
-  class="absolute top-12 left-8 right-8 flex justify-between bg-white/80 dark:bg-gray-800/70 z-10"
+  class="opacity-0 absolute top-12 left-8 right-8 flex justify-between bg-white/80 dark:bg-gray-800/70 z-10"
 >
   <table>
     <tr

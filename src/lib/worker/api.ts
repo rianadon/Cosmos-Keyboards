@@ -10,13 +10,14 @@ import wasmUrl from '$assets/replicad_single.wasm?url'
 // import wasmUrl from 'opencascade/dist/opencascade.full.wasm?url';
 import { wristRest } from '@pro/wristRest'
 import { getUser } from '../../routes/beta/lib/login'
-import { isPro } from './check'
+import { type ConfError, isPro, keycapIntersections, socketIntersections } from './check'
 import { type Cuttleform, newGeometry } from './config'
 import { boardHolder, cutWithConnector, keyHoles, makeConnector, makePlate, makerScrewInserts, makeWalls, type ScrewInsertTypes, webSolid } from './model'
 import { Assembly } from './modeling/assembly'
 import { blobSTL, combine } from './modeling/index'
 import { supportMesh } from './modeling/supports'
 import Trsf, { Vector } from './modeling/transformation'
+import { ITriangle } from './simplekeys'
 
 let oc: OpenCascadeInstance
 let keys: Solid
@@ -83,9 +84,11 @@ export async function generatePlate(config: Cuttleform, cut = false) {
   await ensureOC()
   const geo = newGeometry(config)
   const { top, bottom } = makePlate(config, geo, cut)
+  const topMesh = meshWithVolume(top())
   return {
-    top: meshWithVolume(top()),
+    top: topMesh,
     bottom: bottom ? meshWithVolume(bottom()) : { mesh: null, mass: 0 },
+    ocTime: topMesh.ocTime,
   }
 }
 
@@ -126,7 +129,7 @@ export async function generate(config: Cuttleform, stitchWalls: boolean) {
   console.timeEnd('Creating holes')
   console.time('Creating connector')
   // let connector = null
-  if (config.connector) {
+  if (config.connector && connOrigin) {
     // connector = makeConnector(config, config.connector, connOrigin)
     walls = cutWithConnector(config, walls, config.connector, connOrigin)
   }
@@ -213,7 +216,7 @@ export async function cutWall(config: Cuttleform) {
   await ensureOC()
   const geometry = newGeometry(config)
   await generateWalls(config)
-  if (config.connector) {
+  if (config.connector && geometry.connectorOrigin) {
     walls = cutWithConnector(config, walls, config.connector, geometry.connectorOrigin)
   }
   const result = meshWithVolumeAndSupport(walls, geometry.bottomZ)
@@ -248,6 +251,7 @@ async function getModel(conf: Cuttleform, name: string, stitchWalls: boolean) {
 
 export async function getSTL(conf: Cuttleform, name: string, flip: boolean) {
   let model = await getModel(conf, name, true)
+  if (!model) throw new Error(`Model ${name} is empty`)
   if (flip) model = model.mirror('YZ', [0, 0, 0])
   return blobSTL(model, { tolerance: 1e-2, angularTolerance: 1 })
 }
@@ -257,7 +261,9 @@ export async function getSTEP(conf: Cuttleform, flip: boolean, stitchWalls: bool
   let { assembly } = await generate(conf, stitchWalls)
   const { top, bottom } = makePlate(conf, geometry, true, true)
   assembly.add('Bottom Plate', combine([top(), bottom ? bottom() : undefined]))
-  assembly.add('Microcontroller Holder', boardHolder(conf, geometry))
+  if (conf.microcontroller) {
+    assembly.add('Microcontroller Holder', boardHolder(conf, geometry))
+  }
 
   if (conf.wristRest && (await getUser()).sponsor) {
     assembly.add('Wrist Rest', wristRest(conf, geometry))
@@ -291,4 +297,32 @@ export async function volume() {
   oc.BRepGProp.VolumeProperties_2(model.wrapped, props, 0.01, false, true)
   console.log('volume', props.Mass())
   return props.Mass()
+}
+
+export async function intersections(conf: Cuttleform): Promise<ConfError | undefined> {
+  try {
+    const geometry = newGeometry(conf)
+    const trsfs3d = geometry.keyHolesTrsfs
+    const { botReinf, topReinf } = geometry.reinforcedTriangles()
+
+    const toTriangles = (r: typeof botReinf) =>
+      r.triangles.map(([a, b, c]) =>
+        new ITriangle(
+          r.allPts[a].origin(),
+          r.allPts[b].origin(),
+          r.allPts[c].origin(),
+          -1,
+        )
+      )
+    const tris = [...toTriangles(topReinf), ...toTriangles(botReinf)]
+    for (const intersection of socketIntersections(conf, trsfs3d, geometry.allKeyCriticalPoints)) {
+      return intersection
+    }
+    for (const intersection of keycapIntersections(conf, trsfs3d, tris)) {
+      return intersection
+    }
+  } catch (e) {
+    console.error(e)
+    return { type: 'exception', when: 'laying out the walls', error: e as Error }
+  }
 }

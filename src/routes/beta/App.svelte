@@ -272,6 +272,10 @@
 
     pool.reset()
     try {
+      const intersectionsPromise = pool.execute(
+        (w) => w.intersections(settings) as Promise<ConfError | undefined>,
+        'Intersections'
+      )
       const wallPromise = pool.execute((w) => w.generateWalls(settings), 'Walls')
       const webPromise = pool.execute((w) => w.generateWeb(settings), 'Web')
       const keyPromise = pool.execute((w) => w.generateKeys(settings), 'Keys')
@@ -298,6 +302,7 @@
       }
 
       center = estimatedCenter(geometry, !!config.wristRest)
+      confError = await intersectionsPromise
       const wallMesh = await wallPromise
       const webMesh = await webPromise
       const keyMesh = await keyPromise
@@ -576,6 +581,7 @@
           flip={$flip}
           showHand={$showHand}
           error={confError}
+          {darkMode}
         >
           <KeyboardMesh kind="case" geometry={keyBuf} />
           <KeyboardMesh kind="case" geometry={screwBaseBuf} />
@@ -676,13 +682,17 @@
                 Two of the keycaps intersect, either in their current positions or when pressed down{#if confError.travel}&nbsp;with
                   {confError.travel[0]}mm of travel{/if}.
               </p>
+            {:else if confError.what == 'socket'}
+              <p class="mb-2">Two of the key sockets intersect.</p>
             {/if}
             <p class="mb-2">
               If you're using Advanced mode, you can try adjusting the stagger to correct the issue.
+              {#if confError.what != 'socket'}You can also try decreasing webMinThicknessFactor in
+                expert mode.{/if}
             </p>
             <p class="mb-2">
               If the issue is within the thumb cluster, increase the vertical and horizontal
-              spacings in Advanced mode.
+              spacings in Advanced mode or switch to custom thumbs mode.
             </p>
           {:else if confError.type == 'missing'}
             <p class="mb-2">

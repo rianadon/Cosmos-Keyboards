@@ -61,6 +61,7 @@ message Cuttleform {
     optional sint32 beta = 1 [(angle) = true, (name) = "Row's Curvature", (plusminus) = true, (icon) = "row-curve", (basic) = true];
     optional sint32 alpha = 3 [(angle) = true, (name) = "Column's Curvature", (icon) = "column-curve", (basic) = true];
     optional int32 pinky_alpha = 4 [(angle) = true, (name) = "Pinky Column's Curvature"];
+    optional sint32 arc = 7 [(angle) = true, (name) = "Outwards Arc", (icon) = "bulge", (basic) = true, (help) = "Rotates the keys outwards. Useful for countering large curvature"];
     optional sint32 rotate_x = 5 [(angle) = true, (name) = "Rotation Around Row Axis", (icon) = "angle-rotate"];
     optional sint32 tenting = 6 [(angle) = true, (name) = "Tenting Angle", (icon) = "angle", (basic) = true];
   }

@@ -24,7 +24,7 @@ export function simpleKeyGeo(profile: string, aspect: number, row: number): Buff
   const name = UNIFORM.includes(profile) ? `${profile}-${a}` : `${profile}-${row}-${a}`
   if (name in keys) {
     const loader = new STLLoader()
-    const data = Uint8Array.from(window.atob((keys as any)[name]), c => c.charCodeAt(0))
+    const data = Uint8Array.from(atob((keys as any)[name]), c => c.charCodeAt(0))
     return loader.parse(data.buffer)
   }
 }
@@ -54,7 +54,7 @@ function simpleKeyTriangles(profile: string, aspect: number, row: number, positi
       // @ts-ignore
       if (positions.array[i] < 0) positions.array[i] = -travel
     }
-    simplekeyGeo.update(v => [...v, geo.applyMatrix4(position)])
+    // simplekeyGeo.update(v => [...v, geo.applyMatrix4(position)])
   }
   return triangles
 }

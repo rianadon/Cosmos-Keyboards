@@ -50,7 +50,7 @@
     <span class="block w-72"
       >{schema.name}
       {#if schema.help}
-        <div class="s-help" bind:this={referenceElement}>
+        <div class="s-help ml-1" bind:this={referenceElement}>
           <Icon path={mdi.mdiHelpCircle} size="20px" />
         </div>
         <Popover

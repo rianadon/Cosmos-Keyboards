@@ -27,6 +27,9 @@
     decodeTuple,
     encodeTuple,
     type Geometry,
+    decodeCustomKey,
+    switchType,
+    keycapType,
   } from '$lib/worker/config'
   import type { ConfError } from '$lib/worker/check'
   import Viewer from './Viewer.svelte'
@@ -40,7 +43,7 @@
   import TransformControls from '$lib/3d/TransformControls.svelte'
   import AxesHelper from '$lib/3d/AxesHelper.svelte'
   import Raycaster from '$lib/3d/Raycaster.svelte'
-  import { keyPosition, keyPositionTop } from '$lib/worker/modeling/transformation-ext'
+  import ETrsf, { keyPosition, keyPositionTop } from '$lib/worker/modeling/transformation-ext'
   import { closestAspect, keyInfo } from '$lib/geometry/keycaps'
   import { switchInfo } from '$lib/geometry/switches'
   import { simplekeyGeo, simpleTris } from '$lib/worker/simplekeys'
@@ -48,7 +51,6 @@
   import { boardGeometries } from '$lib/loaders/boardElement'
   import {
     allKeyCriticalPoints,
-    allWallCriticalPoints,
     applyKeyAdjustment,
     keyHolesTrsfs,
     componentBoxes,
@@ -145,6 +147,7 @@
   $: updateThumbs(keyMatrices)
 
   function updateThumbs(keyMatrices) {
+    if (keyMatrices.length) console.log(cluster.customThumb.key, keyMatrices, conf.keys)
     customThumbConfig = keyMatrices.length
       ? cluster.customThumb.key.map((k, i) => keyToTrsf2(keyMatrices[i].matrix, i))
       : null
@@ -192,8 +195,14 @@
   }
 
   function keyToTrsf2(m: Matrix4, i: number) {
-    const keyIndex = conf.keys.length - cluster.customThumb.key.length + i
-    const key = conf.keys[keyIndex]
+    // const keyIndex = conf.keys.length - cluster.customThumb.key.length + i
+    // const key = conf.keys[keyIndex]
+    const key = decodeCustomKey(
+      cluster.customThumb.key[i],
+      switchType($protoConfig),
+      keycapType($protoConfig),
+      new ETrsf()
+    )
     const adj = applyKeyAdjustment(key, new Trsf()).Matrix4()
 
     return new Matrix4().multiplyMatrices(m, adj)

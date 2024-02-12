@@ -24,6 +24,19 @@ interface Node {
   prev: Node
 }
 
+export function createTriangleMap(triangles: number[][]) {
+  const triangleMap: Record<number, Record<number, number[]>> = {}
+  triangles.forEach(([a, b, c], i) => {
+    if (!triangleMap[a]) triangleMap[a] = {}
+    if (!triangleMap[b]) triangleMap[b] = {}
+    if (!triangleMap[c]) triangleMap[c] = {}
+    triangleMap[a][b] = [c, i]
+    triangleMap[b][c] = [a, i]
+    triangleMap[c][a] = [b, i]
+  })
+  return triangleMap
+}
+
 export default function concaveman(
   conf: any,
   trsfs: KeyTrsf[],
@@ -44,19 +57,11 @@ export default function concaveman(
   // when a segment goes below this length threshold, it won't be drilled down further
   lengthThreshold = lengthThreshold || 0
 
-  const triangleMap = {}
-  triangles.forEach(([a, b, c], i) => {
-    if (!triangleMap[a]) triangleMap[a] = {}
-    if (!triangleMap[b]) triangleMap[b] = {}
-    if (!triangleMap[c]) triangleMap[c] = {}
-    triangleMap[a][b] = [c, i]
-    triangleMap[b][c] = [a, i]
-    triangleMap[c][a] = [b, i]
-  })
+  const triangleMap = createTriangleMap(triangles)
 
   const beginning = bnd[0][0]
 
-  const next = {}
+  const next: Record<number, number> = {}
   for (const [a, b] of bnd) {
     next[a] = b
   }

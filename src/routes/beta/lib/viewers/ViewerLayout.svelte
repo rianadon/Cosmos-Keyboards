@@ -2,7 +2,7 @@
   import * as THREE from 'three'
 
   import Viewer from './Viewer.svelte'
-  import { estimatedCenter } from '$lib/worker/geometry'
+  import { estimatedCenter, reinforceTriangles } from '$lib/worker/geometry'
   import { rectangle, drawLinedWall, drawWall } from './viewerHelpers'
   import { boundingSize } from '$lib/loaders/geometry'
 
@@ -32,12 +32,11 @@
   ) {
     const geos: { geometry: THREE.ShapeGeometry; material: THREE.Material }[] = []
 
-    const config = conf
-
     const keys = geo.keyHolesTrsfs2D
     center = estimatedCenter(geo)
 
     const positions = keys.flat().map((k) => k.xyz().slice(0, 2))
+    // Add key points
     geos.push(
       ...positions.map((p) => ({
         geometry: rectangle(p[0], p[1]),
@@ -45,18 +44,18 @@
       }))
     )
 
-    const pts = geo.allKeyCriticalPoints2D
-    const allProj = pts.flat().map((p) => p.xy())
-
-    geos.push(
-      ...allProj.map((p) => ({
-        geometry: rectangle(p[0], p[1], 0.7),
-        material: new THREE.MeshBasicMaterial({ color: darkMode ? 0xff9966 : 0xff3333 }),
-      }))
-    )
-
     if (confError?.type == 'intersection') {
-      console.log(pts.map((po) => po.map((p) => p.xyz())))
+      const pts = geo.allKeyCriticalPoints2D
+      const allProj = pts.flat().map((p) => p.xy())
+      // Add key critical points
+      geos.push(
+        ...allProj.map((p) => ({
+          geometry: rectangle(p[0], p[1], 0.7),
+          material: new THREE.MeshBasicMaterial({ color: darkMode ? 0xff9966 : 0xff3333 }),
+        }))
+      )
+
+      // console.log(pts.map((po) => po.map((p) => p.xyz())))
       geos.push(
         ...pts.map((po) => ({
           geometry: drawLinedWall(po.map((p) => p.xy())),
@@ -82,8 +81,21 @@
       return geos
     }
 
+    const cPts = geo.allKeyCriticalPoints
+    const { triangles, allPts2D, boundary } = reinforceTriangles(conf, geo, cPts)
+    // const allPts2D = geo.allKeyCriticalPoints2D.flat()
+    // const { triangles, boundary } = geo.solveTriangularization
+    const allProj = allPts2D.map((p) => p.xy())
+    // Add key critical points
+    geos.push(
+      ...allProj.map((p) => ({
+        geometry: rectangle(p[0], p[1], 0.7),
+        material: new THREE.MeshBasicMaterial({ color: darkMode ? 0xff9966 : 0xff3333 }),
+      }))
+    )
+
     // const pts3D = geo.allKeyCriticalPoints
-    const { triangles, boundary } = geo.solveTriangularization
+    // const { triangles, boundary } = geo.solveTriangularization
     // console.log('B', triangles, boundary, pts.map(p => p[0].xyz()), pts3D.map(p => p[0].xyz()))
 
     geos.push(
