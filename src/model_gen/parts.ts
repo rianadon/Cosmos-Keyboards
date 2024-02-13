@@ -3,6 +3,7 @@ import type { Cuttleform, CuttleKey } from '$lib/worker/config'
 import { KEY_URLS } from '$lib/worker/socketsLoader'
 import { readFile, writeFile } from 'fs/promises'
 import { join } from 'path'
+import { getOC } from 'replicad'
 import { importSTEP, makeBaseBox } from 'replicad'
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader'
 import { fileURLToPath } from 'url'
@@ -37,9 +38,15 @@ async function genSocket(name: string) {
   const glbName = join(targetDir, 'socket-' + name + '.glb')
   const model = await loadSocket(name)
   const mesh = model.mesh({ tolerance: 0.1, angularTolerance: 10 })
+  const oc = getOC()
+  const props = new oc.GProp_GProps_1()
+  oc.BRepGProp.VolumeProperties_2(model.wrapped, props, 0.01, false, true)
+  const mass = props.Mass()
+  props.delete()
   model.delete()
   const geometry = fromGeometry(mesh)
   await exportGLTF(glbName, geometry!)
+  return mass
 }
 
 type Microcontroller = Exclude<Cuttleform['microcontroller'], null>
@@ -112,9 +119,10 @@ async function main() {
   }
   await genDisplayModel('oled-128x32-0.91in-dfrobot', dfDisplayProps, 0.5)
   await genDisplaySocket('oled-128x32-0.91in-dfrobot', dfDisplayProps)
+  const masses: Record<string, number> = {}
   for (const socket of Object.keys(PART_NAMES)) {
     try {
-      await genSocket(socket)
+      masses[socket] = await genSocket(socket)
     } catch (e) {
       if (e instanceof Error && 'code' in e && e.code === 'ENOENT') {
         console.log(`Warning: could not generate ${socket} since its file was not present in the filesystem`)
@@ -122,6 +130,9 @@ async function main() {
       } else throw e
     }
   }
+
+  const filename = join(targetDir, `part-masses.json`)
+  await writeFile(filename, JSON.stringify(masses))
 }
 
 main()

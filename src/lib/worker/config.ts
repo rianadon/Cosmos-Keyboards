@@ -987,7 +987,7 @@ function manuformThumbs(keyType: KeyType, capType: CapType, count: DTKEYS, five:
       .rotate(-6, [0, 0, 0], [1, 0, 0])
       .rotate(-5, [0, 0, 0], [0, 1, 0])
       .rotate(95, [0, 0, 0], [0, 0, 1])
-      .translate(-15.1, -6, 0)
+      .translate(-15.1, -6.1, 0)
       .transformBy(offset),
   }
   let middleRight: CuttleKey = {

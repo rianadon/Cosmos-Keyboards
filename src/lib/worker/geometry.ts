@@ -8,9 +8,9 @@ import cdt2d from 'cdt2d'
 import findBoundary from 'simplicial-complex-boundary'
 import { ExtrudeGeometry, Matrix3, Shape, Triangle } from 'three'
 import { Vector2 } from 'three/src/math/Vector2'
-import { intersects } from './check'
 import concaveman from './concaveman'
 import { type Cuttleform, type CuttleKey, type Geometry, keyRoundSize } from './config'
+import { intersectLineCircle, intersectPolyPoly, intersectPtPoly, intersectTriCircle } from './geometry.intersections'
 import { PLATE_HEIGHT, screwInsertDimensions } from './model'
 import Trsf from './modeling/transformation'
 import { Vector } from './modeling/transformation'
@@ -881,7 +881,7 @@ export function solveTriangularization(c: Cuttleform, pts2D: CriticalPoints[], p
     const newAllPts: typeof allPts = []
     const newAllTrsfs: typeof allTrsfs = []
     for (let i = 0; i < allPts.length; i++) {
-      if (inside(allPts[i], opts.boundary.map(i => allPts[i]))) {
+      if (intersectPtPoly(allPts[i], opts.boundary.map(i => allPts[i]))) {
         newAllPts.push(allPts[i])
         newAllTrsfs.push(allTrsfs[i])
         allIdx.push(i)
@@ -1479,27 +1479,6 @@ export function wristRestGeometry(c: Cuttleform, geo: Geometry) {
   }
 }
 
-// https://stackoverflow.com/a/29915728
-export function inside(point: [number, number, number], vs: [number, number, number][]) {
-  if (vs.includes(point)) return true
-  // ray-casting algorithm based on
-  // https://wrf.ecse.rpi.edu/Research/Short_Notes/pnpoly.html
-
-  var x = point[0], y = point[1]
-
-  var inside = false
-  for (var i = 0, j = vs.length - 1; i < vs.length; j = i++) {
-    var xi = vs[i][0], yi = vs[i][1]
-    var xj = vs[j][0], yj = vs[j][1]
-
-    var intersect = ((yi > y) != (yj > y))
-      && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)
-    if (intersect) inside = !inside
-  }
-
-  return inside
-}
-
 export type Curve = [Trsf, Trsf, Trsf, Trsf]
 export type Patch = Vector[][]
 // https://github.com/Open-Cascade-SAS/OCCT/blob/28b505b27baa09dfba68242534a89a55960b19ac/src/GeomFill/GeomFill_Coons.cxx
@@ -1984,7 +1963,7 @@ function* boxIntersections(onto: ComponentMultiBox, test: ComponentBox) {
   for (const box of onto.points) {
     if (z > box[0].z) {
       const boxPts = box.map(b => b.xyz())
-      if (projPoints.every(p => inside(p, boxPts))) {
+      if (projPoints.every(p => intersectPtPoly(p, boxPts))) {
         yield new Vector(0, 0, z)
       }
     }
@@ -2028,7 +2007,7 @@ export function movePointBox(point: ComponentPoint, test: ComponentBox[]) {
     for (const otherBox of test) {
       const transformed = otherBox.origin.inverted().apply(point.pos.origin())
       const z = transformed.z - otherBox.points[0].z
-      if (z > maxZ && inside(transformed.xyz(), otherBox.points.map(p => p.xyz()))) {
+      if (z > maxZ && intersectPtPoly(transformed.xyz(), otherBox.points.map(p => p.xyz()))) {
         const scale = -otherBox.origin.axis(0, 0, 1).dot(point.direction)
         if (z > maxZ) maxZ = z * scale
       }
@@ -2171,27 +2150,6 @@ export function triangleMap(triangles: [number, number, number][]) {
   return triangleMap
 }
 
-function* lineCircleIntersections(pa: Vector, pb: Vector, porigin: Vector, radius: number) {
-  const origin = porigin.clone().sub(pb)
-  const a = pa.clone().sub(pb)
-
-  const qa = a.x * origin.x + a.y * origin.y
-  const qb = Math.sqrt((a.x * radius) ** 2 + (a.y * radius) ** 2 - (a.x * origin.y - a.y * origin.x) ** 2)
-  const qc = a.x ** 2 + a.y ** 2
-
-  for (const solution of [(qa + qb) / qc, (qa - qb) / qc]) {
-    if (solution >= 0 && solution <= 1) {
-      yield pb.clone().addScaledVector(a, solution)
-    }
-  }
-}
-
-function* triangleCircleIntersections(a: Vector, b: Vector, c: Vector, origin: Vector, radius: number) {
-  yield* lineCircleIntersections(a, b, origin, radius)
-  yield* lineCircleIntersections(b, c, origin, radius)
-  yield* lineCircleIntersections(c, a, origin, radius)
-}
-
 /** Yield all points that may have minimum or maximum Z coordinates
     when intersecting a circle with the given triangles on the XY plane */
 export function* extremaCircleZOnBT(origin: Vector, radius: number, points: Trsf[], triangles: number[][]) {
@@ -2200,7 +2158,7 @@ export function* extremaCircleZOnBT(origin: Vector, radius: number, points: Trsf
     const pb = points[b].origin()
     const pc = points[c].origin()
 
-    for (const intersection of triangleCircleIntersections(pa, pb, pc, origin, radius)) {
+    for (const intersection of intersectTriCircle(pa, pb, pc, origin, radius)) {
       yield intersection.z
     }
 
@@ -2218,8 +2176,8 @@ export function* extremaCircleZOnBT(origin: Vector, radius: number, points: Trsf
     }
     const sol0 = z(lambda)
     const sol1 = z(-lambda)
-    if (inside(sol0.xyz(), [pa.xyz(), pb.xyz(), pc.xyz()])) yield sol0.z
-    if (inside(sol1.xyz(), [pa.xyz(), pb.xyz(), pc.xyz()])) yield sol1.z
+    if (intersectPtPoly(sol0.xyz(), [pa.xyz(), pb.xyz(), pc.xyz()])) yield sol0.z
+    if (intersectPtPoly(sol1.xyz(), [pa.xyz(), pb.xyz(), pc.xyz()])) yield sol1.z
   }
 }
 
@@ -2234,7 +2192,7 @@ export function adjustedStiltsScrewOrigin(walls: WallCriticalPoints[], origin: V
       const bo = wall.bo.origin()
       const bon = nextWall.bo.origin()
 
-      const intersects = [...lineCircleIntersections(bo, bon, origin, radius)]
+      const intersects = [...intersectLineCircle(bo, bon, origin, radius)]
       if (intersects.length > 0) {
         const normal = new Vector(bo.y - bon.y, bon.x - bo.x, 0).normalize()
         let distance = origin.clone().sub(bo).dot(normal) + radius
@@ -2261,7 +2219,7 @@ export function separateSockets2D(trsfs: Trsf[], criticalPts: CriticalPoints[]):
     // Iterate through all sokets, moving them if they intersect.
     for (let i = 0; i < polys.length; i++) {
       for (let j = i + 1; j < polys.length; j++) {
-        if (intersects(polys[i], polys[j])) {
+        if (intersectPolyPoly(polys[i], polys[j])) {
           const displacement = trsfs[i].origin().sub(trsfs[j].origin())
           displacement.z = 0 // ensure only moving in XY
           // Scale the displacement such that it's ~0.5mm at 20mm away and ~5mm at 0mm away, and falls off exponentially

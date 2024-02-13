@@ -1,4 +1,4 @@
-import { Compound, downcast, getOC, makeSolid, setOC, Shell, Solid } from 'replicad'
+import { Compound, downcast, getOC, makeSolid, setOC, type ShapeMesh, Shell, Solid } from 'replicad'
 /// <reference lib="webworker" />
 // declare const self: DedicatedWorkerGlobalScope;
 
@@ -8,7 +8,9 @@ import wasmUrl from '$assets/replicad_single.wasm?url'
 // import wasmUrl from 'replicad-opencascadejs/src/replicad_single.wasm?url';
 // import loadOC from 'opencascade/dist/opencascade.full';
 // import wasmUrl from 'opencascade/dist/opencascade.full.wasm?url';
+import { keyHoleMeshes } from '$lib/loaders/sockets'
 import { wristRest } from '@pro/wristRest'
+import type { BufferAttribute } from 'three'
 import { getUser } from '../../routes/beta/lib/login'
 import { type ConfError, isPro, keycapIntersections, socketIntersections } from './check'
 import { type Cuttleform, newGeometry } from './config'
@@ -20,7 +22,6 @@ import Trsf, { Vector } from './modeling/transformation'
 import { ITriangle } from './simplekeys'
 
 let oc: OpenCascadeInstance
-let keys: Solid
 let web: Solid
 let walls: Solid
 let model: Solid
@@ -60,10 +61,17 @@ async function ensureOC() {
 // }
 
 export async function generateKeys(config: Cuttleform) {
-  await ensureOC()
   const geo = newGeometry(config)
-  keys = await keyHoles(config, geo.keyHolesTrsfs.flat())
-  return meshWithVolumeAndSupport(keys, geo.bottomZ)
+  const keys = await keyHoleMeshes(config, geo.keyHolesTrsfs.flat())
+  const mesh: ShapeMesh = {
+    vertices: (keys.mesh.attributes['position'] as BufferAttribute).array as number[],
+    normals: (keys.mesh.attributes['normal'] as BufferAttribute).array as number[],
+    triangles: keys.mesh.index!.array as number[],
+    faceGroups: [],
+  }
+  const mass = keys.mass
+  const supports = supportMesh(mesh, geo.bottomZ)
+  return { mesh, mass, supports }
 }
 
 export async function generateWeb(config: Cuttleform) {

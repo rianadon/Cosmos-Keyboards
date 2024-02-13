@@ -7,6 +7,7 @@ import { Octree } from 'three/examples/jsm/math/Octree'
 import { Vector2 } from 'three/src/math/Vector2'
 import type { Cuttleform, CuttleKey, Geometry } from './config'
 import type { CriticalPoints } from './geometry'
+import { intersectPolyPoly } from './geometry.intersections'
 import Trsf, { Vector } from './modeling/transformation'
 import ETrsf from './modeling/transformation-ext'
 import { ITriangle, simpleKey, simplekeyGeo, simpleTris } from './simplekeys'
@@ -138,7 +139,7 @@ export function checkConfig(conf: Cuttleform, geometry: Geometry, check3d = true
 export function* holeIntersections(polys: Vector2[][]): Generator<IntersectionError> {
   for (let i = 0; i < polys.length; i++) {
     for (let j = i + 1; j < polys.length; j++) {
-      if (intersects(polys[i], polys[j])) {
+      if (intersectPolyPoly(polys[i], polys[j])) {
         yield {
           type: 'intersection',
           what: 'hole',
@@ -234,31 +235,6 @@ function* treeIntersections(conf: Cuttleform, tree: Octree, what: 'keycap' | 'so
   }
 }
 
-/** Determine whether two 2D polygons intersect each other. */
-export function intersects(a: Vector2[], b: Vector2[]) {
-  for (let i = 0; i < a.length; i++) {
-    const side = new Vector2().copy(a[i]).sub(a[(i + 1) % a.length]).normalize()
-    const normal = new Vector2(-side.y, side.x)
-
-    const projA = a.map(p => p.dot(normal))
-    const projB = b.map(p => p.dot(normal))
-    if (Math.max(...projA) < Math.min(...projB) || Math.min(...projA) > Math.max(...projB)) {
-      return false
-    }
-  }
-  for (let i = 0; i < b.length; i++) {
-    const side = new Vector2().copy(b[i]).sub(b[(i + 1) % b.length]).normalize()
-    const normal = new Vector2(-side.y, side.x)
-
-    const projA = a.map(p => p.dot(normal))
-    const projB = b.map(p => p.dot(normal))
-    if (Math.max(...projA) < Math.min(...projB) || Math.min(...projA) > Math.max(...projB)) {
-      return false
-    }
-  }
-  return true
-}
-
 export function isPro(conf: Cuttleform) {
   return conf.rounded.side || conf.rounded.top || conf.shell?.type == 'stilts'
 }
@@ -328,7 +304,7 @@ export function doTrianglesIntersect(t1: Triangle, t2: Triangle) {
       new Vector2(t2.b.dot(a), t2.b.dot(b)),
       new Vector2(t2.c.dot(a), t2.c.dot(b)),
     ]
-    return intersects(ptsA, ptsB)
+    return intersectPolyPoly(ptsA, ptsB)
   }
 
   // END ADDITIONS
