@@ -100,44 +100,44 @@ export async function generateKeysMesh(config: Cuttleform) {
 }
 
 export async function generateWeb(config: Cuttleform) {
-  await ensureOC()
-  const geo = newGeometry(config)
-  const web = webSolid(config, geo).toSolid(false, true)
-  return meshWithVolumeAndSupport(web, geo.bottomZ)
+  // await ensureOC()
   // const geo = newGeometry(config)
-  // const mesh = webSolid(config, geo).toMesh()
-  // const supports = supportMesh(mesh, geo.bottomZ)
-  // return { mesh, supports }
+  // const web = webSolid(config, geo).toSolid(false, true)
+  // return meshWithVolumeAndSupport(web, geo.bottomZ)
+  const geo = newGeometry(config)
+  const mesh = webSolid(config, geo).toMesh()
+  const supports = supportMesh(mesh, geo.bottomZ)
+  return { mesh, supports }
 }
 
 export async function generateWalls(config: Cuttleform) {
-  await ensureOC()
-  const geo = newGeometry(config)
-  const walls = makeWalls(config, geo.allWallCriticalPoints(), geo.worldZ, geo.bottomZ).toSolid(false, false)
-  return meshWithVolume(walls)
+  // await ensureOC()
   // const geo = newGeometry(config)
-  // const mesh = makeWalls(config, geo.allWallCriticalPoints(), geo.worldZ, geo.bottomZ).toMesh()
-  // const supports = supportMesh(mesh, geo.bottomZ)
-  // return { mesh, supports }
+  // const walls = makeWalls(config, geo.allWallCriticalPoints(), geo.worldZ, geo.bottomZ).toSolid(false, false)
+  // return meshWithVolume(walls)
+  const geo = newGeometry(config)
+  const mesh = makeWalls(config, geo.allWallCriticalPoints(), geo.worldZ, geo.bottomZ).toMesh()
+  const supports = supportMesh(mesh, geo.bottomZ)
+  return { mesh, supports }
 }
 
 export async function generatePlate(config: Cuttleform, cut = false) {
-  await ensureOC()
-  const geo = newGeometry(config)
-  const { top, bottom } = makePlate(config, geo, cut)
-  const topMesh = meshWithVolume(top())
-  return {
-    top: topMesh,
-    bottom: bottom ? meshWithVolume(bottom()) : { mesh: null, mass: 0 },
-    ocTime: topMesh.ocTime,
-  }
+  // await ensureOC()
   // const geo = newGeometry(config)
-  // const mesh = makePlateMesh(config, geo, cut).toMesh()
-  // const supports = supportMesh(mesh, geo.bottomZ)
+  // const { top, bottom } = makePlate(config, geo, cut)
+  // const topMesh = meshWithVolume(top())
   // return {
-  //   top: { mesh, supports },
-  //   bottom: { mesh: null, mass: 0 },
+  //   top: topMesh,
+  //   bottom: bottom ? meshWithVolume(bottom()) : { mesh: null, mass: 0 },
+  //   ocTime: topMesh.ocTime,
   // }
+  const geo = newGeometry(config)
+  const mesh = makePlateMesh(config, geo, cut)
+  const supports = supportMesh(mesh, geo.bottomZ)
+  return {
+    top: { mesh, supports },
+    bottom: { mesh: null, mass: 0 },
+  }
 }
 
 export async function generate(config: Cuttleform, geo: Geometry, stitchWalls: boolean, flip: boolean) {

@@ -1,5 +1,6 @@
 import cdt2d from 'cdt2d'
 import { CompSolid, Face, getOC, type ShapeMesh, Sketcher } from 'replicad'
+import { BufferAttribute, ExtrudeGeometry, Shape } from 'three'
 import { bezierPatch, type Curve, evalPatch, lineToCurve, loftCurves, type Patch, patchGradient, triangleNormTrsf } from '../geometry'
 import { buildSewnSolid, buildSolid, makeQuad, makeTriangle } from './index'
 import Trsf from './transformation'
@@ -211,86 +212,131 @@ export function bezierFace(patch: Patch) {
   return new Face(face)
 }
 
+// export class BezierSketch {
+//   constructor(private lines: Point[][]) {
+//   }
+
+//   sketchOnPlane(plane: 'XY') {
+//     const sketcher = new Sketcher(plane)
+//     sketcher.movePointerTo(this.lines[0][0])
+//     for (const line of this.lines) {
+//       if (line.length == 2) sketcher.lineTo(line[1])
+//       if (line.length == 4) sketcher.bezierCurveTo(line[3], [line[1], line[2]])
+//     }
+//     return sketcher.close()
+//   }
+
+//   extrudeMesh(height: number) {
+//     const surface = new CompBezierSurface()
+//     const pts = this.lines.map(l => l[0])
+//     const trsfsTop = pts.map(p => new Trsf().translate(p[0], p[1], 0))
+//     const trsfsBot = pts.map(p => new Trsf().translate(p[0], p[1], height))
+//     // Enforce the boundary as the constraint
+//     const triangulation = cdt2d(pts, pts.map((_, i) => [i, (i + 1) % pts.length]))
+//     const toTrsf = (p: Point) => new Trsf().translate(p[0], p[1], 0)
+//     for (const [a, b, c] of triangulation) {
+//       // Skip triangles outside the boundary
+//       if (!(a > b && b > c) && !(b > c && c > a) && !(c > a && a > b)) continue
+//       // Find matching edges
+//       const e0 = this.lines.find(l => l[0] == pts[b] && l[l.length - 1] == pts[a])
+//       const e1 = this.lines.find(l => l[0] == pts[c] && l[l.length - 1] == pts[b])
+//       const e2 = this.lines.find(l => l[0] == pts[a] && l[l.length - 1] == pts[c])
+//       if (e0?.length == 4 || e1?.length == 4 || e2?.length == 4) {
+//         const le0: Curve = e0 ? [trsfsTop[b], toTrsf(e0[1]), toTrsf(e0[2]), trsfsTop[a]] : lineToCurve(trsfsTop[b], trsfsTop[a])
+//         const le1: Curve = e1 ? [trsfsTop[c], toTrsf(e1[1]), toTrsf(e1[2]), trsfsTop[b]] : lineToCurve(trsfsTop[c], trsfsTop[b])
+//         const le2: Curve = e2 ? [trsfsTop[a], toTrsf(e2[1]), toTrsf(e2[2]), trsfsTop[c]] : lineToCurve(trsfsTop[a], trsfsTop[c])
+//         surface.addPatch(bezierPatch(le0, le1, le2))
+//         const le0b = le0.map(e => e.translated(0, 0, height)) as Curve
+//         const le1b = le1.map(e => e.translated(0, 0, height)) as Curve
+//         const le2b = le2.map(e => e.translated(0, 0, height)) as Curve
+//         surface.addPatch(bezierPatch(le2b, le1b, le0b))
+//         if (e0) surface.addPatch(loftCurves(le0, le0b))
+//         if (e1) surface.addPatch(loftCurves(le1, le1b))
+//         if (e2) surface.addPatch(loftCurves(le2, le2b))
+//       } else {
+//         surface.addTriangle(trsfsTop[a], trsfsTop[b], trsfsTop[c])
+//         surface.addTriangle(trsfsBot[c], trsfsBot[b], trsfsBot[a])
+//         if (e0) surface.addQuad(trsfsTop[b], trsfsTop[a], trsfsBot[a], trsfsBot[b])
+//         if (e1) surface.addQuad(trsfsTop[c], trsfsTop[b], trsfsBot[b], trsfsBot[c])
+//         if (e2) surface.addQuad(trsfsTop[a], trsfsTop[c], trsfsBot[c], trsfsBot[a])
+//       }
+//     }
+//     return surface
+//   }
+// }
+
+// export class BezierSketcher {
+//   private beginning: Point = [0, 0]
+//   private pointer: Point = [0, 0]
+//   private lines: Point[][] = []
+
+//   movePointerTo(point: Point) {
+//     this.beginning = point
+//     this.pointer = point
+//     return this
+//   }
+
+//   bezierCurveTo(point: Point, [a, b]: [Point, Point]) {
+//     this.lines.push([this.pointer, a, b, point])
+//     this.pointer = point
+//     return this
+//   }
+
+//   lineTo(point: Point) {
+//     this.lines.push([this.pointer, point])
+//     this.pointer = point
+//     return this
+//   }
+
+//   close() {
+//     if (this.pointer[0] != this.beginning[0] || this.pointer[1] != this.beginning[1]) {
+//       this.lineTo(this.beginning)
+//     }
+//     return new BezierSketch(this.lines)
+//   }
+// }
+
 export class BezierSketch {
-  constructor(private lines: Point[][]) {
+  constructor(private sketcher: Shape) {
   }
 
-  sketchOnPlane(plane: 'XY') {
-    const sketcher = new Sketcher(plane)
-    sketcher.movePointerTo(this.lines[0][0])
-    for (const line of this.lines) {
-      if (line.length == 2) sketcher.lineTo(line[1])
-      if (line.length == 4) sketcher.bezierCurveTo(line[3], [line[1], line[2]])
+  extrudeMesh(depth: number): ShapeMesh {
+    const shape = new ExtrudeGeometry(this.sketcher, {
+      curveSegments: 24,
+      depth: -depth,
+      steps: 1,
+      bevelEnabled: false,
+    }).translate(0, 0, depth)
+    const index = new Float32Array((shape.attributes['position'] as BufferAttribute).array.length / 3)
+    for (let i = 0; i < index.length; i++) index[i] = i
+    return {
+      vertices: (shape.attributes['position'] as BufferAttribute).array as number[],
+      normals: (shape.attributes['normal'] as BufferAttribute).array as number[],
+      triangles: index as unknown as number[],
+      faceGroups: [],
     }
-    return sketcher.close()
-  }
-
-  extrudeMesh(height: number) {
-    const surface = new CompBezierSurface()
-    const pts = this.lines.map(l => l[0])
-    const trsfsTop = pts.map(p => new Trsf().translate(p[0], p[1], 0))
-    const trsfsBot = pts.map(p => new Trsf().translate(p[0], p[1], height))
-    // Enforce the boundary as the constraint
-    const triangulation = cdt2d(pts, pts.map((_, i) => [i, (i + 1) % pts.length]))
-    const toTrsf = (p: Point) => new Trsf().translate(p[0], p[1], 0)
-    for (const [a, b, c] of triangulation) {
-      // Skip triangles outside the boundary
-      if (!(a > b && b > c) && !(b > c && c > a) && !(c > a && a > b)) continue
-      // Find matching edges
-      const e0 = this.lines.find(l => l[0] == pts[b] && l[l.length - 1] == pts[a])
-      const e1 = this.lines.find(l => l[0] == pts[c] && l[l.length - 1] == pts[b])
-      const e2 = this.lines.find(l => l[0] == pts[a] && l[l.length - 1] == pts[c])
-      if (e0?.length == 4 || e1?.length == 4 || e2?.length == 4) {
-        const le0: Curve = e0 ? [trsfsTop[b], toTrsf(e0[1]), toTrsf(e0[2]), trsfsTop[a]] : lineToCurve(trsfsTop[b], trsfsTop[a])
-        const le1: Curve = e1 ? [trsfsTop[c], toTrsf(e1[1]), toTrsf(e1[2]), trsfsTop[b]] : lineToCurve(trsfsTop[c], trsfsTop[b])
-        const le2: Curve = e2 ? [trsfsTop[a], toTrsf(e2[1]), toTrsf(e2[2]), trsfsTop[c]] : lineToCurve(trsfsTop[a], trsfsTop[c])
-        surface.addPatch(bezierPatch(le0, le1, le2))
-        const le0b = le0.map(e => e.translated(0, 0, height)) as Curve
-        const le1b = le1.map(e => e.translated(0, 0, height)) as Curve
-        const le2b = le2.map(e => e.translated(0, 0, height)) as Curve
-        surface.addPatch(bezierPatch(le2b, le1b, le0b))
-        if (e0) surface.addPatch(loftCurves(le0, le0b))
-        if (e1) surface.addPatch(loftCurves(le1, le1b))
-        if (e2) surface.addPatch(loftCurves(le2, le2b))
-      } else {
-        surface.addTriangle(trsfsTop[a], trsfsTop[b], trsfsTop[c])
-        surface.addTriangle(trsfsBot[c], trsfsBot[b], trsfsBot[a])
-        if (e0) surface.addQuad(trsfsTop[b], trsfsTop[a], trsfsBot[a], trsfsBot[b])
-        if (e1) surface.addQuad(trsfsTop[c], trsfsTop[b], trsfsBot[b], trsfsBot[c])
-        if (e2) surface.addQuad(trsfsTop[a], trsfsTop[c], trsfsBot[c], trsfsBot[a])
-      }
-    }
-    return surface
   }
 }
 
 export class BezierSketcher {
-  private beginning: Point = [0, 0]
-  private pointer: Point = [0, 0]
-  private lines: Point[][] = []
+  private shape = new Shape()
 
-  movePointerTo(point: Point) {
-    this.beginning = point
-    this.pointer = point
-    return this
-  }
-
-  bezierCurveTo(point: Point, [a, b]: [Point, Point]) {
-    this.lines.push([this.pointer, a, b, point])
-    this.pointer = point
+  movePointerTo(p: Point) {
+    this.shape.moveTo(p[0], p[1])
     return this
   }
 
   lineTo(point: Point) {
-    this.lines.push([this.pointer, point])
-    this.pointer = point
+    this.shape.lineTo(point[0], point[1])
+    return this
+  }
+
+  bezierCurveTo(point: Point, [a, b]: [Point, Point]) {
+    this.shape.bezierCurveTo(a[0], a[1], b[0], b[1], point[0], point[1])
     return this
   }
 
   close() {
-    if (this.pointer[0] != this.beginning[0] || this.pointer[1] != this.beginning[1]) {
-      this.lineTo(this.beginning)
-    }
-    return new BezierSketch(this.lines)
+    return new BezierSketch(this.shape)
   }
 }

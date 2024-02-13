@@ -387,7 +387,12 @@ export function makePlateMesh(c: Cuttleform, geo: Geometry, cut = false, inserts
   const sketch = plateSketch(c, geo)
   const plate = sketch.extrudeMesh(-PLATE_HEIGHT)
   const trsf = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).pretranslate(0, 0, geo.bottomZ)
-  plate.transform(trsf)
+  const mat = trsf.Matrix4()
+  console.log(plate.vertices)
+  for (let i = 0; i < plate.vertices.length; i += 3) {
+    plate.vertices.set(new Vector().fromArray(plate.vertices, i).applyMatrix4(mat).xyz(), i)
+  }
+  console.log(plate.vertices)
   return plate
 }
 
