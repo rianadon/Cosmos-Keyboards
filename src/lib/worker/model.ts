@@ -27,6 +27,7 @@ import {
   wallSurfacesOuter,
   webThickness,
 } from './geometry'
+import { bezierFace, BezierSketch, BezierSketcher, CompBezierSurface } from './modeling/bezier'
 import { makeCacher } from './modeling/cacher'
 import { buildFixedSolid, buildSewnSolid, buildSolid, combine, getOC, makeQuad, makeTriangle } from './modeling/index'
 import { Splitter } from './modeling/splitter'
@@ -185,7 +186,7 @@ export function boundarySplines<T>(
 
 export function webPolysTopOrBot(reinforced: ReturnType<typeof reinforceTriangles>, splines: Record<number, Record<number, Curve>>, top: boolean) {
   let { triangles, triangleMap, allPts } = reinforced
-  const polygons: Face[] = []
+  const surface = new CompBezierSurface()
 
   for (let [a, b, c] of triangles) {
     const sp1 = splines[b] ? splines[b][a] : undefined
@@ -195,20 +196,20 @@ export function webPolysTopOrBot(reinforced: ReturnType<typeof reinforceTriangle
       const e1 = sp1 || lineToCurve(allPts[a], allPts[b])
       const e2 = sp2 || lineToCurve(allPts[b], allPts[c])
       const e3 = sp3 || lineToCurve(allPts[c], allPts[a])
-      if (top) polygons.push(bezierFace(bezierPatch(e1, e2, e3)))
-      else polygons.push(bezierFace(bezierPatch(e3, e2, e1)))
+      if (top) surface.addPatch(bezierPatch(e1, e2, e3))
+      else surface.addPatch(bezierPatch(e3, e2, e1))
     } else {
-      if (top) polygons.push(makeTriangle(allPts[a], allPts[b], allPts[c]))
-      else polygons.push(makeTriangle(allPts[c], allPts[b], allPts[a]))
+      if (top) surface.addTriangle(allPts[a], allPts[b], allPts[c])
+      else surface.addTriangle(allPts[c], allPts[b], allPts[a])
     }
   }
 
-  return polygons
+  return surface
 }
 
-export function webSolid(c: Cuttleform, geo: Geometry, sew: boolean) {
+export function webSolid(c: Cuttleform, geo: Geometry) {
   let { triangles, boundary, removedTriangles, innerBoundary } = geo.solveTriangularization
-  const polygons: Face[] = []
+  const surface = new CompBezierSurface()
 
   const triangleMap = createTriangleMap(triangles)
 
@@ -222,7 +223,7 @@ export function webSolid(c: Cuttleform, geo: Geometry, sew: boolean) {
 
   // If we encounter a wall on the boundary, use boundary make the wall
   for (let [a, b, c] of triangles) {
-    const makeSide = (x: number, y: number) => polygons.push(bezierFace(loftCurves(topSplines[x][y]!, bottomSplines[x][y]!)))
+    const makeSide = (x: number, y: number) => surface.addPatch(loftCurves(topSplines[x][y]!, bottomSplines[x][y]!))
     if (topSplines[b] && topSplines[b][a]) makeSide(b, a)
     if (topSplines[c] && topSplines[c][b]) makeSide(c, b)
     if (topSplines[a] && topSplines[a][c]) makeSide(a, c)
@@ -234,25 +235,25 @@ export function webSolid(c: Cuttleform, geo: Geometry, sew: boolean) {
   const removedTriMap = createTriangleMap(removedTriangles)
   for (let [a, b, c] of triangles) {
     const loftFace = (x: number, y: number) =>
-      polygons.push(bezierFace(loftCurves(
+      surface.addPatch(loftCurves(
         lineToCurve(topReinf.allPts[x], topReinf.allPts[y]),
         lineToCurve(botReinf.allPts[x], botReinf.allPts[y]),
-      )))
+      ))
     if (removedTriMap[b] && removedTriMap[b][a]) loftFace(b, a)
     if (removedTriMap[c] && removedTriMap[c][b]) loftFace(c, b)
     if (removedTriMap[a] && removedTriMap[a][c]) loftFace(a, c)
   }
 
   // Add top and bottom faces
-  polygons.push(...webPolysTopOrBot(topReinf, topSplines, true))
-  polygons.push(...webPolysTopOrBot(botReinf, bottomSplines, false))
+  surface.extend(webPolysTopOrBot(topReinf, topSplines, true))
+  surface.extend(webPolysTopOrBot(botReinf, bottomSplines, false))
 
   // Add extra walls
   for (const [a, b, other] of topReinf.extraWalls) {
-    polygons.push(makeTriangle(topReinf.allPts[a], topReinf.allPts[b], botPts[other]))
+    surface.addTriangle(topReinf.allPts[a], topReinf.allPts[b], botPts[other])
   }
   for (const [a, b, other] of botReinf.extraWalls) {
-    polygons.push(makeTriangle(botReinf.allPts[b], botReinf.allPts[a], topPts[other]))
+    surface.addTriangle(botReinf.allPts[b], botReinf.allPts[a], topPts[other])
   }
 
   // Make walls for key well
@@ -263,17 +264,17 @@ export function webSolid(c: Cuttleform, geo: Geometry, sew: boolean) {
       const a = i + j
       const b = i + ((j + 1) % poly.length)
       if (triangleMap[a] && triangleMap[a][b]) {
-        polygons.push(makeQuad(topPts[a], topPts[b], botPts[b], botPts[a]))
+        surface.addQuad(topPts[a], topPts[b], botPts[b], botPts[a])
       }
     }
     i += poly.length
   }
 
-  return sew ? buildSewnSolid(polygons, true) : buildSolid(polygons)
+  return surface
 }
 
 function plateSketch(c: Cuttleform, geo: PlateParams, offset = 0) {
-  let sketch: Sketch
+  let sketch: BezierSketch
   const wall = geo.allWallCriticalPoints(offset)
 
   const planePtV = (v: Vector) => [v.dot(geo.worldX), v.dot(geo.worldY)] as [number, number]
@@ -282,7 +283,7 @@ function plateSketch(c: Cuttleform, geo: PlateParams, offset = 0) {
     let { boundary } = geo.solveTriangularization
 
     const splines = boundarySplines(c, boundary, i => wall[i].bo, wallBezier, wall, geo.worldZ, geo.bottomZ)
-    const sketcher = new Sketcher('XY').movePointerTo(planePt(wall[0].bo))
+    const sketcher = new BezierSketcher().movePointerTo(planePt(wall[0].bo))
     for (let i = 0; i < boundary.length; i++) {
       const b0 = boundary[i]
       const b1 = boundary[(i + 1) % boundary.length]
@@ -292,7 +293,7 @@ function plateSketch(c: Cuttleform, geo: PlateParams, offset = 0) {
     sketch = sketcher.close()
   } else {
     const points = geo.allWallCriticalPoints(offset).map(w => planePt(w.bo))
-    const sketcher = new Sketcher('XY').movePointerTo(points[0])
+    const sketcher = new BezierSketcher().movePointerTo(points[0])
     for (let i = 1; i < points.length; i++) {
       sketcher.lineTo(points[i])
     }
@@ -355,7 +356,7 @@ interface PlateParams {
 }
 
 function makeNormalPlate(c: Cuttleform, geo: PlateParams) {
-  const sketch = plateSketch(c, geo)
+  const sketch = plateSketch(c, geo).sketchOnPlane('XY')
   const plate = sketch.extrude(-PLATE_HEIGHT) as Solid
   const trsf = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).pretranslate(0, 0, geo.bottomZ)
   return trsf.transform(plate)
@@ -364,7 +365,7 @@ function makeNormalPlate(c: Cuttleform, geo: PlateParams) {
 function makeAccentPlate(c: Cuttleform, geo: Geometry) {
   const height = PLATE_HEIGHT
 
-  const sketch = plateSketch(c, geo, ACCENT_WIDTH)
+  const sketch = plateSketch(c, geo, ACCENT_WIDTH).sketchOnPlane('XY')
   const trsf = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).pretranslate(0, 0, geo.bottomZ)
   const plateUpper = trsf.transform(sketch.clone().extrude(ACCENT_HEIGHT))
   const plateLower = trsf.transform(sketch.extrude(-height))
@@ -381,6 +382,15 @@ interface Plate {
   top: () => Solid
   bottom?: () => Solid
 }
+
+export function makePlateMesh(c: Cuttleform, geo: Geometry, cut = false, inserts = false) {
+  const sketch = plateSketch(c, geo)
+  const plate = sketch.extrudeMesh(-PLATE_HEIGHT)
+  const trsf = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).pretranslate(0, 0, geo.bottomZ)
+  plate.transform(trsf)
+  return plate
+}
+
 export function makePlate(c: Cuttleform, geo: Geometry, cut = false, inserts = false): Plate {
   const positions = [...geo.screwPositions]
   if (c.shell.type == 'stilts') {
@@ -506,7 +516,7 @@ function tiltBotGeo(c: Cuttleform, geo: TiltGeometry): PlateParams {
 
 function joinTiltPlatesLoft(c: Cuttleform, geo: TiltGeometry) {
   const topTrsf = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).pretranslate(0, 0, geo.bottomZ)
-  const topSketch = plateSketch(c, geo).wire
+  const topSketch = plateSketch(c, geo).sketchOnPlane('XY').wire
   const topSurface = topTrsf.transform(topSketch)
 
   const bottomTrsf = new Trsf().pretranslate(0, 0, geo.floorZ)
@@ -517,7 +527,7 @@ function joinTiltPlatesLoft(c: Cuttleform, geo: TiltGeometry) {
     bottomZ: geo.floorZ,
     solveTriangularization: geo.solveTriangularization,
     allWallCriticalPoints: geo.allWallCriticalPoints.bind(geo),
-  }).wire
+  }).sketchOnPlane('XY').wire
   const bottomSurface = bottomTrsf.transform(bottomSketch)
   return loft([topSurface, bottomSurface])
 }
@@ -819,9 +829,11 @@ export function makeConnector(c: Cuttleform, conn: keyof typeof connectors, orig
   return null
 }
 
-export function makeWalls(c: Cuttleform, wallPts: WallCriticalPoints[], worldZ: Vector, bottomZ: number, sew: boolean) {
-  const polygons = joinWalls(c, wallPts.map(w => wallSurfaces(c, w)), worldZ, bottomZ).map(bezierFace)
-  return sew ? buildSewnSolid(polygons, false) : buildFixedSolid(polygons)
+export function makeWalls(c: Cuttleform, wallPts: WallCriticalPoints[], worldZ: Vector, bottomZ: number) {
+  const surface = new CompBezierSurface()
+  const patches = joinWalls(c, wallPts.map(w => wallSurfaces(c, w)), worldZ, bottomZ)
+  patches.forEach(p => surface.addPatch(p))
+  return surface
 }
 
 function drawRectangleByBounds(minx: number, maxx: number, miny: number, maxy: number) {
@@ -1064,17 +1076,3 @@ export function boardHolder(c: Cuttleform, geo: Geometry): Solid {
 }
 
 type Curve = [Trsf, Trsf, Trsf, Trsf]
-
-export function bezierFace(patch: Patch) {
-  const oc = getOC()
-  const pts = new oc.TColgp_Array2OfPnt_2(1, 4, 1, 4)
-  for (let i = 0; i < 4; i++) {
-    for (let j = 0; j < 4; j++) {
-      const pt = new oc.gp_Pnt_3(patch[i][j].x, patch[i][j].y, patch[i][j].z)
-      pts.SetValue(i + 1, j + 1, pt)
-    }
-  }
-  const surface = new oc.Geom_BezierSurface_1(pts)
-  const face = new oc.BRepBuilderAPI_MakeFace_8(new oc.Handle_Geom_Surface_2(surface), 1e-3).Face()
-  return new Face(face)
-}

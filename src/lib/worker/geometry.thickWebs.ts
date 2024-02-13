@@ -16,28 +16,14 @@
 import { socketSize } from '$lib/geometry/socketsParts'
 import { switchInfo } from '$lib/geometry/switches'
 import { Matrix3 } from 'three/src/math/Matrix3'
-import type { ConfError } from './check'
 import { createTriangleMap, type TriangleMap } from './concaveman'
 import { doWallsIntersect } from './concaveman-extra'
 import type { Cuttleform, CuttleKey, Geometry } from './config'
-import { type CriticalPoints, flattenKeyCriticalPoints, type WallCriticalPoints, webThickness } from './geometry'
-import { intersectPtPoly } from './geometry.intersections'
+import { type CriticalPoints, triangleNormTrsf, type WallCriticalPoints, webThickness } from './geometry'
 import type Trsf from './modeling/transformation'
 import { Vector } from './modeling/transformation'
 
 export const DEFAULT_MWT_FACTOR = 0.8
-
-/** Find the normal of a triangle. */
-function triangleNorm(a: Vector, b: Vector, c: Vector, reverse = false) {
-  const u = b.clone().sub(a)
-  const v = c.clone().sub(b)
-  const norm = u.cross(v).normalize()
-  if (reverse) norm.negate()
-  return norm
-}
-export function triangleNormTrsf(a: Trsf, b: Trsf, c: Trsf, reverse = false) {
-  return triangleNorm(a.origin(), b.origin(), c.origin(), reverse)
-}
 
 type WallShifts = Record<number, { direction: Vector; offset: number }>
 
