@@ -22,7 +22,7 @@ import { type CriticalPoints, type WallCriticalPoints, webThickness } from './ge
 import type Trsf from './modeling/transformation'
 import { Vector } from './modeling/transformation'
 
-export const DEFAULT_MWT_FACTOR = 0.6
+export const DEFAULT_MWT_FACTOR = 0.8
 
 /** Find the normal of a triangle. */
 function triangleNorm(a: Vector, b: Vector, c: Vector, reverse = false) {

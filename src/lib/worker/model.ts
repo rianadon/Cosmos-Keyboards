@@ -268,7 +268,7 @@ export function webSolid(c: Cuttleform, geo: Geometry, sew: boolean) {
     i += poly.length
   }
 
-  return sew ? buildSewnSolid(polygons) : buildSolid(polygons)
+  return sew ? buildSewnSolid(polygons, true) : buildSolid(polygons)
 }
 
 function plateSketch(c: Cuttleform, geo: PlateParams, offset = 0) {
@@ -484,7 +484,7 @@ function plateRing(c: Cuttleform, geo: PlateParams, height: number) {
       bezierPatch(innTop, lineToCurve(innTop[0], inn[0]), inn, lineToCurve(innTop[3], inn[3])),
     ].map(bezierFace)
   })
-  return buildSewnSolid(faces)
+  return buildSewnSolid(faces, false)
 }
 
 function tiltBotGeo(c: Cuttleform, geo: TiltGeometry): PlateParams {
@@ -546,7 +546,7 @@ function joinTiltPlates(c: Cuttleform, geo: TiltGeometry) {
       faces.push(loftCurves(bottomBoundaryInner[i], bottomBoundary[i]))
       faces.push(loftCurves(topBoundaryInner[i], topBoundary[i]))
     }
-    return buildSewnSolid(faces.map(bezierFace))
+    return buildSewnSolid(faces.map(bezierFace), false)
   }
   if (pattern.length % 2 !== 0) throw new Error('Pattern must have an even number of elements')
 
@@ -606,7 +606,7 @@ function joinTiltPlates(c: Cuttleform, geo: TiltGeometry) {
       faces.push(new Face(new oc.BRepBuilderAPI_MakeFace_8(new oc.Handle_Geom_Surface_2(fill.Surface().get()), 1e-3).Face()))
 
       try {
-        bodies.push(buildSewnSolid(faces))
+        bodies.push(buildSewnSolid(faces, false))
       } catch (e) {
         // Ignore if this fails
       }
@@ -820,7 +820,7 @@ export function makeConnector(c: Cuttleform, conn: keyof typeof connectors, orig
 
 export function makeWalls(c: Cuttleform, wallPts: WallCriticalPoints[], worldZ: Vector, bottomZ: number, sew: boolean) {
   const polygons = joinWalls(c, wallPts.map(w => wallSurfaces(c, w)), worldZ, bottomZ).map(bezierFace)
-  return sew ? buildSewnSolid(polygons) : buildFixedSolid(polygons)
+  return sew ? buildSewnSolid(polygons, false) : buildFixedSolid(polygons)
 }
 
 function drawRectangleByBounds(minx: number, maxx: number, miny: number, maxy: number) {

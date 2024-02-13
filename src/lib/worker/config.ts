@@ -792,7 +792,7 @@ export function thumbOrigin(c: DeepRequired<CuttleformProto>, wristRest = false)
     origin.rotate(-9, [0, 0, 0], [1, 0, 0])
       .rotate(32, [0, 0, 0], [0, 1, 0])
       .rotate(-160, [0, 0, 0], [0, 0, 1])
-      .translate(-26.2, -27.8, -8.9)
+      .translate(-26.2, -28.5, -8.9)
   } else if (c.thumbCluster.oneofKind === 'orbylThumb') {
     origin.translate(0, 0, -8)
       .rotate(10, CENTER, X)

@@ -80,12 +80,7 @@ export class BaseGeometry<C extends Cuttleform = SpecificCuttleform<BasicShell>>
   reinforcedTriangles(wallOffset = 0) {
     const walls = this.allWallCriticalPointsBase(wallOffset)
     const topCPts = this.allKeyCriticalPoints
-    const botCPts = allKeyCriticalPoints(
-      this.c,
-      this.keyHolesTrsfs.map((t, i) => {
-        return t.pretranslated(0, 0, -webThickness(this.c, this.c.keys[i]))
-      }),
-    )
+    const botCPts = topCPts.map((pts, i) => pts.map(t => t.pretranslated(0, 0, -webThickness(this.c, this.c.keys[i]))))
     const topReinf = reinforceTriangles(this.c, this, topCPts, true, walls)
     const botReinf = reinforceTriangles(this.c, this, botCPts, false, topReinf.walls)
     return {
