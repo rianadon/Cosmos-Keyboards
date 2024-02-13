@@ -24,6 +24,7 @@ import {
   SWITCH,
 } from '../../../target/proto/cuttleform'
 import { BaseGeometry, BlockGeometry, TiltGeometry } from './cachedGeometry'
+import { DEFAULT_MWT_FACTOR } from './geometry.thickWebs'
 import Trsf from './modeling/transformation'
 import ETrsf, { Constant, keyPosition, mirror } from './modeling/transformation-ext'
 import { for2, match, range, reverseMap } from './util'
@@ -320,7 +321,7 @@ export function cuttleConf(c: DeepRequired<CuttleformProto>): Cuttleform {
     wallThickness: c.wall.wallThickness / 10,
     wallShrouding: c.wall.wallShrouding / 10,
     webThickness: c.wall.webThickness / 10,
-    webMinThicknessFactor: 0.8,
+    webMinThicknessFactor: DEFAULT_MWT_FACTOR,
     keys: maybeMirror(c, [
       ...fingers(c),
       ...thumbs(c),

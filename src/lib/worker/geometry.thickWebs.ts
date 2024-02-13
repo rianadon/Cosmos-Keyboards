@@ -22,6 +22,8 @@ import { type CriticalPoints, type WallCriticalPoints, webThickness } from './ge
 import type Trsf from './modeling/transformation'
 import { Vector } from './modeling/transformation'
 
+export const DEFAULT_MWT_FACTOR = 0.6
+
 /** Find the normal of a triangle. */
 function triangleNorm(a: Vector, b: Vector, c: Vector, reverse = false) {
   const u = b.clone().sub(a)
@@ -66,16 +68,20 @@ const shiftWall = (wall: WallCriticalPoints, direction: Vector, amount: number, 
  */
 function closestPts(allPts: Trsf[], pi1: number, pi2: number, triangleMap: ReturnType<typeof createTriangleMap>, normal: Vector, binormal: Vector) {
   const thisP = triangleMap[pi1][pi2][0]
-  const lenSq = (a: number, b: number) => allPts[a].origin().distanceToSquared(allPts[b].origin())
+  const len = (a: number, b: number) => allPts[a].origin().distanceTo(allPts[b].origin())
   let opposites: [number, number] = [-1, -1]
   let oppositeLen = Infinity
 
+  /** Try a combination of two neighbors. If they lead to minimal thickness, keep them */
   const tryCombo = (a: number, b: number) => {
-    const lenA = lenSq(pi1, a)
-    const lenB = lenSq(pi2, b)
-    const len = lenA * lenB
-    if (len < oppositeLen && lenA < lenB * 3 && lenB < lenA * 3) {
-      oppositeLen = len
+    const lenA = len(pi1, a)
+    const lenB = len(pi2, b)
+    const lenT = lenA * lenB
+    // Make sure the two segments are similar in length. Prevents from choosing really far away neighbors.
+    // The reasoning behind math.max is that small segments (< 1mm) should all get treated the same.
+    // This way the algorithm doesn't get confused if there's a really small segment (say 0.01mm) next to 1mm segments.
+    if (lenT < oppositeLen && lenA < Math.max(1, lenB) * 3 && lenB < Math.max(1, lenA) * 3) {
+      oppositeLen = lenT
       opposites = [a, b]
     }
   }
@@ -83,8 +89,8 @@ function closestPts(allPts: Trsf[], pi1: number, pi2: number, triangleMap: Retur
   // Initial heuristic: try to choose which point gets assigned to thisP
   // by comparing both lengths. There's a chance both get assigned to thisP
   // if thisP is relatively in the center
-  const len1 = lenSq(pi1, thisP)
-  const len2 = lenSq(pi2, thisP)
+  const len1 = len(pi1, thisP)
+  const len2 = len(pi2, thisP)
   if (len1 < len2 * 2) opposites[0] = thisP
   if (len2 < len1 * 2) opposites[1] = thisP
   // Set oppositeLen if both got assigned
@@ -358,7 +364,7 @@ export function reinforceTriangles(c: Cuttleform, geo: Geometry, allPolys: Criti
       const opposites = closestPts(originalPts, oPi1, oPi2, originalMap, normal, binormal)
 
       const th = (x: number) => thickness[x]
-      const f = c.webMinThicknessFactor ?? 0.8
+      const f = c.webMinThicknessFactor ?? DEFAULT_MWT_FACTOR
       // In addition to the opposite point being defined, it must also be oriented down wrt to the tangent.
       // Otherwise, this is a sign that the key is really twisty, and it should not be extended.
       const oppPrevOk = opposites[0] >= 0 ? angleAbout(normal, originalPts[opposites[0]].origin().sub(originalPts[oPi1].origin()), tangent) > 0 : false
