@@ -164,11 +164,15 @@ function reinforcementOffset(thisTop: Trsf, thisThick: number, nextTop: Trsf, ne
   // Compute the position of the adjacent keycap's corner.
   // This is slightly simplified, as we assume the keycap extends in the direction of this keycap's normal.
   // i.e. we disregard the relative rotation of the next keycap
-  const _nextKeycap = nextTop.origin().addScaledVector(normal, -MAX_REINF_MARGIN).add(nextTop.axis(0, 0, switchInfo('mx-better').pressedHeight))
-  const pkey = _nextKeycap.sub(_thisTop).applyMatrix3(rotation)
-  let keyOffset = pbt.x - pbt.y * (pkey.x - pbt.x) / (pkey.y - pbt.y)
-  if (keyOffset < -100) keyOffset = projOffset // keyOffset < some big negative number if the keycap will always be cleared. In this case use projOffset.
-  if (keyOffset < 0) keyOffset = 0 // otherwise the offsets should never be negative
+  let keyOffset = thickness
+  if (top && pbt.y < 0) { // Only check when the next key is below this one
+    const _nextKeycap = nextTop.origin().addScaledVector(normal, -MAX_REINF_MARGIN).add(nextTop.axis(0, 0, switchInfo('mx-better').pressedHeight))
+    const pkey = _nextKeycap.sub(_thisTop).applyMatrix3(rotation)
+    keyOffset = pbt.x - pbt.y * (pkey.x - pbt.x) / (pkey.y - pbt.y)
+    // If the key is facing the wrong direction, then ignore it.
+    if (pkey.y - pbt.y < 0) keyOffset = thickness
+    if (keyOffset < 0) keyOffset = 0 // otherwise the offsets should never be negative
+  }
 
   // Top faces: use keyoffset.
   const maxOffset = top ? keyOffset : projOffset
