@@ -212,12 +212,13 @@ export function webSolid(c: Cuttleform, geo: Geometry, sew: boolean) {
 
   const triangleMap = createTriangleMap(triangles)
 
-  const { walls, topReinf, botReinf, topCPts, botCPts } = geo.reinforcedTriangles()
+  const { topReinf, botReinf, topCPts, botCPts } = geo.reinforcedTriangles
+  const walls = geo.allWallCriticalPoints()
   const topPts = topCPts.flat()
   const botPts = botCPts.flat()
 
-  const topSplines = boundarySplines(c, boundary, i => topReinf.walls![i].ti, wallCurve, walls!, geo.worldZ, geo.bottomZ, false)
-  const bottomSplines = boundarySplines(c, boundary, i => botReinf.walls![i].ki, wallCurve, walls!, geo.worldZ, geo.bottomZ, false)
+  const topSplines = boundarySplines(c, boundary, i => walls[i].ti, wallCurve, walls!, geo.worldZ, geo.bottomZ, false)
+  const bottomSplines = boundarySplines(c, boundary, i => walls[i].ki, wallCurve, walls!, geo.worldZ, geo.bottomZ, false)
 
   // If we encounter a wall on the boundary, use boundary make the wall
   for (let [a, b, c] of triangles) {

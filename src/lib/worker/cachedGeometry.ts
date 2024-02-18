@@ -22,6 +22,7 @@ import {
   wallSurfacesInner,
   webThickness,
 } from './geometry'
+import { shiftWalls } from './geometry.thickWebs'
 import { PLATE_HEIGHT } from './model'
 import Trsf from './modeling/transformation'
 import { Vector } from './modeling/transformation'
@@ -77,26 +78,23 @@ export class BaseGeometry<C extends Cuttleform = SpecificCuttleform<BasicShell>>
   }
 
   @Memoize()
-  reinforcedTriangles(wallOffset = 0) {
-    const walls = this.allWallCriticalPointsBase(wallOffset)
+  get reinforcedTriangles() {
+    const walls = this.allWallCriticalPointsBase()
     const topCPts = this.allKeyCriticalPoints
     const botCPts = topCPts.map((pts, i) => pts.map(t => t.pretranslated(0, 0, -webThickness(this.c, this.c.keys[i]))))
     const topReinf = reinforceTriangles(this.c, this, topCPts, true, walls)
-    const botReinf = reinforceTriangles(this.c, this, botCPts, false, topReinf.walls)
-    return {
-      topReinf,
-      botReinf,
-      walls: botReinf.walls!,
-      topCPts,
-      botCPts,
-    }
+    const botReinf = reinforceTriangles(this.c, this, botCPts, false, walls)
+    return { topReinf, botReinf, topCPts, botCPts }
   }
 
   @Memoize()
   allWallCriticalPoints(wallOffset = 0) {
     // return this.allWallCriticalPointsBase(wallOffset)
     // TODO: Eventually uncomment this
-    return this.reinforcedTriangles(wallOffset).walls
+    let walls = this.allWallCriticalPointsBase(wallOffset)
+    walls = shiftWalls(walls, this.reinforcedTriangles.topReinf.wallOffsets, true)
+    walls = shiftWalls(walls, this.reinforcedTriangles.botReinf.wallOffsets, false)
+    return walls
   }
 
   @Memoize()

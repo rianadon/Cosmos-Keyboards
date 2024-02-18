@@ -43,7 +43,7 @@
   function webMesh(c: Cuttleform, geo: Geometry, darkMode: boolean) {
     if (!conf) return { group: null, minThickness: 0, maxThickness: 0, thicknessRange: 0 }
 
-    const { topReinf, botReinf } = geo.reinforcedTriangles()
+    const { topReinf, botReinf } = geo.reinforcedTriangles
 
     const topGeo = new Float32Array(topReinf.triangles.length * 9)
     const botGeo = new Float32Array(botReinf.triangles.length * 9)

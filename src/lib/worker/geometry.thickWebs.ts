@@ -36,6 +36,8 @@ function triangleNormTrsf(a: Trsf, b: Trsf, c: Trsf, reverse = false) {
   return triangleNorm(a.origin(), b.origin(), c.origin(), reverse)
 }
 
+type WallShifts = Record<number, { direction: Vector; offset: number }>
+
 const shiftWallTop = (wall: WallCriticalPoints, direction: Vector, amount: number) => ({
   ...wall,
   ti: wall.ti.translated(direction, amount),
@@ -60,6 +62,10 @@ const shiftWallBot = (wall: WallCriticalPoints, direction: Vector, amount: numbe
 
 const shiftWall = (wall: WallCriticalPoints, direction: Vector, amount: number, top: boolean) => (
   top ? shiftWallTop(wall, direction, amount) : shiftWallBot(wall, direction, amount)
+)
+
+export const shiftWalls = (walls: WallCriticalPoints[], shifts: WallShifts, top: boolean) => (
+  walls.map((w, i) => shifts[i] ? shiftWall(w, shifts[i].direction, shifts[i].offset, top) : w)
 )
 
 /**
@@ -326,14 +332,13 @@ export function reinforceTriangles(c: Cuttleform, geo: Geometry, allPolys: Criti
   // Clone a few parameters that will be modified. Side effects are a no-no!
   triangles = [...triangles]
   allPolys = [...allPolys]
-  if (walls) walls = [...walls]
   const newThicknesses = triangles.map(_ => ({ thickness: -1 }))
+  const newWallOffsets: WallShifts = {}
 
   const originalPts = [...allPts]
   const originalMap = createTriangleMap(triangles)
   let triangleMap = createTriangleMap(triangles)
 
-  console.log('Adjusting the things')
   for (const poly of allPolys) {
     // Convert polygon's points to their indices
     const polyInd = poly.map(p => allPts.indexOf(p))
@@ -411,7 +416,7 @@ export function reinforceTriangles(c: Cuttleform, geo: Geometry, allPolys: Criti
         }
 
         // Move wall connected to original point and add new triangular wall for the gap
-        if (walls && wallPrev >= 0) walls[wallPrev] = shiftWall(walls[wallPrev], normal, offsetPrev, top)
+        if (wallPrev >= 0) newWallOffsets[wallPrev] = { direction: normal, offset: offsetPrev }
         if (innerBoundary.includes(pi1)) extraWalls.push([newPrevInd, pi1, pi1])
 
         // Add new triangle to connect old points to new points
@@ -447,7 +452,7 @@ export function reinforceTriangles(c: Cuttleform, geo: Geometry, allPolys: Criti
         }
 
         // Move wall connected to original point and add new triangular wall for the gap
-        if (walls && wallNext >= 0) walls[wallNext] = shiftWall(walls[wallNext], normal, offsetNext, top)
+        if (wallNext >= 0) newWallOffsets[wallNext] = { direction: normal, offset: offsetNext }
         if (innerBoundary.includes(pi2)) extraWalls.push([pi2, newNextInd, pi2])
 
         // Add new triangle to connect old points to new points
@@ -467,5 +472,15 @@ export function reinforceTriangles(c: Cuttleform, geo: Geometry, allPolys: Criti
     }
   }
 
-  return { triangles, allPts, allPts2D, triangleMap, boundary, walls, extraWalls, removedTriangles, thickness: newThicknesses }
+  return {
+    triangles,
+    allPts,
+    allPts2D,
+    triangleMap,
+    boundary,
+    extraWalls,
+    removedTriangles,
+    thickness: newThicknesses,
+    wallOffsets: newWallOffsets,
+  }
 }

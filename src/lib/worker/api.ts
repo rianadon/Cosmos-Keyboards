@@ -311,7 +311,7 @@ export async function intersections(conf: Cuttleform): Promise<ConfError | undef
   try {
     const geometry = newGeometry(conf)
     const trsfs3d = geometry.keyHolesTrsfs
-    const { botReinf, topReinf } = geometry.reinforcedTriangles()
+    const { botReinf, topReinf } = geometry.reinforcedTriangles
 
     const toTriangles = (r: typeof botReinf) =>
       r.triangles.map(([a, b, c]) =>
