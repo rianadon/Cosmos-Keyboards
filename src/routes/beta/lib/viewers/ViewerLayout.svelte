@@ -44,43 +44,6 @@
       }))
     )
 
-    if (confError?.type == 'intersection') {
-      const pts = geo.allKeyCriticalPoints2D
-      const allProj = pts.flat().map((p) => p.xy())
-      // Add key critical points
-      geos.push(
-        ...allProj.map((p) => ({
-          geometry: rectangle(p[0], p[1], 0.7),
-          material: new THREE.MeshBasicMaterial({ color: darkMode ? 0xff9966 : 0xff3333 }),
-        }))
-      )
-
-      // console.log(pts.map((po) => po.map((p) => p.xyz())))
-      geos.push(
-        ...pts.map((po) => ({
-          geometry: drawLinedWall(po.map((p) => p.xy())),
-          material: new THREE.MeshBasicMaterial({ color: 0xffcc33 }),
-        }))
-      )
-      if (confError.i >= 0)
-        geos.push({
-          geometry: drawLinedWall(
-            pts[confError.i].map((p) => p.xy()),
-            0.5
-          ),
-          material: new THREE.MeshBasicMaterial({ color: 0xff0000 }),
-        })
-      if (confError.j >= 0)
-        geos.push({
-          geometry: drawLinedWall(
-            pts[confError.j].map((p) => p.xy()),
-            0.5
-          ),
-          material: new THREE.MeshBasicMaterial({ color: 0xff0000 }),
-        })
-      return geos
-    }
-
     const cPts = geo.allKeyCriticalPoints
     const { triangles, allPts2D, boundary } = reinforceTriangles(conf, geo, cPts)
     // const allPts2D = geo.allKeyCriticalPoints2D.flat()
@@ -120,6 +83,25 @@
       material: new THREE.MeshBasicMaterial({ color: darkMode ? 0x6699ff : 0x3333ff }),
     })
 
+    if (confError?.type == 'intersection') {
+      const pts = geo.allKeyCriticalPoints2D
+      if (confError.i >= 0)
+        geos.push({
+          geometry: drawLinedWall(
+            pts[confError.i].map((p) => p.xy()),
+            0.5
+          ),
+          material: new THREE.MeshBasicMaterial({ color: 0xff0000 }),
+        })
+      if (confError.j >= 0)
+        geos.push({
+          geometry: drawLinedWall(
+            pts[confError.j].map((p) => p.xy()),
+            0.5
+          ),
+          material: new THREE.MeshBasicMaterial({ color: 0xff0000 }),
+        })
+    }
     return geos
   }
 </script>

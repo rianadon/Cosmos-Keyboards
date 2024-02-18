@@ -91,10 +91,10 @@ function closestPts(allPts: Trsf[], pi1: number, pi2: number, triangleMap: Retur
   // if thisP is relatively in the center
   const len1 = len(pi1, thisP)
   const len2 = len(pi2, thisP)
-  if (len1 < len2 * 2) opposites[0] = thisP
-  if (len2 < len1 * 2) opposites[1] = thisP
+  if (len1 < len2 * 3) opposites[0] = thisP
+  if (len2 < len1 * 3) opposites[1] = thisP
   // Set oppositeLen if both got assigned
-  if (len1 < len2 * 2 && len2 < len1 * 2) oppositeLen = len1 + len2
+  if (len1 < len2 * 3 && len2 < len1 * 3) oppositeLen = len1 + len2
 
   const thisP2 = triangleMap[pi1][thisP]
   const thisP3 = triangleMap[thisP] ? triangleMap[thisP][pi2] : undefined
@@ -140,7 +140,7 @@ const MAX_REINF_MARGIN = 1
  * @param normal should point in the direction the offset is added.
  * @param binormal points in the direction of the keyhole's surface (i.e. the keyhole normal).
  */
-function reinforcementOffset(thisTop: Trsf, thisThick: number, nextTop: Trsf, nextThick: number, normal: Vector, binormal: Vector, thickness: number, top: boolean) {
+function reinforcementOffset(thisTop: Trsf, thisThick: number, nextTop: Trsf, nextTrsf: Trsf, normal: Vector, binormal: Vector, thickness: number, top: boolean) {
   const rotation = new Matrix3().set(normal.x, normal.y, normal.z, binormal.x, binormal.y, binormal.z, 0, 0, 0)
   const _thisTop = thisTop.origin()
   const _thisBot = thisTop.origin().add(thisTop.axis(0, 0, top ? -thisThick : thisThick))
@@ -165,12 +165,13 @@ function reinforcementOffset(thisTop: Trsf, thisThick: number, nextTop: Trsf, ne
   // This is slightly simplified, as we assume the keycap extends in the direction of this keycap's normal.
   // i.e. we disregard the relative rotation of the next keycap
   let keyOffset = thickness
-  if (top && pbt.y < 0) { // Only check when the next key is below this one
+  // Only check when the next key is below this one and when key is facing in the right direction
+  if (top && pbt.y < 0 && nextTop.origin().sub(nextTrsf.origin()).dot(normal) < 0) {
     const _nextKeycap = nextTop.origin().addScaledVector(normal, -MAX_REINF_MARGIN).add(nextTop.axis(0, 0, switchInfo('mx-better').pressedHeight))
     const pkey = _nextKeycap.sub(_thisTop).applyMatrix3(rotation)
     keyOffset = pbt.x - pbt.y * (pkey.x - pbt.x) / (pkey.y - pbt.y)
     // If the key is facing the wrong direction, then ignore it.
-    if (pkey.y - pbt.y < 0) keyOffset = thickness
+    if (pkey.y < pbt.y) keyOffset = thickness
     if (keyOffset < 0) keyOffset = 0 // otherwise the offsets should never be negative
   }
 
@@ -198,8 +199,8 @@ function reinforcementOffset(thisTop: Trsf, thisThick: number, nextTop: Trsf, ne
 }
 
 /** Unused: this solves for the point at the end of the arc going from key top -> adjusted segment. */
-function reinforcementOffsetVec(thisTop: Trsf, thisThick: number, nextTop: Trsf, nextThick: number, normal: Vector, binormal: Vector, thickness: number, top: boolean) {
-  const offset = reinforcementOffset(thisTop, thisThick, nextTop, nextThick, normal, binormal, thickness, top)
+function reinforcementOffsetVec(thisTop: Trsf, thisThick: number, nextTop: Trsf, nextTrsf: Trsf, normal: Vector, binormal: Vector, thickness: number, top: boolean) {
+  const offset = reinforcementOffset(thisTop, thisThick, nextTop, nextTrsf, normal, binormal, thickness, top)
   const rotation = new Matrix3().set(normal.x, normal.y, normal.z, binormal.x, binormal.y, binormal.z, 0, 0, 0)
   const _thisTop = thisTop.origin()
   const _nextTop = nextTop.origin()
@@ -316,6 +317,7 @@ export function reinforceTriangles(c: Cuttleform, geo: Geometry, allPolys: Criti
   // addExtraWallsForExtremeAngles(c, geo, allPolys, walls)
 
   const thickness = allPolys.flatMap((p, i) => p.map(_ => webThickness(c, c.keys[i])))
+  const trsfs = allPolys.flatMap((p, i) => p.map(_ => geo.keyHolesTrsfs[i]))
   const allPts = allPolys.flat()
   const allPts2D = geo.allKeyCriticalPoints2D.flat()
   let { boundary, triangles, removedTriangles, innerBoundary } = geo.solveTriangularization
@@ -374,8 +376,8 @@ export function reinforceTriangles(c: Cuttleform, geo: Geometry, allPolys: Criti
       const oppPrevOk = opposites[0] >= 0 ? angleAbout(normal, originalPts[opposites[0]].origin().sub(originalPts[oPi1].origin()), tangent) > 0 : false
       const oppNextOk = opposites[1] >= 0 ? angleAbout(normal, originalPts[opposites[1]].origin().sub(originalPts[oPi2].origin()), tangent) > 0 : false
       // Calculate the offsets
-      let offsetPrev = oppPrevOk ? reinforcementOffset(originalPts[oPi1], th(oPi1), originalPts[opposites[0]], th(opposites[0]), normal, binormal, f * th(pi1), top) : 0
-      let offsetNext = oppNextOk ? reinforcementOffset(originalPts[oPi2], th(oPi2), originalPts[opposites[1]], th(opposites[1]), normal, binormal, f * th(pi2), top) : 0
+      let offsetPrev = oppPrevOk ? reinforcementOffset(originalPts[oPi1], th(oPi1), originalPts[opposites[0]], trsfs[opposites[0]], normal, binormal, f * th(pi1), top) : 0
+      let offsetNext = oppNextOk ? reinforcementOffset(originalPts[oPi2], th(oPi2), originalPts[opposites[1]], trsfs[opposites[1]], normal, binormal, f * th(pi2), top) : 0
 
       // For 2D
       const tangent2 = allPts2D[pi2].origin().sub(allPts2D[pi1].origin())
