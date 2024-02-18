@@ -55,6 +55,7 @@
         if (reachability && !reachability[x.i]) status = 'warning'
         if (error && error.type == 'intersection' && (error.i == x.i || error.j == x.i))
           status = 'error'
+        if (error && error.type == 'wallBounds' && error.i == x.i) status = 'error'
         const offset = offsetHeight(config.keys[x.i])
         geos[x.i].push({
           geometry: x.geometry,

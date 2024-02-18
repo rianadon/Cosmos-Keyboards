@@ -11,7 +11,7 @@
   import { rectangle, drawWall, drawLinedWall, drawBezierWall } from './viewerHelpers'
   import { localHolderBounds } from '$lib/geometry/microcontrollers'
 
-  import type { ConfError } from '$lib/worker/check'
+  import { isRenderable, type ConfError } from '$lib/worker/check'
   import Trsf from '$lib/worker/modeling/transformation'
   import { boundingSize } from '$lib/loaders/geometry'
   import type { Cuttleform, Geometry } from '$lib/worker/config'
@@ -32,7 +32,7 @@
 
   let center: [number, number, number] = [0, 0, 0]
 
-  $: hasError = confError && !(confError.type == 'intersection' && confError.what != 'hole')
+  $: hasError = confError && !isRenderable(confError)
   $: geometries = hasError || !geometry ? [] : drawState(conf, geometry)
   $: size = boundingSize(geometries.map((g) => g.geometry))
 

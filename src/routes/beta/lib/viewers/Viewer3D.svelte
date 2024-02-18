@@ -74,7 +74,7 @@
   export let transparency
   export let flip = true
   export let showHand = true
-  export let error: ConfError
+  export let error: ConfError | undefined
   export let geometry: Geometry | null
 
   export let conf: Cuttleform

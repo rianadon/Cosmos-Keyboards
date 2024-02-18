@@ -33,7 +33,7 @@ export function intersectPolyPoly(a: Vector2[], b: Vector2[]) {
 }
 
 // https://stackoverflow.com/a/29915728
-export function intersectPtPoly(point: [number, number, number], vs: [number, number, number][]) {
+export function intersectPtPoly(point: number[], vs: number[][]) {
   if (vs.includes(point)) return true
   // ray-casting algorithm based on
   // https://wrf.ecse.rpi.edu/Research/Short_Notes/pnpoly.html

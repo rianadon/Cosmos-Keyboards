@@ -54,10 +54,19 @@ interface NanError {
 interface NoKeysError {
   type: 'nokeys'
 }
+interface WallBoundsError {
+  type: 'wallBounds'
+  i: number
+}
 
 const PROPERTIES = ['aspect', 'type', 'position']
 
-export type ConfError = IntersectionError | MissingError | WrongError | OobError | InvalidError | ExceptionError | NanError | NoKeysError
+export type ConfError = IntersectionError | MissingError | WrongError | OobError | InvalidError | ExceptionError | NanError | NoKeysError | WallBoundsError
+
+export function isRenderable(e: ConfError | undefined) {
+  if (!e) return true
+  return e.type == 'intersection' || e.type == 'wallBounds'
+}
 
 export function checkConfig(conf: Cuttleform, geometry: Geometry, check3d = true): ConfError | null {
   if (!conf.keys.length) return { type: 'nokeys' }

@@ -25,8 +25,10 @@ interface Node {
   prev: Node
 }
 
+export type TriangleMap = Record<number, Record<number, number[]>>
+
 export function createTriangleMap(triangles: number[][]) {
-  const triangleMap: Record<number, Record<number, number[]>> = {}
+  const triangleMap: TriangleMap = {}
   triangles.forEach(([a, b, c], i) => {
     if (!triangleMap[a]) triangleMap[a] = {}
     if (!triangleMap[b]) triangleMap[b] = {}
@@ -118,7 +120,7 @@ function canFixBadWalls(
   conf: Cuttleform,
   inserted: number,
   node: Node,
-  triangleMap: any,
+  triangleMap: TriangleMap,
   trsfs: KeyTrsf[],
   points: number[][],
   sqConcavity: number,

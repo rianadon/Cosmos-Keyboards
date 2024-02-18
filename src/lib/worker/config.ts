@@ -713,7 +713,7 @@ export function fingers(c: DeepRequired<CuttleformProto>): CuttleKey[] {
   // This means I need to compute the inverse of keyPlane and apply that to the positions.
   // k.position.insertBeforeLast does the heavy lifting here and puts the rotation
   // right beore the keyPlane transformation in the stack of transformations.
-  const keyPlaneInv = keyPlane.evaluate({ flat: true }, new Trsf()).invert()
+  const keyPlaneInv = keyPlane.evaluate({ flat: false }, new Trsf()).invert()
   const stag = c.stagger
   // I need to remind myself that premultiply and translate apply their transformations last
   // While multiply and pretranslate go first.

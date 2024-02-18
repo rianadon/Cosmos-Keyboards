@@ -15,10 +15,12 @@
 
 import { switchInfo } from '$lib/geometry/switches'
 import { Matrix3 } from 'three/src/math/Matrix3'
-import { createTriangleMap } from './concaveman'
+import type { ConfError } from './check'
+import { createTriangleMap, type TriangleMap } from './concaveman'
 import { doWallsIntersect } from './concaveman-extra'
 import type { Cuttleform, Geometry } from './config'
-import { type CriticalPoints, type WallCriticalPoints, webThickness } from './geometry'
+import { type CriticalPoints, flattenKeyCriticalPoints, type WallCriticalPoints, webThickness } from './geometry'
+import { intersectPtPoly } from './geometry.intersections'
 import type Trsf from './modeling/transformation'
 import { Vector } from './modeling/transformation'
 
@@ -322,6 +324,7 @@ function maybeFlip(v: number, vTri: number, e0: number, e1: number, triangles: n
 export function reinforceTriangles(c: Cuttleform, geo: Geometry, allPolys: CriticalPoints[], top = true, walls?: WallCriticalPoints[]) {
   // addExtraWallsForExtremeAngles(c, geo, allPolys, walls)
 
+  const keyIdx = allPolys.flatMap((p, i) => p.map(_ => i))
   const thickness = allPolys.flatMap((p, i) => p.map(_ => webThickness(c, c.keys[i])))
   const trsfs = allPolys.flatMap((p, i) => p.map(_ => geo.keyHolesTrsfs[i]))
   const allPts = allPolys.flat()
@@ -398,6 +401,7 @@ export function reinforceTriangles(c: Cuttleform, geo: Geometry, allPolys: Criti
         allPts.push(allPts[pi1].clone())
         allPts2D.push(allPts2D[pi1].clone())
         thickness.push(thickness[pi1])
+        keyIdx.push(keyIdx[pi1])
 
         // Move original point to new, offset locations
         allPts[pi1] = allPts[pi1].translated(normal, offsetPrev)
@@ -434,6 +438,7 @@ export function reinforceTriangles(c: Cuttleform, geo: Geometry, allPolys: Criti
         allPts.push(allPts[pi2].clone())
         allPts2D.push(allPts2D[pi2].clone())
         thickness.push(thickness[pi2])
+        keyIdx.push(keyIdx[pi2])
 
         // Move original point to new, offset locations
         allPts[pi2] = allPts[pi2].translated(normal, offsetNext)
@@ -482,5 +487,24 @@ export function reinforceTriangles(c: Cuttleform, geo: Geometry, allPolys: Criti
     removedTriangles,
     thickness: newThicknesses,
     wallOffsets: newWallOffsets,
+    error: checkBounds(keyIdx, boundary, allPts2D, triangleMap),
+  }
+}
+
+/** Returns an error if any of the thickened points lie outside the boundary. This is a sign of bad geometry */
+function checkBounds(keyIdx: number[], boundary: number[], pts2D: Trsf[], triangleMap: TriangleMap): ConfError | undefined {
+  boundary = [...boundary] // Clone the boundary
+  let boundaryPts = boundary.map(b => pts2D[b].xy())
+  for (let i = 0; i < boundary.length; i++) {
+    const b1 = boundary[i]
+    const b2 = boundary[(i + 1) % boundary.length]
+    const opposite = triangleMap[b2] ? triangleMap[b2][b1] : undefined
+    if (opposite && !intersectPtPoly(pts2D[opposite[0]].xy(), boundaryPts)) {
+      // The point lies outside the polygon formed by the boundary.
+      return {
+        type: 'wallBounds',
+        i: keyIdx[opposite[0]],
+      }
+    }
   }
 }

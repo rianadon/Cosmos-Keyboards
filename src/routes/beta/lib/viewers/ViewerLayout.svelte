@@ -7,7 +7,7 @@
   import { boundingSize } from '$lib/loaders/geometry'
 
   import type { Cuttleform, Geometry } from '$lib/worker/config'
-  import type { ConfError } from '$lib/worker/check'
+  import { isRenderable, type ConfError } from '$lib/worker/check'
   import { flip } from '$lib/store'
 
   export let conf: Cuttleform
@@ -19,9 +19,7 @@
   let center: [number, number, number] = [0, 0, 0]
 
   $: geometries =
-    (!confError || confError.type == 'intersection') && geometry
-      ? drawState(conf, darkMode, confError, geometry)
-      : []
+    isRenderable(confError) && geometry ? drawState(conf, darkMode, confError, geometry) : []
   $: size = boundingSize(geometries.map((g) => g.geometry))
 
   function drawState(
@@ -97,6 +95,17 @@
         geos.push({
           geometry: drawLinedWall(
             pts[confError.j].map((p) => p.xy()),
+            0.5
+          ),
+          material: new THREE.MeshBasicMaterial({ color: 0xff0000 }),
+        })
+    }
+    if (confError?.type == 'wallBounds') {
+      const pts = geo.allKeyCriticalPoints2D
+      if (confError.i >= 0)
+        geos.push({
+          geometry: drawLinedWall(
+            pts[confError.i].map((p) => p.xy()),
             0.5
           ),
           material: new THREE.MeshBasicMaterial({ color: 0xff0000 }),

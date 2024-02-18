@@ -12,7 +12,7 @@
     type Cuttleform,
     type Geometry,
   } from '$lib/worker/config'
-  import { checkConfig } from '$lib/worker/check'
+  import { checkConfig, isRenderable } from '$lib/worker/check'
   import Section from './Section.svelte'
   import DecimalInput from './DecimalInput.svelte'
   import AngleInput from './AngleInput.svelte'
@@ -258,7 +258,7 @@
     if (!geometry) return '...'
     try {
       const confError = checkConfig(conf, geometry, false)
-      if (confError && (confError.type != 'intersection' || confError.what == 'hole')) {
+      if (confError && !isRenderable(confError)) {
         return '?'
       }
       return geometry.screwIndices.length * multiplier

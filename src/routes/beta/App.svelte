@@ -38,7 +38,7 @@
     type CuttleformProto,
     type Geometry,
   } from '$lib/worker/config'
-  import { checkConfig, isPro, type ConfError } from '$lib/worker/check'
+  import { checkConfig, isPro, type ConfError, isRenderable } from '$lib/worker/check'
   import VisualEditor from './lib/editor/VisualEditor.svelte'
   import { Vector3, type BufferGeometry } from 'three'
   import { estimatedCenter } from '$lib/worker/geometry'
@@ -530,7 +530,7 @@
         <Viewer3D
           {geometry}
           transparency={cTransparency}
-          conf={confError && confError.type != 'intersection' ? undefined : config}
+          conf={isRenderable(confError) ? config : undefined}
           is3D
           isExpert={mode == 'advanced'}
           {showSupports}
@@ -571,7 +571,7 @@
         <Thick3D
           {geometry}
           transparency={cTransparency}
-          conf={confError && confError.type != 'intersection' ? undefined : config}
+          conf={isRenderable(confError) ? config : undefined}
           is3D
           isExpert={mode == 'advanced'}
           {center}
@@ -736,6 +736,12 @@
               You silly goose! You can't make a keyboard without keys. <br />That's like riding a
               snowboard without snow.
             </p>
+          {:else if confError.type == 'wallBounds'}
+            <p class="mb-2">
+              One of the keys sticks out past the wall boundary. The keyboard will print, but you
+              may see a small hole in this spot.
+            </p>
+            <p>To correct this issue, try adjusting the stagger or moving the keys around.</p>
           {/if}
         </div>
       {:else if ocError && viewer == '3d'}

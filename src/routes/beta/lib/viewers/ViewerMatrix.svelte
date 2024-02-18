@@ -7,7 +7,7 @@
   import { boundingSize } from '$lib/loaders/geometry'
 
   import type { Cuttleform, CuttleKey, Geometry } from '$lib/worker/config'
-  import type { ConfError } from '$lib/worker/check'
+  import { isRenderable, type ConfError } from '$lib/worker/check'
   import Trsf from '$lib/worker/modeling/transformation'
   import { keyPosition } from '$lib/worker/modeling/transformation-ext'
   import { flip } from '$lib/store'
@@ -22,9 +22,7 @@
   let center: [number, number, number] = [0, 0, 0]
 
   $: geometries =
-    (!confError || confError.type == 'intersection') && geometry
-      ? drawState(conf, darkMode, confError, geometry)
-      : []
+    isRenderable(confError) && geometry ? drawState(conf, darkMode, confError, geometry) : []
   $: size = boundingSize(geometries.map((g) => g.geometry))
 
   function multiply(Q, b) {
