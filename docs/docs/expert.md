@@ -6,9 +6,13 @@ To use Expert Mode, you write [TypeScript](https://www.typescriptlang.org/) code
 
 Any configuration written in Basic/Advanced mode can be converted into code for Expert Mode. However, because Expert Mode is more capable, you cannot convert an Expert Mode program to Basic/Advanced configuration.
 
+!!! tip "Parts Page"
+
+    It's recommended you browse the [Parts Page](https://ryanis.cool/cosmos/parts) to familiarize yourself with the different key sockets Cosmos supports. The page will also tell you the name of each part within Expert mode.
+
 ## Structure of and Interpretation of Cosmos Programs
 
-Every Expert Mode program must use the [`export default`](https://developer.mozilla.org/en-US/docs/web/javascript/reference/statements/export) syntax to return the desired configuration. Most configuration options map directly to the options available in basic and advanced modes. For example, `wallThickness` is configured as `Advanced -> Case -> Wall Thickness`.
+Expert Mode programs are laid out as configuration files. Every program must use the [`export default`](https://developer.mozilla.org/en-US/docs/web/javascript/reference/statements/export) syntax to return the desired configuration. Most configuration options map directly to the options available in basic and advanced modes. For example, `wallThickness` is configured as `Advanced -> Case -> Wall Thickness`.
 
 ```typescript
 export default {

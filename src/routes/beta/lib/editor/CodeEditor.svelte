@@ -25,7 +25,6 @@
   export let conf: Cuttleform
   $: if (content) run(content)
   $: Monaco && Monaco.editor.setTheme(darkMode ? 'cuttleform-dark' : 'vs')
-  $: uninit = false // !conf && !content
 
   const pool = new WorkerPool<typeof import('$lib/runner/api')>(1, () => {
     return new Worker(new URL('$lib/runner?worker', import.meta.url), { type: 'module' })
@@ -136,10 +135,19 @@
   <p class="mb-4 mt-2">Your code will <b>NOT</b> be saved! It is too long to fit in the URL.</p>
 {/if}
 
-{#if uninit}
-  <p class="mb-4 mt-2">
-    For security reasons this code is not automatically run. Please take a look over the code to
-    make sure there's nothing malicious. Then, make any change (like adding a space) to run it.
-  </p>
-{/if}
+<p class="mb-4 mt-2 text-gray-500 dark:text-gray-300">
+  Expert mode allows you to fully configure any part of your keyboard. Read <a href="docs/expert/"
+    >the documentation</a
+  > to learn how to use this mode.
+</p>
 <div bind:this={element} class="h-[30rem] w-[32rem]" />
+
+<style>
+  a[href]:not(.inline-block) {
+    --at-apply: 'text-teal';
+  }
+
+  a[href]:not(.inline-block):hover {
+    text-decoration: underline;
+  }
+</style>

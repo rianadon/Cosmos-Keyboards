@@ -69,12 +69,22 @@
       })
     for (const x of s) {
       if (!x) throw new Error('oops')
+      let status: KeyStatus = undefined
+      if (
+        error &&
+        error.type == 'intersection' &&
+        error.what == 'socket' &&
+        (error.i == x.i || error.j == x.i)
+      )
+        status = 'error'
+      if (error && error.type == 'wallBounds' && error.i == x.i) status = 'error'
       geos[x.i].push({
         geometry: x.geometry,
         brightness: 0.7,
         matrix: x.matrix,
         offset: 0,
         translation: 0,
+        status,
       })
     }
   }

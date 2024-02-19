@@ -667,7 +667,11 @@
         </div>
       {/if}
       {#if confError && viewer == '3d'}
-        <div class="errorMsg" class:expand={errorMsg}>
+        <div
+          class="errorMsg"
+          class:expand={errorMsg}
+          class:custom={$protoConfig && $protoConfig.thumbCluster.oneofKind == 'customThumb'}
+        >
           {#if errorMsg}<h3 class="font-bold">There is a problem with the configuration.</h3>{/if}
           {#if confError.type == 'invalid'}
             <p class="mb-2">
@@ -909,7 +913,7 @@
         <div class="bg-red-200 m-4 rounded p-4 dark:bg-red-700">
           Bill of Materials will not be available until the configuration is evaluated.
         </div>
-      {:else if confError}
+      {:else if !isRenderable(confError)}
         <div class="bg-red-200 m-4 rounded p-4 dark:bg-red-700">
           Bill of Materials will not be available until you fix the errors in your configuration.
         </div>
@@ -1188,7 +1192,13 @@
   .errorMsg {
     --at-apply: 'absolute text-white m-4 right-[80px] rounded p-4 top-[5%] bg-red-700 flex';
   }
+  .errorMsg.custom {
+    --at-apply: 'top-[10%]';
+  }
   .errorMsg.expand {
     --at-apply: 'top-[5%] left-0 right-0 bg-red-700 block';
+  }
+  .errorMsg.expand.custom {
+    --at-apply: 'top-[20%] left-0';
   }
 </style>

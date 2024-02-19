@@ -786,7 +786,7 @@ export function thumbOrigin(c: DeepRequired<CuttleformProto>, wristRest = false)
   const cornerRow = c.upperKeys.rows - 2
 
   const thumbStagger = tupleToXYZA(c.stagger.staggerThumb)
-  const origin = new Constant('thumbOrigin').rotate(thumbStagger.a, [0, 0, 0], [0, 0, 1])
+  const origin = new Constant('thumbOrigin')
   if (wristRest) {}
   else if (c.thumbCluster.oneofKind === 'carbonfetThumb') {
     origin.rotate(-9, [0, 0, 0], [1, 0, 0])
@@ -832,6 +832,7 @@ export function thumbOrigin(c: DeepRequired<CuttleformProto>, wristRest = false)
       })).transformBy(upperKeysPlane(c)).translate(17.5 / 2, -17.5 / 2, 0),
   )
 
+  origin.rotate(thumbStagger.a, [0, 0, 0], [0, 0, 1])
   origin.translate(thumbStagger.x, thumbStagger.y, thumbStagger.z)
 
   return origin
