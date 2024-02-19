@@ -5,7 +5,7 @@
  */
 
 import { Vector2 } from 'three/src/math/Vector2'
-import type { Vector } from './modeling/transformation'
+import Trsf, { Vector } from './modeling/transformation'
 
 /** Determine whether two 2D polygons intersect each other. */
 export function intersectPolyPoly(a: Vector2[], b: Vector2[]) {
@@ -72,4 +72,39 @@ export function* intersectTriCircle(a: Vector, b: Vector, c: Vector, origin: Vec
   yield* intersectLineCircle(a, b, origin, radius)
   yield* intersectLineCircle(b, c, origin, radius)
   yield* intersectLineCircle(c, a, origin, radius)
+}
+
+/**
+ * Returns the intersection point between a bezier curve
+ * and a plane containing both its endpoints, in approximate
+ * direction xDir.
+ *
+ * To simplify the math, I first perform a rotation that fixes
+ * the first point at (0, 0, 0) and the second point at (0, 0, 1).
+ * The intersection point is when the line crosses the x axis.
+ */
+export function intersectBezierSamePlane(curve: [Vector, Vector, Vector, Vector], xDir: Vector) {
+  const axZ = curve[3].clone().sub(curve[0]).normalize()
+  const axX = xDir.clone().addScaledVector(axZ, -xDir.dot(axZ)).normalize()
+  if (axX.x == 0 && axX.y == 0 && axX.z == 0) return // If the line is exactly straight
+
+  const rotationMat = new Trsf().coordSystemChange(curve[0], axX, axZ)
+  const rotMatInv = rotationMat.inverted()
+
+  const p1 = rotMatInv.apply(curve[1])
+  const p2 = rotMatInv.apply(curve[2])
+  const p3 = rotMatInv.apply(curve[3])
+
+  let tsol = p1.x / (p1.x - p2.x)
+  if (tsol <= 0 || tsol >= 1) return
+
+  const pt = new Vector()
+    .addScaledVector(p1, (1 - tsol) ** 2 * tsol)
+    .addScaledVector(p2, (1 - tsol) * tsol * tsol)
+    .addScaledVector(p3, tsol * tsol * tsol)
+  return pt.applyMatrix4(rotationMat.Matrix4())
+}
+
+export function intersectBezierTSamePlane(curve: [Trsf, Trsf, Trsf, Trsf], xDir: Vector) {
+  return intersectBezierSamePlane([curve[0].origin(), curve[1].origin(), curve[2].origin(), curve[3].origin()], xDir)
 }

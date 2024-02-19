@@ -14,7 +14,7 @@ import { ITriangle, simpleKey, simplekeyGeo, simpleTris } from './simplekeys'
 
 interface IntersectionError {
   type: 'intersection'
-  what: 'hole' | 'keycap' | 'socket'
+  what: 'keycap' | 'socket'
   i: number
   j: number
   travel?: number[]

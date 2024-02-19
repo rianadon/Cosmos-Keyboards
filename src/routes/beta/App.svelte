@@ -86,6 +86,7 @@
   let mode = state.content ? 'advanced' : 'basic'
   let viewer = '3d'
   let transparency = 95
+  let errorMsg = false
   $: cTransparency = showSupports ? 0 : transparency
   $: plateTopOpacity = Math.pow(
     plateBotBuf
@@ -666,43 +667,9 @@
         </div>
       {/if}
       {#if confError && viewer == '3d'}
-        <div class="absolute text-white m-4 left-0 right-0 rounded p-4 top-[10%] bg-red-700">
-          <h3 class="font-bold">There is a problem with the configuration.</h3>
-          {#if confError.type == 'intersection'}
-            {#if confError.what == 'hole'}
-              <p class="mb-2">Two of the key wells intersect.</p>
-              <p class="mb-2">Switch to the "Keys" tab to view the problem.</p>
-            {:else if confError.what == 'keycap' && (confError.i < 0 || confError.j < 0)}
-              <p class="mb-2">
-                One of the keycaps intersects the walls{#if confError.travel}&nbsp;when pressed down {confError
-                    .travel[0]}mm{/if}.
-              </p>
-            {:else if confError.what == 'keycap'}
-              <p class="mb-2">
-                Two of the keycaps intersect, either in their current positions or when pressed down{#if confError.travel}&nbsp;with
-                  {confError.travel[0]}mm of travel{/if}.
-              </p>
-            {:else if confError.what == 'socket'}
-              <p class="mb-2">Two of the key sockets intersect.</p>
-            {/if}
-            <p class="mb-2">
-              If you're using Advanced mode, you can try adjusting the stagger to correct the issue.
-              {#if confError.what != 'socket'}You can also try decreasing webMinThicknessFactor in
-                expert mode.{/if}
-            </p>
-            <p class="mb-2">
-              If the issue is within the thumb cluster, increase the vertical and horizontal
-              spacings in Advanced mode or switch to custom thumbs mode.
-            </p>
-          {:else if confError.type == 'missing'}
-            <p class="mb-2">
-              In your configuration, the property <code>{confError.item}</code> is missing.
-            </p>
-            {#if confError.key}
-              <p class="mb-2">Check the key with this configuration:</p>
-              <pre class="text-xs"><code>{JSON.stringify(confError.key, null, 2)}</code></pre>
-            {/if}
-          {:else if confError.type == 'invalid'}
+        <div class="errorMsg" class:expand={errorMsg}>
+          {#if errorMsg}<h3 class="font-bold">There is a problem with the configuration.</h3>{/if}
+          {#if confError.type == 'invalid'}
             <p class="mb-2">
               In your configuration, the property <code>{confError.item}</code> has the wrong data type.
             </p>
@@ -736,12 +703,73 @@
               You silly goose! You can't make a keyboard without keys. <br />That's like riding a
               snowboard without snow.
             </p>
-          {:else if confError.type == 'wallBounds'}
+          {:else if confError.type == 'missing'}
             <p class="mb-2">
-              One of the keys sticks out past the wall boundary. The keyboard will print, but you
-              may see a small hole in this spot.
+              In your configuration, the property <code>{confError.item}</code> is missing.
             </p>
-            <p>To correct this issue, try adjusting the stagger or moving the keys around.</p>
+            {#if confError.key}
+              <p class="mb-2">Check the key with this configuration:</p>
+              <pre class="text-xs"><code>{JSON.stringify(confError.key, null, 2)}</code></pre>
+            {/if}
+          {:else if errorMsg}
+            <div>
+              {#if confError.type == 'intersection'}
+                {#if confError.what == 'keycap' && (confError.i < 0 || confError.j < 0)}
+                  <p class="mb-2">
+                    One of the keycaps intersects the walls{#if confError.travel}&nbsp;when pressed
+                      down {confError.travel[0]}mm{/if}.
+                  </p>
+                {:else if confError.what == 'keycap'}
+                  <p class="mb-2">
+                    Two of the keycaps intersect, either in their current positions or when pressed
+                    down{#if confError.travel}&nbsp;with
+                      {confError.travel[0]}mm of travel{/if}.
+                  </p>
+                {:else if confError.what == 'socket'}
+                  <p class="mb-2">Two of the key sockets intersect.</p>
+                {/if}
+                <p class="mb-2">
+                  If you're using Advanced mode, you can try adjusting the stagger to correct the
+                  issue.
+                  {#if confError.what != 'socket'}You can also try decreasing webMinThicknessFactor
+                    in expert mode.{/if}
+                </p>
+                <p class="mb-2">
+                  If the issue is within the thumb cluster, increase the vertical and horizontal
+                  spacings in Advanced mode or switch to custom thumbs mode.
+                </p>
+              {:else if confError.type == 'wallBounds'}
+                <p class="mb-2">
+                  One of the keys sticks out past the wall boundary. The keyboard will print, but
+                  you may see a small hole in this spot.
+                </p>
+                <p>To correct this issue, try adjusting the stagger or moving the keys around.</p>
+              {/if}
+            </div>
+            <div class="flex-0 pl-2">
+              <button on:click={() => (errorMsg = !errorMsg)}
+                ><Icon path={mdi.mdiArrowCollapseUp} /></button
+              >
+            </div>
+          {:else}
+            <div>
+              {#if confError.type == 'intersection'}
+                {#if confError.what == 'keycap' && (confError.i < 0 || confError.j < 0)}
+                  Keycap + Walls Intersect
+                {:else if confError.what == 'keycap'}
+                  Keycaps Intersect
+                {:else if confError.what == 'socket'}
+                  Sockets Intersect
+                {/if}
+              {:else if confError.type == 'wallBounds'}
+                Key Sticks Past Walls
+              {/if}
+            </div>
+            <div class="flex-0 pl-2">
+              <button on:click={() => (errorMsg = !errorMsg)}
+                ><Icon path={mdi.mdiArrowExpandDown} /></button
+              >
+            </div>
           {/if}
         </div>
       {:else if ocError && viewer == '3d'}
@@ -1155,5 +1183,12 @@
 
   .infobutton {
     --at-apply: 'bg-purple-100 dark:bg-gray-900/50 hover:bg-purple-200 dark:hover:bg-pink-900/70 rounded px-4 py-1 focus:outline-none border border-transparent focus:border-pink-500';
+  }
+
+  .errorMsg {
+    --at-apply: 'absolute text-white m-4 right-[80px] rounded p-4 top-[5%] bg-red-700 flex';
+  }
+  .errorMsg.expand {
+    --at-apply: 'top-[5%] left-0 right-0 bg-red-700 block';
   }
 </style>

@@ -77,7 +77,7 @@ export function wallInnerSurfaces(c: Cuttleform, geo: Geometry, offset: number) 
       ...w,
       bi: w.bi.translated(displacement.xyz()),
       mi: w.mi.pretranslated(displacement.xyz()),
-      ki: w.ki.pretranslated(displacement.xyz()),
+      ki: w.ki.translated(w.ti.translated(w.ti.origin(), -1).apply(displacement).xyz()), // ki has no guaranteed rotation
       ti: w.ti.pretranslated(displacement.xyz()),
     }
     const surf = wallSurfacesInner(c, wc)
