@@ -46,6 +46,7 @@
   import { onDestroy } from 'svelte'
   import { browser } from '$app/environment'
   import { hasPro } from '@pro'
+  import GlbExport from './lib/GlbExport.svelte'
 
   let supportGeometries: BufferGeometry[] = []
   let center = [-35.510501861572266, -17.58449935913086, 35.66889877319336] as [
@@ -82,6 +83,7 @@
   let modelOpacity = 1
   let confError: ConfError | undefined
   let showSupports = false
+  let showAllFormats = false
 
   let mode = state.content ? 'advanced' : 'basic'
   let viewer = '3d'
@@ -143,13 +145,12 @@
   let generatingSTEP = false
   let generatingSTL = false
   let generatingError: Error | undefined
-  let stitchWalls = true
 
   function downloadSTEP(flip: boolean) {
     const begin = window.performance.now()
     generatingSTEP = true
     pool
-      .executeNow((w) => w.getSTEP(config, flip, stitchWalls) as Promise<Blob>)
+      .executeNow((w) => w.getSTEP(config, flip, true) as Promise<Blob>)
       .then(addMetadataToSTEP)
       .then(
         (blob) => {
@@ -416,6 +417,12 @@
        <Github size="2em" />
        </a>-->
 
+  <a
+    class="mr-6 flex items-center gap-2 border-2 px-3 py-1 rounded border-gray-500/20 hover:border-gray-500 transition-border-color text-gray-600 dark:text-gray-200"
+    href="docs/"
+  >
+    Docs & FAQ
+  </a>
   {#if flags.login && hasPro}
     <Login bind:dialogOpen={proOpen} />
   {/if}
@@ -665,12 +672,13 @@
           <h3 class="font-bold">There is an error with your code.</h3>
           <p class="mb-2">{$codeError.message}</p>
         </div>
-      {/if}
-      {#if confError && viewer == '3d'}
+      {:else if confError && viewer == '3d'}
         <div
           class="errorMsg"
           class:expand={errorMsg}
           class:custom={$protoConfig && $protoConfig.thumbCluster.oneofKind == 'customThumb'}
+          class:bg-red-700={confError.type != 'wallBounds'}
+          class:bg-yellow-700={confError.type == 'wallBounds'}
         >
           {#if errorMsg}<h3 class="font-bold">There is a problem with the configuration.</h3>{/if}
           {#if confError.type == 'invalid'}
@@ -733,8 +741,8 @@
                   <p class="mb-2">Two of the key sockets intersect.</p>
                 {/if}
                 <p class="mb-2">
-                  If you're using Advanced mode, you can try adjusting the stagger to correct the
-                  issue.
+                  If you're using Advanced mode, you can try adjusting the stagger, increasing the
+                  spacing, or adding outwards arc to correct the issue.
                   {#if confError.what != 'socket'}You can also try decreasing webMinThicknessFactor
                     in expert mode.{/if}
                 </p>
@@ -750,7 +758,7 @@
                 <p>To correct this issue, try adjusting the stagger or moving the keys around.</p>
               {/if}
             </div>
-            <div class="flex-0 pl-2">
+            <div class="flex-0 pl-2 absolute top-[1rem] right-[1.5rem]">
               <button on:click={() => (errorMsg = !errorMsg)}
                 ><Icon path={mdi.mdiArrowCollapseUp} /></button
               >
@@ -938,7 +946,12 @@
   </Dialog>
 {/if}
 {#if downloading}
-  <Dialog on:close={() => (downloading = false)}>
+  <Dialog
+    on:close={() => {
+      downloading = false
+      showAllFormats = false
+    }}
+  >
     <span slot="title">Download Your Model</span>
     <div slot="content" class="text-center">
       {#if isPro(config) && !($user.success && $user.sponsor)}
@@ -972,7 +985,7 @@
           STL Files: For 3D Printing
         </h2>
         <p class="mb-4 text-gray-500 dark:text-gray-200 max-w-lg mx-auto">
-          I recommend using PrusaSlicer for slicing if you can. Otherwise, ask in the <a
+          I recommend using PrusaSlicer or Cura for slicing if you can. Otherwise, ask in the <a
             class="text-teal-500 dark:text-teal-300 hover:underline"
             href="https://discord.gg/nXjqkfgtGy">Discord server</a
           > if your slicer has been tested!
@@ -1086,7 +1099,7 @@
             </div>
           {/if}
         </div>
-        <h2 class="my-2 text-xl text-teal-500 dark:text-teal-300 font-semibold">
+        <h2 class="mb-2 mt-8 text-xl text-teal-500 dark:text-teal-300 font-semibold">
           STEP Files: For CAD Programs
         </h2>
         <p class="mb-4 text-gray-500 dark:text-gray-200 max-w-lg mx-auto">
@@ -1095,31 +1108,6 @@
             href="https://discord.gg/nXjqkfgtGy">#faq</a
           > channel in Discord for importing instructions.
         </p>
-        <div class="flex items-center justify-center mb-2 gap-1">
-          <!-- svelte-ignore a11y-label-has-associated-control-->
-          <label class="flex items-center">
-            <Checkbox basic bind:value={stitchWalls} /> Stitch Walls (uncheck if using Fusion)
-          </label>
-          <div class="s-help" bind:this={referenceElementStitch}>
-            <Icon path={mdi.mdiHelpCircle} size="20px" />
-          </div>
-          <Popover
-            triggerEvents={['hover', 'focus']}
-            referenceElement={referenceElementStitch}
-            placement="top"
-            spaceAway={4}
-          >
-            <div
-              class="rounded bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 px-2 py-1 mx-2 max-w-xl"
-              in:fade={{ duration: 100 }}
-              out:fade={{ duration: 250 }}
-            >
-              Fusion does not correctly import the stitched walls. You must import the unstitched
-              version then stitch the wall surfaces together yourself. But don't worry–It only takes
-              a minute and there's a video in Discord!
-            </div>
-          </Popover>
-        </div>
         <div class="inline-flex items-center gap-2">
           <button class="button flex items-center gap-2" on:click={() => downloadSTEP(true)}
             ><Icon path={mdi.mdiHandBackLeft} />Left</button
@@ -1141,10 +1129,16 @@
             </p>
           {/if}
         {/if}
-        {#if flags.glb}
-          {#await import('./lib/GlbExport.svelte') then c}
-            <svelte:component this={c.default} {pool} {config} />
-          {/await}
+        {#if showAllFormats}
+          <GlbExport {pool} {config} />
+        {:else}
+          <p class="mt-6 mb-[-1rem]">
+            <button
+              on:click={() => (showAllFormats = true)}
+              class="text-gray-700 dark:text-gray-400 hover:text-teal-500 hover:dark:text-teal-300 hover:underline"
+              >More formats...</button
+            >
+          </p>
         {/if}
         {#if generatingSTEP || generatingSTL}
           <p class="mt-4">Generating... Please be patient.</p>
@@ -1190,13 +1184,13 @@
   }
 
   .errorMsg {
-    --at-apply: 'absolute text-white m-4 right-[80px] rounded p-4 top-[5%] bg-red-700 flex';
+    --at-apply: 'absolute text-white m-4 right-[80px] rounded p-4 top-[5%] flex';
   }
   .errorMsg.custom {
     --at-apply: 'top-[10%]';
   }
   .errorMsg.expand {
-    --at-apply: 'top-[5%] left-0 right-0 bg-red-700 block';
+    --at-apply: 'top-[5%] left-0 right-0 block';
   }
   .errorMsg.expand.custom {
     --at-apply: 'top-[20%] left-0';

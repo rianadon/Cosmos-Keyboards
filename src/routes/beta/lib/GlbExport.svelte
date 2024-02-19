@@ -6,11 +6,10 @@
   import type { WorkerPool } from './workerPool'
   import { newGeometry, type Cuttleform } from '$lib/worker/config'
   import { fromGeometry } from '$lib/loaders/geometry'
-  import { WebIO } from '@gltf-transform/core'
   import { download } from './browser'
   import { keyGeometries } from '$lib/loaders/keycaps'
   import { partGeometries } from '$lib/loaders/parts'
-  import { CaseMaterial, KeyMaterial, drawLetter } from '$lib/3d/materials'
+  import { drawLetter } from '$lib/3d/materials'
 
   export let pool: WorkerPool<typeof import('$lib/worker/api')>
   export let config: Cuttleform
@@ -23,34 +22,6 @@
     const geo = newGeometry(config)
     const keys = keyGeometries(geo.keyHolesTrsfs, config.keys)
     const switches = partGeometries(geo.keyHolesTrsfs, config.keys)
-
-    // Commented out since the keycap meshes are still not being processed correctly
-    // By gltf-transform.
-
-    // Anyways, this is the browser so the Three.js exporter works great.
-    // const doc = newDoc()
-    // const scene = doc.createScene()
-    // const buf = doc.createBuffer()
-    // scene.addChild(toGLTF(doc, buf, fromGeometry((await wall).mesh)!, 'Walls'))
-    // scene.addChild(toGLTF(doc, buf, fromGeometry((await web).mesh)!, 'Web'))
-    // scene.addChild(toGLTF(doc, buf, fromGeometry((await key).mesh)!, 'Keys'))
-    // scene.addChild(toGLTF(doc, buf, fromGeometry((await plate).top.mesh)!, 'Plate'))
-    //
-    // ;(await keys).forEach(k => {
-    //     const node = toGLTF(doc, buf, k.geometry, 'Key')
-    //     node.setMatrix(k.matrix.elements)
-    //     scene.addChild(node)
-    // })
-    // ;(await switches).forEach(k => {
-    //     const node = toGLTF(doc, buf, k.geometry, 'Key')
-    //     node.setMatrix(k.matrix.elements)
-    //     scene.addChild(node)
-    // })
-    //
-    // const io = new WebIO({credentials: 'include'})
-    // const glb = await io.writeBinary(doc)
-    // const blob = new Blob([glb], { type: 'model/gltf-binary' })
-    // download(blob, 'keyboard.glb')
 
     function node(name: string, geometry: THREE.BufferGeometry, material: THREE.Material) {
       const mesh = new THREE.Mesh(geometry, material)
@@ -106,7 +77,7 @@
   }
 </script>
 
-<h2 class="mb-2 mt-4 text-xl text-teal-500 dark:text-teal-300 font-semibold">
+<h2 class="mb-2 mt-8 text-xl text-teal-500 dark:text-teal-300 font-semibold">
   GLB Files: For Rendering
 </h2>
 <p class="text-gray-500 dark:text-gray-200 max-w-lg mx-auto">

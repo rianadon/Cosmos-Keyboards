@@ -95,9 +95,14 @@ export interface SpecificCuttleform<S> {
     side?: {
       /**
        * The tangents of the walls have length <segment length>/divisor.
-       * Smaller divisors make the walls more rounded.
+       * Smaller divisors make the walls more rounded. The default is 3.
        */
       divisor: number
+      /**
+       * A measure of how bowed out the boundaries of the model are.
+       * Should be greater than 1. The default is 1.5.
+       */
+      concavity: number
     }
     top?: {
       /** Length of the horizontal tangent of the top walls, at the top vertex. */
@@ -332,7 +337,7 @@ export function cuttleConf(c: DeepRequired<CuttleformProto>): Cuttleform {
     screwCountersink: c.wall.countersinkScrews,
     rounded: {
       top: c.wall.roundedTop ? { horizontal: 1 / 4, vertical: 2 / 3 } : undefined,
-      side: c.wall.roundedSide ? { divisor: 3 } : undefined,
+      side: c.wall.roundedSide ? { divisor: 3, concavity: 1.5 } : undefined,
     },
     connector: MAP_CONNECTOR[c.wall.connector],
     connectorSizeUSB: MAP_CONNECTOR_SIZE[c.wall.connectorSizeUsb],

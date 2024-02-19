@@ -2,13 +2,13 @@
 
 ## Getting Help
 
-You'll get the most help in the [Discord Server](https://discord.gg/nXjqkfgtGy), especially if you have questions related to using the generator or ergonomics. GitHub issues is discussion platform that can be used to report bugs, but I recommend you ask in the Discord Server first if you encouter problems.
+You'll get the most help in the [Discord Server](https://discord.gg/nXjqkfgtGy), especially if you have questions related to using the generator or ergonomics. You may also report bugs through GitHub Issues, but I recommend you ask in the Discord Server first if you encouter problems.
 
 ## Contributing
 
 Are you good at CAD and have a part you'd like to integrate into the generator? Or are you interested in improving the website? There are surely many people who would benefit from your contributions.
 
-Check the [GitHub Repository](https://github.com/rianadon/Cosmos-Keyboards) for instructions on how you can add to the generator.
+Check the [GitHub Repository](https://github.com/rianadon/Cosmos-Keyboards) and [Contributing Guide](./contributing.md) for instructions on how you can add to the generator.
 
 ## Frequently Asked Questions
 

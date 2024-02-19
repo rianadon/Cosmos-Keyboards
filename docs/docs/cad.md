@@ -28,9 +28,15 @@ Here's some things you can do with the STEP file:
 
     I encourage you to think about contributing your socket to Cosmos! You'll be able to customize the size of its cutout, ensure the mating part doesn't collide with the floor, and best of all many others will be able to benefit from your work. Even if you've never used GitHub before, I'm more than happy to answer dumb question about contributing.
 
+### Which CAD Software to Use?
+
+Cosmos is tested using both OnShape and Autodesk Fusion. Both are very capable and have free plans. If you're new to CAD I'd recommend OnShape since they have [great tutorials](https://learn.onshape.com/learning-paths/introduction-to-cad) and I personally find it a little more intuitive, but Fusion has much advanced features for [working with curved surfaces](https://www.youtube.com/watch?v=SYLJyOuDKmo) if that's something that interests you.
+
+Nevertheless, STEP is a standardized format and supported in every CAD software. I often use [FreeCAD](https://www.freecad.org/) and [Mayo](https://github.com/fougue/mayo) for viewing models.
+
 ### Import to OnShape
 
-I recommend you put everything in the same Part Studio (not required). OnShape may warn you that it encountered geometry errors while importing. Disregard this! The web that connects all the switch sockets will begin as bad geometry but will turn into good geometry once you boolean/union/join it with the rest of the model.
+I recommend you put everything in the same Part Studio (not required). OnShape may warn you that it encountered geometry errors while importing. This is to be expected while Cosmos is still in beta.
 
 ![OnShape configuration](../assets/onshape.png){width=50% .center}
 
@@ -38,9 +44,13 @@ To prepare the model for printing, I recommend you use the boolean tool, make su
 
 ### Import to Fusion
 
-Fusion incorrectly imports shells that have their walls stitched for some reason. When exporting a STEP file for fusion, make sure to uncheck the "stitch walls" option. Then use the stitch tool to stitch together the walls after importing. When you're done, combine all the solids together, right click the body in the outline view, then choose "Export Mesh" to create an STL file for printing.
+After importing to Fusion, each component of the keyboard (walls, web, key sockets, etc) will display in the outline as separate objects. It's often easiest to work on these parts separately, but if you'd like to fuse all the solids together, use the Combine tool.
 
 If there are geometry errors when combining, add the key slots one by one. You'll be able to figure out which one is causing problems, so you can go back to Cosmos and adjust it.
+
+To export the model for printing, right click the body in the outline view, then choose "Export Mesh" to create an STL file. Some old slicers require that you combine parts together, because they do not like working with STL files that have intersecting parts.
+
+_NOTE: This video is outdated. You no longer need to stitch the walls together._
 
 ![type:video](../assets/fusion.mp4)
 

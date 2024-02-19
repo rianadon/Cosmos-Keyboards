@@ -911,6 +911,7 @@ export function solveTriangularization(c: Cuttleform, pts2D: CriticalPoints[], p
     })
   }
   const lengthThresh = c.rounded.side ? 40 : undefined
+  const concavity = c.rounded.side?.concavity ?? 1.5
   if (opts.boundary) {
     // Special case: since the boundary is already fixed,
     // we can filter triangles inside the boundary using the knowledge that
@@ -934,7 +935,7 @@ export function solveTriangularization(c: Cuttleform, pts2D: CriticalPoints[], p
       innerBoundary: boundaryPts,
     }
   }
-  let { boundary, triangles } = concaveman(c, allTrsfs, allPts, allTris, bnd, bottomZ, worldZ, opts.noBadWalls, 1.5, lengthThresh, opts.noCut, opts.bottomPts2D)
+  let { boundary, triangles } = concaveman(c, allTrsfs, allPts, allTris, bnd, bottomZ, worldZ, opts.noBadWalls, concavity, lengthThresh, opts.noCut, opts.bottomPts2D)
   const innerBoundary: number[] = [...boundary]
   triangles = triangles.filter(([a, b, c]) => {
     // @ts-ignore
