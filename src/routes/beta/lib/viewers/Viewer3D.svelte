@@ -34,7 +34,7 @@
   import type { ConfError } from '$lib/worker/check'
   import Viewer from './Viewer.svelte'
   import Trsf from '$lib/worker/modeling/transformation'
-  import { protoConfig, transformMode, clickedKey } from '$lib/store'
+  import { protoConfig, transformMode, clickedKey, noBase } from '$lib/store'
   import HandModel from '$lib/3d/HandModel.svelte'
   import { FINGERS, type Joints, objectFromFingers, SolvedHand } from '../hand'
   import { refine } from '../handoptim'
@@ -61,6 +61,7 @@
   import Icon from '$lib/presentation/Icon.svelte'
   import KeyboardMesh from '$lib/3d/KeyboardMesh.svelte'
   import { Cuttleform_CustomThumb } from '$target/proto/cuttleform'
+  import Microcontroller from '$lib/3d/Microcontroller.svelte'
 
   export let showSupports = false
   export let style: string = ''
@@ -664,11 +665,6 @@
         )
       : undefined
 
-  $: boardGeos =
-    !error && conf?.microcontroller && geometry
-      ? boardGeometries(conf, geometry)
-      : Promise.resolve([])
-
   // $: matrices = conf ? allKeyCriticalPoints(conf, keyHolesTrsfs(conf, new Trsf())).flat().map(m => m.Matrix4()) : []
   // $: matrices = conf ? allWallCriticalPoints(conf, allKeyCriticalPoints(conf, keyHolesTrsfs(conf, new Trsf()))).map(m => m.ti.Matrix4()) : []
 </script>
@@ -813,11 +809,7 @@
           {error}
         />
       </Raycaster>
-      {#await boardGeos then boards}
-        {#each boards as board}
-          <KeyboardMesh kind="key" geometry={board} visible={!showSupports} />
-        {/each}
-      {/await}
+      {#if !$noBase}<Microcontroller {conf} {geometry} {showSupports} />{/if}
       <slot />
     </SC.Group>
   </svelte:fragment>

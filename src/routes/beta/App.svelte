@@ -42,11 +42,24 @@
   import VisualEditor from './lib/editor/VisualEditor.svelte'
   import { Vector3, type BufferGeometry } from 'three'
   import { estimatedCenter } from '$lib/worker/geometry'
-  import { codeError, flip, protoConfig, user, theme, showHand, stiltsMsg } from '$lib/store'
+  import {
+    codeError,
+    flip,
+    protoConfig,
+    user,
+    theme,
+    showHand,
+    stiltsMsg,
+    developer,
+    showTiming,
+    noWall,
+    noBase,
+  } from '$lib/store'
   import { onDestroy } from 'svelte'
   import { browser } from '$app/environment'
   import { hasPro } from '@pro'
   import GlbExport from './lib/GlbExport.svelte'
+  import ViewerDev from './lib/viewers/ViewerDev.svelte'
 
   let supportGeometries: BufferGeometry[] = []
   let center = [-35.510501861572266, -17.58449935913086, 35.66889877319336] as [
@@ -457,7 +470,7 @@
           on:click={() => (viewer = 'programming')}
           selected={viewer == 'programming'}>Program</Preset
         >
-        <div class="preset-overflow hidden xl:block">
+        <div class="preset-overflow <xl:hidden">
           <Preset
             purple
             class="relative z-10 !px-2"
@@ -470,17 +483,25 @@
             on:click={() => (viewer = 'thick')}
             selected={viewer == 'thick'}>Thickness</Preset
           >
-          {#if flags.timing}<Preset
+          {#if $showTiming}<Preset
               purple
               class="relative z-10 !px-2"
               on:click={() => (viewer = 'timing')}
               selected={viewer == 'timing'}>Timing</Preset
             >{/if}
+          {#if $developer}
+            <Preset
+              purple
+              class="relative z-10 !px-2"
+              on:click={() => (viewer = 'dev')}
+              selected={viewer == 'dev'}>Dev</Preset
+            >
+          {/if}
         </div>
         <Preset
           purple
           class="xl:hidden relative z-10 !px-2 flex items-center gap-2"
-          selected={viewer == 'board' || viewer == 'thick' || viewer == 'timing'}
+          selected={['board', 'thick', 'timing', 'dev'].includes(viewer)}
           bind:button={referenceElementTools}><Icon path={mdi.mdiToolboxOutline} /> ...</Preset
         >
         <input
@@ -525,12 +546,20 @@
               on:click={() => (viewer = 'thick')}
               selected={viewer == 'thick'}>Thickness</Preset
             >
-            {#if flags.timing}<Preset
+            {#if $showTiming}<Preset
                 purple
                 class="relative z-10 !px-2"
                 on:click={() => (viewer = 'timing')}
                 selected={viewer == 'timing'}>Timing</Preset
               >{/if}
+            {#if $developer}
+              <Preset
+                purple
+                class="relative z-10 !px-2"
+                on:click={() => (viewer = 'dev')}
+                selected={viewer == 'dev'}>Dev</Preset
+              >
+            {/if}
           </div>
         </Popover>
       </div>
@@ -551,24 +580,26 @@
           error={confError}
         >
           <KeyboardMesh kind="case" geometry={keyBuf} />
-          <KeyboardMesh kind="case" geometry={screwBaseBuf} />
-          <KeyboardMesh
-            kind="case"
-            geometry={holderBuf}
-            brightness={0.5}
-            opacity={0.9}
-            visible={!showSupports}
-          />
-          {#if !flags.noWall && !hideWall}<KeyboardMesh kind="case" geometry={wallBuf} />{/if}
+          {#if !$noWall && !hideWall}<KeyboardMesh kind="case" geometry={wallBuf} />{/if}
           <KeyboardMesh kind="case" geometry={webBuf} />
-          <KeyboardMesh kind="key" geometry={plateTopBuf} opacity={plateTopOpacity} />
-          <KeyboardMesh
-            kind="key"
-            geometry={plateBotBuf}
-            opacity={Math.pow((cTransparency - 50) / 50, 3)}
-          />
-          <KeyboardMesh kind="key" geometry={screwPlateBuf} opacity={plateScrewOpacity} />
-          <KeyboardMesh kind="key" geometry={wristBuf} opacity={cTransparency / 100} />
+          {#if !$noBase}
+            <KeyboardMesh kind="case" geometry={screwBaseBuf} />
+            <KeyboardMesh kind="key" geometry={plateTopBuf} opacity={plateTopOpacity} />
+            <KeyboardMesh
+              kind="key"
+              geometry={plateBotBuf}
+              opacity={Math.pow((cTransparency - 50) / 50, 3)}
+            />
+            <KeyboardMesh kind="key" geometry={screwPlateBuf} opacity={plateScrewOpacity} />
+            <KeyboardMesh kind="key" geometry={wristBuf} opacity={cTransparency / 100} />
+            <KeyboardMesh
+              kind="case"
+              geometry={holderBuf}
+              brightness={0.5}
+              opacity={0.9}
+              visible={!showSupports}
+            />
+          {/if}
           {#if showSupports}
             {#each supportGeometries as geo}
               <KeyboardMesh kind="case" geometry={geo} brightness={0.5} opacity={0.8} />
@@ -592,23 +623,25 @@
           {darkMode}
         >
           <KeyboardMesh kind="case" geometry={keyBuf} />
-          <KeyboardMesh kind="case" geometry={screwBaseBuf} />
-          <KeyboardMesh
-            kind="case"
-            geometry={holderBuf}
-            brightness={0.5}
-            opacity={0.9}
-            visible={!showSupports}
-          />
-          {#if !flags.noWall && !hideWall}<KeyboardMesh kind="case" geometry={wallBuf} />{/if}
-          <KeyboardMesh kind="key" geometry={plateTopBuf} opacity={plateTopOpacity} />
-          <KeyboardMesh
-            kind="key"
-            geometry={plateBotBuf}
-            opacity={Math.pow((cTransparency - 50) / 50, 3)}
-          />
-          <KeyboardMesh kind="key" geometry={screwPlateBuf} opacity={plateScrewOpacity} />
-          <KeyboardMesh kind="key" geometry={wristBuf} opacity={cTransparency / 100} />
+          {#if !$noWall && !hideWall}<KeyboardMesh kind="case" geometry={wallBuf} />{/if}
+          {#if !$noBase}
+            <KeyboardMesh kind="case" geometry={screwBaseBuf} />
+            <KeyboardMesh kind="key" geometry={plateTopBuf} opacity={plateTopOpacity} />
+            <KeyboardMesh
+              kind="key"
+              geometry={plateBotBuf}
+              opacity={Math.pow((cTransparency - 50) / 50, 3)}
+            />
+            <KeyboardMesh kind="key" geometry={screwPlateBuf} opacity={plateScrewOpacity} />
+            <KeyboardMesh kind="key" geometry={wristBuf} opacity={cTransparency / 100} />
+            <KeyboardMesh
+              kind="case"
+              geometry={holderBuf}
+              brightness={0.5}
+              opacity={0.9}
+              visible={!showSupports}
+            />
+          {/if}
           {#if showSupports}
             {#each supportGeometries as geo}
               <KeyboardMesh kind="case" geometry={geo} brightness={0.5} opacity={0.8} />
@@ -623,6 +656,8 @@
         <ViewerBottom {geometry} {darkMode} conf={config} {confError} />
       {:else if viewer == 'timing'}
         <ViewerTiming {pool} {darkMode} />
+      {:else if viewer == 'dev'}
+        <ViewerDev />
       {/if}
       {#if filament && config.shell?.type == 'basic'}
         <div

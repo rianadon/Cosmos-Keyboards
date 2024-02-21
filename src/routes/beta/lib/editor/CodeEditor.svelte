@@ -144,7 +144,7 @@
 
 <style>
   a[href]:not(.inline-block) {
-    --at-apply: 'text-teal';
+    --at-apply: 'text-teal-500 dark:text-teal-400';
   }
 
   a[href]:not(.inline-block):hover {

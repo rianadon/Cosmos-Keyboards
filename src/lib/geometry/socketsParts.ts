@@ -29,7 +29,7 @@ export function socketSize(key: CuttleKey): Vector {
   if (key.type == 'mx-pcb') return new Vector(19.2, 19.2, 4.7)
   if (key.type == 'mx-better') return new Vector(18, 18, 4.7)
   if (key.type == 'mx-hotswap') return new Vector(18, 18, 5.85)
-  if (key.type == 'choc') return new Vector(18, 18, 2.2)
+  if (key.type == 'choc') return new Vector(17.5, 16.5, 2.2)
   if (key.type == 'ec11') return new Vector(14.5, 14.5, 4.5)
   if (key.type == 'evqwgd001') return new Vector(19.2, 19.2, 4.7)
   if (key.type == 'oled-128x32-0.91in-adafruit') return new Vector(22.044, 33.22, 5)
