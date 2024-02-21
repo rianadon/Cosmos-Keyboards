@@ -2,7 +2,7 @@
   import * as THREE from 'three'
 
   import Viewer from './Viewer.svelte'
-  import { estimatedCenter, reinforceTriangles } from '$lib/worker/geometry'
+  import { estimatedCenter, reinforceTriangles, flipAllTriangles } from '$lib/worker/geometry'
   import { rectangle, drawLinedWall, drawWall } from './viewerHelpers'
   import { boundingSize } from '$lib/loaders/geometry'
 
@@ -43,7 +43,8 @@
     )
 
     const cPts = geo.allKeyCriticalPoints
-    const { triangles, allPts2D, boundary } = reinforceTriangles(conf, geo, cPts)
+    const otriangles = flipAllTriangles(geo.solveTriangularization.triangles, cPts.flat())
+    const { triangles, allPts2D, boundary } = reinforceTriangles(conf, geo, otriangles, cPts)
     // const allPts2D = geo.allKeyCriticalPoints2D.flat()
     // const { triangles, boundary } = geo.solveTriangularization
     const allProj = allPts2D.map((p) => p.xy())

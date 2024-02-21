@@ -265,7 +265,7 @@ function angleAbout(v1: Vector, v2: Vector, about: Vector) {
 }
 
 /** Flip a triangle across edge e0 -> e1. v and vTri represent triangleMap[e0][e1] */
-function maybeFlip(v: number, vTri: number, e0: number, e1: number, triangles: number[][], triangleMap: ReturnType<typeof createTriangleMap>, allPts: Trsf[]) {
+function maybeFlip(v: number, vTri: number, e0: number, e1: number, triangles: number[][], triangleMap: ReturnType<typeof createTriangleMap>, allPts: Trsf[], ignore2 = false) {
   const adj = triangleMap[e1] ? triangleMap[e1][e0] : undefined
   if (!adj) return
 
@@ -281,26 +281,43 @@ function maybeFlip(v: number, vTri: number, e0: number, e1: number, triangles: n
   // Delaunay condition: opposite angles must add to less than 180 degrees
   // If this is not true, the edge should be flipped to produce better triangles.
   if (angle1 + angle2 > Math.PI) {
-    const ang1 = angleAbout(triangleNormTrsf(allPts[v], allPts[e0], allPts[e1]), triangleNormTrsf(allPts[e1], allPts[e0], allPts[adjP]), _s0.subVectors(pe1, pe0))
-    const ang2 = angleAbout(triangleNormTrsf(allPts[adjP], allPts[e1], allPts[v]), triangleNormTrsf(allPts[e0], allPts[adjP], allPts[v]), _s0.subVectors(pV, pAdj))
+    if (!ignore2) {
+      const ang1 = angleAbout(triangleNormTrsf(allPts[v], allPts[e0], allPts[e1]), triangleNormTrsf(allPts[e1], allPts[e0], allPts[adjP]), _s0.subVectors(pe1, pe0))
+      const ang2 = angleAbout(triangleNormTrsf(allPts[adjP], allPts[e1], allPts[v]), triangleNormTrsf(allPts[e0], allPts[adjP], allPts[v]), _s0.subVectors(pV, pAdj))
 
-    // Seocnd condition: The mesh with the flipped edge must be more "convex" than the original one.
-    // i.e. the angle between the two faces, from normal to normal, must have increased.
-    if (ang2 > ang1) {
-      triangles[vTri] = [adjP, e1, v]
-      triangles[adjTri] = [e0, adjP, v]
-
-      // Update the triangle map
-      delete triangleMap[e0][e1]
-      delete triangleMap[e1][e0]
-      if (!triangleMap[v]) triangleMap[v] = {}
-      if (!triangleMap[adjP]) triangleMap[adjP] = {}
-      triangleMap[v][adjP] = [e1, vTri]
-      triangleMap[adjP][v] = [e0, adjTri]
-      return true
+      // Seocnd condition: The mesh with the flipped edge must be more "convex" than the original one.
+      // i.e. the angle between the two faces, from normal to normal, must have increased.
+      if (ang2 < ang1) return false
     }
+
+    triangles[vTri] = [adjP, e1, v]
+    triangles[adjTri] = [e0, adjP, v]
+
+    // Update the triangle map
+    delete triangleMap[e0][e1]
+    delete triangleMap[e1][e0]
+    if (!triangleMap[v]) triangleMap[v] = {}
+    if (!triangleMap[adjP]) triangleMap[adjP] = {}
+    triangleMap[v][adjP] = [e1, vTri]
+    triangleMap[adjP][v] = [e0, adjTri]
+    return true
   }
   return false
+}
+
+export function flipAllTriangles(triangles: number[][], allPts: Trsf[]) {
+  triangles = [...triangles]
+  const triangleMap = createTriangleMap(triangles)
+  let tally = 0
+  for (const a of Object.keys(triangleMap) as any as number[]) {
+    for (const b of Object.keys(triangleMap[a]) as any as number[]) {
+      if (b > a) {
+        if (maybeFlip(triangleMap[a][b][0], triangleMap[a][b][1], a, b, triangles, triangleMap, allPts, true)) tally++
+      }
+    }
+  }
+  console.debug('Initial flip:', tally)
+  return triangles
 }
 
 /**
@@ -321,7 +338,7 @@ function maybeFlip(v: number, vTri: number, e0: number, e1: number, triangles: n
  * and the offset of the right side. This adds a little more flexibility in the kind of geometry this method
  * can tackle.
  */
-export function reinforceTriangles(c: Cuttleform, geo: Geometry, allPolys: CriticalPoints[], top = true, walls?: WallCriticalPoints[]) {
+export function reinforceTriangles(c: Cuttleform, geo: Geometry, triangles: number[][], allPolys: CriticalPoints[], top = true, walls?: WallCriticalPoints[]) {
   // addExtraWallsForExtremeAngles(c, geo, allPolys, walls)
 
   const keyIdx = allPolys.flatMap((p, i) => p.map(_ => i))
@@ -329,7 +346,7 @@ export function reinforceTriangles(c: Cuttleform, geo: Geometry, allPolys: Criti
   const trsfs = allPolys.flatMap((p, i) => p.map(_ => geo.keyHolesTrsfs[i]))
   const allPts = allPolys.flat()
   const allPts2D = geo.allKeyCriticalPoints2D.flat()
-  let { boundary, triangles, removedTriangles, innerBoundary } = geo.solveTriangularization
+  let { boundary, removedTriangles, innerBoundary } = geo.solveTriangularization
   const extraWalls: number[][] = []
 
   // Clone a few parameters that will be modified. Side effects are a no-no!

@@ -17,7 +17,7 @@ import { Vector } from './modeling/transformation'
 import ETrsf, { KEY_BASE } from './modeling/transformation-ext'
 import { DefaultMap, filterObj, mapObj, sum } from './util'
 
-export { reinforceTriangles } from './geometry.thickWebs'
+export { flipAllTriangles, reinforceTriangles } from './geometry.thickWebs'
 
 const Zv = new Vector(0, 0, 1)
 

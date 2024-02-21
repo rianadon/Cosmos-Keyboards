@@ -22,7 +22,7 @@ import {
   wallSurfacesInner,
   webThickness,
 } from './geometry'
-import { shiftWalls } from './geometry.thickWebs'
+import { flipAllTriangles, shiftWalls } from './geometry.thickWebs'
 import { PLATE_HEIGHT } from './model'
 import Trsf from './modeling/transformation'
 import { Vector } from './modeling/transformation'
@@ -82,8 +82,9 @@ export class BaseGeometry<C extends Cuttleform = SpecificCuttleform<BasicShell>>
     const walls = this.allWallCriticalPointsBase()
     const topCPts = this.allKeyCriticalPoints
     const botCPts = topCPts.map((pts, i) => pts.map(t => t.pretranslated(0, 0, -webThickness(this.c, this.c.keys[i]))))
-    const topReinf = reinforceTriangles(this.c, this, topCPts, true, walls)
-    const botReinf = reinforceTriangles(this.c, this, botCPts, false, walls)
+    const triangles = flipAllTriangles(this.solveTriangularization.triangles, topCPts.flat())
+    const topReinf = reinforceTriangles(this.c, this, triangles, topCPts, true, walls)
+    const botReinf = reinforceTriangles(this.c, this, triangles, botCPts, false, walls)
     return { topReinf, botReinf, topCPts, botCPts }
   }
 
