@@ -20,7 +20,7 @@
   import { flip } from '$lib/store'
 
   export let conf: Cuttleform
-  export let geometry: Geometry
+  export let geometry: Geometry | null
   export let confError: ConfError | undefined
   export let style: string = ''
   export let darkMode: boolean
@@ -125,7 +125,7 @@
     //   }))
     // )
 
-    if (conf.microcontroller) {
+    if (conf.microcontroller && geo.connectorOrigin) {
       const connOrigin = geo.connectorOrigin
 
       const hBnd = localHolderBounds(conf, false)

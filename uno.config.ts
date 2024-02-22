@@ -8,6 +8,7 @@ export default defineConfig({
   },
   rules: [
     ['align-[-18%]', { 'vertical-align': '-18%' }],
+    ['text-sm', { 'font-size': '0.9rem', 'line-height': '1.25rem' }],
   ],
   theme: {
     colors: {

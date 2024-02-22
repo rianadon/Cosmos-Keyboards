@@ -80,7 +80,7 @@
   export let error: ConfError | undefined
   export let geometry: Geometry | null
 
-  export let conf: Cuttleform
+  export let conf: Cuttleform | undefined
 
   let pressedLetter: string | null = null
   let raycast

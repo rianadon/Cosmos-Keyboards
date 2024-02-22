@@ -25,8 +25,8 @@
   export let flip = true
   export let darkMode: boolean
 
-  export let conf: Cuttleform
-  export let geometry: Geometry
+  export let conf: Cuttleform | undefined
+  export let geometry: Geometry | null
 
   let pressedLetter: string | null = null
 
@@ -40,8 +40,8 @@
     return ind
   }
 
-  function webMesh(c: Cuttleform, geo: Geometry, darkMode: boolean) {
-    if (!conf) return { group: null, minThickness: 0, maxThickness: 0, thicknessRange: 0 }
+  function webMesh(c: Cuttleform | undefined, geo: Geometry | null, darkMode: boolean) {
+    if (!c || !geo) return { group: null, minThickness: 0, maxThickness: 0, thicknessRange: 0 }
 
     const { topReinf, botReinf } = geo.reinforcedTriangles
 

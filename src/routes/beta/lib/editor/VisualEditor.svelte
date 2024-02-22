@@ -40,7 +40,7 @@
 
   export let cuttleformConf: CuttleformProto
   export let conf: Cuttleform
-  export let geometry: Geometry
+  export let geometry: Geometry | null
   export let basic: boolean
 
   $: protoConfig.set(cuttleformConf)
@@ -50,18 +50,6 @@
 
   function goAdvanced() {
     dispatch('goAdvanced')
-  }
-
-  function loadPreset(preset: any) {
-    dispatch(
-      'preset',
-      JSON.parse(
-        JSON.stringify({
-          ...manuform.options,
-          ...preset.options,
-        })
-      )
-    )
   }
 
   let lastWristRest = defaults.options.wall.wristRest

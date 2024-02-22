@@ -73,7 +73,7 @@ export function isWarning(e: ConfError) {
   return e.type == 'wallBounds' || (e.type == 'intersection' && e.what == 'socket')
 }
 
-export function checkConfig(conf: Cuttleform, geometry: Geometry, check3d = true): ConfError | null {
+export function checkConfig(conf: Cuttleform, geometry: Geometry, check3d = true): ConfError | undefined {
   if (!conf.keys.length) return { type: 'nokeys' }
 
   for (const key of conf.keys) {
@@ -146,8 +146,6 @@ export function checkConfig(conf: Cuttleform, geometry: Geometry, check3d = true
     console.error(e)
     return { type: 'exception', when: 'positioning the board', error: e as Error }
   }
-
-  return null
 }
 
 // export function* holeIntersections(polys: Vector2[][]): Generator<IntersectionError> {

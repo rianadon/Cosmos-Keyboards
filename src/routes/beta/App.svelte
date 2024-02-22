@@ -10,12 +10,10 @@
   import KeyboardMesh from '$lib/3d/KeyboardMesh.svelte'
   import Popover from 'svelte-easy-popover'
   import Icon from '$lib/presentation/Icon.svelte'
-  import Checkbox from '$lib/presentation/Checkbox.svelte'
   import * as mdi from '@mdi/js'
   import { boundingSize, fromGeometry } from '$lib/loaders/geometry'
-  import { estimateFilament, SUPPORTS_DENSITY } from './lib/filament'
+  import { estimateFilament, SUPPORTS_DENSITY, type FilamentEstimate } from './lib/filament'
   import * as flags from '$lib/flags'
-  import { trackEvent } from '$lib/telemetry'
   import Performance from './lib/Performance.svelte'
 
   import UrlView from './lib/dialogs/URLView.svelte'
@@ -30,7 +28,6 @@
   import DarkTheme from './lib/DarkTheme.svelte'
   import { serialize, deserialize } from './lib/serialize'
 
-  import { download } from './lib/browser'
   import { WorkerPool, type TaskError } from './lib/workerPool'
   import {
     newGeometry,
@@ -38,7 +35,7 @@
     type CuttleformProto,
     type Geometry,
   } from '$lib/worker/config'
-  import { checkConfig, isPro, type ConfError, isRenderable, isWarning } from '$lib/worker/check'
+  import { checkConfig, type ConfError, isRenderable, isWarning } from '$lib/worker/check'
   import VisualEditor from './lib/editor/VisualEditor.svelte'
   import { Vector3, type BufferGeometry } from 'three'
   import { estimatedCenter } from '$lib/worker/geometry'
@@ -58,8 +55,8 @@
   import { onDestroy } from 'svelte'
   import { browser } from '$app/environment'
   import { hasPro } from '@pro'
-  import GlbExport from './lib/GlbExport.svelte'
   import ViewerDev from './lib/viewers/ViewerDev.svelte'
+  import DownloadDialog from './lib/dialogs/DownloadDialog.svelte'
 
   let supportGeometries: BufferGeometry[] = []
   let center = [-35.510501861572266, -17.58449935913086, 35.66889877319336] as [
@@ -68,10 +65,9 @@
     number
   ]
   let size = new Vector3(140, 120, 100)
-  let filament
+  let filament: FilamentEstimate | undefined
   let referenceElement
-  let referenceElementTools
-  let referenceElementStitch
+  let referenceElementTools: HTMLButtonElement
   let darkMode: boolean
 
   let proOpen = false
@@ -90,13 +86,10 @@
     //  state = deserialize(location.hash.substring(1), cuttleform);
   }
 
-  let logs = []
-
   let ocError: TaskError | undefined
   let modelOpacity = 1
   let confError: ConfError | undefined
   let showSupports = false
-  let showAllFormats = false
 
   let mode = state.content ? 'advanced' : 'basic'
   let viewer = '3d'
@@ -123,7 +116,6 @@
     return new Worker(new URL('$lib/worker?worker', import.meta.url), { type: 'module' })
   })
   onDestroy(() => pool.reset())
-  let webMeshId = ''
 
   $: if ($protoConfig || (mode == 'advanced' && editorContent))
     try {
@@ -153,70 +145,7 @@
   //$: config = cuttleConf(state.options)
   let config: Cuttleform
   let geometry: Geometry | null = null
-  $: if (config && browser) process(config, $theme).catch((e) => console.error(e))
-
-  let generatingSTEP = false
-  let generatingSTL = false
-  let generatingError: Error | undefined
-
-  function downloadSTEP(flip: boolean) {
-    const begin = window.performance.now()
-    generatingSTEP = true
-    pool
-      .executeNow((w) => w.getSTEP(config, flip, true) as Promise<Blob>)
-      .then(addMetadataToSTEP)
-      .then(
-        (blob) => {
-          trackEvent('cosmos-step', {
-            model: 'keyboard',
-            time: window.performance.now() - begin,
-          })
-          download(blob, 'keyboard' + (flip ? '-left' : '-right') + '.step')
-          generatingError = undefined
-          generatingSTEP = false
-        },
-        (e) => {
-          generatingSTEP = false
-          console.error(e)
-          generatingError = e
-        }
-      )
-  }
-
-  async function addMetadataToSTEP(blob: Blob) {
-    const text = await blob.text()
-    const replaced = text
-      .replace("FILE_DESCRIPTION(('Open CASCADE Model')", "FILE_DESCRIPTION(('Cosmos Model')")
-      .replace("FILE_NAME('Open CASCADE Shape Model'", `FILE_NAME('${location.href}'`)
-    return new Blob([replaced], { type: blob.type })
-  }
-
-  function downloadSTL(model: string, flip: boolean) {
-    const begin = window.performance.now()
-    generatingSTL = true
-    pool
-      .executeNow((w) => w.getSTL(config, model, flip) as Promise<Blob>)
-      .then(
-        (blob) => {
-          trackEvent('cosmos-stl', { model, time: window.performance.now() - begin })
-          download(blob, model + (flip ? '-left' : '-right') + '.stl')
-          generatingError = undefined
-          generatingSTL = false
-        },
-        (e) => {
-          generatingSTL = false
-          console.error(e)
-          generatingError = e
-        }
-      )
-  }
-
-  /** Unused: While technically valid, prusaslicer does not like trailing metadata. */
-  async function addMetadataToSTL(blob: Blob) {
-    const contents = await blob.arrayBuffer()
-    const trailing = '\0Exported from ' + location.href
-    return new Blob([contents, trailing], { type: blob.type })
-  }
+  $: if (config && browser) process(config).catch((e) => console.error(e))
 
   let wristBuf: BufferGeometry | undefined
   let plateTopBuf: BufferGeometry | undefined
@@ -236,7 +165,7 @@
       ]
     : []
 
-  function areDifferent(c1, c2) {
+  function areDifferent(c1: any, c2: any) {
     const differences = []
 
     for (const prop of new Set([...Object.keys(c1), ...Object.keys(c2)])) {
@@ -245,9 +174,9 @@
     return differences
   }
 
-  let oldConfig = null
-  async function process(conf: Cuttleform, theme) {
-    if (oldConfig) {
+  let oldConfig: Cuttleform | null = null
+  async function process(conf: Cuttleform) {
+    if (oldConfig && geometry) {
       const differences = areDifferent(oldConfig, conf)
       if (differences.length == 0) return
       oldConfig = conf
@@ -263,7 +192,7 @@
           ocError = undefined
         } catch (e) {
           console.error(e)
-          ocError = e
+          ocError = e as TaskError
         }
         return
       }
@@ -273,10 +202,7 @@
 
     geometry = newGeometry(conf)
     confError = checkConfig(conf, geometry)
-    if (confError && (confError.type != 'intersection' || confError.what == 'hole')) {
-      // modelOpacity = 0
-      return
-    }
+    if (confError) return
 
     const settings = conf
 
@@ -390,17 +316,8 @@
       ocError = undefined
     } catch (e) {
       console.error(e)
-      ocError = e
+      ocError = e as TaskError
     }
-  }
-
-  function loadPreset(s: any) {
-    for (const [k1, o1] of Object.entries(s)) {
-      for (const [k2, o2] of Object.entries(o1)) {
-        state.options[k1][k2] = o2
-      }
-    }
-    state = state
   }
 
   function setMode(newMode: string) {
@@ -609,17 +526,13 @@
       {:else if viewer == 'thick'}
         <Thick3D
           {geometry}
-          transparency={cTransparency}
           conf={isRenderable(confError) ? config : undefined}
           is3D
-          isExpert={mode == 'advanced'}
           {center}
           {size}
           style="opacity: {modelOpacity}"
           enableZoom={true}
           flip={$flip}
-          showHand={$showHand}
-          error={confError}
           {darkMode}
         >
           <KeyboardMesh kind="case" geometry={keyBuf} />
@@ -931,7 +844,6 @@
           cuttleformConf={state.options}
           bind:conf={config}
           bind:geometry
-          on:preset={(m) => loadPreset(m.detail)}
           on:goAdvanced={() => (mode = 'intermediate')}
         />
       {:else}
@@ -988,213 +900,15 @@
   </Dialog>
 {/if}
 {#if downloading}
-  <Dialog
-    on:close={() => {
+  <DownloadDialog
+    {config}
+    {pool}
+    on:close={() => (downloading = false)}
+    on:gopro={() => {
       downloading = false
-      showAllFormats = false
+      proOpen = true
     }}
-  >
-    <span slot="title">Download Your Model</span>
-    <div slot="content" class="text-center">
-      {#if isPro(config) && !($user.success && $user.sponsor)}
-        <p class="mb-2">
-          You're using some <span class="text-teal-500 dark:text-teal-400 font-bold">PRO</span> features
-          in this model.
-        </p>
-        <p>To download this model, sign up for a Pro account.</p>
-        {#if flags.login}
-          <button
-            class="flex items-center gap-2 border-2 px-3 py-1 rounded hover:shadow-md transition-shadow border-yellow-400 hover:bg-yellow-400/30 hover:shadow-yellow-400/30 mt-6 mx-auto"
-            on:click={() => {
-              downloading = false
-              proOpen = true
-            }}
-          >
-            <Icon
-              path={mdi.mdiStarShooting}
-              size="20px"
-              class="text-yellow-500 dark:text-yellow-300"
-            />
-            Get PRO
-          </button>
-        {:else}
-          <p class="mt-2">
-            Since I have not rolled out Pro accounts, please ping me on Discord with a link to your
-            model and I'll send you the files.
-          </p>{/if}
-      {:else}
-        <h2 class="mb-2 text-xl text-teal-500 dark:text-teal-300 font-semibold">
-          STL Files: For 3D Printing
-        </h2>
-        <p class="mb-4 text-gray-500 dark:text-gray-200 max-w-lg mx-auto">
-          I recommend using PrusaSlicer or Cura for slicing if you can. Otherwise, ask in the <a
-            class="text-teal-500 dark:text-teal-300 hover:underline"
-            href="https://discord.gg/nXjqkfgtGy">Discord server</a
-          > if your slicer has been tested!
-        </p>
-        <div class="columns-2">
-          <div class="break-inside-avoid">
-            <h3 class="mb-2 text-lg semibold text-black dark:text-white">Case/Shell</h3>
-            <div class="inline-flex items-center gap-2">
-              <button
-                class="button flex items-center gap-2"
-                on:click={() => downloadSTL('model', true)}
-                ><Icon path={mdi.mdiHandBackLeft} />Left</button
-              >
-              <button
-                class="button flex items-center gap-2"
-                on:click={() => downloadSTL('model', false)}
-                ><Icon path={mdi.mdiHandBackRight} />Right</button
-              >
-            </div>
-          </div>
-          <div class="break-inside-avoid">
-            <h3 class="mb-2 mt-4 text-lg semibold text-black dark:text-white">Plate</h3>
-            {#if config.shell.type == 'tilt' || config.shell.type == 'stilts'}
-              <div class="inline-flex items-center gap-2">
-                <button
-                  class="button flex items-center gap-2"
-                  on:click={() => downloadSTL('platetop', true)}
-                  ><Icon path={mdi.mdiHandBackLeft} />L / Top</button
-                >
-                <button
-                  class="button flex items-center gap-2"
-                  on:click={() => downloadSTL('platetop', false)}
-                  ><Icon path={mdi.mdiHandBackRight} />R / Top</button
-                >
-              </div>
-              <div class="inline-flex items-center gap-2 mt-2">
-                <button
-                  class="button flex items-center gap-2"
-                  on:click={() => downloadSTL('platebottom', true)}
-                  ><Icon path={mdi.mdiHandBackLeft} />L / Bot</button
-                >
-                <button
-                  class="button flex items-center gap-2"
-                  on:click={() => downloadSTL('platebottom', false)}
-                  ><Icon path={mdi.mdiHandBackRight} />R / Bot</button
-                >
-              </div>
-              <div class="text-sm opacity-70 text-center mt-2 pb-1">
-                Download both the Top and Bot models
-              </div>
-            {:else}
-              <div class="inline-flex items-center gap-2">
-                <button
-                  class="button flex items-center gap-2"
-                  on:click={() => downloadSTL('plate', true)}
-                  ><Icon path={mdi.mdiHandBackLeft} />Left</button
-                >
-                <button
-                  class="button flex items-center gap-2"
-                  on:click={() => downloadSTL('plate', false)}
-                  ><Icon path={mdi.mdiHandBackRight} />Right</button
-                >
-              </div>
-            {/if}
-          </div>
-          {#if config.microcontroller}
-            <div class="break-inside-avoid">
-              <h3 class="mb-2 mt-4 text-lg semibold text-black dark:text-white">
-                Microcontroller Holder
-              </h3>
-              <div class="inline-flex items-center gap-2">
-                <button
-                  class="button flex items-center gap-2"
-                  on:click={() => downloadSTL('holder', true)}
-                  ><Icon path={mdi.mdiHandBackLeft} />Left</button
-                >
-                <button
-                  class="button flex items-center gap-2"
-                  on:click={() => downloadSTL('holder', false)}
-                  ><Icon path={mdi.mdiHandBackRight} />Right</button
-                >
-              </div>
-            </div>
-          {/if}
-          {#if hasPro}
-            <div class="break-inside-avoid">
-              <h3 class="mb-2 mt-4 text-lg semibold text-black dark:text-white">Wrist Rest</h3>
-              {#if $user.success && $user.sponsor}
-                {#if config?.wristRest}
-                  <div class="inline-flex items-center gap-2">
-                    <button
-                      class="button flex items-center gap-2"
-                      on:click={() => downloadSTL('wristrest', true)}
-                      ><Icon path={mdi.mdiHandBackLeft} />Left</button
-                    >
-                    <button
-                      class="button flex items-center gap-2"
-                      on:click={() => downloadSTL('wristrest', false)}
-                      ><Icon path={mdi.mdiHandBackRight} />Right</button
-                    >
-                  </div>
-                {:else}
-                  None configured
-                {/if}
-              {:else}
-                <p class="mb-2">
-                  You need a <span class="text-teal-500 dark:text-teal-400 font-bold">PRO</span> account
-                  to download wrist rests.
-                </p>
-              {/if}
-            </div>
-          {/if}
-        </div>
-        <h2 class="mb-2 mt-8 text-xl text-teal-500 dark:text-teal-300 font-semibold">
-          STEP Files: For CAD Programs
-        </h2>
-        <p class="mb-4 text-gray-500 dark:text-gray-200 max-w-lg mx-auto">
-          These models are editable in Fusion and Onshape and include all parts. Check the <a
-            class="text-teal-500 dark:text-teal-300 hover:underline"
-            href="https://discord.gg/nXjqkfgtGy">#faq</a
-          > channel in Discord for importing instructions.
-        </p>
-        <div class="inline-flex items-center gap-2">
-          <button class="button flex items-center gap-2" on:click={() => downloadSTEP(true)}
-            ><Icon path={mdi.mdiHandBackLeft} />Left</button
-          >
-          <button class="button flex items-center gap-2" on:click={() => downloadSTEP(false)}
-            ><Icon path={mdi.mdiHandBackRight} />Right</button
-          >
-        </div>
-        {#if hasPro}
-          {#if !($user.success && $user.sponsor)}
-            <p class="mt-2">
-              A <span class="text-teal-500 dark:text-teal-400 font-bold">PRO</span> account will add
-              wrist rests will to this file.
-            </p>
-          {:else if !config?.wristRest}
-            <p class="mt-2">
-              Wrist rests will not be added to this assembly. Check "Show Wrists" rests in
-              basic/advanced view to enable them or add them to your expert mode configuration.
-            </p>
-          {/if}
-        {/if}
-        {#if showAllFormats}
-          <GlbExport {pool} {config} />
-        {:else}
-          <p class="mt-6 mb-[-1rem]">
-            <button
-              on:click={() => (showAllFormats = true)}
-              class="text-gray-700 dark:text-gray-400 hover:text-teal-500 hover:dark:text-teal-300 hover:underline"
-              >More formats...</button
-            >
-          </p>
-        {/if}
-        {#if generatingSTEP || generatingSTL}
-          <p class="mt-4">Generating... Please be patient.</p>
-        {:else if generatingError}
-          <div
-            class="bg-red-200 m-4 mb-2 rounded p-4 dark:bg-red-700 font-mono text-sm whitespace-pre-wrap"
-          >
-            {generatingError.message}
-          </div>
-          <p>Check the browser console for more details.</p>
-        {/if}
-      {/if}
-    </div>
-  </Dialog>
+  />
 {/if}
 
 <DarkTheme bind:darkMode />

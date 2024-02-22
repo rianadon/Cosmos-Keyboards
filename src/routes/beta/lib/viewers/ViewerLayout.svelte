@@ -11,7 +11,7 @@
   import { flip } from '$lib/store'
 
   export let conf: Cuttleform
-  export let geometry: Geometry
+  export let geometry: Geometry | null
   export let style: string = ''
   export let confError: ConfError | undefined
   export let darkMode: boolean
