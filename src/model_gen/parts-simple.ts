@@ -1,5 +1,5 @@
 import { fromGeometry } from '$lib/loaders/geometry'
-import { writeFile } from 'node:fs/promises'
+import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Sketcher } from 'replicad'
@@ -9,6 +9,7 @@ import { setup } from './node-model'
 import { ProcessPool } from './processPool'
 
 const targetDir = fileURLToPath(new URL('../../target', import.meta.url))
+const assetsDir = fileURLToPath(new URL('../../src/assets', import.meta.url))
 
 type Point = [number, number]
 
@@ -38,8 +39,18 @@ async function genPCB() {
   const geometry = fromGeometry(mesh)
   const exporter = new STLExporter()
   const binary = exporter.parse(new Mesh(geometry), { binary: true }) as any
-  await writeFile(join(targetDir, 'pcb.stl'), binary)
-  return { key: 'pcb', result: Buffer.from(binary.buffer).toString('base64') }
+  // await writeFile(join(targetDir, 'pcb.stl'), binary)
+  return { key: 'amoeba-king', result: Buffer.from(binary.buffer).toString('base64') }
+}
+
+async function genMX() {
+  const binary = await readFile(join(assetsDir, 'switch-mx-simple.stl'))
+  return { key: 'mx', result: binary.toString('base64') }
+}
+
+async function genChoc() {
+  const binary = await readFile(join(assetsDir, 'switch-choc-simple.stl'))
+  return { key: 'choc', result: binary.toString('base64') }
 }
 
 async function genKeys() {
@@ -50,6 +61,8 @@ async function genKeys() {
   if (pool.isWorker) await setup()
 
   pool.add('PCB', genPCB)
+  pool.add('MX', genMX)
+  pool.add('Choc', genChoc)
   await pool.run()
 
   const filename = join(targetDir, `sockets-simple.json`)

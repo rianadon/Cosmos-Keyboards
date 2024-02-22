@@ -56,6 +56,8 @@ export interface SpecificCuttleform<S> {
   /** Cosmos will try to ensure a minimum web thickness equal to this fraction of the given max web thickness. */
   webMinThicknessFactor: number
   keys: CuttleKey[]
+  /** The basis on which to compute  */
+  keySpacing: Keycap['profile']
   connector: 'usb' | 'trrs' | null
   connectorSizeUSB: 'slim' | 'average' | 'big'
   /** The index of the wall by which the connector is placed. */
@@ -331,6 +333,7 @@ export function cuttleConf(c: DeepRequired<CuttleformProto>): Cuttleform {
       ...fingers(c),
       ...thumbs(c),
     ]),
+    keySpacing: keycapType(c),
     screwIndices: c.wall.screwInserts ? c.wall.screwIndices.map(i => (i - 1)) : [],
     screwType: MAP_SCREW_TYPE[c.wall.screwType],
     screwSize: MAP_SCREW_SIZE[c.wall.screwSize],
@@ -722,8 +725,9 @@ export function fingers(c: DeepRequired<CuttleformProto>): CuttleKey[] {
   const stag = c.stagger
   // I need to remind myself that premultiply and translate apply their transformations last
   // While multiply and pretranslate go first.
-  const spreadOriginsBot = normalKeys.map(col => col.length > 0 ? keyPosition(col[col.length - 1], false).pretranslate(8.75, -8.75, 0).premultiply(keyPlaneInv) : null)
-  const spreadOriginsTop = normalKeys.map(col => col.length > 0 ? keyPosition(col[0], false).pretranslate(8.75, 8.75, 0).premultiply(keyPlaneInv) : null)
+  const posC = { keySpacing: keycapType(c) } as any
+  const spreadOriginsBot = normalKeys.map(col => col.length > 0 ? keyPosition(posC, col[col.length - 1], false).pretranslate(8.75, -8.75, 0).premultiply(keyPlaneInv) : null)
+  const spreadOriginsTop = normalKeys.map(col => col.length > 0 ? keyPosition(posC, col[0], false).pretranslate(8.75, 8.75, 0).premultiply(keyPlaneInv) : null)
   const spreadAngles = [stag.staggerInnerIndex, stag.staggerIndex, stag.staggerMiddle, stag.staggerRing, stag.staggerPinky].map(s => decodeTuple(s)[3] / 45)
   console.log(spreadAngles)
   normalKeys.forEach((col, i) => {

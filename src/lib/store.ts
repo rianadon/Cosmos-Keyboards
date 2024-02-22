@@ -21,6 +21,7 @@ export const developer = storable('developer', false)
 export const showTiming = andcondition(developer, storable('developer.timing', false))
 export const noWall = andcondition(developer, storable('developer.hideWall', false))
 export const noBase = andcondition(developer, storable('developer.hideBase', false))
+export const showKeyInts = andcondition(developer, storable('developer.showKeyInts', false))
 
 /** A Svelte store that writes and reads from localStorage. */
 function storable<T>(name: string, data: T): Writable<T> {

@@ -38,7 +38,7 @@
     type CuttleformProto,
     type Geometry,
   } from '$lib/worker/config'
-  import { checkConfig, isPro, type ConfError, isRenderable } from '$lib/worker/check'
+  import { checkConfig, isPro, type ConfError, isRenderable, isWarning } from '$lib/worker/check'
   import VisualEditor from './lib/editor/VisualEditor.svelte'
   import { Vector3, type BufferGeometry } from 'three'
   import { estimatedCenter } from '$lib/worker/geometry'
@@ -712,8 +712,8 @@
           class="errorMsg"
           class:expand={errorMsg}
           class:custom={$protoConfig && $protoConfig.thumbCluster.oneofKind == 'customThumb'}
-          class:bg-red-700={confError.type != 'wallBounds'}
-          class:bg-yellow-700={confError.type == 'wallBounds'}
+          class:bg-red-700={!isWarning(confError)}
+          class:bg-yellow-700={isWarning(confError)}
         >
           {#if errorMsg}<h3 class="font-bold">There is a problem with the configuration.</h3>{/if}
           {#if confError.type == 'invalid'}
@@ -772,8 +772,13 @@
                     down{#if confError.travel}&nbsp;with
                       {confError.travel[0]}mm of travel{/if}.
                   </p>
+                {:else if confError.what == 'part'}
+                  <p class="mb-2">Two of the parts (switches) intersect.</p>
                 {:else if confError.what == 'socket'}
-                  <p class="mb-2">Two of the key sockets intersect.</p>
+                  <p class="mb-2">
+                    Two of the key sockets intersect. This is ok, but the exported model will
+                    contain errors and might create problems when slicing.
+                  </p>
                 {/if}
                 <p class="mb-2">
                   If you're using Advanced mode, you can try adjusting the stagger, increasing the
@@ -805,6 +810,8 @@
                   Keycap + Walls Intersect
                 {:else if confError.what == 'keycap'}
                   Keycaps Intersect
+                {:else if confError.what == 'part'}
+                  Parts Intersect
                 {:else if confError.what == 'socket'}
                   Sockets Intersect
                 {/if}

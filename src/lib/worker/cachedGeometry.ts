@@ -28,7 +28,7 @@ import Trsf from './modeling/transformation'
 import { Vector } from './modeling/transformation'
 
 export class BaseGeometry<C extends Cuttleform = SpecificCuttleform<BasicShell>> {
-  constructor(protected c: C) {}
+  constructor(public c: C) {}
 
   @Memoize()
   get keyHolesTrsfs() {

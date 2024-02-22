@@ -12,14 +12,14 @@ import { keyHoleMeshes } from '$lib/loaders/sockets'
 import { wristRest } from '@pro/wristRest'
 import type { BufferAttribute } from 'three'
 import { getUser } from '../../routes/beta/lib/login'
-import { type ConfError, isPro, keycapIntersections, socketIntersections } from './check'
+import { ITriangle } from '../loaders/simplekeys'
+import { type ConfError, isPro, keycapIntersections, partIntersections, socketIntersections } from './check'
 import { type Cuttleform, newGeometry } from './config'
 import { boardHolder, cutWithConnector, keyHoles, makeConnector, makePlate, makerScrewInserts, makeWalls, type ScrewInsertTypes, webSolid } from './model'
 import { Assembly } from './modeling/assembly'
 import { blobSTL, combine } from './modeling/index'
 import { supportMesh } from './modeling/supports'
 import Trsf, { Vector } from './modeling/transformation'
-import { ITriangle } from './simplekeys'
 
 let oc: OpenCascadeInstance
 let web: Solid
@@ -323,10 +323,13 @@ export async function intersections(conf: Cuttleform): Promise<ConfError | undef
         )
       )
     const tris = [...toTriangles(topReinf), ...toTriangles(botReinf)]
-    for (const intersection of socketIntersections(conf, trsfs3d, geometry.allKeyCriticalPoints)) {
+    for (const intersection of keycapIntersections(conf, trsfs3d, tris)) {
       return intersection
     }
-    for (const intersection of keycapIntersections(conf, trsfs3d, tris)) {
+    for (const intersection of partIntersections(conf, trsfs3d)) {
+      return intersection
+    }
+    for (const intersection of socketIntersections(conf, trsfs3d, geometry.allKeyCriticalPoints)) {
       return intersection
     }
     if (geometry.reinforcedTriangles.topReinf.error) return geometry.reinforcedTriangles.topReinf.error

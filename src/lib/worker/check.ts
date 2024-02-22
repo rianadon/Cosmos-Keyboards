@@ -2,19 +2,20 @@ import { BOARD_PROPERTIES } from '$lib/geometry/microcontrollers'
 import { SCREWS } from '$lib/geometry/screws'
 import { socketSize } from '$lib/geometry/socketsParts'
 import { switchInfo } from '$lib/geometry/switches'
+import { simpleSocketTris } from '$lib/loaders/simpleparts'
 import type { Triangle } from 'three'
 import { Octree } from 'three/examples/jsm/math/Octree'
 import { Vector2 } from 'three/src/math/Vector2'
+import { calcTravel, ITriangle, simpleKey, simpleKeyPosition } from '../loaders/simplekeys'
 import type { Cuttleform, CuttleKey, Geometry } from './config'
 import type { CriticalPoints } from './geometry'
 import { intersectPolyPoly } from './geometry.intersections'
 import Trsf, { Vector } from './modeling/transformation'
 import ETrsf from './modeling/transformation-ext'
-import { ITriangle, simpleKey, simplekeyGeo, simpleTris } from './simplekeys'
 
 interface IntersectionError {
   type: 'intersection'
-  what: 'keycap' | 'socket'
+  what: 'keycap' | 'socket' | 'part'
   i: number
   j: number
   travel?: number[]
@@ -68,6 +69,10 @@ export function isRenderable(e: ConfError | undefined) {
   return e.type == 'intersection' || e.type == 'wallBounds'
 }
 
+export function isWarning(e: ConfError) {
+  return e.type == 'wallBounds' || (e.type == 'intersection' && e.what == 'socket')
+}
+
 export function checkConfig(conf: Cuttleform, geometry: Geometry, check3d = true): ConfError | null {
   if (!conf.keys.length) return { type: 'nokeys' }
 
@@ -105,9 +110,9 @@ export function checkConfig(conf: Cuttleform, geometry: Geometry, check3d = true
   const cpts = geometry.allKeyCriticalPoints2D
   const pts = cpts.map(a => a.map(x => new Vector2(...x.xy())))
 
-  for (const intersection of holeIntersections(pts)) {
-    return intersection
-  }
+  // for (const intersection of holeIntersections(pts)) {
+  //   return intersection
+  // }
 
   if (!check3d) return null
 
@@ -145,20 +150,20 @@ export function checkConfig(conf: Cuttleform, geometry: Geometry, check3d = true
   return null
 }
 
-export function* holeIntersections(polys: Vector2[][]): Generator<IntersectionError> {
-  for (let i = 0; i < polys.length; i++) {
-    for (let j = i + 1; j < polys.length; j++) {
-      if (intersectPolyPoly(polys[i], polys[j])) {
-        yield {
-          type: 'intersection',
-          what: 'hole',
-          i,
-          j,
-        }
-      }
-    }
-  }
-}
+// export function* holeIntersections(polys: Vector2[][]): Generator<IntersectionError> {
+//   for (let i = 0; i < polys.length; i++) {
+//     for (let j = i + 1; j < polys.length; j++) {
+//       if (intersectPolyPoly(polys[i], polys[j])) {
+//         yield {
+//           type: 'intersection',
+//           what: 'hole',
+//           i,
+//           j,
+//         }
+//       }
+//     }
+//   }
+// }
 
 /** Return triangles covering a prism defined by its top face & depth.
  * The triangle is centered at XY and extrudes down, like a socket */
@@ -178,24 +183,15 @@ function prismTriangles(facePoints: Trsf[], center: Trsf, depth: number, index: 
   })
 }
 
-function travel(k: CuttleKey) {
-  const swInfo = switchInfo(k.type)
-  return swInfo.height - swInfo.pressedHeight
-}
-
 export function* keycapIntersections(conf: Cuttleform, trsfs: Trsf[], web: ITriangle[]) {
   const tree = new Octree()
   for (const tri of web) {
     tree.addTriangle(tri)
   }
-  simplekeyGeo.update(() => [])
-  simpleTris.update(() => [])
   for (let i = 0; i < trsfs.length; i++) {
     const key = conf.keys[i]
-    if (key.type == 'blank' || key.type == 'ec11' || 'trackball' in key) continue
-    if (!('keycap' in key)) continue
-    const position = trsfs[i].pretranslated(0, 0, switchInfo(key.type).height).Matrix4()
-    const skey = simpleKey(key.keycap.profile, key.aspect, key.keycap.row, position, i, travel(key))
+    const position = simpleKeyPosition(key, trsfs[i])
+    const skey = simpleKey(key, position.Matrix4(), i, true)
     if (!skey) continue
     for (const triangle of skey) {
       tree.addTriangle(triangle)
@@ -203,6 +199,20 @@ export function* keycapIntersections(conf: Cuttleform, trsfs: Trsf[], web: ITria
   }
   tree.build()
   yield* treeIntersections(conf, tree, 'keycap')
+}
+
+export function* partIntersections(conf: Cuttleform, trsfs: Trsf[]) {
+  const tree = new Octree()
+  for (let i = 0; i < trsfs.length; i++) {
+    const key = conf.keys[i]
+    const skey = simpleSocketTris(key.type, trsfs[i].Matrix4(), i)
+    for (const triangle of skey) {
+      tree.addTriangle(triangle)
+    }
+  }
+  if (tree.triangles.length == 0) return
+  tree.build()
+  yield* treeIntersections(conf, tree, 'part')
 }
 
 export function* socketIntersections(conf: Cuttleform, trsfs: Trsf[], critPts: CriticalPoints[]) {
@@ -218,7 +228,7 @@ export function* socketIntersections(conf: Cuttleform, trsfs: Trsf[], critPts: C
   yield* treeIntersections(conf, tree, 'socket')
 }
 
-function* treeIntersections(conf: Cuttleform, tree: Octree, what: 'keycap' | 'socket'): Generator<ConfError> {
+function* treeIntersections(conf: Cuttleform, tree: Octree, what: 'keycap' | 'socket' | 'part'): Generator<ConfError> {
   const triangles = tree.triangles as ITriangle[]
   for (let i = 0; i < triangles.length; i++) {
     for (let j = 0; j < i; j++) {
@@ -226,9 +236,8 @@ function* treeIntersections(conf: Cuttleform, tree: Octree, what: 'keycap' | 'so
       if (tj == ti) continue
       if (doTrianglesIntersect(triangles[i], triangles[j])) {
         let trvl: number[] = []
-        if (ti >= 0) trvl.push(travel(conf.keys[ti]))
-        if (tj >= 0) trvl.push(travel(conf.keys[tj]))
-        simpleTris.update(t => [...t, triangles[i], triangles[j]])
+        if (ti >= 0) trvl.push(calcTravel(conf.keys[ti]))
+        if (tj >= 0) trvl.push(calcTravel(conf.keys[tj]))
         yield {
           type: 'intersection',
           what,

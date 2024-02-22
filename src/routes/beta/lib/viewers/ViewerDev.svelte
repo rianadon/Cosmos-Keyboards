@@ -1,6 +1,6 @@
-<script>
+<script lang="ts">
   import Checkbox from '$lib/presentation/Checkbox.svelte'
-  import { showTiming, noBase, noWall } from '$lib/store'
+  import { showTiming, noBase, noWall, showKeyInts } from '$lib/store'
 </script>
 
 <!-- svelte-ignore a11y-label-has-associated-control -->
@@ -13,5 +13,8 @@
   </label>
   <label class="flex items-center my-2">
     <Checkbox basic bind:value={$noBase} /> Hide Base
+  </label>
+  <label class="flex items-center my-2">
+    <Checkbox basic bind:value={$showKeyInts} /> Show Key Intersection Geometry
   </label>
 </div>

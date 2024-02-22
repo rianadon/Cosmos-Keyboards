@@ -89,27 +89,27 @@
           const x = j % q
           const y = Math.floor(j / q)
           if (x > 0) {
-            D[i * Q + j + 1][ii * Q + y * q + x - 1 + 1] += keyPosition(conf.keys[i])
+            D[i * Q + j + 1][ii * Q + y * q + x - 1 + 1] += keyPosition(conf, conf.keys[i])
               .origin()
-              .sub(keyPosition(conf.keys[ii]).origin())
+              .sub(keyPosition(conf, conf.keys[ii]).origin())
               .length()
           }
           if (y > 0) {
-            D[i * Q + j + 1][ii * Q + (y - 1) * q + x + 1] += keyPosition(conf.keys[i])
+            D[i * Q + j + 1][ii * Q + (y - 1) * q + x + 1] += keyPosition(conf, conf.keys[i])
               .origin()
-              .sub(keyPosition(conf.keys[ii]).origin())
+              .sub(keyPosition(conf, conf.keys[ii]).origin())
               .length()
           }
           if (x < q - 1) {
-            D[i * Q + j + 1][ii * Q + y * q + x + 1 + 1] += keyPosition(conf.keys[i])
+            D[i * Q + j + 1][ii * Q + y * q + x + 1 + 1] += keyPosition(conf, conf.keys[i])
               .origin()
-              .sub(keyPosition(conf.keys[ii]).origin())
+              .sub(keyPosition(conf, conf.keys[ii]).origin())
               .length()
           }
           if (y < q2 - 1) {
-            D[i * Q + j + 1][ii * Q + (y + 1) * q + x + 1] += keyPosition(conf.keys[i])
+            D[i * Q + j + 1][ii * Q + (y + 1) * q + x + 1] += keyPosition(conf, conf.keys[i])
               .origin()
-              .sub(keyPosition(conf.keys[ii]).origin())
+              .sub(keyPosition(conf, conf.keys[ii]).origin())
               .length()
           }
         }

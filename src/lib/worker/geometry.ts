@@ -14,7 +14,7 @@ import { intersectLineCircle, intersectPolyPoly, intersectPtPoly, intersectTriCi
 import { PLATE_HEIGHT, screwInsertDimensions } from './model'
 import Trsf from './modeling/transformation'
 import { Vector } from './modeling/transformation'
-import ETrsf, { KEY_BASE } from './modeling/transformation-ext'
+import ETrsf, { keyBase } from './modeling/transformation-ext'
 import { DefaultMap, filterObj, mapObj, sum } from './util'
 
 export { flipAllTriangles, reinforceTriangles } from './geometry.thickWebs'
@@ -723,12 +723,12 @@ export function connectorOrigin(c: Cuttleform, walls: WallCriticalPoints[], inne
   return originForConnector(c, walls, innerSurfaces, wall)
 }
 
-export function applyKeyAdjustment(k: CuttleKey, t: Trsf) {
+export function applyKeyAdjustment(c: Cuttleform, k: CuttleKey, t: Trsf) {
   const deg = keyInfo(k).tilt
   return t.cleared()
     .translate(0, 0, -keyInfo(k).depth - switchInfo(k.type).height)
     .rotate(deg, [0, 0, 0], [1, 0, 0])
-    .translate(0, 0, KEY_BASE)
+    .translate(0, 0, keyBase(c))
     .premultiply(t)
 }
 
@@ -760,7 +760,7 @@ function keyHoleTrsf(c: Cuttleform, k: CuttleKey, t: Trsf): Trsf {
     t
       .translate(0, -depth * Math.tan(deg * Math.PI / 180) / 2, -depth)
       .rotate(deg, [0, 0, 0], [1, 0, 0])
-      .translate(0, 0, KEY_BASE),
+      .translate(0, 0, keyBase(c)),
   )
 }
 

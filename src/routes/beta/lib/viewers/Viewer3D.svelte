@@ -34,7 +34,7 @@
   import type { ConfError } from '$lib/worker/check'
   import Viewer from './Viewer.svelte'
   import Trsf from '$lib/worker/modeling/transformation'
-  import { protoConfig, transformMode, clickedKey, noBase } from '$lib/store'
+  import { protoConfig, transformMode, clickedKey, noBase, showKeyInts } from '$lib/store'
   import HandModel from '$lib/3d/HandModel.svelte'
   import { FINGERS, type Joints, objectFromFingers, SolvedHand } from '../hand'
   import { refine } from '../handoptim'
@@ -46,7 +46,6 @@
   import ETrsf, { keyPosition, keyPositionTop } from '$lib/worker/modeling/transformation-ext'
   import { closestAspect, keyInfo } from '$lib/geometry/keycaps'
   import { switchInfo } from '$lib/geometry/switches'
-  import { simplekeyGeo, simpleTris } from '$lib/worker/simplekeys'
   import { KeyMaterial } from '$lib/3d/materials'
   import { boardGeometries } from '$lib/loaders/boardElement'
   import {
@@ -62,6 +61,9 @@
   import KeyboardMesh from '$lib/3d/KeyboardMesh.svelte'
   import { Cuttleform_CustomThumb } from '$target/proto/cuttleform'
   import Microcontroller from '$lib/3d/Microcontroller.svelte'
+  import { simpleSocketGeos } from '$lib/loaders/simpleparts'
+  import GroupMatrix from '$lib/3d/GroupMatrix.svelte'
+  import { simpleKeyGeo, simpleKeyPosition } from '$lib/loaders/simplekeys'
 
   export let showSupports = false
   export let style: string = ''
@@ -135,11 +137,12 @@
     '/': 'pinky',
   }
 
-  function reachability(keys: CuttleKey[], joints: Joints[], origin: Vector3) {
+  function reachability(conf: Cuttleform, joints: Joints[], origin: Vector3) {
+    const keys = conf.keys
     return keys.map((k) => {
       const finger = 'keycap' in k && k.keycap.letter ? fingersToKeys[k.keycap.letter] : 'thumb'
       const reach = joints[finger || 'thumb'].reduce((a, j) => a + j.length, 0) * 1000
-      const distance = pos15(k).distanceTo(origin)
+      const distance = pos15(conf, k).distanceTo(origin)
       return distance <= reach
     })
   }
@@ -204,7 +207,7 @@
       keycapType($protoConfig),
       new ETrsf()
     )
-    const adj = applyKeyAdjustment(key, new Trsf()).Matrix4()
+    const adj = applyKeyAdjustment(conf, key, new Trsf()).Matrix4()
 
     return new Matrix4().multiplyMatrices(m, adj)
   }
@@ -278,16 +281,16 @@
 
   const HAND_RADIUS = 2
 
-  const pos = (k: CuttleKey | undefined) =>
+  const pos = (c: Cuttleform, k: CuttleKey | undefined) =>
     k
-      ? keyPositionTop(k, false)
+      ? keyPositionTop(c, k, false)
           .pretranslated(0, 0, HAND_RADIUS)
           .origin()
           .sub(new Vector3(center[0], center[1], center[2] - addHeight))
       : undefined
-  const pos15 = (k: CuttleKey | undefined) =>
+  const pos15 = (c: Cuttleform, k: CuttleKey | undefined) =>
     k
-      ? keyPositionTop(k, false)
+      ? keyPositionTop(c, k, false)
           .pretranslated(
             0,
             0,
@@ -298,11 +301,11 @@
       : undefined
   function theBigFit() {
     return fit({
-      indexFinger: pos(findKeyByAttr(conf, 'home', 'index')),
-      middleFinger: pos(findKeyByAttr(conf, 'home', 'middle')),
-      ringFinger: pos(findKeyByAttr(conf, 'home', 'ring')),
-      pinky: pos(findKeyByAttr(conf, 'home', 'pinky')),
-      thumb: pos(findKeyByAttr(conf, 'home', 'thumb')),
+      indexFinger: pos(conf, findKeyByAttr(conf, 'home', 'index')),
+      middleFinger: pos(conf, findKeyByAttr(conf, 'home', 'middle')),
+      ringFinger: pos(conf, findKeyByAttr(conf, 'home', 'ring')),
+      pinky: pos(conf, findKeyByAttr(conf, 'home', 'pinky')),
+      thumb: pos(conf, findKeyByAttr(conf, 'home', 'thumb')),
     })
   }
   $: if (conf && jointsJSON) {
@@ -345,7 +348,7 @@
       const letter = sentence[index]
       const finger = fingersToKeys[letter]
       targets = fit({
-        [finger]: pos15(findKeyByAttr(conf, 'letter', letter)),
+        [finger]: pos15(conf, findKeyByAttr(conf, 'letter', letter)),
       })
       console.log('letter', pressedLetter)
     }
@@ -371,7 +374,7 @@
         if (f == fingersToKeys[pressedLetter]) {
           console.log('pl', pressedLetter)
           const key = findKeyByAttr(conf, 'letter', pressedLetter)
-          const ti = keyPosition(key, false)
+          const ti = keyPosition(conf, key, false)
             .translate(-center[0], -center[1], -center[2])
             .invert()
             .Matrix4()
@@ -405,7 +408,7 @@
     if (pressedLetter) {
       const finger = fingersToKeys[pressedLetter]
       fit({
-        [finger]: pos15(findKeyByAttr(conf, 'letter', pressedLetter)),
+        [finger]: pos15(conf, findKeyByAttr(conf, 'letter', pressedLetter)),
       })
     } else {
       theBigFit()
@@ -516,18 +519,6 @@
       : null
   )
   $: console.log('CLICKED', $clickedKey)
-
-  function simpleMeshh(tris: Triangle[]) {
-    const geo = new Float32Array(tris.length * 9)
-    tris.forEach(({ a, b, c }, i) => {
-      a.toArray(geo, i * 9)
-      b.toArray(geo, i * 9 + 3)
-      c.toArray(geo, i * 9 + 6)
-    })
-    const geometry = new BufferGeometry()
-    geometry.setAttribute('position', new BufferAttribute(geo, 3))
-    return geometry
-  }
 
   function makeKey(direction = 'current') {
     if (selectedKey == null) {
@@ -654,15 +645,9 @@
     })
   }
 
-  $: simpleMesh = simpleMeshh($simpleTris)
-
   $: reachabilityArr =
     conf && flags.hand && showHand && jointsJSON
-      ? reachability(
-          conf.keys,
-          jointsJSON[whichHand],
-          new Vector3().setFromMatrixPosition(handMatrix)
-        )
+      ? reachability(conf, jointsJSON[whichHand], new Vector3().setFromMatrixPosition(handMatrix))
       : undefined
 
   // $: matrices = conf ? allKeyCriticalPoints(conf, keyHolesTrsfs(conf, new Trsf())).flat().map(m => m.Matrix4()) : []
@@ -789,13 +774,27 @@
     {/if}
     <SC.Group position={[-center[0], -center[1], -center[2]]}>
       {#if flags.intersection && conf}
-        {#each $simplekeyGeo as g}
-          <SC.Mesh geometry={g} material={new KeyMaterial(1, 1, 'red')} />
-        {/each}
         {#each componentBoxes(conf, geometry) as box}
           <SC.Mesh geometry={componentGeometry(box)} material={new KeyMaterial(1, 1, 'red')} />
         {/each}
-        <SC.Mesh geometry={simpleMesh} material={new MeshBasicMaterial({ color: 0xff0000 })} />
+      {/if}
+      {#if $showKeyInts && geometry}
+        {#each conf.keys as k, i}
+          <GroupMatrix matrix={geometry.keyHolesTrsfs[i].Matrix4()}>
+            {#each simpleSocketGeos(k.type) as g}
+              <KeyboardMesh geometry={g} status="error" kind="key" />
+            {/each}
+            {@const skey = simpleKeyGeo(k, true)}
+            {#if skey}
+              <KeyboardMesh
+                geometry={skey}
+                status="error"
+                kind="key"
+                position={simpleKeyPosition(k, new Trsf()).origin().xyz()}
+              />
+            {/if}
+          </GroupMatrix>
+        {/each}
       {/if}
       <Raycaster on:click={raycasterClick} enabled={!!plane && raycast}>
         <Keyboard
