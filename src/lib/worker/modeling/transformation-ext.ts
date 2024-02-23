@@ -215,11 +215,11 @@ const sin = (x: number) => Math.sin(x * Math.PI / 180)
 
 /** The origin of the key (key.position) is positioned this far from the top */
 export function keyBase(c: Cuttleform) {
-  const sw: CuttleKey['type'] = c.keySpacing == 'choc' ? 'choc' : 'mx-better'
+  const sw: CuttleKey['type'] = c.keyBasis == 'choc' ? 'choc' : 'mx-better'
   const switchHeight = switchInfo(sw).height
-  const keyHeight = c.keySpacing
+  const keyHeight = c.keyBasis
     ? keyInfo({
-      keycap: { profile: c.keySpacing, row: 4 },
+      keycap: { profile: c.keyBasis, row: 4 },
     } as any).depth * 0.9
     : 14.3 - switchHeight // 14.3 is the old value of this function
   return switchHeight + keyHeight
