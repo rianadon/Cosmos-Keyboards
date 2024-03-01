@@ -13,12 +13,13 @@
  * All this is called through reinforceTriangles.
  */
 
+import { socketSize } from '$lib/geometry/socketsParts'
 import { switchInfo } from '$lib/geometry/switches'
 import { Matrix3 } from 'three/src/math/Matrix3'
 import type { ConfError } from './check'
 import { createTriangleMap, type TriangleMap } from './concaveman'
 import { doWallsIntersect } from './concaveman-extra'
-import type { Cuttleform, Geometry } from './config'
+import type { Cuttleform, CuttleKey, Geometry } from './config'
 import { type CriticalPoints, flattenKeyCriticalPoints, type WallCriticalPoints, webThickness } from './geometry'
 import { intersectPtPoly } from './geometry.intersections'
 import type Trsf from './modeling/transformation'
@@ -34,7 +35,7 @@ function triangleNorm(a: Vector, b: Vector, c: Vector, reverse = false) {
   if (reverse) norm.negate()
   return norm
 }
-function triangleNormTrsf(a: Trsf, b: Trsf, c: Trsf, reverse = false) {
+export function triangleNormTrsf(a: Trsf, b: Trsf, c: Trsf, reverse = false) {
   return triangleNorm(a.origin(), b.origin(), c.origin(), reverse)
 }
 
@@ -138,9 +139,16 @@ function calcThickness(thisTop: Trsf, thisThick: number, nextTop: Trsf, normal: 
   return Math.abs(ot * (pbt.y - pab.y) + pab.y * pbt.x) / Math.sqrt((ot - pbt.x) * (ot - pbt.x) + pbt.y * pbt.y)
 }
 
-// Allows the reinforcement, when set to the maximum, to clear nearby keycaps,
-// since the keycaps stick out from where the switch thing is
-const MAX_REINF_MARGIN = 1
+/**
+ * Calculate how much the key's edge will be offset outwards from the edge of the socket.
+ * This allows the reinforcement, when set to the maximum, to clear nearby keycaps,
+ * since the keycaps stick out from where the switch thing is
+ */
+function maxReinfMargin(key: CuttleKey) {
+  const keyWidth = (key.type == 'choc') ? 17.5 : 18.5
+  const socketWidth = socketSize(key).x
+  return (keyWidth - socketWidth) / 2 + 0.25
+}
 /**
  * Returns the needed amount of offset to reinforce a keyhole's surface.
  * thisTop and nextTop are the tops of both keypoints.
@@ -148,15 +156,18 @@ const MAX_REINF_MARGIN = 1
  * @param normal should point in the direction the offset is added.
  * @param binormal points in the direction of the keyhole's surface (i.e. the keyhole normal).
  */
-function reinforcementOffset(thisTop: Trsf, thisThick: number, nextTop: Trsf, nextTrsf: Trsf, normal: Vector, binormal: Vector, thickness: number, top: boolean) {
+function reinforcementOffset(thisTop: Trsf, thisThick: number, nextTop: Trsf, nextTrsf: Trsf, nextKey: CuttleKey, normal: Vector, binormal: Vector, thickness: number, top: boolean) {
+  // Use a rotation matrix to transform everything into the reference frame of the top socket
+  // X points in the direction of normal (the direction of the offset)
+  // Y points in the direction of binormal (up from the socket)
+  // Z is unused and will be all zeros. Everything in this reference frame is 2D.
   const rotation = new Matrix3().set(normal.x, normal.y, normal.z, binormal.x, binormal.y, binormal.z, 0, 0, 0)
   const _thisTop = thisTop.origin()
   const _thisBot = thisTop.origin().add(thisTop.axis(0, 0, top ? -thisThick : thisThick))
   const _nextTop = nextTop.origin()
-  // const _nextBot = nextTop.origin().add(nextTop.axis(0, 0, -nextThick))
-  const pab = _thisBot.sub(_thisTop).applyMatrix3(rotation)
-  const pbt = _nextTop.sub(_thisTop).applyMatrix3(rotation)
-  const nextAx = nextTop.axis(0, 0, 1).applyMatrix3(rotation)
+  const pab = _thisBot.sub(_thisTop).applyMatrix3(rotation) // Bottom point of first socket
+  const pbt = _nextTop.sub(_thisTop).applyMatrix3(rotation) // Top point of second socket
+  const nextAx = nextTop.axis(0, 0, 1).applyMatrix3(rotation) // Binormal of the second socket, in this frame
 
   // Find existing thickness. Break early if possible
   // This formula comes from the one below, but setting the added offset to zero
@@ -166,16 +177,18 @@ function reinforcementOffset(thisTop: Trsf, thisThick: number, nextTop: Trsf, ne
 
   // Bottom faces: don't cross the projected surface of the next key socket
   let projOffset = pbt.x - nextAx.x * pbt.y / nextAx.y
-  if (projOffset < -100) projOffset = thickness // In cases where the surface will never cross the projected surface, use thickness as offset.
+  if (nextAx.y * pbt.y < 0) projOffset = thickness // In cases where the surface will never cross the projected surface, use thickness as offset.
   if (projOffset < 0) projOffset = 0
+  projOffset = Math.max(thickness / 2, projOffset) // I've come to realize it's okay to have a little projOffset.
 
   // Compute the position of the adjacent keycap's corner.
-  // This is slightly simplified, as we assume the keycap extends in the direction of this keycap's normal.
+  // This is slightly simplified, as we assume the keycap extends in the direction of this socket's's normal.
   // i.e. we disregard the relative rotation of the next keycap
   let keyOffset = thickness
   // Only check when the next key is below this one and when key is facing in the right direction
   if (top && pbt.y < 0 && nextTop.origin().sub(nextTrsf.origin()).dot(normal) < 0) {
-    const _nextKeycap = nextTop.origin().addScaledVector(normal, -MAX_REINF_MARGIN).add(nextTop.axis(0, 0, switchInfo('mx-better').pressedHeight))
+    const margin = maxReinfMargin(nextKey)
+    const _nextKeycap = nextTop.origin().addScaledVector(normal, -margin).add(nextTop.axis(0, 0, switchInfo('mx-better').pressedHeight))
     const pkey = _nextKeycap.sub(_thisTop).applyMatrix3(rotation)
     keyOffset = pbt.x - pbt.y * (pkey.x - pbt.x) / (pkey.y - pbt.y)
     // If the key is facing the wrong direction, then ignore it.
@@ -187,7 +200,7 @@ function reinforcementOffset(thisTop: Trsf, thisThick: number, nextTop: Trsf, ne
   const maxOffset = top ? keyOffset : projOffset
 
   // This equation is derived from the distance between two parallel lines, but solving for x offset given the distance.
-  // Also simultaneously solving for both the top offset and bottom offset (they can be different) such that the two lines are parallel.
+  // This results in a quadratic equation.
   // Note: I don't care about the bottom offset, so s0 and s1 are the two solutions for the quadratic equation of top offset.
   // Solve t^2 = b^2/(m^2 + 1) for s
   // Unfortunately, I cannot simplify more than this.
@@ -198,17 +211,16 @@ function reinforcementOffset(thisTop: Trsf, thisThick: number, nextTop: Trsf, ne
   const denom = thickSq - pabypbtSq
   const s0 = (firstTerm + pmTerm) / denom
   const s1 = (firstTerm - pmTerm) / denom
-  // console.log(firstTerm / denom, pmTerm / denom)
-  if (isNaN(pmTerm)) return maxOffset
-  if (s0 < 0 && s1 < 0) return 0
+  if (isNaN(pmTerm)) return maxOffset // No solution found
+  if (s0 < 0 && s1 < 0) return maxOffset / 2
   if (s0 < 0) return Math.min(s1, maxOffset)
   if (s1 < 0) return Math.min(s0, maxOffset)
   return Math.min(s0, s1, maxOffset)
 }
 
 /** Unused: this solves for the point at the end of the arc going from key top -> adjusted segment. */
-function reinforcementOffsetVec(thisTop: Trsf, thisThick: number, nextTop: Trsf, nextTrsf: Trsf, normal: Vector, binormal: Vector, thickness: number, top: boolean) {
-  const offset = reinforcementOffset(thisTop, thisThick, nextTop, nextTrsf, normal, binormal, thickness, top)
+function reinforcementOffsetVec(thisTop: Trsf, thisThick: number, nextTop: Trsf, nextTrsf: Trsf, nextKey: CuttleKey, normal: Vector, binormal: Vector, thickness: number, top: boolean) {
+  const offset = reinforcementOffset(thisTop, thisThick, nextTop, nextTrsf, nextKey, normal, binormal, thickness, top)
   const rotation = new Matrix3().set(normal.x, normal.y, normal.z, binormal.x, binormal.y, binormal.z, 0, 0, 0)
   const _thisTop = thisTop.origin()
   const _nextTop = nextTop.origin()
@@ -344,6 +356,7 @@ export function reinforceTriangles(c: Cuttleform, geo: Geometry, triangles: numb
   const keyIdx = allPolys.flatMap((p, i) => p.map(_ => i))
   const thickness = allPolys.flatMap((p, i) => p.map(_ => webThickness(c, c.keys[i])))
   const trsfs = allPolys.flatMap((p, i) => p.map(_ => geo.keyHolesTrsfs[i]))
+  const keys = allPolys.flatMap((p, i) => p.map(_ => c.keys[i]))
   const allPts = allPolys.flat()
   const allPts2D = geo.allKeyCriticalPoints2D.flat()
   let { boundary, removedTriangles, innerBoundary } = geo.solveTriangularization
@@ -401,8 +414,8 @@ export function reinforceTriangles(c: Cuttleform, geo: Geometry, triangles: numb
       const oppPrevOk = opposites[0] >= 0 ? angleAbout(normal, originalPts[opposites[0]].origin().sub(originalPts[oPi1].origin()), tangent) > 0 : false
       const oppNextOk = opposites[1] >= 0 ? angleAbout(normal, originalPts[opposites[1]].origin().sub(originalPts[oPi2].origin()), tangent) > 0 : false
       // Calculate the offsets
-      let offsetPrev = oppPrevOk ? reinforcementOffset(originalPts[oPi1], th(oPi1), originalPts[opposites[0]], trsfs[opposites[0]], normal, binormal, f * th(pi1), top) : 0
-      let offsetNext = oppNextOk ? reinforcementOffset(originalPts[oPi2], th(oPi2), originalPts[opposites[1]], trsfs[opposites[1]], normal, binormal, f * th(pi2), top) : 0
+      let offsetPrev = oppPrevOk ? reinforcementOffset(originalPts[oPi1], th(oPi1), originalPts[opposites[0]], trsfs[opposites[0]], keys[opposites[0]], normal, binormal, f * th(pi1), top) : 0
+      let offsetNext = oppNextOk ? reinforcementOffset(originalPts[oPi2], th(oPi2), originalPts[opposites[1]], trsfs[opposites[1]], keys[opposites[1]], normal, binormal, f * th(pi2), top) : 0
 
       // For 2D
       const tangent2 = allPts2D[pi2].origin().sub(allPts2D[pi1].origin())
@@ -504,24 +517,24 @@ export function reinforceTriangles(c: Cuttleform, geo: Geometry, triangles: numb
     removedTriangles,
     thickness: newThicknesses,
     wallOffsets: newWallOffsets,
-    error: checkBounds(keyIdx, boundary, allPts2D, triangleMap),
   }
 }
 
-/** Returns an error if any of the thickened points lie outside the boundary. This is a sign of bad geometry */
-function checkBounds(keyIdx: number[], boundary: number[], pts2D: Trsf[], triangleMap: TriangleMap): ConfError | undefined {
-  boundary = [...boundary] // Clone the boundary
-  let boundaryPts = boundary.map(b => pts2D[b].xy())
-  for (let i = 0; i < boundary.length; i++) {
-    const b1 = boundary[i]
-    const b2 = boundary[(i + 1) % boundary.length]
-    const opposite = triangleMap[b2] ? triangleMap[b2][b1] : undefined
-    if (opposite && !intersectPtPoly(pts2D[opposite[0]].xy(), boundaryPts)) {
-      // The point lies outside the polygon formed by the boundary.
-      return {
-        type: 'wallBounds',
-        i: keyIdx[opposite[0]],
-      }
-    }
-  }
-}
+// Unused: this gives both a high number of false positives and false negatives.
+// /** Returns an error if any of the thickened points lie outside the boundary. This is a sign of bad geometry */
+// function checkBounds(keyIdx: number[], boundary: number[], pts2D: Trsf[], triangleMap: TriangleMap): ConfError | undefined {
+//   boundary = [...boundary] // Clone the boundary
+//   let boundaryPts = boundary.map(b => pts2D[b].xy())
+//   for (let i = 0; i < boundary.length; i++) {
+//     const b1 = boundary[i]
+//     const b2 = boundary[(i + 1) % boundary.length]
+//     const opposite = triangleMap[b2] ? triangleMap[b2][b1] : undefined
+//     if (opposite && !intersectPtPoly(pts2D[opposite[0]].xy(), boundaryPts)) {
+//       // The point lies outside the polygon formed by the boundary.
+//       return {
+//         type: 'wallBounds',
+//         i: keyIdx[opposite[0]],
+//       }
+//     }
+//   }
+// }

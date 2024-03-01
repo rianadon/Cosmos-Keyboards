@@ -686,7 +686,19 @@
                       {confError.travel[0]}mm of travel{/if}.
                   </p>
                 {:else if confError.what == 'part'}
-                  <p class="mb-2">Two of the parts (switches) intersect.</p>
+                  <p class="mb-2">
+                    Two of the parts
+                    {#if config && (config.keys[confError.i].type == 'mx-pcb' || config.keys[confError.j].type == 'mx-pcb')}
+                      (switches or PCBs)
+                    {:else}
+                      (switches)
+                    {/if} intersect.
+                  </p>
+                {:else if confError.what == 'socket' && (confError.i < 0 || confError.j < 0)}
+                  <p class="mb-2">
+                    One of the sockets intersects the walls. This is ok, but the exported model will
+                    contains errors and might create problems when slicing.
+                  </p>
                 {:else if confError.what == 'socket'}
                   <p class="mb-2">
                     Two of the key sockets intersect. This is ok, but the exported model will
@@ -725,6 +737,8 @@
                   Keycaps Intersect
                 {:else if confError.what == 'part'}
                   Parts Intersect
+                {:else if confError.what == 'socket' && (confError.i < 0 || confError.j < 0)}
+                  Socket + Walls Intersect
                 {:else if confError.what == 'socket'}
                   Sockets Intersect
                 {/if}

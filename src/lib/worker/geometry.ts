@@ -102,6 +102,8 @@ export function offsetAxis(p1: Trsf, p2: Trsf, p3: Trsf, z: Vector) {
 
   // Special case: c == d
   if (c.y == d.y && c.z == d.z) return c
+  // Special case: aProj == bProj
+  if (aProj.x == bProj.x) return a.normalize()
 
   d.sub(c)
   bProj.sub(aProj)
@@ -115,7 +117,10 @@ export function offsetAxis(p1: Trsf, p2: Trsf, p3: Trsf, z: Vector) {
   // add c to a so that a becomes the vector from the point to the offset point
   aProj.add(c)
 
-  if (isNaN(aProj.x)) throw new Error('Invalid offset bisector')
+  if (isNaN(aProj.x)) {
+    console.log(c, sideLen, a, b, z, bProj)
+    throw new Error('Invalid offset bisector')
+  }
   return aProj.normalize()
 }
 

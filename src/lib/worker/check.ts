@@ -213,8 +213,11 @@ export function* partIntersections(conf: Cuttleform, trsfs: Trsf[]) {
   yield* treeIntersections(conf, tree, 'part')
 }
 
-export function* socketIntersections(conf: Cuttleform, trsfs: Trsf[], critPts: CriticalPoints[]) {
+export function* unsortedSocketIntersections(conf: Cuttleform, trsfs: Trsf[], critPts: CriticalPoints[], web: ITriangle[]) {
   const tree = new Octree()
+  for (const tri of web) {
+    tree.addTriangle(tri)
+  }
   for (let i = 0; i < trsfs.length; i++) {
     const size = socketSize(conf.keys[i])
     const prism = prismTriangles(critPts[i], trsfs[i], size.z, i)
@@ -223,16 +226,37 @@ export function* socketIntersections(conf: Cuttleform, trsfs: Trsf[], critPts: C
     }
   }
   tree.build()
-  yield* treeIntersections(conf, tree, 'socket')
+  yield* treeIntersections(conf, tree, 'socket', true)
 }
 
-function* treeIntersections(conf: Cuttleform, tree: Octree, what: 'keycap' | 'socket' | 'part'): Generator<ConfError> {
+/**
+ * Sort socket intersections so that socket<-->socket intersections are returned first.
+ *
+ * Every socket-socket intersection will generate a socket->wall intersection as well,
+ * but the socket-socket intersections are easier to debug so they should get priority.
+ */
+export function* socketIntersections(conf: Cuttleform, trsfs: Trsf[], critPts: CriticalPoints[], web: ITriangle[]) {
+  const socketSocketIntersections: ConfError[] = []
+  const socketWallIntersections: ConfError[] = []
+  for (const intersection of unsortedSocketIntersections(conf, trsfs, critPts, web)) {
+    if (intersection.type != 'intersection') throw new Error('Only intersection errors expected')
+    if (intersection.i == -1 || intersection.j == -1) {
+      socketWallIntersections.push(intersection)
+    } else {
+      socketSocketIntersections.push(intersection)
+    }
+  }
+  yield* socketSocketIntersections
+  yield* socketWallIntersections
+}
+
+function* treeIntersections(conf: Cuttleform, tree: Octree, what: 'keycap' | 'socket' | 'part', ignoreTouching = false): Generator<ConfError> {
   const triangles = tree.triangles as ITriangle[]
   for (let i = 0; i < triangles.length; i++) {
     for (let j = 0; j < i; j++) {
       const ti = triangles[i].i, tj = triangles[j].i
       if (tj == ti) continue
-      if (doTrianglesIntersect(triangles[i], triangles[j])) {
+      if (doTrianglesIntersect(triangles[i], triangles[j], ignoreTouching)) {
         let trvl: number[] = []
         if (ti >= 0) trvl.push(calcTravel(conf.keys[ti]))
         if (tj >= 0) trvl.push(calcTravel(conf.keys[tj]))
@@ -247,7 +271,7 @@ function* treeIntersections(conf: Cuttleform, tree: Octree, what: 'keycap' | 'so
     }
   }
   for (const sub of tree.subTrees) {
-    yield* treeIntersections(conf, sub, what)
+    yield* treeIntersections(conf, sub, what, ignoreTouching)
   }
 }
 
@@ -256,7 +280,18 @@ export function isPro(conf: Cuttleform) {
 }
 
 // https://stackoverflow.com/questions/7113344/find-whether-two-triangles-intersect-or-not
-export function doTrianglesIntersect(t1: Triangle, t2: Triangle) {
+export function doTrianglesIntersect(t1: Triangle, t2: Triangle, ignoreTouching = false) {
+  if (ignoreTouching) {
+    // Return false if any triangles share a vertex
+    if (
+      t1.a.equals(t2.a) || t1.a.equals(t2.b) || t1.a.equals(t2.c)
+      || t1.b.equals(t2.a) || t1.b.equals(t2.b) || t1.b.equals(t2.c)
+      || t1.c.equals(t2.a) || t1.c.equals(t2.b) || t1.c.equals(t2.c)
+    ) {
+      return false
+    }
+  }
+
   /*
     Adapated from section "4.1 Separation of Triangles" of:
 

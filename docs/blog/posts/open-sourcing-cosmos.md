@@ -1,5 +1,7 @@
 ---
 date: 2023-12-11
+categories:
+    - Releases
 ---
 
 # Open Sourcing Cosmos

@@ -93,6 +93,12 @@ img.header {
     background-color: #00bfa5;
 }
 
+/** Style iframes */
+iframe {
+    border: none;
+    width: 100%;
+}
+
 /* Styles copied from Dactyl configurator */
 .callout {
     background-image: url(https://ryanis.cool/dactyl/stars.png),linear-gradient(to right,#f3e8ff, #ccfbf1);
@@ -139,4 +145,8 @@ img.header {
     color: #fff;
     box-shadow: 0 4px 6px -1px rgb(19 78 74 / .3), 0 2px 4px -2px rgb(19 78 74 / .3);
     --gradient-stops: #7e22ce, #115e59;
+}
+
+.katex-display {
+    margin: -1em 0 !important;
 }

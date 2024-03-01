@@ -329,10 +329,11 @@ export async function intersections(conf: Cuttleform): Promise<ConfError | undef
     for (const intersection of partIntersections(conf, trsfs3d)) {
       return intersection
     }
-    for (const intersection of socketIntersections(conf, trsfs3d, geometry.allKeyCriticalPoints)) {
+    // if (geometry.reinforcedTriangles.topReinf.error) return geometry.reinforcedTriangles.topReinf.error
+
+    for (const intersection of socketIntersections(conf, trsfs3d, geometry.allKeyCriticalPoints, tris)) {
       return intersection
     }
-    if (geometry.reinforcedTriangles.topReinf.error) return geometry.reinforcedTriangles.topReinf.error
   } catch (e) {
     console.error(e)
     return { type: 'exception', when: 'laying out the walls', error: e as Error }
