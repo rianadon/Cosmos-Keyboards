@@ -48,6 +48,9 @@ jobs:
       - name: Build simple keycaps
         run: OPENSCAD=$(which openscad) make keycaps-simple
 
+      - name: Build parts
+        run: make parts-simple
+
       # Disabled since this requires the clojure parts to be built
       # - name: Build Parts
       #   run: make parts
