@@ -101,7 +101,7 @@ function extendPlate(plate: Mesh, key: CuttleKey) {
       mass: plate.mass + 2 * pad * size.z,
     }
   } else {
-    const pad = size.y * (key.aspect - 1) / 2
+    const pad = size.y * (1 / key.aspect - 1) / 2
     return {
       mesh: mergeBufferGeometries([
         plate.mesh,
@@ -123,7 +123,7 @@ export async function keyHole(key: CuttleKey, trsf: Trsf) {
   }
 }
 
-export async function keyHoleMeshes(c: Cuttleform, transforms: Trsf[]) {
+export async function keyHoleMeshes(c: Cuttleform, transforms: Trsf[], flipped: boolean) {
   const keys = await Promise.all(transforms.map((t, i) => keyHole(c.keys[i], t)))
   return {
     mesh: mergeBufferGeometries(keys.map(k => k.mesh)),

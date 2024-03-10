@@ -34,7 +34,14 @@
   import type { ConfError } from '$lib/worker/check'
   import Viewer from './Viewer.svelte'
   import Trsf from '$lib/worker/modeling/transformation'
-  import { protoConfig, transformMode, clickedKey, noBase, showKeyInts } from '$lib/store'
+  import {
+    debugViewport,
+    protoConfig,
+    transformMode,
+    clickedKey,
+    noBase,
+    showKeyInts,
+  } from '$lib/store'
   import HandModel from '$lib/3d/HandModel.svelte'
   import { FINGERS, type Joints, objectFromFingers, SolvedHand } from '../hand'
   import { refine } from '../handoptim'
@@ -645,6 +652,26 @@
     })
   }
 
+  $: if ($debugViewport) {
+    const origFn = HTMLCanvasElement.prototype.getContext
+    HTMLCanvasElement.prototype.getContext = function (type, attributes) {
+      if (type === 'webgl' || type === 'webgl2') {
+        attributes = Object.assign({}, attributes, {
+          preserveDrawingBuffer: true,
+        })
+      }
+      return origFn.call(this, type, attributes)
+    }
+  }
+
+  function copyCanvas() {
+    document.querySelector('canvas').toBlob(function (blob) {
+      const item = new ClipboardItem({ 'image/png': blob })
+      console.log(item)
+      navigator.clipboard.write([item]).then(console.log, console.error)
+    })
+  }
+
   $: reachabilityArr =
     conf && flags.hand && showHand && jointsJSON
       ? reachability(conf, jointsJSON[whichHand], new Vector3().setFromMatrixPosition(handMatrix))
@@ -756,7 +783,7 @@
   {style}
   {center}
   {size}
-  {cameraPosition}
+  bind:cameraPosition
   {flip}
   {enableRotate}
   {enableZoom}
@@ -786,12 +813,9 @@
             {/each}
             {@const skey = simpleKeyGeo(k, true)}
             {#if skey}
-              <KeyboardMesh
-                geometry={skey}
-                status="error"
-                kind="key"
-                position={simpleKeyPosition(k, new Trsf()).origin().xyz()}
-              />
+              <GroupMatrix matrix={simpleKeyPosition(k, new Trsf()).Matrix4()}>
+                <KeyboardMesh geometry={skey} status="error" kind="key" />
+              </GroupMatrix>
             {/if}
           </GroupMatrix>
         {/each}
@@ -839,6 +863,15 @@
     {/if}
   </svelte:fragment>
 </Viewer>
+
+{#if $debugViewport}
+  <div
+    class="absolute bottom-8 right-8 bg-gray-100 dark:bg-gray-800 rounded px-4 py-2 text-xs font-mono w-72 text-end"
+  >
+    <p>Camera Position: {cameraPosition.map((a) => Math.round(a * 100) / 100).join(', ')}</p>
+    <p><button class="inline-block!" on:click={copyCanvas}>Copy Canvas to clipboard</button></p>
+  </div>
+{/if}
 
 <style>
   button.selected {

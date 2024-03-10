@@ -90,8 +90,6 @@ export class BaseGeometry<C extends Cuttleform = SpecificCuttleform<BasicShell>>
 
   @Memoize()
   allWallCriticalPoints(wallOffset = 0) {
-    // return this.allWallCriticalPointsBase(wallOffset)
-    // TODO: Eventually uncomment this
     let walls = this.allWallCriticalPointsBase(wallOffset)
     walls = shiftWalls(walls, this.reinforcedTriangles.topReinf.wallOffsets, true)
     walls = shiftWalls(walls, this.reinforcedTriangles.botReinf.wallOffsets, false)

@@ -3,7 +3,7 @@ import { BOARD_PROPERTIES, type BoardElement, boardElements, holderOuterRadius, 
 import { SCREWS } from '$lib/geometry/screws'
 import { wallBezier } from '@pro/rounded'
 import { makeStiltsPlate, splitStiltsScrewInserts } from '@pro/stiltsModel'
-import { cast, CornerFinder, downcast, draw, drawCircle, drawRoundedRectangle, Face, loft, type Point, type Sketch, Sketcher, Solid } from 'replicad'
+import { cast, CornerFinder, downcast, draw, drawCircle, Drawing, drawRoundedRectangle, Face, loft, type Point, type Sketch, Sketcher, Solid } from 'replicad'
 import type { TiltGeometry } from './cachedGeometry'
 import { createTriangleMap } from './concaveman'
 import type { Cuttleform, Geometry } from './config'
@@ -1016,6 +1016,16 @@ export function boardHolder(c: Cuttleform, geo: Geometry): Solid {
   let solid = rect.sketchOnPlane('XY').extrude(offset - BOARD_TOLERANCE_Z)
     .translateZ(BOARD_TOLERANCE_Z) as Solid
   const solidWallSurface = wallInnerSolidSurface(c, geo, BOARD_TOLERANCE_XY)
+
+  // Carve out channels under the side channels for solder to slide through
+  if (boardProps.sidecutout) {
+    const minx = elements[0].offset.x - elements[0].size.x / 2
+    const maxx = elements[0].offset.x + elements[0].size.x / 2
+    const miny = elements[0].offset.y - elements[0].size.y
+    const maxy = elements[0].offset.y + 100 // Add extra material to clear everything in the holder
+    solid = solid.cut(drawRectangleByBounds(minx - BOARD_COMPONENT_TOL, minx + boardProps.sidecutout, miny, maxy).sketchOnPlane('XY', elements[0].offset.z).extrude(-0.6) as Solid)
+    solid = solid.cut(drawRectangleByBounds(maxx - boardProps.sidecutout, maxx + BOARD_COMPONENT_TOL, miny, maxy).sketchOnPlane('XY', elements[0].offset.z).extrude(-0.6) as Solid)
+  }
 
   for (const element of elements) {
     if (element.model !== 'box') continue

@@ -60,9 +60,9 @@ async function ensureOC() {
 //   }))
 // }
 
-export async function generateKeys(config: Cuttleform) {
+export async function generateKeys(config: Cuttleform, flip: boolean) {
   const geo = newGeometry(config)
-  const keys = await keyHoleMeshes(config, geo.keyHolesTrsfs.flat())
+  const keys = await keyHoleMeshes(config, geo.keyHolesTrsfs.flat(), flip)
   const mesh: ShapeMesh = {
     vertices: (keys.mesh.attributes['position'] as BufferAttribute).array as number[],
     normals: (keys.mesh.attributes['normal'] as BufferAttribute).array as number[],
@@ -242,6 +242,7 @@ async function getModel(conf: Cuttleform, name: string, stitchWalls: boolean) {
       const geo = newGeometry(conf)
       assembly = assembly.transform(new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).invert())
     }
+    assembly = assembly.transform(new Trsf().translate(0, 0, -geo.floorZ))
     return assembly
   } else if (name == 'plate' || name == 'platetop') {
     return makePlate(conf, geometry, true, true).top()
@@ -277,6 +278,7 @@ export async function getSTEP(conf: Cuttleform, flip: boolean, stitchWalls: bool
     assembly.add('Wrist Rest', wristRest(conf, geometry))
   }
 
+  assembly = assembly.transform(new Trsf().translate(0, 0, -geometry.floorZ))
   if (flip) assembly = assembly.mirror('YZ', [0, 0, 0])
   return assembly.blobSTEP()
 }

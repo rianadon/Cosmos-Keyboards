@@ -1,7 +1,7 @@
 import { closestAspect, UNIFORM } from '$lib/geometry/keycaps'
 import { switchInfo } from '$lib/geometry/switches'
 import type { CuttleKey } from '$lib/worker/config'
-import type Trsf from '$lib/worker/modeling/transformation'
+import Trsf from '$lib/worker/modeling/transformation'
 import { type Writable, writable } from 'svelte/store'
 import { type BufferAttribute, BufferGeometry, Matrix4, Triangle, Vector3 } from 'three'
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader'
@@ -15,7 +15,7 @@ export class ITriangle extends Triangle {
 
 export function simpleKeyPosition(key: CuttleKey, trsf: Trsf) {
   let position = trsf.pretranslated(0, 0, switchInfo(key.type).height)
-  if (key.aspect < 1) position.rotate(90)
+  if (key.aspect < 1) position.multiply(new Trsf().rotate(90))
   return position
 }
 

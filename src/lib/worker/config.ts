@@ -576,7 +576,8 @@ export function tupleToXYZ(tuple: bigint) {
 }
 
 export function fingers(c: DeepRequired<CuttleformProto>): CuttleKey[] {
-  const columns = range(0, c.upperKeys.columns)
+  let columns = range(0, c.upperKeys.columns)
+  if (c.upperKeys.columns <= 4) columns = range(1, c.upperKeys.columns + 1)
   const rows = range(0, c.upperKeys.rows)
 
   const lastRow = c.upperKeys.rows - 1

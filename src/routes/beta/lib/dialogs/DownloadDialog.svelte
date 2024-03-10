@@ -107,8 +107,8 @@
     const scene = new THREE.Scene()
     const group = new THREE.Group()
     group.rotation.set(-Math.PI / 2, 0, 0)
-    group.scale.setScalar(1 / 100)
-    group.position.setY(-geo.floorZ / 100)
+    group.scale.setScalar(1 / 10)
+    group.position.setY(-geo.floorZ / 10)
     group.name = 'Keyboard'
     scene.add(group)
 

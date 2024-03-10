@@ -46,7 +46,7 @@ export async function partGeometry(type: Switch) {
   return part
 }
 
-export async function partGeometries(trsfs: Trsf[], keys: CuttleKey[]) {
+export async function partGeometries(trsfs: Trsf[], keys: CuttleKey[], flipped: boolean) {
   return notNull(
     await Promise.all(keys.map(async (k, i) => {
       if (k.type == 'trackball') {

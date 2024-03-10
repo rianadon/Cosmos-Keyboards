@@ -38,7 +38,7 @@ The generator will adapt to the keycap you choose so that the top surface remain
 
 First, check your thicknesses in the Thickness tab. Ideally all parts of the model should be at least 2 mm thick.
 
-**Adding Finishing Touches**: Then export your model! If you like you can use another program to add finishing touches to your keyboard before you export. If you export the STEP file, you can load it into a CAD program like Fusion or Onshape and modify it any way you like. You can also load the STL file into a program like Blender or Meshmixer to sculpt the mesh.
+**Adding Finishing Touches**: Then export your model! If you like you can [use another program](./cad.md) to add finishing touches to your keyboard before you export. If you export the STEP file, you can load it into a CAD program like Fusion or Onshape and modify it any way you like. You can also load the STL file into a program like Blender or Meshmixer to sculpt the mesh.
 
 **Printing**: I recommend printing with at least 2 perimeters and 20-50% infill. If you're using PrusaSlicer (the only slicer I've tested with Cosmos), try both "snug" and "organic" supports and choose whichever uses the least material. You should also add support blockers underneath where the screw inserts go. These areas don't need supports & they'll be hard to remove.
 

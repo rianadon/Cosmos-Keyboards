@@ -717,8 +717,9 @@ export function minWallYAlongVector(c: Cuttleform, surfaces: Line[][], idx: numb
   const next = surfaces[(idx + 1) % surfaces.length]
   const nextnext = surfaces[(idx + 2) % surfaces.length]
   const prev = surfaces[(idx - 1 + surfaces.length) % surfaces.length]
-  const wallBiMi = joinedWall(c, prev, surf, next, nextnext, new Vector(0, 0, 1), -Infinity)[1]
+  const wallBiMi = joinedWall(c, nextnext, next, surf, prev, new Vector(0, 0, 1), -Infinity)[1]
 
+  console.log(wallBiMi)
   return patchMinAlongVector(wallBiMi, v)
 }
 
@@ -2239,7 +2240,7 @@ export function separateSockets2D(trsfs: Trsf[], criticalPts: CriticalPoints[]):
     }
 
     if (displacements.size == 0) {
-      console.log(`Separating sockets took ${i} iterations`)
+      // console.log(`Separating sockets took ${i} iterations`)
       return trsfs // No intersections found
     }
 

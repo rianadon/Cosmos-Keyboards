@@ -178,6 +178,7 @@ function reinforcementOffset(thisTop: Trsf, thisThick: number, nextTop: Trsf, ne
   // Bottom faces: don't cross the projected surface of the next key socket
   let projOffset = pbt.x - nextAx.x * pbt.y / nextAx.y
   if (nextAx.y * pbt.y < 0) projOffset = thickness // In cases where the surface will never cross the projected surface, use thickness as offset.
+  // I could/should make this larger, but the aesthetics aren't great when one of these such keys is next to a wall
   if (projOffset < 0) projOffset = 0
   projOffset = Math.max(thickness / 2, projOffset) // I've come to realize it's okay to have a little projOffset.
 
@@ -328,7 +329,6 @@ export function flipAllTriangles(triangles: number[][], allPts: Trsf[]) {
       }
     }
   }
-  console.debug('Initial flip:', tally)
   return triangles
 }
 

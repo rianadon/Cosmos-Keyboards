@@ -25,7 +25,7 @@ export function resolve(specifier, context, defaultResolver) {
     // On Windows, Node.js expects absolute paths to be file:// urls
     // mappedSpecifier is an absolute path
     const url = pathToFileURL(mappedSpecifier).href
-    specifier = `${url}.js`
+    specifier = url.endsWith('.json') ? url : `${url}.js`
   } else if (
     !specifier.endsWith('.ts') && !specifier.endsWith('.js')
     && !specifier.endsWith('.cjs')

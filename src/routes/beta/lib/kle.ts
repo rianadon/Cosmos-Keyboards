@@ -31,7 +31,7 @@ export function toKLE(c: Cuttleform, mir = true) {
   const offset = new Vector(-minx, -miny, 0)
 
   let lasty = 0
-  return JSON.stringify(keys.map(k => {
+  return keys.map(k => {
     const round = (x: number) => Math.round(x * 100) / 100
 
     const position = k.vector.add(offset)
@@ -55,7 +55,7 @@ export function toKLE(c: Cuttleform, mir = true) {
       lasty = 0.5
     }
 
-    const label = 'keycap' in k && k.keycap.letter ? k.keycap.letter : ''
+    const label = 'keycap' in k && k.keycap.letter ? String(k.keycap.letter) : ''
     return [obj, label]
-  }))
+  }).map(s => JSON.stringify(s)).join(',\n')
 }
