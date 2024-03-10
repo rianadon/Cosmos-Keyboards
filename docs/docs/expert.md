@@ -6,9 +6,13 @@ To use Expert Mode, you write [TypeScript](https://www.typescriptlang.org/) code
 
 Any configuration written in Basic/Advanced mode can be converted into code for Expert Mode. However, because Expert Mode is more capable, you cannot convert an Expert Mode program to Basic/Advanced configuration.
 
+!!! tip "Parts Page"
+
+    It's recommended you browse the [Parts Page](https://ryanis.cool/cosmos/parts) to familiarize yourself with the different key sockets Cosmos supports. The page will also tell you the name of each part within Expert mode.
+
 ## Structure of and Interpretation of Cosmos Programs
 
-Every Expert Mode program must use the [`export default`](https://developer.mozilla.org/en-US/docs/web/javascript/reference/statements/export) syntax to return the desired configuration. Most configuration options map directly to the options available in basic and advanced modes. For example, `wallThickness` is configured as `Advanced -> Case -> Wall Thickness`.
+Expert Mode programs are laid out as configuration files. Every program must use the [`export default`](https://developer.mozilla.org/en-US/docs/web/javascript/reference/statements/export) syntax to return the desired configuration. Most configuration options map directly to the options available in basic and advanced modes. For example, `wallThickness` is configured as `Advanced -> Case -> Wall Thickness`.
 
 ```typescript
 export default {
@@ -170,9 +174,28 @@ The various operations that can be performed on a `Trsf` are as follow:
 
 ### How Keys are Positioned
 
-Until I write some better documentation here, please accept this image that uses Choc as an example.
+Key layout in Cosmos is complex due to the adaptive key placement. When keys are instructed to lie consistently across a curve, they will reposition themselves as to keep the tops of the keys a consistently curved.
 
-![Choc Spacing](../assets/spacing.jpg){ width=75% .center }
+![Adaptive Key Placement](../assets/target/adaptive.png){ width=440 .center .pad }
+
+You can mix and match profiles within the same keyboard (hello oddly shaped artisans), swap around the row profiles, and expect everything to line up. The same mechanism allows you to swap out one set of keycaps for another and regenerate the model to keep the same feel. To accomplish this, key positioning in Cosmos is split into two steps:
+
+1. **Key Basis Positioning**: The rough key positions are laid out.
+2. **Adaptive Key Positioning**: Keys are repositioned to account for profile differences.
+
+The Key Basis Positioning is controlled solely by the transformations passed to the `Trsf` class and the switch height. Switch height is included so that the arc occurs about the bottom of the keycaps. Applying the arc here helps keeps keys evenly spaced at all curvatures.
+
+As an example, here's how keys are laid out on an arc in the matrix layout. The generator calculates the arc radius, then performs a rotation. For matrix layout, this happens twice. A rotation about the Y axis performs the columnar arc, then a rotation about the X axis applied the row arc.
+
+![Key Basis Positioning](../assets/spacing1.png){ .center .pad }
+
+The Adaptive Key Positioning depends on the key profile and the `keyBasis` setting. The `keyBasis` determines which key profile best fits the key basis and is calculated from an R4 keycap. An example might make this most clear:
+
+![Key Adaptive Positioning](../assets/spacing2.png){ width=90% .center .pad }
+
+If a `choc` key basis is used with Choc keys, then the key basis will be positioned very close to the final key position. Whatever spacings are used to compute the key bases will be similar to the final spacings in the model.
+
+However, if an `mt3` key basis were used with Choc keys, then spacing values would not match the final spacings. For this reason it's advised to set `keyBasis` to whichever profile you use the most within the model. Basic and Advanced modes do this automatically.
 
 ## Microcontrollers and Screw Inserts
 

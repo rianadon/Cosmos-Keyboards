@@ -124,6 +124,17 @@ export default class Trsf {
     return this
   }
 
+  /** Scales up the entire model. Useful when working with individual parts, otherwise probably not what you want. */
+  scaleIsDangerous(x: number, y: number, z: number) {
+    this.wrapped.scale(new Vector(x, y, z))
+    return this
+  }
+
+  /** Returns a new Transformation that scaled the entire model. Useful when working with individual parts, otherwise probably not what you want. */
+  scaledIsDangerous(x: number, y: number, z: number) {
+    return new Trsf(this.wrapped.clone().scale(new Vector(x, y, z)))
+  }
+
   multiply(t: Trsf) {
     this.wrapped = this.wrapped.multiply(t.wrapped)
     this._vertex = null

@@ -74,10 +74,10 @@ function _shellToSolid(shell: TopoDS_Shell, fix: boolean) {
  * If the shell is made up of multiple distinct bodies, then a compound object
  * with each solid body is returned.
  */
-export function buildSewnSolid(polygons: Face[]) {
+export function buildSewnSolid(polygons: Face[], nonManifold: boolean) {
   const oc = getOC()
   const shell = _facesToShell(polygons)
-  const sewing = new oc.BRepBuilderAPI_Sewing(1e-6, true, true, true, false)
+  const sewing = new oc.BRepBuilderAPI_Sewing(1e-6, true, true, true, nonManifold)
   sewing.Add(shell)
   sewing.Perform(new oc.Message_ProgressRange_1())
   shell.delete()

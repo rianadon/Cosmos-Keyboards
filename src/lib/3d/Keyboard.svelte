@@ -3,7 +3,7 @@
   import { keyHolesTrsfs } from '$lib/worker/geometry'
   import Trsf from '$lib/worker/modeling/transformation'
   import type { BufferGeometry, Matrix4 } from 'three'
-  import type { ConfError } from '$lib/worker/check'
+  import { isWarning, type ConfError } from '$lib/worker/check'
   import KeyboardKey from './KeyboardKey.svelte'
   import GroupMatrix from './GroupMatrix.svelte'
   import type { CuttleKey, Cuttleform } from '$lib/worker/config'
@@ -12,6 +12,7 @@
   import type { KeyStatus } from './keyboardKey'
   import { keyGeometries } from '$lib/loaders/keycaps'
   import { partGeometries } from '$lib/loaders/parts'
+  import { showKeyInts } from '$lib/store'
 
   export let config: Cuttleform
   export let transparency: number
@@ -54,7 +55,8 @@
         let status: KeyStatus = undefined
         if (reachability && !reachability[x.i]) status = 'warning'
         if (error && error.type == 'intersection' && (error.i == x.i || error.j == x.i))
-          status = 'error'
+          status = isWarning(error) ? 'warning' : 'error'
+        if (error && error.type == 'wallBounds' && error.i == x.i) status = 'warning'
         const offset = offsetHeight(config.keys[x.i])
         geos[x.i].push({
           geometry: x.geometry,
@@ -68,12 +70,22 @@
       })
     for (const x of s) {
       if (!x) throw new Error('oops')
+      let status: KeyStatus = undefined
+      if (
+        error &&
+        error.type == 'intersection' &&
+        error.what == 'socket' &&
+        (error.i == x.i || error.j == x.i)
+      )
+        status = isWarning(error) ? 'warning' : 'error'
+      if (error && error.type == 'wallBounds' && error.i == x.i) status = 'warning'
       geos[x.i].push({
         geometry: x.geometry,
         brightness: 0.7,
         matrix: x.matrix,
         offset: 0,
         translation: 0,
+        status,
       })
     }
   }
@@ -88,7 +100,7 @@
   }
 </script>
 
-{#if transparency != 0}
+{#if transparency != 0 && !$showKeyInts}
   {#each geos as g, i}
     {#if customThumbConfig && i >= customStart && i - customStart < customThumbConfig.length}
       {#each g as k}

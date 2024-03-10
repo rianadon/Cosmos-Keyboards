@@ -37,6 +37,8 @@ keyholes:
 	$(NODE) src/model_gen/keyholes.ts
 parts:
 	$(NODE) src/model_gen/parts.ts
+parts-simple:
+	$(NODE) src/model_gen/parts-simple.ts
 optimize:
 	$(NODE) src/compress-media.ts
 keyboards:
@@ -54,7 +56,7 @@ ci-setup:
 	mkdir -p target
 vite-build:
 	npm run build
-ci: ci-setup build keycaps-simple2 keycaps2 parts vite-build docs-ci
+ci: ci-setup build keycaps-simple2 keycaps2 parts parts-simple vite-build docs-ci
 npm-install:
 	npm install --omit=optional
-quickstart: npm-install ci-setup build keycaps-simple2 keycaps2 parts
+quickstart: npm-install ci-setup build keycaps-simple2 keycaps2 parts parts-simple

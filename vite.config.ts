@@ -38,6 +38,7 @@ export default defineConfig({
       '/docs': 'http://localhost:8000/cosmos',
       '/assets': 'http://localhost:8000/cosmos',
       '/stylesheets': 'http://localhost:8000/cosmos',
+      '/javascripts': 'http://localhost:8000/cosmos',
       '/livereload': 'http://localhost:8000',
       '/search': 'http://localhost:8000/cosmos',
     },

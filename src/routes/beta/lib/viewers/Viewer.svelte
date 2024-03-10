@@ -33,6 +33,10 @@
     resize()
   })
 
+  function updateCameraPos() {
+    cameraPosition = $camera.position.clone().normalize().toArray()
+  }
+
   const cameraFOV = 45
 
   function resize() {
@@ -69,7 +73,14 @@
         <slot name="controls" />
       {/if}
       <PerspectiveCamera fov={cameraFOV} bind:self={$camera} bind:root />
-      <SC.OrbitControls {enableZoom} {enableRotate} {enablePan} on:start on:end />
+      <SC.OrbitControls
+        {enableZoom}
+        {enableRotate}
+        {enablePan}
+        on:start
+        on:end
+        on:change={updateCameraPos}
+      />
     </Canvas>
   </div>
 {:else}

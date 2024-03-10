@@ -12,7 +12,7 @@
     type Cuttleform,
     type Geometry,
   } from '$lib/worker/config'
-  import { checkConfig } from '$lib/worker/check'
+  import { checkConfig, isRenderable } from '$lib/worker/check'
   import Section from './Section.svelte'
   import DecimalInput from './DecimalInput.svelte'
   import AngleInput from './AngleInput.svelte'
@@ -40,7 +40,7 @@
 
   export let cuttleformConf: CuttleformProto
   export let conf: Cuttleform
-  export let geometry: Geometry
+  export let geometry: Geometry | null
   export let basic: boolean
 
   $: protoConfig.set(cuttleformConf)
@@ -50,18 +50,6 @@
 
   function goAdvanced() {
     dispatch('goAdvanced')
-  }
-
-  function loadPreset(preset: any) {
-    dispatch(
-      'preset',
-      JSON.parse(
-        JSON.stringify({
-          ...manuform.options,
-          ...preset.options,
-        })
-      )
-    )
   }
 
   let lastWristRest = defaults.options.wall.wristRest
@@ -258,7 +246,7 @@
     if (!geometry) return '...'
     try {
       const confError = checkConfig(conf, geometry, false)
-      if (confError && (confError.type != 'intersection' || confError.what == 'hole')) {
+      if (confError && !isRenderable(confError)) {
         return '?'
       }
       return geometry.screwIndices.length * multiplier
@@ -328,8 +316,9 @@
       <InfoBox>
         <p class="mb-1">
           This variant requires the Amoeba King PCB. The board should fit snug within the guides.
-          Attach using glue/epoxy, two 3/16 in #0-80 screws or two 4–5 mm M1.6 screws for each key ({conf
-            .keys.length * 4} screws total).
+          Friction holds the sockets onto the switch, but you can reinforce using glue/epoxy, two
+          3/16 in #0-80 screws or two 4–5 mm M1.6 screws for each key ({conf.keys.length * 4} screws
+          total).
         </p>
         <p>
           To fasten, screw down forcefully so the screws carve threads into the plastic. For hard
@@ -339,11 +328,11 @@
     {:else if cuttleformConf.upperKeys.switchType == SWITCH.MX_HOTSWAP}
       <InfoBox>
         <p>
-          This variant requires Kailh MX hotswap sockets and a well-tuned 3D printer. Try <a
-            class="text-pink-600 underline"
-            href="https://www.printables.com/model/158559">these printable hotswap sockets</a
-          >, together with the MX-Compatible (no hotswap) setting, if you'd like a solution that
-          prints better and doesn't require buying sockets.
+          This variant requires Kailh MX hotswap sockets and a well-tuned 3D printer. Alternatives
+          are <a class="text-pink-600 underline" href="https://www.printables.com/model/158559"
+            >these printable hotswap sockets</a
+          >, together with the MX-Compatible (no hotswap) setting, but they don't grip as well as
+          the Kailh MX sockets.
         </p>
       </InfoBox>
     {/if}

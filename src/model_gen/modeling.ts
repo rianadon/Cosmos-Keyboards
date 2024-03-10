@@ -183,7 +183,7 @@ function mfToSolid(man: Manifold): Solid {
     const p3 = new Trsf().translate(new Vector3().fromArray(vp, tv[i + 2] * 3).toArray())
     polygons.push(makeTriangle(p1, p2, p3))
   }
-  const sol = buildSewnSolid(polygons)
+  const sol = buildSewnSolid(polygons, false)
   return sol
 }
 

@@ -62,7 +62,7 @@ export function doWallsIntersect(c: Cuttleform, wall0: WallCriticalPoints, wall1
     if (o0 * o1 > 0) return true // They intersect if the projections lie on the same side
   }
 
-  if ('si' in wall0) {
+  if (('si' in wall0) && wall0.si) {
     // Because everything is 3d I can't use the 2d shorcut dot/subtract methods here.
     const wall1sm = wall1.sm.origin()
     const out = wall1.to.origin().sub(wall1sm)

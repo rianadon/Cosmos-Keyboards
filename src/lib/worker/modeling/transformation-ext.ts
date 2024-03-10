@@ -1,6 +1,6 @@
 import { flippedKey, keyInfo } from '$lib/geometry/keycaps'
 import { switchInfo } from '$lib/geometry/switches'
-import type { CuttleKey } from '../config'
+import type { Cuttleform, CuttleKey } from '../config'
 import Trsf, { Vector } from './transformation'
 
 /**
@@ -33,6 +33,7 @@ interface MatrixOptions {
   curvatureOfRow: number
   spacingOfColumns: number
   spacingOfRows: number
+  arc?: number
 }
 
 interface SphereOptions {
@@ -212,7 +213,17 @@ const Y: [number, number, number] = [0, 1, 0]
 
 const sin = (x: number) => Math.sin(x * Math.PI / 180)
 
-export const KEY_BASE = 14.3 // The origin of the key (key.position) is positioned this far from the top
+/** The origin of the key (key.position) is positioned this far from the top */
+export function keyBase(c: Cuttleform) {
+  const sw: CuttleKey['type'] = c.keyBasis == 'choc' ? 'choc' : 'mx-better'
+  const switchHeight = switchInfo(sw).height
+  const keyHeight = c.keyBasis
+    ? keyInfo({
+      keycap: { profile: c.keyBasis, row: 4 },
+    } as any).depth * 0.9
+    : 14.3 - switchHeight // 14.3 is the old value of this function
+  return switchHeight + keyHeight
+}
 
 const capTopHeight = (c: EvaluationContext) => switchInfo(c.key?.type).height
 
@@ -250,6 +261,13 @@ function placeOnMatrixImpl(t: Trsf, opts: Unmerged<MatrixOptions>, c: Evaluation
     }
   }
   rotateRow(options, c, t)
+  // t.rotate(90 * Math.tanh(options.column * options.row / 20))
+  if (options.arc && options.arc != 0) {
+    // 28.636 comes from ensuring rotation = 1deg when options.column * options.row = 1 and arc = 1.
+    // I chose atan because it's odd, has two horizontal asymptotes, and it's trig so intuitively seems well-suited for geometry stuff.
+    // 90 / Math*PI ensures the asymptotes occur at +- 45 degrees.
+    t.rotate(90 / Math.PI * Math.atan(options.arc * options.column * options.row / 28.636))
+  }
   rotateCol(options, c, t)
   return t
 }
@@ -279,22 +297,22 @@ export class Constant extends ETrsf {
   }
 }
 
-export function keyPosition(key: CuttleKey, flat: boolean) {
+export function keyPosition(c: Cuttleform, key: CuttleKey, flat: boolean) {
   const info = keyInfo(key)
   return key.position.evaluate(
     { flat, key },
     new Trsf()
       .translate(0, 0, -keyInfo(key).depth - switchInfo(key.type).height)
       .rotate(info.tilt, [0, 0, 0], [1, 0, 0])
-      .translate(0, 0, KEY_BASE),
+      .translate(0, 0, keyBase(c)),
   )
 }
 
-export function keyPositionTop(key: CuttleKey, flat: boolean) {
+export function keyPositionTop(c: Cuttleform, key: CuttleKey, flat: boolean) {
   return key.position.evaluate(
     { flat, key },
     new Trsf()
-      .translate(0, 0, KEY_BASE),
+      .translate(0, 0, keyBase(c)),
   )
 }
 
@@ -312,7 +330,7 @@ function rotate(keys: CuttleKey[], angle: number, position: [number, number, num
  * This is useful for creating full keyboards instead of ones split in half.
  */
 export function mirror(keys: CuttleKey[], gap = 30, angle = 0) {
-  const minX = Math.min(...keys.map(k => keyPosition(k, false).origin().x))
+  const minX = Math.min(...keys.map(k => keyPosition({} as any, k, false).origin().x))
   const axisX = minX - gap / 2 - 10
   const mirroredKeys = keys.map(k => {
     const newK = {

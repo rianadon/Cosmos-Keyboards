@@ -1,5 +1,7 @@
 ---
 date: 2023-12-31
+categories:
+    - Technical
 ---
 
 # Offset Surfaces: The Panacea for Bad Geometry?

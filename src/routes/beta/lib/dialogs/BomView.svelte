@@ -13,7 +13,7 @@
   import { bomMultiplier as multiplier } from '$lib/store'
   import MultiplierDropdown from './MultiplierDropdown.svelte'
 
-  export let geometry: Geometry
+  export let geometry: Geometry | null
   export let conf: Cuttleform
 
   function keycaps(c: Cuttleform, multiplier: number) {

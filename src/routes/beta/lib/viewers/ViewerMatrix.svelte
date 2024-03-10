@@ -7,14 +7,14 @@
   import { boundingSize } from '$lib/loaders/geometry'
 
   import type { Cuttleform, CuttleKey, Geometry } from '$lib/worker/config'
-  import type { ConfError } from '$lib/worker/check'
+  import { isRenderable, type ConfError } from '$lib/worker/check'
   import Trsf from '$lib/worker/modeling/transformation'
   import { keyPosition } from '$lib/worker/modeling/transformation-ext'
   import { flip } from '$lib/store'
   import { keyLine } from '../matrixLayout'
 
   export let conf: Cuttleform
-  export let geometry: Geometry
+  export let geometry: Geometry | null
   export let style: string = ''
   export let confError: ConfError | undefined
   export let darkMode: boolean
@@ -22,9 +22,7 @@
   let center: [number, number, number] = [0, 0, 0]
 
   $: geometries =
-    (!confError || confError.type == 'intersection') && geometry
-      ? drawState(conf, darkMode, confError, geometry)
-      : []
+    isRenderable(confError) && geometry ? drawState(conf, darkMode, confError, geometry) : []
   $: size = boundingSize(geometries.map((g) => g.geometry))
 
   function multiply(Q, b) {
@@ -91,27 +89,27 @@
           const x = j % q
           const y = Math.floor(j / q)
           if (x > 0) {
-            D[i * Q + j + 1][ii * Q + y * q + x - 1 + 1] += keyPosition(conf.keys[i])
+            D[i * Q + j + 1][ii * Q + y * q + x - 1 + 1] += keyPosition(conf, conf.keys[i], true)
               .origin()
-              .sub(keyPosition(conf.keys[ii]).origin())
+              .sub(keyPosition(conf, conf.keys[ii], true).origin())
               .length()
           }
           if (y > 0) {
-            D[i * Q + j + 1][ii * Q + (y - 1) * q + x + 1] += keyPosition(conf.keys[i])
+            D[i * Q + j + 1][ii * Q + (y - 1) * q + x + 1] += keyPosition(conf, conf.keys[i], true)
               .origin()
-              .sub(keyPosition(conf.keys[ii]).origin())
+              .sub(keyPosition(conf, conf.keys[ii], true).origin())
               .length()
           }
           if (x < q - 1) {
-            D[i * Q + j + 1][ii * Q + y * q + x + 1 + 1] += keyPosition(conf.keys[i])
+            D[i * Q + j + 1][ii * Q + y * q + x + 1 + 1] += keyPosition(conf, conf.keys[i], true)
               .origin()
-              .sub(keyPosition(conf.keys[ii]).origin())
+              .sub(keyPosition(conf, conf.keys[ii], true).origin())
               .length()
           }
           if (y < q2 - 1) {
-            D[i * Q + j + 1][ii * Q + (y + 1) * q + x + 1] += keyPosition(conf.keys[i])
+            D[i * Q + j + 1][ii * Q + (y + 1) * q + x + 1] += keyPosition(conf, conf.keys[i], true)
               .origin()
-              .sub(keyPosition(conf.keys[ii]).origin())
+              .sub(keyPosition(conf, conf.keys[ii], true).origin())
               .length()
           }
         }

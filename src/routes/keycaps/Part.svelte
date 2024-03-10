@@ -9,7 +9,7 @@
   import CoopScene from '$lib/3d/CoopScene.svelte'
   import type { CuttleKey } from '$lib/worker/config'
   import Trsf from '$lib/worker/modeling/transformation'
-  import { simpleKeyGeo } from '$lib/worker/simplekeys'
+  import { simpleKeyGeo } from '$lib/loaders/simplekeys'
 
   export let row: number
   export let part: string
@@ -33,7 +33,7 @@
 
   const NULL = Promise.resolve(undefined)
   const partPromise = browser ? keyGeometry() : NULL
-  const simpleGeo = browser ? simpleKeyGeo(part, ASPECT, row) : null
+  const simpleGeo = browser ? simpleKeyGeo(key, false) : null
 
   const info = keyInfo(key)
   const depthDrawing: [number, number][] = [

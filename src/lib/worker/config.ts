@@ -24,6 +24,7 @@ import {
   SWITCH,
 } from '../../../target/proto/cuttleform'
 import { BaseGeometry, BlockGeometry, TiltGeometry } from './cachedGeometry'
+import { DEFAULT_MWT_FACTOR } from './geometry.thickWebs'
 import Trsf from './modeling/transformation'
 import ETrsf, { Constant, keyPosition, mirror } from './modeling/transformation-ext'
 import { for2, match, range, reverseMap } from './util'
@@ -50,8 +51,13 @@ type _ETrsf = ETrsf // For code gen
 export interface SpecificCuttleform<S> {
   wallThickness: number
   wallShrouding: number
+  /** Maximum thickness of the web. Set to 0 for dynamic thickness that adjusts to each socket height. */
   webThickness: number
+  /** Cosmos will try to ensure a minimum web thickness equal to this fraction of the given max web thickness. */
+  webMinThicknessFactor: number
   keys: CuttleKey[]
+  /** The basis on which to compute  */
+  keyBasis: Keycap['profile']
   connector: 'usb' | 'trrs' | null
   connectorSizeUSB: 'slim' | 'average' | 'big'
   /** The index of the wall by which the connector is placed. */
@@ -91,9 +97,14 @@ export interface SpecificCuttleform<S> {
     side?: {
       /**
        * The tangents of the walls have length <segment length>/divisor.
-       * Smaller divisors make the walls more rounded.
+       * Smaller divisors make the walls more rounded. The default is 3.
        */
       divisor: number
+      /**
+       * A measure of how bowed out the boundaries of the model are.
+       * Should be greater than 1. The default is 1.5.
+       */
+      concavity: number
     }
     top?: {
       /** Length of the horizontal tangent of the top walls, at the top vertex. */
@@ -317,17 +328,19 @@ export function cuttleConf(c: DeepRequired<CuttleformProto>): Cuttleform {
     wallThickness: c.wall.wallThickness / 10,
     wallShrouding: c.wall.wallShrouding / 10,
     webThickness: c.wall.webThickness / 10,
+    webMinThicknessFactor: DEFAULT_MWT_FACTOR,
     keys: maybeMirror(c, [
       ...fingers(c),
       ...thumbs(c),
     ]),
+    keyBasis: keycapType(c),
     screwIndices: c.wall.screwInserts ? c.wall.screwIndices.map(i => (i - 1)) : [],
     screwType: MAP_SCREW_TYPE[c.wall.screwType],
     screwSize: MAP_SCREW_SIZE[c.wall.screwSize],
     screwCountersink: c.wall.countersinkScrews,
     rounded: {
       top: c.wall.roundedTop ? { horizontal: 1 / 4, vertical: 2 / 3 } : undefined,
-      side: c.wall.roundedSide ? { divisor: 3 } : undefined,
+      side: c.wall.roundedSide ? { divisor: 3, concavity: 1.5 } : undefined,
     },
     connector: MAP_CONNECTOR[c.wall.connector],
     connectorSizeUSB: MAP_CONNECTOR_SIZE[c.wall.connectorSizeUsb],
@@ -435,7 +448,7 @@ function keyType(m: Manuform): CuttleKey['type'] {
   return t as any
 }
 
-function keycapType(c: DeepRequired<CuttleformProto>): Required<CuttleKeycapKey>['keycap']['profile'] {
+export function keycapType(c: DeepRequired<CuttleformProto>): Required<CuttleKeycapKey>['keycap']['profile'] {
   if (c.upperKeys.keycapType == KEYCAP.MT3) return 'mt3'
   if (c.upperKeys.keycapType == KEYCAP.OEM) return 'oem'
   if (c.upperKeys.keycapType == KEYCAP.CHERRY) return 'cherry'
@@ -446,7 +459,7 @@ function keycapType(c: DeepRequired<CuttleformProto>): Required<CuttleKeycapKey>
   return 'dsa'
 }
 
-function switchType(c: DeepRequired<CuttleformProto>): Required<CuttleKeycapKey>['type'] {
+export function switchType(c: DeepRequired<CuttleformProto>): Required<CuttleKeycapKey>['type'] {
   if (c.upperKeys.switchType == SWITCH.MX) return 'old-mx'
   if (c.upperKeys.switchType == SWITCH.MX_HOTSWAP) return 'mx-hotswap'
   if (c.upperKeys.switchType == SWITCH.MX_BETTER) return 'mx-better'
@@ -463,6 +476,7 @@ export function curvature(pinky: boolean, c: DeepRequired<CuttleformProto>) {
       curvatureOfRow: c.curvature.beta / 45,
       spacingOfRows: c.upperKeys.verticalSpacing / 10,
       spacingOfColumns: c.upperKeys.horizontalSpacing / 10,
+      arc: c.curvature.arc / 45,
     },
     unmerged: {
       curvatureOfColumn: pinky ? c.curvature.pinkyAlpha / 45 : c.curvature.alpha / 45,
@@ -562,7 +576,8 @@ export function tupleToXYZ(tuple: bigint) {
 }
 
 export function fingers(c: DeepRequired<CuttleformProto>): CuttleKey[] {
-  const columns = range(0, c.upperKeys.columns)
+  let columns = range(0, c.upperKeys.columns)
+  if (c.upperKeys.columns <= 4) columns = range(1, c.upperKeys.columns + 1)
   const rows = range(0, c.upperKeys.rows)
 
   const lastRow = c.upperKeys.rows - 1
@@ -707,12 +722,13 @@ export function fingers(c: DeepRequired<CuttleformProto>): CuttleKey[] {
   // This means I need to compute the inverse of keyPlane and apply that to the positions.
   // k.position.insertBeforeLast does the heavy lifting here and puts the rotation
   // right beore the keyPlane transformation in the stack of transformations.
-  const keyPlaneInv = keyPlane.evaluate({ flat: true }, new Trsf()).invert()
+  const keyPlaneInv = keyPlane.evaluate({ flat: false }, new Trsf()).invert()
   const stag = c.stagger
   // I need to remind myself that premultiply and translate apply their transformations last
   // While multiply and pretranslate go first.
-  const spreadOriginsBot = normalKeys.map(col => col.length > 0 ? keyPosition(col[col.length - 1], false).pretranslate(8.75, -8.75, 0).premultiply(keyPlaneInv) : null)
-  const spreadOriginsTop = normalKeys.map(col => col.length > 0 ? keyPosition(col[0], false).pretranslate(8.75, 8.75, 0).premultiply(keyPlaneInv) : null)
+  const posC = { keyBasis: keycapType(c) } as any
+  const spreadOriginsBot = normalKeys.map(col => col.length > 0 ? keyPosition(posC, col[col.length - 1], false).pretranslate(8.75, -8.75, 0).premultiply(keyPlaneInv) : null)
+  const spreadOriginsTop = normalKeys.map(col => col.length > 0 ? keyPosition(posC, col[0], false).pretranslate(8.75, 8.75, 0).premultiply(keyPlaneInv) : null)
   const spreadAngles = [stag.staggerInnerIndex, stag.staggerIndex, stag.staggerMiddle, stag.staggerRing, stag.staggerPinky].map(s => decodeTuple(s)[3] / 45)
   console.log(spreadAngles)
   normalKeys.forEach((col, i) => {
@@ -780,13 +796,13 @@ export function thumbOrigin(c: DeepRequired<CuttleformProto>, wristRest = false)
   const cornerRow = c.upperKeys.rows - 2
 
   const thumbStagger = tupleToXYZA(c.stagger.staggerThumb)
-  const origin = new Constant('thumbOrigin').rotate(thumbStagger.a, [0, 0, 0], [0, 0, 1])
+  const origin = new Constant('thumbOrigin')
   if (wristRest) {}
   else if (c.thumbCluster.oneofKind === 'carbonfetThumb') {
     origin.rotate(-9, [0, 0, 0], [1, 0, 0])
       .rotate(32, [0, 0, 0], [0, 1, 0])
       .rotate(-160, [0, 0, 0], [0, 0, 1])
-      .translate(-26.2, -27.8, -8.9)
+      .translate(-26.2, -28.5, -8.9)
   } else if (c.thumbCluster.oneofKind === 'orbylThumb') {
     origin.translate(0, 0, -8)
       .rotate(10, CENTER, X)
@@ -826,6 +842,7 @@ export function thumbOrigin(c: DeepRequired<CuttleformProto>, wristRest = false)
       })).transformBy(upperKeysPlane(c)).translate(17.5 / 2, -17.5 / 2, 0),
   )
 
+  origin.rotate(thumbStagger.a, [0, 0, 0], [0, 0, 1])
   origin.translate(thumbStagger.x, thumbStagger.y, thumbStagger.z)
 
   return origin
@@ -836,7 +853,7 @@ export function thumbs(c: DeepRequired<CuttleformProto>): CuttleKey[] {
   const offset = thumbOrigin(c)
 
   if (cluster.oneofKind === 'defaultThumb') {
-    return theDefaultThumbs(switchType(c), keycapType(c), cluster.defaultThumb.thumbCount, false, offset, cluster.defaultThumb.encoder && MAP_ENCODER[cluster.defaultThumb.encoderType])
+    return manuformThumbs(switchType(c), keycapType(c), cluster.defaultThumb.thumbCount, false, offset, cluster.defaultThumb.encoder && MAP_ENCODER[cluster.defaultThumb.encoderType])
   }
   if (cluster.oneofKind == 'curvedThumb') {
     return defaultThumbs(
@@ -855,15 +872,15 @@ export function thumbs(c: DeepRequired<CuttleformProto>): CuttleKey[] {
   throw new Error(`Unknown thumb cluster type ${cluster.oneofKind}`)
 }
 
-export function manuformThumbs(m: Manuform): CuttleKey[] {
-  const offset: Point = [m.shaping.thumbClusterOffsetX, m.shaping.thumbClusterOffsetY, m.shaping.thumbClusterOffsetZ]
+// export function manuformThumbs(m: Manuform): CuttleKey[] {
+//   const offset: Point = [m.shaping.thumbClusterOffsetX, m.shaping.thumbClusterOffsetY, m.shaping.thumbClusterOffsetZ]
 
-  // if (m.keys.thumbType == "default") return defaultThumbs(keyType(m), MANUFORM_KEYCAP_TYPE, thumbCount(m), false, m.shaping, offset)
-  // if (m.keys.thumbType == "curved") return defaultThumbs(keyType(m), MANUFORM_KEYCAP_TYPE, thumbCount(m), true, curvedShaping as any, offset)
-  // if (m.keys.thumbType == "orbyl") return orbylThumbs(keyType(m), MANUFORM_KEYCAP_TYPE, offset)
-  // if (m.keys.thumbType == "carbonfet") return carbonfetThumbs(keyType(m), MANUFORM_KEYCAP_TYPE, offset)
-  throw new Error(`Unknown thumb cluster type ${m.keys.thumbType}`)
-}
+//   // if (m.keys.thumbType == "default") return defaultThumbs(keyType(m), MANUFORM_KEYCAP_TYPE, thumbCount(m), false, m.shaping, offset)
+//   // if (m.keys.thumbType == "curved") return defaultThumbs(keyType(m), MANUFORM_KEYCAP_TYPE, thumbCount(m), true, curvedShaping as any, offset)
+//   // if (m.keys.thumbType == "orbyl") return orbylThumbs(keyType(m), MANUFORM_KEYCAP_TYPE, offset)
+//   // if (m.keys.thumbType == "carbonfet") return carbonfetThumbs(keyType(m), MANUFORM_KEYCAP_TYPE, offset)
+//   throw new Error(`Unknown thumb cluster type ${m.keys.thumbType}`)
+// }
 
 function thumbCount(m: Manuform): DTKEYS {
   return {
@@ -894,49 +911,53 @@ const BR_THUMBS = [DTKEYS.SIX, DTKEYS.FIVE]
 type KeyType = CuttleKeycapKey['type']
 type CapType = Required<CuttleKeycapKey>['keycap']['profile']
 
-function customThumbs(keyType: KeyType, capType: CapType, custom: Cuttleform_CustomThumb, offset: ETrsf): CuttleKey[] {
-  return custom.key.map(k => {
-    const customId = decodeTuple(k.position!)[3]
-    const customType = ID_TO_TYPE[customId] ?? keyType
+export function decodeCustomKey(k: Cuttleform_CustomThumb_Key, keyType: KeyType, capType: CapType, offset: ETrsf): CuttleKey {
+  const customId = decodeTuple(k.position!)[3]
+  const customType = ID_TO_TYPE[customId] ?? keyType
 
-    const rot = tupleToRot(k.rotation!)
-    console.log('decode aspect', rot.extra)
-    let newKey = {
+  const rot = tupleToRot(k.rotation!)
+  console.log('decode aspect', rot.extra)
+  let newKey = {
+    type: customType,
+    aspect: rot.extra < 0 ? -100 / rot.extra : rot.extra / 100,
+    cluster: 'thumbs',
+    position: new ETrsf()
+      .rotate(rot.alpha, CENTER, X)
+      .rotate(rot.beta, CENTER, Y)
+      .rotate(rot.gamma, CENTER, Z)
+      .translate(tupleToXYZ(k.position!))
+      .transformBy(offset),
+  }
+  if (customType.startsWith('cirque')) {
+    return {
+      ...newKey,
       type: customType,
-      aspect: rot.extra < 0 ? -100 / rot.extra : rot.extra / 100,
-      cluster: 'thumbs',
-      position: new ETrsf()
-        .rotate(rot.alpha, CENTER, X)
-        .rotate(rot.beta, CENTER, Y)
-        .rotate(rot.gamma, CENTER, Z)
-        .translate(tupleToXYZ(k.position!))
-        .transformBy(offset),
+      size: { sides: k.trackballSides },
+    } as CuttleTrackpadKey
+  }
+  if (k.trackballRadius && k.trackballSides) {
+    return {
+      ...newKey,
+      type: 'trackball',
+      size: {
+        radius: k.trackballRadius / 10,
+        sides: k.trackballSides,
+      },
     }
-    if (customType.startsWith('cirque')) {
-      return {
-        ...newKey,
-        type: customType,
-        size: { sides: k.trackballSides },
-      } as CuttleTrackpadKey
-    }
-    if (k.trackballRadius && k.trackballSides) {
-      return {
-        ...newKey,
-        type: 'trackball',
-        size: {
-          radius: k.trackballRadius / 10,
-          sides: k.trackballSides,
-        },
-      }
-    } else if (customId > 0) return newKey as CuttleKey
-    else {return {
-        ...newKey,
-        keycap: { profile: capType, row: 5 },
-      } as CuttleKey}
-  })
+  } else if (customId > 0) return newKey as CuttleKey
+  else {
+    return {
+      ...newKey,
+      keycap: { profile: capType, row: 5 },
+    } as CuttleKey
+  }
 }
 
-function theDefaultThumbs(keyType: KeyType, capType: CapType, count: DTKEYS, five: boolean, offset: ETrsf, encoder?: 'ec11' | 'evqwgd001' | false): CuttleKey[] {
+function customThumbs(keyType: KeyType, capType: CapType, custom: Cuttleform_CustomThumb, offset: ETrsf): CuttleKey[] {
+  return custom.key.map(k => decodeCustomKey(k, keyType, capType, offset))
+}
+
+function manuformThumbs(keyType: KeyType, capType: CapType, count: DTKEYS, five: boolean, offset: ETrsf, encoder?: 'ec11' | 'evqwgd001' | false): CuttleKey[] {
   if (count == DTKEYS.ZERO) return []
 
   const topAspect = five || count == DTKEYS.THREE ? 1 : 1.5
@@ -978,7 +999,7 @@ function theDefaultThumbs(keyType: KeyType, capType: CapType, count: DTKEYS, fiv
       .rotate(-6, [0, 0, 0], [1, 0, 0])
       .rotate(-5, [0, 0, 0], [0, 1, 0])
       .rotate(95, [0, 0, 0], [0, 0, 1])
-      .translate(-15, -6, 0)
+      .translate(-15.1, -6.1, 0)
       .transformBy(offset),
   }
   let middleRight: CuttleKey = {
@@ -1325,6 +1346,7 @@ export function orbylThumbs(keyType: KeyType, capType: CapType, opts: Cuttleform
       sides: 20,
     },
     position: new ETrsf()
+      .rotate(30)
       .translate(0, 0, 8)
       .transformBy(offset),
   }]

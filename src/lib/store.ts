@@ -1,7 +1,7 @@
 import { browser } from '$app/environment'
 import type { CuttleformProto } from '$lib/worker/config'
-import { type Writable, writable } from 'svelte/store'
-import type { User } from './login'
+import { derived, type Readable, type Writable, writable } from 'svelte/store'
+import type { User } from '../routes/beta/lib/login'
 
 export const protoConfig = writable<CuttleformProto>(undefined)
 export const transformMode = writable<'translate' | 'rotate' | 'select'>('select')
@@ -17,7 +17,13 @@ export const theme = storable('theme', 'purple')
 export const showHand = storable('showHand', true)
 export const bomMultiplier = storable('bomMultiplier', '2')
 export const stiltsMsg = storable('stiltsMsg', true)
+export const modelName = storable('modelName', 'cosmotyl')
 export const developer = storable('developer', false)
+export const showTiming = andcondition(developer, storable('developer.timing', false))
+export const noWall = andcondition(developer, storable('developer.hideWall', false))
+export const noBase = andcondition(developer, storable('developer.hideBase', false))
+export const showKeyInts = andcondition(developer, storable('developer.showKeyInts', false))
+export const debugViewport = andcondition(developer, storable('developer.debugViewport', false))
 
 /** A Svelte store that writes and reads from localStorage. */
 function storable<T>(name: string, data: T): Writable<T> {
@@ -42,4 +48,27 @@ function storable<T>(name: string, data: T): Writable<T> {
       })
     },
   }
+}
+
+/**
+ * A Svelte store that returns the second store only when the condition store = true.
+ * Otherwise takes on the ifNot value.
+ * Writes are only possible when condition store = true.
+ */
+function conditional<T>(conditionStore: Readable<boolean>, dataStore: Writable<T>, ifNot: T): Writable<T> {
+  let _cond: boolean = false
+
+  const store = derived([conditionStore, dataStore], ([a, b]) => a ? b : ifNot)
+  conditionStore.subscribe(c => _cond = c)
+
+  return {
+    subscribe: store.subscribe,
+    set: n => _cond && dataStore.set(n),
+    update: (callback) => _cond && dataStore.update(callback),
+  }
+}
+
+/** Special case of conditional for booleans. Ands the two values. */
+function andcondition(read: Readable<boolean>, write: Writable<boolean>) {
+  return conditional(read, write, false)
 }

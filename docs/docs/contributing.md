@@ -87,6 +87,8 @@ The end goal is that you'll be able to create a pull request [like these](https:
 
 9. This button will be replaced with a new button to create a Pull Request with your changes. Write up what work you've done, and we'll discuss the changes in the comments section in the Pull Request!
 
+   When you create the Pull Request, the Vercel bot will deploy a preview of the entire Cosmos website, with your changes applied. You don't have install any additional software to preview your changes; it's all managed in the cloud. ☁️
+
 ## Contributing Guides
 
 ### Contributing Parts

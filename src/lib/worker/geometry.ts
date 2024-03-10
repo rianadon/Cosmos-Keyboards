@@ -5,15 +5,19 @@ import { partBottom, socketSize } from '$lib/geometry/socketsParts'
 import { switchInfo } from '$lib/geometry/switches'
 import { wallBezier, wallCurveRounded, wallSurfacesInnerRoundedTop, wallSurfacesOuterRoundedTop } from '@pro/rounded'
 import cdt2d from 'cdt2d'
-import boundary from 'simplicial-complex-boundary'
-import { ExtrudeGeometry, Shape } from 'three'
+import findBoundary from 'simplicial-complex-boundary'
+import { ExtrudeGeometry, Matrix3, Shape, Triangle } from 'three'
+import { Vector2 } from 'three/src/math/Vector2'
 import concaveman from './concaveman'
 import { type Cuttleform, type CuttleKey, type Geometry, keyRoundSize } from './config'
+import { intersectLineCircle, intersectPolyPoly, intersectPtPoly, intersectTriCircle } from './geometry.intersections'
 import { PLATE_HEIGHT, screwInsertDimensions } from './model'
 import Trsf from './modeling/transformation'
 import { Vector } from './modeling/transformation'
-import ETrsf, { KEY_BASE } from './modeling/transformation-ext'
-import { filterObj, mapObj, sum } from './util'
+import ETrsf, { keyBase } from './modeling/transformation-ext'
+import { DefaultMap, filterObj, mapObj, sum } from './util'
+
+export { flipAllTriangles, reinforceTriangles } from './geometry.thickWebs'
 
 const Zv = new Vector(0, 0, 1)
 
@@ -45,11 +49,36 @@ export interface WallCriticalPoints {
   sm?: Trsf
   /** @deprecated */
   pt?: number
+  nRoundNext: boolean
+  nRoundPrev: boolean
 }
 
 export const webThickness = (c: Cuttleform, key: CuttleKey) => {
   if (c.webThickness > 0) return c.webThickness
   return socketSize(key).z
+}
+
+/** Like offsetAxisLerp(..., 0.5) = offsetAxis. The lerp parameter controsl which normal the given normal is closest to. */
+export function offsetAxisLerp(p1: Trsf, p2: Trsf, p3: Trsf, z: Vector, f: number) {
+  const p2Vec = p2.origin()
+  z.normalize()
+
+  // Find 2 vectors describing the edges of the model
+  const a = p1.origin().sub(p2Vec)
+  const b = p3.origin().sub(p2Vec)
+
+  // Project onto XY Plane by subtracting projection of each vector onto Z
+  const aProj = new Vector().subVectors(a, new Vector(z).multiplyScalar(a.dot(z)))
+  const bProj = new Vector().subVectors(b, new Vector(z).multiplyScalar(b.dot(z)))
+  if (aProj.length() == 0 || bProj.length() == 0) throw new Error('Vectors are zero length')
+  aProj.normalize()
+  bProj.normalize()
+
+  // Find 2 vectors normal to these edges (both point out)
+  const c = new Vector().crossVectors(a, z).normalize()
+  const d = new Vector().crossVectors(z, b).normalize()
+
+  return c.lerp(d, f).normalize()
 }
 
 export function offsetAxis(p1: Trsf, p2: Trsf, p3: Trsf, z: Vector) {
@@ -73,6 +102,8 @@ export function offsetAxis(p1: Trsf, p2: Trsf, p3: Trsf, z: Vector) {
 
   // Special case: c == d
   if (c.y == d.y && c.z == d.z) return c
+  // Special case: aProj == bProj
+  if (aProj.x == bProj.x) return a.normalize()
 
   d.sub(c)
   bProj.sub(aProj)
@@ -86,7 +117,10 @@ export function offsetAxis(p1: Trsf, p2: Trsf, p3: Trsf, z: Vector) {
   // add c to a so that a becomes the vector from the point to the offset point
   aProj.add(c)
 
-  if (isNaN(aProj.x)) throw new Error('Invalid offset bisector')
+  if (isNaN(aProj.x)) {
+    console.log(c, sideLen, a, b, z, bProj)
+    throw new Error('Invalid offset bisector')
+  }
   return aProj.normalize()
 }
 
@@ -96,14 +130,14 @@ export function offsetBisector(p1: Trsf, p2: Trsf, p3: Trsf, offset: number, z: 
   return p2.cleared().coordSystemChange(p2.origin(), a, z)
 }
 
-export function keyCriticalPoints(c: Cuttleform, key: CuttleKey, hole: Trsf): CriticalPoints {
+export function keyCriticalPoints(c: Cuttleform, key: CuttleKey, hole: Trsf, offset = 0): CriticalPoints {
   const roundSize = keyRoundSize(key)
   if (roundSize) {
     const pts: Trsf[] = []
     const r = roundSize.radius
     const sides = roundSize.sides
     for (let j = 0; j < sides; j++) {
-      pts.push(hole.pretranslated(r * Math.cos(2 * Math.PI / sides * j), r * Math.sin(2 * Math.PI / sides * j), 0))
+      pts.push(hole.pretranslated(r * Math.cos(2 * Math.PI / sides * -j), r * Math.sin(2 * Math.PI / sides * -j), 0))
     }
     return pts
   }
@@ -114,10 +148,10 @@ export function keyCriticalPoints(c: Cuttleform, key: CuttleKey, hole: Trsf): Cr
 
   // Return the points!
   return [
-    hole.pretranslated(-width / 2, height / 2, 0),
-    hole.pretranslated(width / 2, height / 2, 0),
-    hole.pretranslated(width / 2, -height / 2, 0),
-    hole.pretranslated(-width / 2, -height / 2, 0),
+    hole.pretranslated(-width / 2 - offset, height / 2 + offset, 0),
+    hole.pretranslated(width / 2 + offset, height / 2 + offset, 0),
+    hole.pretranslated(width / 2 + offset, -height / 2 - offset, 0),
+    hole.pretranslated(-width / 2 - offset, -height / 2 - offset, 0),
   ]
 }
 
@@ -277,10 +311,10 @@ export function wallCriticalPoints(
     // if (mo.origin().z < 0)
     // mo = bo.translated(0, 0, 0.001)
 
-    return { si, sm, ti, ki, mi, bi, to, mo, bo, key: pt.key, pt: ptIndex }
+    return { si, sm, ti, ki, mi, bi, to, mo, bo, key: pt.key, pt: ptIndex, nRoundNext: pt.key == nextPt.key, nRoundPrev: pt.key == prevPt.key }
   }
 
-  return { ti, ki, mi, bi, to, mo, bo, key: pt.key, pt: ptIndex }
+  return { ti, ki, mi, bi, to, mo, bo, key: pt.key, pt: ptIndex, nRoundNext: pt.key == nextPt.key, nRoundPrev: pt.key == prevPt.key }
 }
 
 export function blockWallCriticalPoints(
@@ -378,10 +412,10 @@ export function blockWallCriticalPoints(
     // if (mo.origin().z < 0)
     // mo = bo.translated(0, 0, 0.001)
 
-    return { si, sm, ti, ki, mi, bi, to, mo, bo, key: pt.key, pt: ptIndex }
+    return { si, sm, ti, ki, mi, bi, to, mo, bo, key: pt.key, pt: ptIndex, nRoundNext: pt.key == nextPt.key, nRoundPrev: pt.key == prevPt.key }
   }
 
-  return { ti, ki, mi, bi, to, mo, bo, key: pt.key, pt: ptIndex }
+  return { ti, ki, mi, bi, to, mo, bo, key: pt.key, pt: ptIndex, nRoundNext: pt.key == nextPt.key, nRoundPrev: pt.key == prevPt.key }
 }
 
 export function oldblockWallCriticalPoints(
@@ -463,10 +497,10 @@ export function oldblockWallCriticalPoints(
     // if (mo.origin().z < 0)
     // mo = bo.translated(0, 0, 0.001)
 
-    return { si, sm, ti, ki, mi, bi, to, mo, bo, key: pt.key, pt: ptIndex }
+    return { si, sm, ti, ki, mi, bi, to, mo, bo, key: pt.key, pt: ptIndex, nRoundNext: pt.key == nextPt.key, nRoundPrev: pt.key == prevPt.key }
   }
 
-  return { ti, ki, mi, bi, to, mo, bo, key: pt.key, pt: ptIndex }
+  return { ti, ki, mi, bi, to, mo, bo, key: pt.key, pt: ptIndex, nRoundNext: pt.key == nextPt.key, nRoundPrev: pt.key == prevPt.key }
 }
 
 export interface KeyTrsf {
@@ -479,24 +513,28 @@ export function flattenKeyCriticalPoints(c: Cuttleform, pts: CriticalPoints[], t
   return pts.flatMap((p, i) => p.map(x => ({ key: c.keys[i], trsf: x, keyTrsf: trsfs[i] })))
 }
 
-export function allWallCriticalPoints(c: Cuttleform, pts: CriticalPoints[], trsfs: Trsf[], bottomZ: number, worldZ: Vector, offset = 0): WallCriticalPoints[] {
-  const pts2D = allKeyCriticalPoints(c, keyHolesTrsfs2D(c, pts[0][0].cleared()))
-  const allPts = flattenKeyCriticalPoints(c, pts, trsfs)
+// Unused!
+// export function allWallCriticalPoints(c: Cuttleform, pts: CriticalPoints[], trsfs: Trsf[], bottomZ: number, worldZ: Vector, offset = 0): WallCriticalPoints[] {
+//   const pts2D = allKeyCriticalPoints(c, keyHolesTrsfs2D(c, pts[0][0].cleared()))
+//   const allPts = flattenKeyCriticalPoints(c, pts, trsfs)
 
-  const { boundary } = solveTriangularization(c, pts2D, pts, trsfs, bottomZ, worldZ, {
-    noBadWalls: true,
-    constrainKeys: true,
-    noKeyTriangles: true,
-  })
-  const b = boundary
+//   const { boundary, removedTriangles } = solveTriangularization(c, pts2D, pts, trsfs, bottomZ, worldZ, {
+//     noBadWalls: true,
+//     constrainKeys: true,
+//     noKeyTriangles: true,
+//   })
+//   const b = boundary
 
-  const fullWall = b.map((pt, i) => {
-    const prevPt = b[(i - 1 + b.length) % b.length]
-    const nextPt = b[(i + 1) % b.length]
-    return wallCriticalPoints(c, allPts[prevPt], allPts[pt], allPts[nextPt], pt, offset, bottomZ, worldZ)
-  })
-  return fullWall
-}
+//   const fullWall = b.map((pt, i) => {
+//     const prevPt = b[(i - 1 + b.length) % b.length]
+//     const nextPt = b[(i + 1) % b.length]
+//     const pts = wallCriticalPoints(c, allPts[prevPt], allPts[pt], allPts[nextPt], pt, offset, bottomZ, worldZ)
+//     if (removedTriangles.find(x => x.includes(pt) && x.includes(nextPt))) pts.nRoundNext = true
+//     if (removedTriangles.find(x => x.includes(pt) && x.includes(prevPt))) pts.nRoundPrev = true
+//     return pts
+//   })
+//   return fullWall
+// }
 
 /** this is where the original position of the thumb switches defined.
  each and every thumb keys is derived from this value.
@@ -661,7 +699,7 @@ function minWallY(conf: Cuttleform, walls: WallCriticalPoints[], beginning: numb
   if (conf.rounded.side) {
     const pre = (beginning - 1 + walls.length) % walls.length
     const post = (end + 1) % walls.length
-    const bezier = wallBezier(conf, walls[pre].bi, walls[beginning].bi, walls[end].bi, walls[post].bi, new Vector(0, 0, 1), -Infinity)
+    const bezier = wallBezier(conf, walls[pre].bi, walls[beginning].bi, walls[end].bi, walls[post].bi, walls[beginning], walls[end], new Vector(0, 0, 1), -Infinity)
     const bezierPnts = bezier.map(b => b.origin().y) as [number, number, number, number]
     // To find the minimum y, take the first derivative of the cubic bezier curve formula = 0.
     // This gives t in the bezier curve formula.
@@ -679,8 +717,9 @@ export function minWallYAlongVector(c: Cuttleform, surfaces: Line[][], idx: numb
   const next = surfaces[(idx + 1) % surfaces.length]
   const nextnext = surfaces[(idx + 2) % surfaces.length]
   const prev = surfaces[(idx - 1 + surfaces.length) % surfaces.length]
-  const wallBiMi = joinedWall(c, prev, surf, next, nextnext, new Vector(0, 0, 1), -Infinity)[1]
+  const wallBiMi = joinedWall(c, nextnext, next, surf, prev, new Vector(0, 0, 1), -Infinity)[1]
 
+  console.log(wallBiMi)
   return patchMinAlongVector(wallBiMi, v)
 }
 
@@ -690,12 +729,12 @@ export function connectorOrigin(c: Cuttleform, walls: WallCriticalPoints[], inne
   return originForConnector(c, walls, innerSurfaces, wall)
 }
 
-export function applyKeyAdjustment(k: CuttleKey, t: Trsf) {
+export function applyKeyAdjustment(c: Cuttleform, k: CuttleKey, t: Trsf) {
   const deg = keyInfo(k).tilt
   return t.cleared()
     .translate(0, 0, -keyInfo(k).depth - switchInfo(k.type).height)
     .rotate(deg, [0, 0, 0], [1, 0, 0])
-    .translate(0, 0, KEY_BASE)
+    .translate(0, 0, keyBase(c))
     .premultiply(t)
 }
 
@@ -727,7 +766,7 @@ function keyHoleTrsf(c: Cuttleform, k: CuttleKey, t: Trsf): Trsf {
     t
       .translate(0, -depth * Math.tan(deg * Math.PI / 180) / 2, -depth)
       .rotate(deg, [0, 0, 0], [1, 0, 0])
-      .translate(0, 0, KEY_BASE),
+      .translate(0, 0, keyBase(c)),
   )
 }
 
@@ -739,7 +778,8 @@ export function bottomByNormal(c: Cuttleform, normal: Vector, t: Trsf) {
     const swBottom = keyHoleTrsf(c, k, t.cleared()).pretranslated(0, 0, -webThickness(c, k))
     const pts = partBottom(k.type).flat()
     return pts.map(p => swTop.pretranslated(p).origin().dot(normal))
-      .concat(keyCriticalPoints(c, k, swBottom).map(p => p.origin().dot(normal)))
+      // See comment in additionalHeight about adding c.wallThickness / 2 as offset.
+      .concat(keyCriticalPoints(c, k, swBottom, c.wallThickness / 2).map(p => p.origin().dot(normal)))
   }))
 
   return j
@@ -753,7 +793,10 @@ export function additionalHeight(c: Cuttleform, t: Trsf) {
     const swBottom = keyHoleTrsf(c, k, t.cleared()).pretranslated(0, 0, -webThickness(c, k))
     const pts = partBottom(k.type).flat()
     return pts.map(p => swTop.pretranslated(p).origin().z)
-      .concat(keyCriticalPoints(c, k, swBottom).map(p => p.origin().z))
+      // The c.wallThickness/2 is added as an additional offset because when keys are rotated vertically,
+      // the wall will stick out below the key. However, the ti on these walls is not quite translated out by wallThickness
+      // due to thickness correcting factors. Hence c.wallThickness / 2 tries to approximate this amount.
+      .concat(keyCriticalPoints(c, k, swBottom, c.wallThickness / 2).map(p => p.origin().z))
   }))
 
   const pts2D = allKeyCriticalPoints(c, keyHolesTrsfs2D(c, t))
@@ -827,6 +870,7 @@ export function solveTriangularization(c: Cuttleform, pts2D: CriticalPoints[], p
   const allPolys = pts2D.map(a => a.map(p => p.xyz()))
   let allPts = allPolys.flat()
   let allTrsfs = flattenKeyCriticalPoints(c, pts, trsfs)
+  const removedTriangles: number[][] = []
 
   const edges: number[][] = []
   if (opts.constrainKeys) {
@@ -843,7 +887,7 @@ export function solveTriangularization(c: Cuttleform, pts2D: CriticalPoints[], p
     const newAllPts: typeof allPts = []
     const newAllTrsfs: typeof allTrsfs = []
     for (let i = 0; i < allPts.length; i++) {
-      if (inside(allPts[i], opts.boundary.map(i => allPts[i]))) {
+      if (intersectPtPoly(allPts[i], opts.boundary.map(i => allPts[i]))) {
         newAllPts.push(allPts[i])
         newAllTrsfs.push(allTrsfs[i])
         allIdx.push(i)
@@ -859,8 +903,8 @@ export function solveTriangularization(c: Cuttleform, pts2D: CriticalPoints[], p
     allTrsfs = newAllTrsfs
   }
 
-  let allTris = cdt2d(allPts, edges)
-  const bnd = boundary(allTris)
+  let allTris: number[][] = cdt2d(allPts, edges)
+  const bnd = findBoundary(allTris)
 
   if (opts.noKeyTriangles) {
     allTris = allTris.filter(([a, b, c]) => {
@@ -873,6 +917,7 @@ export function solveTriangularization(c: Cuttleform, pts2D: CriticalPoints[], p
     })
   }
   const lengthThresh = c.rounded.side ? 40 : undefined
+  const concavity = c.rounded.side?.concavity ?? 1.5
   if (opts.boundary) {
     // Special case: since the boundary is already fixed,
     // we can filter triangles inside the boundary using the knowledge that
@@ -889,15 +934,50 @@ export function solveTriangularization(c: Cuttleform, pts2D: CriticalPoints[], p
           || (idxC > idxA && idxA > idxB)
       }),
       allPts,
+      allPolys,
       allTrsfs,
       allIdx,
+      removedTriangles,
+      innerBoundary: boundaryPts,
     }
   }
+  let { boundary, triangles } = concaveman(c, allTrsfs, allPts, allTris, bnd, bottomZ, worldZ, opts.noBadWalls, concavity, lengthThresh, opts.noCut, opts.bottomPts2D)
+  const innerBoundary: number[] = [...boundary]
+  triangles = triangles.filter(([a, b, c]) => {
+    // @ts-ignore
+    const isBoundary = boundary.includes(a) + boundary.includes(b) + boundary.includes(c) >= 2
+    if (!isBoundary) return true
+    const u = new Vector(allPts[b][0], allPts[b][1], 0).sub(new Vector(allPts[a][0], allPts[a][1], 0))
+    const v = new Vector(allPts[c][0], allPts[c][1], 0).sub(new Vector(allPts[a][0], allPts[a][1], 0))
+    const perimeter = u.length() + v.length()
+    const area = u.cross(v).length() / 2
+    if (area > 5 || area / perimeter > 0.1) {
+      return true
+    }
+    removedTriangles.push([a, b, c])
+    const idxA = boundary.indexOf(a)
+    const idxB = boundary.indexOf(b)
+    const idxC = boundary.indexOf(c)
+    if (idxA >= 0 && idxB >= 0) {
+      innerBoundary.splice(Math.min(idxA, idxB), 0, c)
+    } else if (idxB >= 0 && idxC >= 0) {
+      innerBoundary.splice(Math.min(idxB, idxC), 0, a)
+    } else if (idxC >= 0 && idxA >= 0) {
+      innerBoundary.splice(Math.min(idxC, idxA), 0, b)
+    } else {
+      throw new Error('Unexpected')
+    }
+    return false
+  })
   return {
-    ...concaveman(c, allTrsfs, allPts, allTris, bnd, bottomZ, worldZ, opts.noBadWalls, 1.5, lengthThresh, opts.noCut, opts.bottomPts2D),
+    boundary,
+    triangles,
     allPts,
+    allPolys,
     allTrsfs,
     allIdx,
+    removedTriangles,
+    innerBoundary,
   }
 }
 
@@ -1406,27 +1486,6 @@ export function wristRestGeometry(c: Cuttleform, geo: Geometry) {
   }
 }
 
-// https://stackoverflow.com/a/29915728
-export function inside(point: [number, number, number], vs: [number, number, number][]) {
-  if (vs.includes(point)) return true
-  // ray-casting algorithm based on
-  // https://wrf.ecse.rpi.edu/Research/Short_Notes/pnpoly.html
-
-  var x = point[0], y = point[1]
-
-  var inside = false
-  for (var i = 0, j = vs.length - 1; i < vs.length; j = i++) {
-    var xi = vs[i][0], yi = vs[i][1]
-    var xj = vs[j][0], yj = vs[j][1]
-
-    var intersect = ((yi > y) != (yj > y))
-      && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)
-    if (intersect) inside = !inside
-  }
-
-  return inside
-}
-
 export type Curve = [Trsf, Trsf, Trsf, Trsf]
 export type Patch = Vector[][]
 // https://github.com/Open-Cascade-SAS/OCCT/blob/28b505b27baa09dfba68242534a89a55960b19ac/src/GeomFill/GeomFill_Coons.cxx
@@ -1612,9 +1671,12 @@ function bezierTangentAtZ1(p: Patch, u: number) {
 export interface Line {
   a: Trsf
   b: Trsf
-  ainner: CuttleKey | null
-  binner: CuttleKey | null
+  aNRoundNext: boolean
+  aNRoundPrev: boolean
+  bNRoundNext: boolean
+  bNRoundPrev: boolean
   curve: Curve
+  wall: WallCriticalPoints
 }
 
 function interpolate(a: Trsf, b: Trsf, t: number) {
@@ -1674,8 +1736,8 @@ export function loftCurves(a: Curve, b: Curve) {
   )
 }
 
-export function makeLine(a: Trsf, b: Trsf, ainner: CuttleKey | null = null, binner: CuttleKey | null = null): Line {
-  return { a, b, ainner, binner, curve: lineToCurve(a, b) }
+export function makeLine(a: Trsf, b: Trsf, wall: WallCriticalPoints, aNRoundPrev = false, aNRoundNext = false, bNRoundPrev = false, bNRoundNext = false): Line {
+  return { a, b, aNRoundNext, aNRoundPrev, bNRoundNext, bNRoundPrev, curve: lineToCurve(a, b), wall }
 }
 
 export function wallSurfacesOuter(c: Cuttleform, wall: WallCriticalPoints) {
@@ -1686,9 +1748,9 @@ export function wallSurfacesOuter(c: Cuttleform, wall: WallCriticalPoints) {
   const bo = wall.bo
 
   return [
-    makeLine(ti, to, wall.key, null),
-    makeLine(to, mo),
-    makeLine(mo, bo),
+    makeLine(ti, to, wall, wall.nRoundNext, wall.nRoundPrev, false, false),
+    makeLine(to, mo, wall),
+    makeLine(mo, bo, wall),
   ]
 }
 
@@ -1701,15 +1763,15 @@ export function wallSurfacesInner(c: Cuttleform, wall: WallCriticalPoints) {
   const ki = wall.ki
 
   return [
-    makeLine(bo, bi),
-    makeLine(bi, mi),
-    makeLine(mi, ki, null, wall.key),
-    makeLine(ki, ti, wall.key, wall.key),
+    makeLine(bo, bi, wall),
+    makeLine(bi, mi, wall),
+    makeLine(mi, ki, wall, false, false, wall.nRoundNext, wall.nRoundPrev),
+    makeLine(ki, ti, wall, wall.nRoundNext, wall.nRoundPrev, wall.nRoundNext, wall.nRoundPrev),
   ]
 }
 
 export function wallSurfaces(c: Cuttleform, wall: WallCriticalPoints) {
-  if (!('si' in wall)) { // the wall is not shrouded
+  if (!('si' in wall && wall.si)) { // the wall is not shrouded
     return [...wallSurfacesOuter(c, wall), ...wallSurfacesInner(c, wall)]
   }
 
@@ -1717,33 +1779,34 @@ export function wallSurfaces(c: Cuttleform, wall: WallCriticalPoints) {
   // Then move up DY, then move over to to, which has been moved up DY.
   // const w = { ...wall, to: wall.to.pretranslated(0, 0, DY) }
   const w = wall
-  const inner1 = makeLine(w.ti, w.si!, wall.key, null)
-  const inner2 = makeLine(w.si!, w.sm!)
-  const inner3 = makeLine(w.sm!, w.to)
+  const inner1 = makeLine(w.ti, w.si!, wall, wall.nRoundNext, wall.nRoundPrev, false, false)
+  const inner2 = makeLine(w.si!, w.sm!, wall)
+  const inner3 = makeLine(w.sm!, w.to, wall)
   const outer = wallSurfacesOuter(c, w)
   return [inner1, inner2, inner3, ...outer.slice(1), ...wallSurfacesInner(c, w)]
 }
 
-export function wallCurve(conf: Cuttleform, a: Trsf, b: Trsf, c: Trsf, d: Trsf, worldZ: Vector, bottomZ: number) {
-  if (conf.rounded.side) return wallCurveRounded(conf, a, b, c, d, worldZ, bottomZ)
-  return makeLine(b, c).curve
+export function wallCurve(conf: Cuttleform, a: Trsf, b: Trsf, c: Trsf, d: Trsf, wb: WallCriticalPoints, wc: WallCriticalPoints, worldZ: Vector, bottomZ: number) {
+  if (conf.rounded.side) return wallCurveRounded(conf, a, b, c, d, wb, wc, worldZ, bottomZ)
+  return lineToCurve(b, c)
 }
 
-function wallCurve2(conf: Cuttleform, a: Trsf, b: Trsf, c: Trsf, d: Trsf, x: CuttleKey | null, y: CuttleKey | null, worldZ: Vector, bottomZ: number) {
-  if (x !== null && y !== null && x == y) {
-    return makeLine(b, c).curve
+function wallCurve2(conf: Cuttleform, a: Trsf, b: Trsf, c: Trsf, d: Trsf, wb: WallCriticalPoints, wc: WallCriticalPoints, x: boolean, y: boolean, worldZ: Vector, bottomZ: number) {
+  if (x != y) throw new Error('expected round prev to match next')
+  if (x) {
+    return lineToCurve(b, c)
   }
-  return wallCurve(conf, a, b, c, d, worldZ, bottomZ)
+  return wallCurve(conf, a, b, c, d, wb, wc, worldZ, bottomZ)
 }
 
 function joinedWall(conf: Cuttleform, prev: Line[], surf: Line[], next: Line[], nextnext: Line[], worldZ: Vector, bottomZ: number) {
-  let lastBottom = wallCurve2(conf, prev[0].a, surf[0].a, next[0].a, nextnext[0].a, surf[0].ainner, next[0].ainner, worldZ, bottomZ)
+  let lastBottom = wallCurve2(conf, prev[0].a, surf[0].a, next[0].a, nextnext[0].a, surf[0].wall, next[0].wall, surf[0].aNRoundNext, next[0].aNRoundPrev, worldZ, bottomZ)
   return surf.map((line, j) => {
     const left = surf[j].curve
     const right = next[j].curve
     // lastRight[j] = right
     const top = lastBottom
-    const bottom = wallCurve2(conf, prev[j].b, line.b, next[j].b, nextnext[j].b, surf[j].binner, next[j].binner, worldZ, bottomZ)
+    const bottom = wallCurve2(conf, prev[j].b, line.b, next[j].b, nextnext[j].b, line.wall, next[j].wall, surf[j].bNRoundNext, next[j].bNRoundPrev, worldZ, bottomZ)
     lastBottom = bottom
     return bezierPatch(bottom, right, top, left)
   })
@@ -1806,8 +1869,8 @@ export function bottomComponentBoxes(c: Cuttleform, geo: Geometry): ComponentMul
     }
   })
   boxes.length = 0
-  if (c.microcontroller) {
-    const connOrigin = geo.connectorOrigin
+  const connOrigin = geo.connectorOrigin
+  if (c.microcontroller && connOrigin) {
     const origin = new Trsf().coordSystemChange(connOrigin.origin(), connOrigin.axis(-1, 0, 0), connOrigin.axis(0, 0, -1))
     const floorConnIndex = Math.floor(geo.connectorIndex)
     const walls = geo.allWallCriticalPoints()
@@ -1845,8 +1908,8 @@ export function topComponentBoxes(c: Cuttleform, keyholes: Trsf[]): ComponentBox
 
 export function componentBoxes(c: Cuttleform, geo: Geometry): ComponentBox[] {
   // bottomComponentBoxes(c, geo).flatMap(b => b.points.map(p => ({ origin: b.origin, points: p })))
-  return multiBoxToBoxes(microcontrollerBottomBox(c, geo.connectorOrigin, geo.boardPositions, null as any))
-    .concat(topComponentBoxes(c, geo.keyHolesTrsfs)) // .concat(stiltsComponentBoxes(c, geo.keyHolesTrsfs))
+  const ucBoxes = geo.connectorOrigin ? multiBoxToBoxes(microcontrollerBottomBox(c, geo.connectorOrigin, geo.boardPositions, null as any)) : []
+  return ucBoxes.concat(topComponentBoxes(c, geo.keyHolesTrsfs)) // .concat(stiltsComponentBoxes(c, geo.keyHolesTrsfs))
 }
 
 export function componentGeometry(box: ComponentBox) {
@@ -1907,7 +1970,7 @@ function* boxIntersections(onto: ComponentMultiBox, test: ComponentBox) {
   for (const box of onto.points) {
     if (z > box[0].z) {
       const boxPts = box.map(b => b.xyz())
-      if (projPoints.every(p => inside(p, boxPts))) {
+      if (projPoints.every(p => intersectPtPoly(p, boxPts))) {
         yield new Vector(0, 0, z)
       }
     }
@@ -1951,7 +2014,7 @@ export function movePointBox(point: ComponentPoint, test: ComponentBox[]) {
     for (const otherBox of test) {
       const transformed = otherBox.origin.inverted().apply(point.pos.origin())
       const z = transformed.z - otherBox.points[0].z
-      if (z > maxZ && inside(transformed.xyz(), otherBox.points.map(p => p.xyz()))) {
+      if (z > maxZ && intersectPtPoly(transformed.xyz(), otherBox.points.map(p => p.xyz()))) {
         const scale = -otherBox.origin.axis(0, 0, 1).dot(point.direction)
         if (z > maxZ) maxZ = z * scale
       }
@@ -2081,7 +2144,7 @@ export function microcontrollerTopBox(c: Cuttleform, connOrigin: Trsf, boardPosi
 }
 
 export function triangleMap(triangles: [number, number, number][]) {
-  const triangleMap: Record<number, Record<number, { next; triangle }>> = {}
+  const triangleMap: Record<number, Record<number, { next: number; triangle: [number, number, number] }>> = {}
   triangles.forEach(triangle => {
     const [a, b, c] = triangle
     if (!triangleMap[a]) triangleMap[a] = {}
@@ -2094,27 +2157,6 @@ export function triangleMap(triangles: [number, number, number][]) {
   return triangleMap
 }
 
-function* lineCircleIntersections(pa: Vector, pb: Vector, porigin: Vector, radius: number) {
-  const origin = porigin.clone().sub(pb)
-  const a = pa.clone().sub(pb)
-
-  const qa = a.x * origin.x + a.y * origin.y
-  const qb = Math.sqrt((a.x * radius) ** 2 + (a.y * radius) ** 2 - (a.x * origin.y - a.y * origin.x) ** 2)
-  const qc = a.x ** 2 + a.y ** 2
-
-  for (const solution of [(qa + qb) / qc, (qa - qb) / qc]) {
-    if (solution >= 0 && solution <= 1) {
-      yield pb.clone().addScaledVector(a, solution)
-    }
-  }
-}
-
-function* triangleCircleIntersections(a: Vector, b: Vector, c: Vector, origin: Vector, radius: number) {
-  yield* lineCircleIntersections(a, b, origin, radius)
-  yield* lineCircleIntersections(b, c, origin, radius)
-  yield* lineCircleIntersections(c, a, origin, radius)
-}
-
 /** Yield all points that may have minimum or maximum Z coordinates
     when intersecting a circle with the given triangles on the XY plane */
 export function* extremaCircleZOnBT(origin: Vector, radius: number, points: Trsf[], triangles: number[][]) {
@@ -2123,7 +2165,7 @@ export function* extremaCircleZOnBT(origin: Vector, radius: number, points: Trsf
     const pb = points[b].origin()
     const pc = points[c].origin()
 
-    for (const intersection of triangleCircleIntersections(pa, pb, pc, origin, radius)) {
+    for (const intersection of intersectTriCircle(pa, pb, pc, origin, radius)) {
       yield intersection.z
     }
 
@@ -2141,8 +2183,8 @@ export function* extremaCircleZOnBT(origin: Vector, radius: number, points: Trsf
     }
     const sol0 = z(lambda)
     const sol1 = z(-lambda)
-    if (inside(sol0.xyz(), [pa.xyz(), pb.xyz(), pc.xyz()])) yield sol0.z
-    if (inside(sol1.xyz(), [pa.xyz(), pb.xyz(), pc.xyz()])) yield sol1.z
+    if (intersectPtPoly(sol0.xyz(), [pa.xyz(), pb.xyz(), pc.xyz()])) yield sol0.z
+    if (intersectPtPoly(sol1.xyz(), [pa.xyz(), pb.xyz(), pc.xyz()])) yield sol1.z
   }
 }
 
@@ -2157,7 +2199,7 @@ export function adjustedStiltsScrewOrigin(walls: WallCriticalPoints[], origin: V
       const bo = wall.bo.origin()
       const bon = nextWall.bo.origin()
 
-      const intersects = [...lineCircleIntersections(bo, bon, origin, radius)]
+      const intersects = [...intersectLineCircle(bo, bon, origin, radius)]
       if (intersects.length > 0) {
         const normal = new Vector(bo.y - bon.y, bon.x - bo.x, 0).normalize()
         let distance = origin.clone().sub(bo).dot(normal) + radius
@@ -2172,4 +2214,45 @@ export function adjustedStiltsScrewOrigin(walls: WallCriticalPoints[], origin: V
     }
   } while (!converged)
   return origin
+}
+
+/** Move keys apart in 2D so that none of them collide. */
+export function separateSockets2D(trsfs: Trsf[], criticalPts: CriticalPoints[]): Trsf[] {
+  const polys = criticalPts.map(a => a.map(x => new Vector2(...x.xy())))
+
+  for (let i = 0; i < 100; i++) {
+    const displacements = new DefaultMap<number, Vector>(() => new Vector())
+
+    // Iterate through all sokets, moving them if they intersect.
+    for (let i = 0; i < polys.length; i++) {
+      for (let j = i + 1; j < polys.length; j++) {
+        if (intersectPolyPoly(polys[i], polys[j])) {
+          const displacement = trsfs[i].origin().sub(trsfs[j].origin())
+          displacement.z = 0 // ensure only moving in XY
+          // Scale the displacement such that it's ~0.5mm at 20mm away and ~5mm at 0mm away, and falls off exponentially
+          const newLength = 5 * Math.exp(displacement.length() / -9)
+          displacement.normalize().multiplyScalar(newLength)
+
+          displacements.get(i).add(displacement)
+          displacements.get(j).addScaledVector(displacement, -1)
+        }
+      }
+    }
+
+    if (displacements.size == 0) {
+      // console.log(`Separating sockets took ${i} iterations`)
+      return trsfs // No intersections found
+    }
+
+    // Apply displacements to both trsfs and critical points
+    for (const [i, x] of displacements.entries()) {
+      trsfs[i].translate(x, 1)
+      for (const p of polys[i]) {
+        p.x += x.x
+        p.y += x.y
+      }
+    }
+  }
+
+  throw new Error('Could not separate all sockets in 100 iterations')
 }
