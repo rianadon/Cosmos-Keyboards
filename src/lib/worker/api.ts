@@ -14,7 +14,7 @@ import type { BufferAttribute } from 'three'
 import { getUser } from '../../routes/beta/lib/login'
 import { ITriangle } from '../loaders/simplekeys'
 import { type ConfError, isPro, keycapIntersections, partIntersections, socketIntersections } from './check'
-import { type Cuttleform, newGeometry } from './config'
+import { type Cuttleform, type Geometry, newGeometry } from './config'
 import { boardHolder, cutWithConnector, keyHoles, makeConnector, makePlate, makerScrewInserts, makeWalls, type ScrewInsertTypes, webSolid } from './model'
 import { Assembly } from './modeling/assembly'
 import { blobSTL, combine } from './modeling/index'
@@ -100,13 +100,12 @@ export async function generatePlate(config: Cuttleform, cut = false) {
   }
 }
 
-export async function generate(config: Cuttleform, stitchWalls: boolean) {
+export async function generate(config: Cuttleform, geo: Geometry, stitchWalls: boolean) {
   if (isPro(config) && !(await getUser()).sponsor) {
     throw new Error('No pro account')
   }
   await ensureOC()
   const assembly = new Assembly()
-  const geo = newGeometry(config)
 
   console.time('Calculating geometry')
   const transforms = geo.keyHolesTrsfs
@@ -236,10 +235,10 @@ async function getModel(conf: Cuttleform, name: string, stitchWalls: boolean) {
   await ensureOC()
   const geometry = newGeometry(conf)
   if (name == 'model') {
-    let { assembly } = await generate(conf, stitchWalls)
+    const geo = newGeometry(conf)
+    let { assembly } = await generate(conf, geo, stitchWalls)
     if (conf.shell.type == 'tilt') {
       // Invert the tilt cases's tilting to the model lies flat
-      const geo = newGeometry(conf)
       assembly = assembly.transform(new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).invert())
     }
     assembly = assembly.transform(new Trsf().translate(0, 0, -geo.floorZ))
@@ -267,7 +266,7 @@ export async function getSTL(conf: Cuttleform, name: string, flip: boolean) {
 
 export async function getSTEP(conf: Cuttleform, flip: boolean, stitchWalls: boolean) {
   const geometry = newGeometry(conf)
-  let { assembly } = await generate(conf, stitchWalls)
+  let { assembly } = await generate(conf, geometry, stitchWalls)
   const { top, bottom } = makePlate(conf, geometry, true, true)
   assembly.add('Bottom Plate', combine([top(), bottom ? bottom() : undefined]))
   if (conf.microcontroller) {
