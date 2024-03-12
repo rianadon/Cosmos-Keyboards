@@ -17,12 +17,7 @@ RUN npm install --include=optional
 
 RUN if [ -f ./.env ]; then set -a && . ./.env && set +a; fi && \
     if [ "$SKIP_MAKE_FILES" != "true" ]; then \
-        make; \
-        make parts; \
-        make keycaps-simple2; \
-        make keycaps2; \
-        make keyholes; \
-        make venv; \
+        make quickstart keyholes venv; \
         Xvfb :99 -screen 0 1024x768x16 & export DISPLAY=:99; make keyboards; \
     else \
         echo "Skipping make commands..."; \
