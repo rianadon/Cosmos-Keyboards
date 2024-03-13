@@ -1,4 +1,4 @@
-.PHONY : build keycaps keycaps-simple keycaps2 keycaps-simple2 keyholes switches venv optimize docs docs-ci keyboards ci ci-setup vite-build quickstart npm-install
+.PHONY : build keycaps keycaps-simple keycaps2 keycaps-simple2 keyholes switches venv optimize docs docs-ci keyboards ci ci-base ci-setup vite-build quickstart npm-install
 build: target/proto/manuform.ts target/proto/lightcycle.ts target/proto/cuttleform.ts target/editorDeclarations.d.ts
 
 NODE = node --import ./src/model_gen/register_loader.js
@@ -53,10 +53,11 @@ docs-ci: venv
 
 # CI Specific tasks
 ci-setup:
-	mkdir -p target
+	mkdir -p target && mkdir -p docs/assets/target
 vite-build:
 	npm run build
-ci: ci-setup build keycaps-simple2 keycaps2 parts parts-simple vite-build docs-ci
 npm-install:
 	npm install --omit=optional
-quickstart: npm-install ci-setup build keycaps-simple2 keycaps2 parts parts-simple
+ci-base: build keycaps-simple2 keycaps2 parts parts-simple
+ci: ci-setup ci-base vite-build docs-ci
+quickstart: npm-install ci-setup ci-base

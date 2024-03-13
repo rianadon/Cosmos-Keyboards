@@ -1,0 +1,32 @@
+name: Push Checks
+on: [push]
+
+jobs:
+  docker:
+    name: Verify that Docker can build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the Dockerfile
+        run: docker-compose build
+  openscad:
+    name: Verify that OpenSCAD keycap scripts work
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 21
+
+      - name: Install npm dependencies
+        run: npm ci --omit=optional
+
+      - name: Install openscad
+        run: sudo apt-get install -y openscad
+
+      - name: Compile Code
+        run: make ci-setup build
+
+      - name: Build simple keycaps
+        run: OPENSCAD=$(which openscad) make keycaps-simple

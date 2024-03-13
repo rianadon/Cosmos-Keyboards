@@ -12,12 +12,11 @@ RUN apt-get install -y python3.11-full python3.11-venv python3-pip \
 
 RUN ln -s /usr/bin/python3.11 /usr/bin/python
 
-RUN mkdir -p target && mkdir -p docs/assets/target
 RUN npm install --include=optional
 
 RUN if [ -f ./.env ]; then set -a && . ./.env && set +a; fi && \
     if [ "$SKIP_MAKE_FILES" != "true" ]; then \
-        make quickstart keyholes venv; \
+        make ci-setup ci-base keyholes venv; \
         Xvfb :99 -screen 0 1024x768x16 & export DISPLAY=:99; make keyboards; \
     else \
         echo "Skipping make commands..."; \
