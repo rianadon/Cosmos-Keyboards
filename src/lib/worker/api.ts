@@ -68,21 +68,26 @@ const toMesh = (mesh: BufferGeometry) =>
     triangles: mesh.index!.array as number[],
     faceGroups: [],
   }) satisfies ShapeMesh
-
+const arrconcat = (a: Float32Array, b: Float32Array) => {
+  const c = new Float32Array(a.length + b.length)
+  c.set(a, 0)
+  c.set(b, a.length)
+  return c
+}
 export async function generateKeys(config: Cuttleform) {
   const geo = newGeometry(config)
   const keys = await keyHoleMeshes(config, geo.keyHolesTrsfs.flat())
 
-  const supports: { vertices: number[]; normals: number[]; volume: number } = {
-    vertices: [],
-    normals: [],
+  const supports = {
+    vertices: new Float32Array(),
+    normals: new Float32Array(),
     volume: 0,
   }
   for (const key of keys.keys) {
     const mesh = key.mesh.clone().applyMatrix4(key.matrix)
     const sups = supportMesh(toMesh(mesh), geo.bottomZ)
-    supports.vertices.push(...sups.vertices)
-    supports.normals.push(...sups.normals)
+    supports.vertices = arrconcat(supports.vertices, sups.vertices)
+    supports.normals = arrconcat(supports.normals, sups.normals)
     supports.volume += sups.volume
   }
   const mass = keys.mass
