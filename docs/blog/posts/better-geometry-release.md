@@ -63,7 +63,7 @@ Since this release took a while, I've bundled in a lot more:
 - Spacing values for Choc switches (and all switches for that matter) are now accurate. I've figured out how to reconcile spacing values and Cosmos's adaptive key placement, and the way things work in basic/advanced mode should feel just as intuitive. For expert mode, you can read the details [here](../../docs/expert.md#how-keys-are-positioned).
 - Key sockets preview faster. This is especially noticeable with the built-in-hotswap socket, which now previews just as fast as the others. Be on the lookout for even faster previews in the future! Changes for making these instant are in the works.
 - The Choc keycaps were too big, but now they're accurately sized. The socket's boundary is smaller as well to match the keycap size.
-- Toggling Developer Mode in the [parts](../../parts) or [keycaps](../../keycaps) pages allows enables the new Dev Mode view within the generator. This page is helpful if you're modifying the generator's source.
+- Toggling Developer Mode in the [parts](../../parts) or [keycaps](../../keycaps) pages allows enables the new Dev Mode view within the generator. This page is helpful if you're modifying the generator's source and is on by default in local builds.
 - The microcontroller has grooves to slide in soldered microcontrollers, and 4 column boards include pinky keys.
 
 That's all till the next release! If you're interesting in the math and algorithms behind these updates, check out the [technical post](./thickening-walls.md).
