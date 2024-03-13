@@ -8,6 +8,7 @@
   import ViewerBottom from './lib/viewers/ViewerBottom.svelte'
   import ViewerTiming from './lib/viewers/ViewerTiming.svelte'
   import KeyboardMesh from '$lib/3d/KeyboardMesh.svelte'
+  import GroupMatrix from '$lib/3d/GroupMatrix.svelte'
   import Popover from 'svelte-easy-popover'
   import Icon from '$lib/presentation/Icon.svelte'
   import * as mdi from '@mdi/js'
@@ -37,7 +38,7 @@
   } from '$lib/worker/config'
   import { checkConfig, type ConfError, isRenderable, isWarning } from '$lib/worker/check'
   import VisualEditor from './lib/editor/VisualEditor.svelte'
-  import { Vector3, type BufferGeometry } from 'three'
+  import { Vector3, BufferGeometry, Matrix4 } from 'three'
   import { estimatedCenter } from '$lib/worker/geometry'
   import {
     codeError,
@@ -151,7 +152,7 @@
   let plateTopBuf: BufferGeometry | undefined
   let plateBotBuf: BufferGeometry | undefined
   let webBuf: BufferGeometry | undefined
-  let keyBuf: BufferGeometry | undefined
+  let keyBufs: BufferGeometry | undefined
   let wallBuf: BufferGeometry | undefined
   let screwBaseBuf: BufferGeometry | undefined
   let screwPlateBuf: BufferGeometry | undefined
@@ -228,7 +229,7 @@
       holderBuf = undefined
       wallBuf = undefined
       webBuf = undefined
-      keyBuf = undefined
+      keyBufs = undefined
       plateTopBuf = undefined
       plateBotBuf = undefined
 
@@ -250,8 +251,12 @@
       let plateMesh = await platePromise
 
       webBuf = fromGeometry(webMesh.mesh)
-      keyBuf = fromGeometry(keyMesh.mesh)
-      size = boundingSize([keyBuf!, webBuf!])
+      keyBufs = keyMesh.keys.map((k) => ({
+        ...k,
+        mesh: fromGeometry(k.mesh),
+        matrix: new Matrix4().copy(k.matrix),
+      }))
+      size = boundingSize([...keyBufs!, webBuf!])
       const wallMeshMesh = fromGeometry(wallMesh.mesh)
       wallBuf = wallMeshMesh
       plateTopBuf = fromGeometry(plateMesh.top.mesh)
@@ -496,7 +501,15 @@
           showHand={$showHand}
           error={confError}
         >
-          <KeyboardMesh kind="case" geometry={keyBuf} />
+          {#each keyBufs || [] as key}
+            <GroupMatrix matrix={key.matrix}>
+              <KeyboardMesh
+                kind="case"
+                scale={key.flip && $flip ? [-1, 1, 1] : [1, 1, 1]}
+                geometry={key.mesh}
+              />
+            </GroupMatrix>
+          {/each}
           {#if !$noWall && !hideWall}<KeyboardMesh kind="case" geometry={wallBuf} />{/if}
           <KeyboardMesh kind="case" geometry={webBuf} />
           {#if !$noBase}
@@ -535,7 +548,15 @@
           flip={$flip}
           {darkMode}
         >
-          <KeyboardMesh kind="case" geometry={keyBuf} />
+          {#each keyBufs || [] as key}
+            <GroupMatrix matrix={key.matrix}>
+              <KeyboardMesh
+                kind="case"
+                scale={key.flip && $flip ? [-1, 1, 1] : [1, 1, 1]}
+                geometry={key.mesh}
+              />
+            </GroupMatrix>
+          {/each}
           {#if !$noWall && !hideWall}<KeyboardMesh kind="case" geometry={wallBuf} />{/if}
           {#if !$noBase}
             <KeyboardMesh kind="case" geometry={screwBaseBuf} />

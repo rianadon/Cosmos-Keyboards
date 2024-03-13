@@ -8,13 +8,14 @@ import wasmUrl from '$assets/replicad_single.wasm?url'
 // import wasmUrl from 'replicad-opencascadejs/src/replicad_single.wasm?url';
 // import loadOC from 'opencascade/dist/opencascade.full';
 // import wasmUrl from 'opencascade/dist/opencascade.full.wasm?url';
+import { ASYMMETRIC_PARTS } from '$lib/geometry/socketsParts'
 import { keyHoleMeshes } from '$lib/loaders/sockets'
 import { wristRest } from '@pro/wristRest'
-import type { BufferAttribute } from 'three'
+import type { BufferAttribute, BufferGeometry } from 'three'
 import { getUser } from '../../routes/beta/lib/login'
 import { ITriangle } from '../loaders/simplekeys'
 import { type ConfError, isPro, keycapIntersections, partIntersections, socketIntersections } from './check'
-import { type Cuttleform, type Geometry, newGeometry } from './config'
+import { type Cuttleform, type CuttleKey, type Geometry, newGeometry } from './config'
 import { boardHolder, cutWithConnector, keyHoles, makeConnector, makePlate, makerScrewInserts, makeWalls, type ScrewInsertTypes, webSolid } from './model'
 import { Assembly } from './modeling/assembly'
 import { blobSTL, combine } from './modeling/index'
@@ -60,18 +61,33 @@ async function ensureOC() {
 //   }))
 // }
 
-export async function generateKeys(config: Cuttleform, flip: boolean) {
-  const geo = newGeometry(config)
-  const keys = await keyHoleMeshes(config, geo.keyHolesTrsfs.flat(), flip)
-  const mesh: ShapeMesh = {
-    vertices: (keys.mesh.attributes['position'] as BufferAttribute).array as number[],
-    normals: (keys.mesh.attributes['normal'] as BufferAttribute).array as number[],
-    triangles: keys.mesh.index!.array as number[],
+const toMesh = (mesh: BufferGeometry) =>
+  ({
+    vertices: (mesh.attributes['position'] as BufferAttribute).array as number[],
+    normals: (mesh.attributes['normal'] as BufferAttribute).array as number[],
+    triangles: mesh.index!.array as number[],
     faceGroups: [],
+  }) satisfies ShapeMesh
+
+export async function generateKeys(config: Cuttleform) {
+  const geo = newGeometry(config)
+  const keys = await keyHoleMeshes(config, geo.keyHolesTrsfs.flat())
+
+  const supports: { vertices: number[]; normals: number[]; volume: number } = {
+    vertices: [],
+    normals: [],
+    volume: 0,
+  }
+  for (const key of keys.keys) {
+    const mesh = key.mesh.clone().applyMatrix4(key.matrix)
+    const sups = supportMesh(toMesh(mesh), geo.bottomZ)
+    supports.vertices.push(...sups.vertices)
+    supports.normals.push(...sups.normals)
+    supports.volume += sups.volume
   }
   const mass = keys.mass
-  const supports = supportMesh(mesh, geo.bottomZ)
-  return { mesh, mass, supports }
+  // const supports = supportMesh(mesh, geo.bottomZ)
+  return { keys: keys.keys.map(k => ({ ...k, mesh: toMesh(k.mesh) })), mass, supports }
 }
 
 export async function generateWeb(config: Cuttleform) {
@@ -100,7 +116,7 @@ export async function generatePlate(config: Cuttleform, cut = false) {
   }
 }
 
-export async function generate(config: Cuttleform, geo: Geometry, stitchWalls: boolean) {
+export async function generate(config: Cuttleform, geo: Geometry, stitchWalls: boolean, flip: boolean) {
   if (isPro(config) && !(await getUser()).sponsor) {
     throw new Error('No pro account')
   }
@@ -132,7 +148,8 @@ export async function generate(config: Cuttleform, geo: Geometry, stitchWalls: b
   }
   console.timeEnd('Making web')
   console.time('Creating holes')
-  const holes = await keyHoles(config, transforms.flat())
+  const flipper = (key: CuttleKey) => (flip && ASYMMETRIC_PARTS.includes(key.type)) ? new Trsf().scaleIsDangerous(-1, 1, 1) : new Trsf()
+  const holes = await keyHoles(config, transforms.map((t, i) => t.multiply(flipper(config.keys[i]))))
   console.timeEnd('Creating holes')
   console.time('Creating connector')
   // let connector = null
@@ -231,12 +248,12 @@ export async function cutWall(config: Cuttleform) {
   return result
 }
 
-async function getModel(conf: Cuttleform, name: string, stitchWalls: boolean) {
+async function getModel(conf: Cuttleform, name: string, stitchWalls: boolean, flip: boolean) {
   await ensureOC()
   const geometry = newGeometry(conf)
   if (name == 'model') {
     const geo = newGeometry(conf)
-    let { assembly } = await generate(conf, geo, stitchWalls)
+    let { assembly } = await generate(conf, geo, stitchWalls, flip)
     if (conf.shell.type == 'tilt') {
       // Invert the tilt cases's tilting to the model lies flat
       assembly = assembly.transform(new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).invert())
@@ -258,7 +275,7 @@ async function getModel(conf: Cuttleform, name: string, stitchWalls: boolean) {
 }
 
 export async function getSTL(conf: Cuttleform, name: string, flip: boolean) {
-  let model = await getModel(conf, name, true)
+  let model = await getModel(conf, name, true, flip)
   if (!model) throw new Error(`Model ${name} is empty`)
   if (flip) model = model.mirror('YZ', [0, 0, 0])
   return blobSTL(model, { tolerance: 1e-2, angularTolerance: 1 })
@@ -266,7 +283,7 @@ export async function getSTL(conf: Cuttleform, name: string, flip: boolean) {
 
 export async function getSTEP(conf: Cuttleform, flip: boolean, stitchWalls: boolean) {
   const geometry = newGeometry(conf)
-  let { assembly } = await generate(conf, geometry, stitchWalls)
+  let { assembly } = await generate(conf, geometry, stitchWalls, flip)
   const { top, bottom } = makePlate(conf, geometry, true, true)
   assembly.add('Bottom Plate', combine([top(), bottom ? bottom() : undefined]))
   if (conf.microcontroller) {
@@ -304,7 +321,6 @@ export async function volume() {
   const oc = getOC()
   const props = new oc.GProp_GProps_1()
   oc.BRepGProp.VolumeProperties_2(model.wrapped, props, 0.01, false, true)
-  console.log('volume', props.Mass())
   return props.Mass()
 }
 

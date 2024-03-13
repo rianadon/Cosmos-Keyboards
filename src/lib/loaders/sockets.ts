@@ -2,7 +2,7 @@
  * Like socketsLoader in the worker/ direcotry, but returns meshes instead of parts.
  */
 
-import { socketSize } from '$lib/geometry/socketsParts'
+import { ASYMMETRIC_PARTS, socketSize } from '$lib/geometry/socketsParts'
 import masses from '$target/part-masses.json'
 import { BoxGeometry, BufferAttribute, BufferGeometry, InterleavedBufferAttribute } from 'three'
 import type { Cuttleform, CuttleKey } from '../worker/config'
@@ -91,7 +91,6 @@ function extendPlate(plate: Mesh, key: CuttleKey) {
 
   if (key.aspect > 1) {
     const pad = size.x * (key.aspect - 1) / 2
-    console.log(plate.mesh.attributes)
     return {
       mesh: mergeBufferGeometries([
         plate.mesh,
@@ -113,20 +112,22 @@ function extendPlate(plate: Mesh, key: CuttleKey) {
   }
 }
 
-export async function keyHole(key: CuttleKey, trsf: Trsf) {
+async function keyHole(key: CuttleKey, trsf: Trsf) {
   let cacheKey = key.type + ':' + key.aspect
   if (key.type == 'blank') cacheKey += `-${key.size?.width}x${key.size?.height}`
   const model = await extendedKeyCacher(cacheKey, key)
   return {
-    mesh: model.mesh.clone().applyMatrix4(trsf.Matrix4()),
+    flip: ASYMMETRIC_PARTS.includes(key.type),
+    mesh: mergeBufferGeometries([model.mesh]),
+    matrix: trsf.Matrix4(),
     mass: model.mass,
   }
 }
 
-export async function keyHoleMeshes(c: Cuttleform, transforms: Trsf[], flipped: boolean) {
+export async function keyHoleMeshes(c: Cuttleform, transforms: Trsf[]) {
   const keys = await Promise.all(transforms.map((t, i) => keyHole(c.keys[i], t)))
   return {
-    mesh: mergeBufferGeometries(keys.map(k => k.mesh)),
+    keys,
     mass: keys.map(k => k.mass).reduce((a, b) => a + b),
   }
 }
