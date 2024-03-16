@@ -9,7 +9,7 @@ import wasmUrl from '$assets/replicad_single.wasm?url'
 // import loadOC from 'opencascade/dist/opencascade.full';
 // import wasmUrl from 'opencascade/dist/opencascade.full.wasm?url';
 import { ASYMMETRIC_PARTS } from '$lib/geometry/socketsParts'
-import { keyHoleMeshes } from '$lib/loaders/sockets'
+import { combinedKeyHoleMesh, keyHoleMeshes } from '$lib/loaders/sockets'
 import { wristRest } from '@pro/wristRest'
 import type { BufferAttribute, BufferGeometry } from 'three'
 import { getUser } from '../../routes/beta/lib/login'
@@ -93,6 +93,12 @@ export async function generateKeys(config: Cuttleform) {
   const mass = keys.mass
   // const supports = supportMesh(mesh, geo.bottomZ)
   return { keys: keys.keys.map(k => ({ ...k, mesh: toMesh(k.mesh) })), mass, supports }
+}
+
+export async function generateKeysMesh(config: Cuttleform) {
+  const geo = newGeometry(config)
+  const mesh = await combinedKeyHoleMesh(config, geo.keyHolesTrsfs.flat())
+  return toMesh(mesh)
 }
 
 export async function generateWeb(config: Cuttleform) {

@@ -9,6 +9,7 @@
 <svelte:head>
   <title>Cosmos Keyboard</title>
   <link rel="canonical" href="https://ryanis.cool/cosmos/" />
+  <link rel="icon" href="{base}/favicon.png" />
 </svelte:head>
 
 <header class="flex justify-end gap-4 px-8 pt-2">
@@ -28,10 +29,13 @@
   <p class="mx-6">
     Cosmos is not yet ready for release. However, if you'd like to beta test, join the discord.
   </p>
-  <a
-    class="inline-block font-sans font-semibold rounded-2 border-3 border-teal-500 px-8 py-2 m-2 mt-6 transition shadow-lg hover:shadow-teal-500/50 hover:scale-105 ease-in-out"
-    href={discord}>Join the Discord</a
-  >
+  <p>
+    <a
+      class="inline-block font-sans font-semibold rounded-2 border-3 border-teal-500 px-8 py-2 m-2 mt-6 transition shadow-lg hover:shadow-teal-500/50 hover:scale-105 ease-in-out"
+      href={discord}>Join the Discord</a
+    >
+    <a href="beta" class="green" data-sveltekit-preload-data="off">Or visit the beta...</a>
+  </p>
   <img class="mt-8 h-[4vw]" src="{base}/bg2.png" alt="" />
   <div class="bg-[#003935] p-5">
     <h2 class="w-full text-2xl top-[min(calc(20vh-2em),4em)] font-semibold mb-4">
@@ -176,14 +180,11 @@
     <h3 class="font-bold mb-1 mt-8">Is the project Open Source?</h3>
     <p>
       Cosmos uses an open-core model. Everything you need to scan your hand to build and program a
-      keyboard is or is going to be open source. Meanwhile some cosmetic features (such as rounded
-      sides) are not open-source and available for a small fee so that I can recoup some of the
-      costs buying keyboard parts.
+      keyboard <a href="https://github.com/rianadon/Cosmos-Keyboards/">is open source</a>.
     </p>
     <p>
-      So far <a href="https://github.com/rianadon/cosmos-Keyboards/"
-        >the hand-scanning process is open source</a
-      >. I'll be open-sourcing more as the codebase stabilizes.
+      Meanwhile some cosmetic features (such as rounded sides) are not open-source and available for
+      a small fee so that I can recoup some of the costs buying keyboard parts.
     </p>
     <h3 class="font-bold mb-1 mt-8">Can I use the generator today?</h3>
     <p>
@@ -208,7 +209,7 @@
 />
 
 <style>
-  :global(html) {
+  :global(body) {
     background: rgb(15, 23, 42);
   }
 
@@ -222,6 +223,10 @@
 
   a[href]:not(.inline-block) {
     color: #f0abfc;
+  }
+
+  a[href].green {
+    color: #14b8a6;
   }
 
   a[href]:not(.inline-block):hover {

@@ -8,7 +8,7 @@
   import Icon from '$lib/presentation/Icon.svelte'
   import { mdiHandBackLeft, mdiHandBackRight, mdiStarShooting } from '@mdi/js'
   import type { WorkerPool } from '../workerPool'
-  import { download } from '../browser'
+  import { download } from '$lib/browser'
   import { trackEvent } from '$lib/telemetry'
   import { hasPro } from '@pro'
   import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'
@@ -91,7 +91,7 @@
   async function downloadGLB(flip: boolean) {
     const wall = pool.execute((p) => p.generateWalls(config))
     const web = pool.execute((p) => p.generateWeb(config))
-    const key = pool.execute((p) => p.generateKeys(config))
+    const key = pool.execute((p) => p.generateKeysMesh(config))
     const plate = pool.execute((p) => p.generatePlate(config))
 
     const geo = newGeometry(config)
@@ -120,7 +120,7 @@
     plateMaterial.name = 'Plate'
     group.add(node('Wall', fromGeometry((await wall).mesh)!, kbMaterial))
     group.add(node('Web', fromGeometry((await web).mesh)!, kbMaterial))
-    group.add(node('Sockets', fromGeometry((await key).mesh)!, kbMaterial))
+    group.add(node('Sockets', fromGeometry(await key)!, kbMaterial))
     group.add(node('Plate', fromGeometry((await plate).top.mesh)!, plateMaterial))
     ;(await keys).forEach((k) => {
       const material = new THREE.MeshStandardMaterial()

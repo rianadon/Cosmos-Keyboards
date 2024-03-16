@@ -78,7 +78,7 @@
 </main>
 
 <style>
-  :global(html) {
+  :global(body) {
     background: rgb(15, 23, 42);
     margin: 0 1rem;
   }

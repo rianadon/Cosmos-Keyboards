@@ -111,6 +111,7 @@ export default class ETrsf {
     this.history.push(last)
   }
 
+  /** Translates by a certain amount of mm. */
   translate(xDist: number, yDist: number, zDist: number, inFlat?: boolean): ETrsf
   translate(vector: Point, inFlat?: boolean): ETrsf
   translate(...args: any) {
@@ -123,12 +124,14 @@ export default class ETrsf {
     return this.applied({ name: 'translate', args: [...args.flat(), true].slice(0, 4) as any })
   }
 
+  /** Rotates through an axis about some position by some number of degrees. */
   rotate(angle: number, position?: Point, direction?: Point, inFlat = true) {
     return this.apply({ name: 'rotate', args: [angle, position, direction, inFlat] })
   }
   rotated(angle: number, position?: Point, direction?: Point, inFlat = true) {
     return this.applied({ name: 'rotate', args: [angle, position, direction, inFlat] })
   }
+  /** Rotates the z axis towards a new z axis by some fraction. */
   rotateTowards(vector: Point, fraction: number) {
     return this.apply({ name: 'rotateTowards', args: [vector, fraction] })
   }
@@ -136,6 +139,10 @@ export default class ETrsf {
     return this.apply({ name: 'rotateTowards', args: [[0, 0, 1], fraction] })
   }
 
+  /**
+   * Reflect across an axis about some position. If no position is given, reflects about the origin.
+   * This preserves the right-handedness of the coordinate system, so that key labels do not get flipped.
+   */
   mirror(axis: Point, origin?: Point) {
     return this.apply({ name: 'mirror', args: [axis, origin] })
   }
@@ -143,6 +150,11 @@ export default class ETrsf {
     return this.applied({ name: 'mirror', args: [axis, origin] })
   }
 
+  /**
+   * Apply the transformations of the given Trsf to this Trsf.
+   *
+   * This is the same as the premultiply function for matrices. A.transformBy(B) is equivalent to BA.
+   */
   transformBy(t: ETrsf) {
     return this.apply({ name: 'transformBy', args: [t] })
   }
@@ -150,13 +162,25 @@ export default class ETrsf {
     return this.applied({ name: 'transformBy', args: [t] })
   }
 
+  /**
+   * Apply the translation part of a given Trsf to this Trsf.
+   *
+   * This Trsf will be translated by however much this.transformBy(t) would translate it,
+   * but this Trsf's rotation will be preserved.
+   */
   translateBy(t: ETrsf) {
     return this.apply({ name: 'translateBy', args: [t] })
   }
 
+  /**
+   * Apply a transformation for a key on a specified matrix.
+   */
   placeOnMatrix(opts: MatrixOptions) {
     return this.apply({ name: 'placeOnMatrix', args: [opts] })
   }
+  /**
+   * Apply a transformation for a key on a specified sphere.
+   */
   placeOnSphere(opts: SphereOptions) {
     return this.apply({ name: 'placeOnSphere', args: [opts] })
   }
@@ -165,7 +189,7 @@ export default class ETrsf {
     return this.history.reduce((t, op) => impl(t, context, op), t)
   }
 
-  toString(indent: number) {
+  toString(indent: number): string {
     if (this.history.length == 1) return 'new Trsf().' + opToString(this.history[0], indent)
     return 'new Trsf()\n' + this.history.map(h => ' '.repeat(indent) + '.' + opToString(h, indent)).join('\n')
   }

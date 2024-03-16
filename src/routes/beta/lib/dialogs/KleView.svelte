@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Cuttleform } from '$lib/worker/config'
-  import { download } from '../browser'
+  import { download } from '$lib/browser'
   import { toKLE } from '../kle'
   import { bomMultiplier as multiplier } from '$lib/store'
   import MultiplierDropdown from './MultiplierDropdown.svelte'

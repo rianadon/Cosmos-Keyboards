@@ -26,7 +26,7 @@ export const showKeyInts = andcondition(developer, storable('developer.showKeyIn
 export const debugViewport = andcondition(developer, storable('developer.debugViewport', false))
 
 /** A Svelte store that writes and reads from localStorage. */
-function storable<T>(name: string, data: T): Writable<T> {
+export function storable<T>(name: string, data: T): Writable<T> {
   const store = writable(data)
   const storageName = 'cosmos.prefs.' + name
 

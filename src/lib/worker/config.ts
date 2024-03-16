@@ -560,7 +560,7 @@ export function encodeTuple(values: number[]) {
   return result
 }
 
-function tupleToXYZA(tuple: bigint) {
+export function tupleToXYZA(tuple: bigint) {
   const decoded = decodeTuple(tuple)
   return { x: decoded[0] / 10, y: decoded[1] / 10, z: decoded[2] / 10, a: decoded[3] / 45 }
 }

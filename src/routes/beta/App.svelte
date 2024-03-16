@@ -20,6 +20,7 @@
   import UrlView from './lib/dialogs/URLView.svelte'
   import BomView from './lib/dialogs/BomView.svelte'
   import KleView from './lib/dialogs/KleView.svelte'
+  import HandFitView from './lib/dialogs/HandFitView.svelte'
   import cuttleform from '$assets/cuttleform.json'
   import Dialog from './lib/dialogs/Dialog.svelte'
   import Footer from './lib/Footer.svelte'
@@ -28,7 +29,6 @@
   import FilamentChart from './lib/FilamentChart.svelte'
   import DarkTheme from './lib/DarkTheme.svelte'
   import { serialize, deserialize } from './lib/serialize'
-
   import { WorkerPool, type TaskError } from './lib/workerPool'
   import {
     newGeometry,
@@ -112,6 +112,7 @@
   let urlView = false
   let bomView = false
   let kleView = false
+  let showFit = false
 
   const pool = new WorkerPool<typeof import('$lib/worker/api')>(4, () => {
     return new Worker(new URL('$lib/worker?worker', import.meta.url), { type: 'module' })
@@ -495,6 +496,7 @@
           {showSupports}
           {center}
           {size}
+          bind:showFit
           style="opacity: {modelOpacity}"
           enableZoom={true}
           flip={$flip}
@@ -934,6 +936,14 @@
     </div>
   </Dialog>
 {/if}
+{#if showFit}
+  <Dialog big on:close={() => (showFit = false)}>
+    <span slot="title">Fit Stagger to Hand</span>
+    <div slot="content">
+      <HandFitView on:apply={() => (showFit = false)} />
+    </div>
+  </Dialog>
+{/if}
 {#if downloading}
   <DownloadDialog
     {config}
@@ -949,8 +959,8 @@
 <DarkTheme bind:darkMode />
 
 <style>
-  :global(html) {
-    --at-apply: 'dark:bg-gray-800 dark:text-white';
+  :global(body) {
+    --at-apply: 'bg-white dark:bg-gray-800 dark:text-white';
   }
 
   @media (min-height: 480px) {

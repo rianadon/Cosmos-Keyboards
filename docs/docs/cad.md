@@ -30,9 +30,9 @@ Here's some things you can do with the STEP file:
 
 ### Which CAD Software to Use?
 
-Cosmos is tested using both OnShape and Autodesk Fusion. Both are very capable and have free plans. If you're new to CAD I'd recommend OnShape since they have [great tutorials](https://learn.onshape.com/learning-paths/introduction-to-cad) and I personally find it a little more intuitive, but Fusion has much advanced features for [working with curved surfaces](https://www.youtube.com/watch?v=SYLJyOuDKmo) if that's something that interests you.
+Cosmos is tested using both OnShape and Autodesk Fusion. Both are very capable and have free plans. If you're new to CAD I'd recommend OnShape since they have [great tutorials](https://learn.onshape.com/learning-paths/introduction-to-cad) and I personally find it a little more intuitive, but Fusion has much more advanced features for [working with curved surfaces](https://www.youtube.com/watch?v=SYLJyOuDKmo) if that's something which interests you.
 
-Nevertheless, STEP is a standardized format and supported in every CAD software. I often use [FreeCAD](https://www.freecad.org/) and [Mayo](https://github.com/fougue/mayo) for viewing models.
+Nevertheless, STEP is a standardized format and supported in every CAD software, so the models will import anywhere. I often use the free and open-source programs [FreeCAD](https://www.freecad.org/) and [Mayo](https://github.com/fougue/mayo) for viewing models.
 
 ### Import to OnShape
 

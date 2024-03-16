@@ -67,6 +67,8 @@
   import Icon from '$lib/presentation/Icon.svelte'
   import KeyboardMesh from '$lib/3d/KeyboardMesh.svelte'
   import { Cuttleform_CustomThumb } from '$target/proto/cuttleform'
+  import { mapObj } from '$lib/worker/util'
+  import { readHands, type HandData } from '$lib/handhelpers'
   import Microcontroller from '$lib/3d/Microcontroller.svelte'
   import { simpleSocketGeos } from '$lib/loaders/simpleparts'
   import GroupMatrix from '$lib/3d/GroupMatrix.svelte'
@@ -80,10 +82,11 @@
   export let enableRotate = true
   export let enableZoom = false
   export let is3D = false
-  export let isExpert
-  export let transparency
+  export let isExpert: boolean
+  export let transparency: number
   export let flip = true
   export let showHand = true
+  export let showFit: boolean
   export let error: ConfError | undefined
   export let geometry: Geometry | null
 
@@ -230,7 +233,7 @@
     }
   }
 
-  let jointsJSON: { left: Joints; right: Joints } | undefined = readHands()
+  let jointsJSON: HandData | undefined = readHands()
   $: whichHand = flip ? 'left' : 'right'
 
   let theHand = jointsJSON ? new SolvedHand(jointsJSON[whichHand], new Matrix4()) : undefined
@@ -439,15 +442,6 @@
     }
   }
 
-  function readHands() {
-    try {
-      const json = localStorage.getItem('cosmosHands')
-      return JSON.parse(json)[0]
-    } catch (e) {
-      return undefined
-    }
-  }
-
   let timer = 0
   function scanHand() {
     const win = window.open('scan')
@@ -468,6 +462,8 @@
   }
 
   function handleKeydown(event: KeyboardEvent) {
+    if (document.activeElement != document.body || event.ctrlKey || event.metaKey || event.altKey)
+      return
     switch (event.key) {
       case 'Escape':
       case 'q':
@@ -722,6 +718,13 @@
         <div class="flex">
           <button on:click={scanHand}>Scan Hand</button>
           {#if jointsJSON}
+            {#if !isExpert && flags.fitToHand}
+              <button
+                on:click={() => (showFit = true)}
+                class="bg-gradient-to-r! from-pink-300 to-orange-300 dark:from-pink-800 dark:to-orange-800"
+                >Fit to Hand</button
+              >
+            {/if}
             <button on:click={() => toggleplay(sentence)}>Simulate</button>
           {/if}
         </div>
@@ -768,6 +771,13 @@
     <div class="flex justify-center">
       <button on:click={scanHand}>Scan Hand</button>
       {#if jointsJSON}
+        {#if !isExpert && flags.fitToHand}
+          <button
+            on:click={() => (showFit = true)}
+            class="bg-gradient-to-r! from-pink-300 to-orange-300 dark:from-pink-800 dark:to-orange-700 hover:from-pink-400 hover:to-orange-400"
+            >Fit to Hand</button
+          >
+        {/if}
         <button on:click={() => toggleplay(sentence)}>Simulate</button>
       {/if}
     </div>

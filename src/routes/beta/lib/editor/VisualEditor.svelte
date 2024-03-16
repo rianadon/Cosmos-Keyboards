@@ -259,33 +259,33 @@
   const thumbStore = new TupleStore(cuttleformConf.stagger.staggerThumb)
   const [staggerThumbX, staggerThumbY, staggerThumbZ, staggerThumbO] = thumbStore.components()
   thumbStore.tuple.subscribe((t) => (cuttleformConf.stagger.staggerThumb = t))
-  $: thumbStore.update(cuttleformConf.stagger.staggerThumb)
+  $: thumbStore.update($protoConfig.stagger.staggerThumb)
 
   const innerIndexStore = new TupleStore(cuttleformConf.stagger.staggerInnerIndex)
   const [staggerInnerIndexX, staggerInnerIndexY, staggerInnerIndexZ, staggerInnerIndexO] =
     innerIndexStore.components()
   innerIndexStore.tuple.subscribe((t) => (cuttleformConf.stagger.staggerInnerIndex = t))
-  $: innerIndexStore.update(cuttleformConf.stagger.staggerInnerIndex)
+  $: innerIndexStore.update($protoConfig.stagger.staggerInnerIndex)
 
   const indexStore = new TupleStore(cuttleformConf.stagger.staggerIndex)
   const [staggerIndexX, staggerIndexY, staggerIndexZ, staggerIndexO] = indexStore.components()
   indexStore.tuple.subscribe((t) => (cuttleformConf.stagger.staggerIndex = t))
-  $: indexStore.update(cuttleformConf.stagger.staggerIndex)
+  $: indexStore.update($protoConfig.stagger.staggerIndex)
 
   const middleStore = new TupleStore(cuttleformConf.stagger.staggerMiddle)
   const [staggerMiddleX, staggerMiddleY, staggerMiddleZ, staggerMiddleO] = middleStore.components()
   middleStore.tuple.subscribe((t) => (cuttleformConf.stagger.staggerMiddle = t))
-  $: middleStore.update(cuttleformConf.stagger.staggerMiddle)
+  $: middleStore.update($protoConfig.stagger.staggerMiddle)
 
   const ringStore = new TupleStore(cuttleformConf.stagger.staggerRing)
   const [staggerRingX, staggerRingY, staggerRingZ, staggerRingO] = ringStore.components()
   ringStore.tuple.subscribe((t) => (cuttleformConf.stagger.staggerRing = t))
-  $: ringStore.update(cuttleformConf.stagger.staggerRing)
+  $: ringStore.update($protoConfig.stagger.staggerRing)
 
   const pinkyStore = new TupleStore(cuttleformConf.stagger.staggerPinky)
   const [staggerPinkyX, staggerPinkyY, staggerPinkyZ, staggerPinkyO] = pinkyStore.components()
   pinkyStore.tuple.subscribe((t) => (cuttleformConf.stagger.staggerPinky = t))
-  $: pinkyStore.update(cuttleformConf.stagger.staggerPinky)
+  $: pinkyStore.update($protoConfig.stagger.staggerPinky)
 </script>
 
 <Section name="Upper Keys">

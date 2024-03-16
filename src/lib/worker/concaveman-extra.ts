@@ -36,10 +36,10 @@ export function doWallsIntersect(c: Cuttleform, wall0: WallCriticalPoints, wall1
   // They intersect if the bisector does not bisect in 2D!
 
   // Check that after projecting each wall onto the bisector, they lie on opposite sides!
-  if (c.shell.type == 'stilts' || c.shell.type == 'block') {
+  if (c.shell.type == 'stilts' || c.shell.type == 'block' || c.shell.type == 'tilt') {
     const out = wall1.bo.origin().sub(wall1.bi.origin())
     let up = new Vector3(0, 0, 1)
-    if (c.shell.type == 'stilts') up = wall1.mo.origin().sub(wall1.bo.origin())
+    if (c.shell.type == 'stilts' || c.shell.type == 'tilt') up = wall1.mo.origin().sub(wall1.bo.origin())
     if (c.shell.type == 'block') up = new Vector3(1, 0, 0)
     const normal = up.cross(out)
     const i0 = wall0.bi.origin().sub(wall1.bi.origin()).dot(normal)

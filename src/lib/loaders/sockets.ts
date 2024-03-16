@@ -131,3 +131,9 @@ export async function keyHoleMeshes(c: Cuttleform, transforms: Trsf[]) {
     mass: keys.map(k => k.mass).reduce((a, b) => a + b),
   }
 }
+
+export async function combinedKeyHoleMesh(c: Cuttleform, transforms: Trsf[]) {
+  const keys = await Promise.all(transforms.map((t, i) => keyHole(c.keys[i], t)))
+  const merged = mergeBufferGeometries(keys.map(k => k.mesh.clone().applyMatrix4(k.matrix)))
+  return merged
+}

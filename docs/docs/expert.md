@@ -199,7 +199,7 @@ However, if an `mt3` key basis were used with Choc keys, then spacing values wou
 
 ## Microcontrollers and Screw Inserts
 
-The position of the microcontroller and screw inserts are configured using `connectorIndex` and `screwIndices` respectively. Because the microcontroller and screw inserts must be affixed to walls, their positions cannot be set to any arbitrary point in 3D space like the keys.
+The position of the microcontroller and screw inserts are configured using `connectorIndex` and `screwIndices` respectively. Because the microcontroller and screw inserts must be affixed to walls, their positions cannot be set to any arbitrary point in 3D space like the keys. Instead, they are located by specifying their position along the model's perimeter.
 
 The `connectorIndex` option defaults to `#!ts -1`, which instructs the generator to automatically place the microcontroller. Changing the `connectorIndex` to a nonnegative value will place the microcontroller next to a specific wall cross section. Every cross section is assigned an index starting at zero at some arbitrary cross section. The generator will warn you if you specify an out-of-bounds index.
 

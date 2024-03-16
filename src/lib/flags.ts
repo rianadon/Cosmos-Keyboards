@@ -13,3 +13,7 @@ export const boardView = true
 export const intersection = search.includes('Intersection')
 export const fast = search.includes('Fast')
 export const theme = true
+export const glb = search.includes('glb')
+export const fitToHand = search.includes('FitToHand')
+export const noUMR = search.includes('NoUMR')
+export const rtcb = search.includes('rtcb')

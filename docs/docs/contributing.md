@@ -105,8 +105,6 @@ Some notes about sockets:
 
 If you're looking for some code to follow along as you complete these steps, you can refer to [this Pull Request](https://github.com/rianadon/Cosmos-Keyboards/pull/11). It also serves as good reference for when you create a PR of your changes!
 
----
-
 1. Give the socket a name. The standard I've been loosely following is `thing-dimensions-vendor`. The vendor & dimensions can be omitted if they are obvious. For example, `trackpad-23mm-cirque` and `oled-128x32-0.91in-adafruit`.
 2. Edit `src/lib/worker/config.ts` and add the name of your socket to the config. You'll probably be adding it under `CuttleBaseKey`. Look for a similar part.
 3. Design a STEP file for the socket. Place it at `src/assets/key-(name).step`. If you're using someone else's STEP file, make sure it is licensed for reuse.
