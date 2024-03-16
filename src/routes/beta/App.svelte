@@ -22,7 +22,7 @@
   import KleView from './lib/dialogs/KleView.svelte'
   import HandFitView from './lib/dialogs/HandFitView.svelte'
   import cuttleform from '$assets/cuttleform.json'
-  import Dialog from './lib/dialogs/Dialog.svelte'
+  import Dialog from '$lib/presentation/Dialog.svelte'
   import Footer from './lib/Footer.svelte'
   import Editor from './lib/editor/CodeEditor.svelte'
   import Preset from '$lib/presentation/Preset.svelte'
@@ -959,10 +959,6 @@
 <DarkTheme bind:darkMode />
 
 <style>
-  :global(body) {
-    --at-apply: 'bg-white dark:bg-gray-800 dark:text-white';
-  }
-
   @media (min-height: 480px) {
     .viewer {
       height: calc(100vh - 136px);

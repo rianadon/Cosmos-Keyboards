@@ -2,7 +2,7 @@
   import { modelName, user } from '$lib/store'
   import { isPro } from '$lib/worker/check'
   import { newGeometry, type Cuttleform } from '$lib/worker/config'
-  import Dialog from './Dialog.svelte'
+  import Dialog from '$lib/presentation/Dialog.svelte'
   import * as flags from '$lib/flags'
   import { createEventDispatcher } from 'svelte'
   import Icon from '$lib/presentation/Icon.svelte'

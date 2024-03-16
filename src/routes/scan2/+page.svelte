@@ -13,6 +13,8 @@
   $: if ($step == 9) setTimeout(() => window.close(), 300)
 </script>
 
+<svelte:body class="bg-slate-900 text-gray-50" />
+
 <header class="flex items-center">
   <img
     src="{base}/cosmos-icon.png"
@@ -70,9 +72,3 @@
     You can safely close this tab.
   {/if}
 </main>
-
-<style>
-  :global(body) {
-    --at-apply: bg-slate-900 text-gray-50;
-  }
-</style>

@@ -1,7 +1,7 @@
 <script lang="ts">
   import Icon from '$lib/presentation/Icon.svelte'
   import * as mdi from '@mdi/js'
-  import Dialog from './dialogs/Dialog.svelte'
+  import Dialog from '$lib/presentation/Dialog.svelte'
   import SponsorConditional from '$lib/presentation/SponsorConditional.svelte'
   import * as login from './login'
   import { onDestroy } from 'svelte'

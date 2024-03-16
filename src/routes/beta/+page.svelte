@@ -10,6 +10,8 @@
   <link rel="icon" href="{base}/favicon.png" />
 </svelte:head>
 
+<svelte:body class="bg-white dark:bg-gray-800 dark:text-white" />
+
 {#if browser}
   <App />
 {/if}

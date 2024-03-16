@@ -6,13 +6,7 @@ While it's great at getting a prototype into your hands, Cosmos will never be a 
 
 ## Preparation
 
-Not every model imports correctly into CAD software. You'll need to ensure your model is free of any errors including:
-
-1. There must be no areas where the switch sockets intersect the model. Open the thickesss viewes, and ensure that the triangles have no intersections.
-2. Walls with zero thickness in the thickness viewer are also a bad sign. Adjusting keys so that there is a smoother transition between them helps thicken these walls.
-3. If using smooth mode, none of the walls must intersect each other. Sometimes when using large staggers, the smooth wall will do loop-de-loops. These do not work well with both 3d printing or CAD. Decreasing stagger helps fix these
-
-If you'll only be using the switch sockets or using the model as a guide to design your own keyboard, you do not need to follow these steps.
+You'll need to ensure your model is free of any outstanding warnings or errors in the generator. Nevertheless, not every model imports correctly into CAD software.
 
 ## Using the STEP File
 

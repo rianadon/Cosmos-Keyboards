@@ -1,5 +1,6 @@
 import adapter from '@sveltejs/adapter-static'
 import { vitePreprocess } from '@sveltejs/kit/vite'
+import { preprocessor as documentPreprocessor } from '@sveltekit-addons/document'
 import { preprocessThrelte } from '@threlte/preprocess'
 import seqPreprocessor from 'svelte-sequential-preprocessor'
 
@@ -9,7 +10,7 @@ const dev = process.argv.includes('dev')
 const config = {
   // Consult https://kit.svelte.dev/docs/integrations#preprocessors
   // for more information about preprocessors
-  preprocess: seqPreprocessor([vitePreprocess(), preprocessThrelte()]),
+  preprocess: seqPreprocessor([vitePreprocess(), preprocessThrelte(), documentPreprocessor()]),
 
   kit: {
     // adapter-auto only supports some environments, see https://kit.svelte.dev/docs/adapter-auto for a list.
@@ -23,8 +24,8 @@ const config = {
       handleHttpError: ({ path, message }) => {
         // Ignore links to docs and blogs
         // These are handled by mkdocs, and sveltekit does not know about them
-        if (path === (process.env.BASE_PATH || '') + '/blog/') return
-        if (path === (process.env.BASE_PATH || '') + '/docs/') return
+        if (path.startsWith((process.env.BASE_PATH || '') + '/blog/')) return
+        if (path.startsWith((process.env.BASE_PATH || '') + '/docs/')) return
 
         // otherwise fail the build
         throw new Error(message)

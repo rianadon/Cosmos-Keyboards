@@ -9,6 +9,8 @@
   }
 </script>
 
+<svelte:body class="bg-slate-900 text-gray-50" />
+
 <main class="max-w-3xl mx-auto my-4 text-center">
   <div class="max-w-prose mx-auto">
     <h1
@@ -41,9 +43,3 @@
     {/if}
   {/await}
 </main>
-
-<style>
-  :global(body) {
-    --at-apply: bg-slate-900 text-gray-50;
-  }
-</style>
