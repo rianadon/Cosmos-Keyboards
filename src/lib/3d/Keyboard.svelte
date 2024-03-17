@@ -31,6 +31,7 @@
     status?: KeyStatus
     offset: number
     matrix: Matrix4
+    renderOrder?: number
   }
 
   let geos: Key[][] = []
@@ -66,6 +67,7 @@
           status,
           offset,
           matrix: x.matrix,
+          renderOrder: 5,
         })
       })
     for (const x of s) {
@@ -113,6 +115,7 @@
             status={k.status}
             geometry={k.geometry}
             position={[0, 0, k.offset + k.translation]}
+            renderOrder={k.renderOrder}
           />
         </GroupMatrix>
       {/each}
@@ -127,6 +130,7 @@
             status={k.status}
             geometry={k.geometry}
             position={[0, 0, k.translation]}
+            renderOrder={k.renderOrder}
           />
         </GroupMatrix>
       {/each}
