@@ -1,7 +1,8 @@
 nav:
   - ...
+  - hand-scans.md
+  - hand-fitting.md
   - cad.md
-  # - hand-fitting.md
   - expert.md
   - contributing.md
   - credits.md
