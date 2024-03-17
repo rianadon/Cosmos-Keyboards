@@ -21,7 +21,7 @@
     min="-179"
     max="180"
     value={degrees}
-    step="0.1"
+    step="1"
     on:change={onChange}
   /><span class="text-right absolute top-0 bottom-0 w-8 input-units" class:small>&deg;</span>
 </div>

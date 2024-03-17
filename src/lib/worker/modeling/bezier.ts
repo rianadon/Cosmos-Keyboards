@@ -135,7 +135,7 @@ function patchToMesh(p: Patch): FaceMesh {
       .add(new Vector().fromArray(mesh.vertices, i20 * 3))
       .add(new Vector().fromArray(mesh.vertices, i22 * 3))
       .divideScalar(4)
-    if (level >= 5 || midpoint.distanceTo(p11) < 3e-2) {
+    if (level >= 4 || midpoint.distanceTo(p11) < 3e-2) {
       mesh.triangles.push(i00, i02, i22, i00, i22, i20)
       return
     }

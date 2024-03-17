@@ -211,7 +211,7 @@
     // Reset the state
     ocError = undefined
     console.log('Generating!')
-    modelOpacity = 0.2
+    // modelOpacity = 0.2
 
     pool.reset()
     try {
@@ -224,15 +224,15 @@
       const keyPromise = pool.execute((w) => w.generateKeys(settings), 'Keys')
       const platePromise = pool.execute((w) => w.generatePlate(settings), 'Plate')
 
-      screwBaseBuf = undefined
-      screwPlateBuf = undefined
-      // wristBuf = undefined
-      holderBuf = undefined
-      wallBuf = undefined
-      webBuf = undefined
-      keyBufs = undefined
-      plateTopBuf = undefined
-      plateBotBuf = undefined
+      // screwBaseBuf = undefined
+      // screwPlateBuf = undefined
+      // // wristBuf = undefined
+      // holderBuf = undefined
+      // wallBuf = undefined
+      // webBuf = undefined
+      // keyBufs = undefined
+      // plateTopBuf = undefined
+      // plateBotBuf = undefined
 
       let cutPromise, holderPromise, screwPromise, wristRestPromise, cutPlatePromise
       if (!flags.fast) {
@@ -245,7 +245,7 @@
       }
 
       center = estimatedCenter(geometry, !!config.wristRest)
-      confError = await intersectionsPromise
+      // confError = await intersectionsPromise
       const wallMesh = await wallPromise
       const webMesh = await webPromise
       const keyMesh = await keyPromise
