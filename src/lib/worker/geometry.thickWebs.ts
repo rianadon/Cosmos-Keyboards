@@ -386,7 +386,7 @@ export function reinforceTriangles(c: Cuttleform, geo: Geometry, triangles: numb
     for (let i = 0; i < N; i++) {
       const i0 = i, i1 = (i + 1) % N, i2 = (i + 2) % N, i3 = (i + 3) % N
       let pi0 = polyInd[i0], pi1 = polyInd[i1], pi2 = polyInd[i2], pi3 = polyInd[i3]
-      const oPi1 = originalPolyInd[i1], oPi2 = originalPolyInd[i2]
+      const oPi0 = originalPolyInd[i0], oPi1 = originalPolyInd[i1], oPi2 = originalPolyInd[i2], oPi3 = originalPolyInd[i3]
 
       if (!triangleMap[pi1] || !triangleMap[pi1][pi2]) continue
 
@@ -457,7 +457,7 @@ export function reinforceTriangles(c: Cuttleform, geo: Geometry, triangles: numb
 
         // Move wall connected to original point and add new triangular wall for the gap
         if (wallPrev >= 0) newWallOffsets[wallPrev] = { direction: normal, offset: offsetPrev }
-        if (innerBoundary.includes(pi1)) extraWalls.push([newPrevInd, pi1, pi1])
+        if (innerBoundary.includes(oPi1) && innerBoundary.includes(oPi0)) extraWalls.push([newPrevInd, pi1, pi1])
 
         // Add new triangle to connect old points to new points
         triangles.push([polyInd[i2], pi1, newPrevInd])
@@ -494,7 +494,7 @@ export function reinforceTriangles(c: Cuttleform, geo: Geometry, triangles: numb
 
         // Move wall connected to original point and add new triangular wall for the gap
         if (wallNext >= 0) newWallOffsets[wallNext] = { direction: normal, offset: offsetNext }
-        if (innerBoundary.includes(pi2)) extraWalls.push([pi2, newNextInd, pi2])
+        if (innerBoundary.includes(oPi2) && innerBoundary.includes(oPi3)) extraWalls.push([pi2, newNextInd, pi2])
 
         // Add new triangle to connect old points to new points
         triangles.push([newNextInd, pi2, polyInd[i1]])
