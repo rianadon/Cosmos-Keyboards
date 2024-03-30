@@ -2260,7 +2260,7 @@ export function separateSockets2D(trsfs: Trsf[], criticalPts: CriticalPoints[]):
 /** Find the local "up" direction on a wall */
 export function wallUpDir(c: Cuttleform, wall: WallCriticalPoints) {
   let up = new Vector(0, 0, 1)
-  if (c.shell.type == 'stilts' || c.shell.type == 'tilt') up = wall.mo.origin().sub(wall.bo.origin())
+  if (c.shell.type == 'stilts' || c.shell.type == 'tilt') up = wall.mo.origin().sub(wall.bo.origin()).normalize()
   if (c.shell.type == 'block') up = new Vector(1, 0, 0)
   return up
 }
