@@ -44,6 +44,8 @@
       localStorage.setItem('cosmosHands', JSON.stringify([handData]))
     }
     resize()
+
+    if (document.fullscreenElement) document.exitFullscreen()
   })
 
   function poseHistory(joints: Joints, stats: Statistics) {

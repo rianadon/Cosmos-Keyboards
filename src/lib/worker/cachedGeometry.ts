@@ -83,16 +83,16 @@ export class BaseGeometry<C extends Cuttleform = SpecificCuttleform<BasicShell>>
     const topCPts = this.allKeyCriticalPoints
     const botCPts = topCPts.map((pts, i) => pts.map(t => t.pretranslated(0, 0, -webThickness(this.c, this.c.keys[i]))))
     const triangles = flipAllTriangles(this.solveTriangularization.triangles, topCPts.flat())
-    const topReinf = reinforceTriangles(this.c, this, triangles, topCPts, true, walls)
-    const botReinf = reinforceTriangles(this.c, this, triangles, botCPts, false, walls)
+    const topReinf = reinforceTriangles(this.c, this, triangles, topCPts, this.worldZ, this.bottomZ, true, walls)
+    const botReinf = reinforceTriangles(this.c, this, triangles, botCPts, this.worldZ, this.bottomZ, false, walls)
     return { topReinf, botReinf, topCPts, botCPts }
   }
 
   @Memoize()
   allWallCriticalPoints(wallOffset = 0) {
     let walls = this.allWallCriticalPointsBase(wallOffset)
-    walls = shiftWalls(walls, this.reinforcedTriangles.topReinf.wallOffsets, true)
-    walls = shiftWalls(walls, this.reinforcedTriangles.botReinf.wallOffsets, false)
+    walls = shiftWalls(this.c, walls, this.reinforcedTriangles.topReinf.wallOffsets, true, this.worldZ, this.bottomZ)
+    walls = shiftWalls(this.c, walls, this.reinforcedTriangles.botReinf.wallOffsets, false, this.worldZ, this.bottomZ)
     return walls
   }
 

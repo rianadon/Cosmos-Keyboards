@@ -274,7 +274,7 @@ export function wallCriticalPoints(
     // because I'm shifting mo up and down its axis.
     if (mo.origin().dot(worldZ) < bottomZ) {
       const ax = ti.origin().sub(mi.origin())
-      const t = new Vector().addScaledVector(ax, -(mo.origin().dot(worldZ) - bottomZ) / ax.dot(worldZ)).addScaledVector(worldZ, 0.001)
+      const t = new Vector().addScaledVector(ax, -(mo.origin().dot(worldZ) - bottomZ) / ax.dot(worldZ))
       bo = bo.cleared().coordSystemChange(mo.origin().add(t), worldX, worldZ)
       mo = mo.translated(t.addScaledVector(worldZ, 0.001).xyz())
     }
@@ -2255,4 +2255,12 @@ export function separateSockets2D(trsfs: Trsf[], criticalPts: CriticalPoints[]):
   }
 
   throw new Error('Could not separate all sockets in 100 iterations')
+}
+
+/** Find the local "up" direction on a wall */
+export function wallUpDir(c: Cuttleform, wall: WallCriticalPoints) {
+  let up = new Vector(0, 0, 1)
+  if (c.shell.type == 'stilts' || c.shell.type == 'tilt') up = wall.mo.origin().sub(wall.bo.origin())
+  if (c.shell.type == 'block') up = new Vector(1, 0, 0)
+  return up
 }

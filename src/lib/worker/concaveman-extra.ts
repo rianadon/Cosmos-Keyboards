@@ -5,7 +5,7 @@
  */
 
 import type { Cuttleform } from '$lib/worker/config'
-import type { WallCriticalPoints } from '$lib/worker/geometry'
+import { type WallCriticalPoints, wallUpDir } from '$lib/worker/geometry'
 import type Trsf from '$lib/worker/modeling/transformation'
 import { Vector3 } from 'three'
 
@@ -38,9 +38,7 @@ export function doWallsIntersect(c: Cuttleform, wall0: WallCriticalPoints, wall1
   // Check that after projecting each wall onto the bisector, they lie on opposite sides!
   if (c.shell.type == 'stilts' || c.shell.type == 'block' || c.shell.type == 'tilt') {
     const out = wall1.bo.origin().sub(wall1.bi.origin())
-    let up = new Vector3(0, 0, 1)
-    if (c.shell.type == 'stilts' || c.shell.type == 'tilt') up = wall1.mo.origin().sub(wall1.bo.origin())
-    if (c.shell.type == 'block') up = new Vector3(1, 0, 0)
+    const up = wallUpDir(c, wall1)
     const normal = up.cross(out)
     const i0 = wall0.bi.origin().sub(wall1.bi.origin()).dot(normal)
     const i1 = wall2.bi.origin().sub(wall1.bi.origin()).dot(normal)

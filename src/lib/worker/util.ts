@@ -34,10 +34,10 @@ export function for2<A, B, R>(a: A[], b: B[], ...cond: ((a: A, b: B) => boolean)
   }
 }
 
-export function mapObj<K extends string, V, R>(obj: Record<K, V>, f: (a: V) => R): Record<K, R> {
+export function mapObj<K extends string, V, R>(obj: Record<K, V>, f: (a: V, k: K) => R): Record<K, R> {
   const newObj: any = {}
-  for (const key of Object.keys(obj)) {
-    newObj[key] = f(obj[key])
+  for (const key of Object.keys(obj) as K[]) {
+    newObj[key] = f(obj[key], key)
   }
   return newObj
 }

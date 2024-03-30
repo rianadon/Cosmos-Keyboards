@@ -14,14 +14,14 @@
   in:fly={{ x: 100, delay: 100, duration: 300 }}
   out:fly={{ x: -100, delay: 100, duration: 300 }}
 >
-  <div class="flex-1 overflow-x-hidden">
-    <div class="grid-hide px-8 pt-2 pb-8 rounded-t">
+  <div class="flex-1 overflow-x-hidden flex flex-col">
+    <div class="flex-none grid-hide px-8 pt-2 pb-8 rounded-t">
       <h2 class="my-4 text-3xl font-semibold"><slot name="title" /></h2>
       <div class="max-w-prose">
         <slot name="prose" />
       </div>
     </div>
-    <div class="px-4" class:mr-40={showNext || showPrevious}><slot name="content" /></div>
+    <div class="px-4 flex-auto" class:mr-40={showNext || showPrevious}><slot name="content" /></div>
   </div>
   {#if showNext || showPrevious}
     <div class="w-36 flex flex-col justify-center flex-none absolute top-0 bottom-0 right-[1rem]">

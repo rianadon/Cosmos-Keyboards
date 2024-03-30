@@ -16,6 +16,8 @@
   import { mdiHandBackLeft, mdiHandBackRight } from '@mdi/js'
   import Icon from '$lib/presentation/Icon.svelte'
   import ChessboardDetector from '../lib/chessboardDetector'
+  import SVGHand from '../lib/SVGHand.svelte'
+  import { board } from '$lib/flags'
 
   export let desiredHand: 'Left' | 'Right'
 
@@ -26,7 +28,7 @@
   let theHand: Hand
   let handPts: PoseHand
   let theJoints: Joints
-  let outofViewport = false
+  let viewportTooSmall = false
   let size: [number, number] = [0, 0]
   let camera2AR = new Matrix4()
   let arTag1: HTMLElement
@@ -39,6 +41,8 @@
   let boardUrl: string
 
   let detector: ChessboardDetector
+  let camera: Camera
+  const MIN_TAG_SIZE = 18 // Minimum tag size in mm
   const GOAL = 50
 
   onMount(async () => {
@@ -60,8 +64,9 @@
       const opencv = await import('$lib/opencv-contrib')
       detector = new ChessboardDetector(opencv.cv, 14, 5)
       boardUrl = detector.image()
+      resize()
       hdetector = await createDetector()
-      const camera = new Camera(video, canvas)
+      camera = new Camera(video, canvas)
       camera.ondetect = ondetect
       camera.ontick = ontick
       camera.onsize = (s) => {
@@ -70,9 +75,11 @@
       }
       camera.onfps = (f) => (fps = f)
       camera.start()
-      setTimeout(() => resize(), 100)
-      return () => camera.stop()
     }
+  })
+
+  onDestroy(() => {
+    if (camera) camera.stop()
   })
 
   /** Runs if a charuco board was detected */
@@ -82,7 +89,10 @@
         const hand = detector.hands[desiredHand]
         if (hand && inFrame(hand)) {
           const arbr = arTag1.getBoundingClientRect()
-          const arTagHeightPx = arbr.height / 5
+          const arTagHeightPx = Math.min(
+            arbr.height / detector.boardHeight,
+            arbr.width / detector.boardWidth
+          )
           const arTagHeightMM = arTagHeightPx / $mmToPx
 
           theHand = makeHand(hand, true, (pt) =>
@@ -120,6 +130,7 @@
 
     timeSinceLastUpdate = performance.now() - lastUpdate
     if ($stat.history.length > GOAL) {
+      console.log('PROGRESSING')
       $step++
       return false
     }
@@ -134,20 +145,21 @@
     return !hand.keypoints.some((k) => k.x < 0 || k.x > 1 || k.y < 0 || k.y > 1)
   }
 
-  function resize() {
-    if (!arTag1) return
+  let resizeQueued = false
+  function recomputeCheckers() {
+    resizeQueued = false
     const rect = arTag1.getBoundingClientRect()
-    const parent = arTag1.parentElement!.parentElement!.parentElement!.getBoundingClientRect()
+    // Limit to 14x7 because there are 100 codes max. 14x7 = 98
+    const tagsW = Math.min(Math.floor(rect.width / (MIN_TAG_SIZE * $mmToPx)), 14)
+    const tagsH = Math.min(Math.floor(rect.height / (MIN_TAG_SIZE * $mmToPx)), 7)
+    viewportTooSmall = tagsW < 3 || tagsH < 3
+    if (!viewportTooSmall && detector.resizeBoard(tagsW, tagsH)) boardUrl = detector.image()
+  }
 
-    outofViewport =
-      rect.top < 0 ||
-      rect.left < 0 ||
-      rect.bottom > document.documentElement.clientHeight ||
-      rect.right > document.documentElement.clientWidth ||
-      rect.top < parent.top ||
-      rect.left < parent.left ||
-      rect.bottom > parent.bottom ||
-      rect.right > parent.right
+  function resize() {
+    if (!arTag1 || resizeQueued) return
+    resizeQueued = true
+    requestAnimationFrame(recomputeCheckers)
   }
 
   $: nLeft = $stat.history.length
@@ -158,19 +170,19 @@
 <Step>
   <span slot="title" class="relative z-5">Measure Your {desiredHand} Hand</span>
   <div slot="prose">
-    Place your {desiredHand.toLowerCase()} hand on the screen, then position the phone camera in front
-    of the screen so both the hand and screen are in view.
+    Place your {desiredHand.toLowerCase()} hand on the screen within the guides. Once it's there, position
+    the phone camera in front of the screen so both the hand and screen are in view.
   </div>
-  <div slot="content">
-    {#if outofViewport}
+  <div slot="content" class="flex flex-col h-full">
+    {#if viewportTooSmall}
       <div class="absolute top-10 left-0 right-0 text-center z-10">
         <div class="bg-red py-2 px-4 rounded inline-block relative shadow-lg shadow-black/30">
-          Please resize the window so that the checkerboard is fully visible.
+          Please make the window bigger to include more checkers.
         </div>
       </div>
     {/if}
     <div
-      class="mt-[-2rem] mb-2 bg-slate-700 px-6 py-2 rounded mx-auto w-64 font-mono relative overflow-hidden"
+      class="flex-none mt-[-2rem] mb-2 bg-slate-700 px-6 py-2 rounded mx-auto w-64 font-mono relative overflow-hidden"
     >
       <div class="absolute inset-0 bg-pink-700" style="width: {(nLeft / GOAL) * 100}%" />
       <span class="relative">Measurements: {nLeft} / {GOAL}</span>
@@ -181,17 +193,25 @@
       </div>
       <canvas bind:this={canvas} style="height: 160px; transform: {transformation}" />
     </div>
-    <img class="artag" bind:this={arTag1} alt="" src={boardUrl} />
+    <!-- <div class="flex-1 bg-red"> -->
+    <div class="flex h-0 flex-auto items-center justify-center">
+      <img
+        class="w-full h-full flex-auto artag object-contain object-center"
+        bind:this={arTag1}
+        alt=""
+        src={boardUrl}
+        style="max-height:{7 * 1.5 * MIN_TAG_SIZE * $mmToPx}px; max-width:{14 *
+          1.5 *
+          MIN_TAG_SIZE *
+          $mmToPx}px"
+      />
+    </div>
+    <!-- </div> -->
     <div class="pointer-events-none">
-      <div
-        class="absolute top-0 bottom-0 left-0 right-0 flex items-center justify-center text-pink"
-      >
-        <Icon
-          path={desiredHand == 'Left' ? mdiHandBackLeft : mdiHandBackRight}
-          size={$mmToPx * 50}
-        />
+      <div class="fixed top-0 bottom-0 left-0 right-0 flex items-center justify-center">
+        <SVGHand side={desiredHand} />
       </div>
-      <BigHand {handPts} {size} {camera2AR} arTag={arTag1} tslu={timeSinceLastUpdate} />
+      <BigHand {detector} {handPts} {size} {camera2AR} arTag={arTag1} tslu={timeSinceLastUpdate} />
     </div>
   </div>
 </Step>
