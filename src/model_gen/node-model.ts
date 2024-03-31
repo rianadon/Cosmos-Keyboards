@@ -27,6 +27,8 @@ export async function setup() {
   // @ts-ignore
   const oc = await loadOC({
     locateFile: () => 'src/assets/replicad_single.wasm',
+    print: () => {},
+    printErr: () => {},
   })
   setOC(oc)
 }
