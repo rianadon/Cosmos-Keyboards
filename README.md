@@ -25,7 +25,8 @@ Most generator code lives at [`src/lib`] and[`src/routes/beta`]. Some files used
 To run the generator locally, you have two options:
 
 1. **Manual Setup**:
-   - [Clone] the repository [install Node.js][nodejs].
+
+   - [Clone] the repository [install Node.js][nodejs]. We recommend [nvm][nvm-sh] for non-windows users.
    - Run `make quickstart` to compile and build the necessary files.
    - Read the [dev documentation](https://ryanis.cool/cosmos/docs/contributing/#building-the-project) if you wish to compile the docs or create a production build.
    - Finally, run `npm run dev` to start a dev server and visit [`http://localhost:5173/beta`](http://localhost:5173/beta).
@@ -40,6 +41,7 @@ To run the generator locally, you have two options:
 [lfs]: https://git-lfs.com/
 [Clone]: https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository
 [nodejs]: https://nodejs.org/en/learn/getting-started/how-to-install-nodejs
+[nvm-sh]: https://github.com/nvm-sh/nvm
 [OpenSCAD]: https://openscad.org/downloads.html
 
 ### Contributing
