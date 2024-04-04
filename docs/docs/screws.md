@@ -12,9 +12,9 @@ Screws are used to hold the keyboard base plate onto the rest of the keyboard ca
 | #4-40                             | OD: 0.159"<br>H: 0.165" | OD: 0.153"<br>H: 0.165"<br>T: 8° | OD: 0.156"&nbsp;(5/32)"<br>H: 0.188"        | OD: 0.089"<br>H: 0.188" |
 | #6-32                             | OD: 0.191"<br>H: 0.18"  | OD: 0.199"<br>H: 0.18"<br>T: 8°  | OD: 0.188" (3/16)"<br>H: 0.25"              | OD: 0.107"<br>H: 0.25"  |
 
-[SI]: https://www.mcmaster.com/mvD/Contents/gfx/ImageCache/944/94459A280_a4524912-b925-457f-b3fa-f7c83571ca8f@4x_638110152424181078.png?ver=ImageNotFound
-[TSI]: https://www.mcmaster.com/mvD/Contents/gfx/ImageCache/933/93365A130_a9f3f6c6-3de2-4700-9308-429113192fca1690480478@4x_1690480483.png?ver=ImageNotFound
-[ESI]: https://www.mcmaster.com/mvD/Contents/gfx/ImageCache/923/92395A113_727b2b43-fba6-43af-81f9-03fb63e1b522@4x_638112966750528839.png?ver=ImageNotFound
+[SI]: ../assets/screwinsert.png
+[TSI]: ../assets/screwinserttapered.png
+[ESI]: ../assets/screwinsertexpand.png
 [Tap]: https://www.protolabs.com/media/1012890/threaded-holes-technical-illos-standard-holes-570x308.jpg
 
 The sizes are taken from the recommended parameters in [McMaster-Carr's](https://www.mcmaster.com) catalogue. If you're ordering your parts from elsewhere, make sure the part will fit in the hole's diameter and height.
