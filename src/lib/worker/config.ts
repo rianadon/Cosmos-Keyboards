@@ -161,7 +161,7 @@ interface CuttleKeycapKey extends CuttleBaseKey {
 }
 
 interface CuttleBasicKey extends CuttleBaseKey {
-  type: 'ec11' | 'oled-128x32-0.91in-adafruit' | 'oled-128x32-0.91in-dfrobot' | 'evqwgd001'
+  type: 'ec11' | 'oled-128x32-0.91in-adafruit' | 'oled-128x32-0.91in-dfrobot' | 'evqwgd001' | 'joystick-40x45-ps2'
 }
 
 interface CuttleBlankKey extends CuttleBaseKey {
