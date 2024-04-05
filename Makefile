@@ -45,7 +45,7 @@ keyboards:
 	$(NODE) src/model_gen/keyboards.ts
 
 venv:
-	if test ! -d venv; then python3 -m venv venv; . venv/bin/activate && pip install mkdocs-material[imaging]==9.4.14 mkdocs-awesome-pages-plugin==2.9.2 mkdocs-rss-plugin==1.9.0 lxml==4.9.3; fi
+	if test ! -d venv; then python3 -m venv venv; . venv/bin/activate && pip install mkdocs-material[imaging]==9.5.17 mkdocs-awesome-pages-plugin==2.9.2 mkdocs-rss-plugin==1.9.0 lxml==4.9.3; fi
 docs: venv
 	. venv/bin/activate && mkdir -p ./build  && MKDOCS_BUILD=1 mkdocs build && cp -r target/mkdocs/* build/
 docs-ci: venv

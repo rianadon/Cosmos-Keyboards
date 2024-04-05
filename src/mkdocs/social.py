@@ -24,6 +24,13 @@ class CustomPlugin(SocialPlugin):
     def _load_resized_logo(self, config, width = 72):
         return super()._load_resized_logo(config, width)
 
+    def _load_font(self, config):
+        return os.path.join(os.path.dirname(config.docs_dir), 'static/urbanist.woff2')
+
+    def _get_font(self, kind, size):
+        font = ImageFont.truetype(self.font, size)
+        font.set_variation_by_name(kind)
+        return font
 
     # Create social cards
     def on_page_markdown(self, markdown, page, config, files):
@@ -219,7 +226,6 @@ config = SocialConfig()
 config.set_defaults()
 config.cache_dir = "target/cards"
 config.cards_layout_options["color"] = "#000"
-config.cards_layout_options["font_family"] = "Poppins"
 plugin.config = config
 
 def on_config(config):

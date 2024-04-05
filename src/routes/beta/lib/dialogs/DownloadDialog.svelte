@@ -57,6 +57,7 @@
     generatingSTL = true
     pool
       .executeNow((w) => w.getSTL(config, model, flip) as Promise<Blob>)
+      .then(addMetadataToSTL)
       .then(
         (blob) => {
           trackEvent('cosmos-stl', { model, time: window.performance.now() - begin })
@@ -73,6 +74,7 @@
       )
   }
 
+  /** Embed the URL into the STEP file. */
   async function addMetadataToSTEP(blob: Blob) {
     const text = await blob.text()
     const replaced = text
@@ -81,11 +83,21 @@
     return new Blob([replaced], { type: blob.type })
   }
 
-  /** Unused: While technically valid, prusaslicer does not like trailing metadata. */
+  /**
+    Hide the URL in the attributes of the STL file.
+    There are 84 bytes of header information, then attributes are in the
+    last 2 bytes of every following 50-byte triangle.
+    */
   async function addMetadataToSTL(blob: Blob) {
     const contents = await blob.arrayBuffer()
-    const trailing = '\0Exported from ' + location.href
-    return new Blob([contents, trailing], { type: blob.type })
+    const array = new Uint8Array(contents)
+    if (132 + (location.href.length / 2) * 50 < array.length) {
+      for (let i = 0; i < Math.ceil(location.href.length / 2); i++) {
+        array[132 + i * 50] = location.href[i * 2].charCodeAt(0)
+        array[132 + i * 50 + 1] = location.href[i * 2 + 1]?.charCodeAt(0)
+      }
+    }
+    return new Blob([contents], { type: blob.type })
   }
 
   async function downloadGLB(flip: boolean) {
@@ -96,7 +108,7 @@
 
     const geo = newGeometry(config)
     const keys = keyGeometries(geo.keyHolesTrsfs, config.keys)
-    const switches = partGeometries(geo.keyHolesTrsfs, config.keys)
+    const switches = partGeometries(geo.keyHolesTrsfs, config.keys, false)
 
     function node(name: string, geometry: THREE.BufferGeometry, material: THREE.Material) {
       const mesh = new THREE.Mesh(geometry, material)

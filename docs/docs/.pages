@@ -2,6 +2,7 @@ nav:
   - ...
   - hand-scans.md
   - hand-fitting.md
+  - recovery.md
   - cad.md
   - expert.md
   - contributing.md
