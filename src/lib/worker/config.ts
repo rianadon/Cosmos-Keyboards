@@ -161,7 +161,7 @@ interface CuttleKeycapKey extends CuttleBaseKey {
 }
 
 interface CuttleBasicKey extends CuttleBaseKey {
-  type: 'ec11' | 'oled-128x32-0.91in-adafruit' | 'oled-128x32-0.91in-dfrobot' | 'evqwgd001'
+  type: 'ec11' | 'oled-128x32-0.91in-adafruit' | 'oled-128x32-0.91in-dfrobot' | 'evqwgd001' | 'adafruit-mini-thumbstick'
 }
 
 interface CuttleBlankKey extends CuttleBaseKey {
@@ -900,6 +900,7 @@ const ID_TO_TYPE: Record<number, CuttleKey['type']> = {
   4: 'cirque-35mm',
   5: 'cirque-40mm',
   6: 'evqwgd001',
+  7: 'adafruit-mini-thumbstick',
 }
 const TYPE_TO_ID = reverseMap(ID_TO_TYPE)
 

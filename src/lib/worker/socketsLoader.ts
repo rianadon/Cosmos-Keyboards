@@ -23,6 +23,7 @@ export const KEY_URLS: Record<CuttleKey['type'], string> = {
   'choc-hotswap': '/target/key-choc-hotswap.step',
   'trackball': '/src/assets/trackball_holder.step',
   'ec11': '/src/assets/key-ec11.step',
+  'adafruit-mini-thumbstick': '/src/assets/key-adafruit-mini-thumbstick.step',
   'evqwgd001': '/src/assets/key-evqwgd001.step',
   'oled-128x32-0.91in-adafruit': '/src/assets/key-oled-128x32-0.91in-adafruit.step',
   'oled-128x32-0.91in-dfrobot': '/target/key-oled-128x32-0.91in-dfrobot.step',
