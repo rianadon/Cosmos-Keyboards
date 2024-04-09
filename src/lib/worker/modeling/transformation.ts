@@ -1,7 +1,7 @@
 import type { gp_Pnt, OpenCascadeInstance, TopoDS_Vertex } from '$assets/replicad_single'
 import { type AnyShape, cast, getOC, type Solid, Transformation as OCCTransformation } from 'replicad'
-import { Matrix4 } from 'three/src/math/Matrix4'
-import { Vector3 } from 'three/src/math/Vector3'
+import { Matrix4 } from 'three/src/math/Matrix4.js'
+import { Vector3 } from 'three/src/math/Vector3.js'
 
 type Point = [number, number, number]
 

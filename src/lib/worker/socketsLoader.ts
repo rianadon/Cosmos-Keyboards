@@ -4,7 +4,7 @@ import type { CuttleKey } from './config'
 import { makeAsyncCacher } from './modeling/cacher'
 import type Trsf from './modeling/transformation'
 
-const browser = !!import.meta.env
+const browser = !!import.meta.glob
 let keyUrls: Record<string, string> = browser
   ? import.meta.glob(['$target/*.step', '$assets/*.step'], { as: 'url', eager: true })
   : {}

@@ -26,18 +26,20 @@ To run the generator locally, you have two options:
 
 1. **Manual Setup**:
 
-   - [Clone] the repository [install Node.js][nodejs]. We recommend [nvm][nvm-sh] for non-windows users.
+   - [Clone] the repository and [install Bun][bun].
+     > The rationale is that Bun has built-in TypeScript and path mapping support. Alternatively, you can use [Node.js][nodejs] v21 or later ([nvm][nvm-sh] recommended for Linux users). When using Node.js, Cosmos uses a custom ESM loader, which is more difficult to debug when things ultimately go wrong.
    - Run `make quickstart` to compile and build the necessary files.
    - Read the [dev documentation](https://ryanis.cool/cosmos/docs/contributing/#building-the-project) if you wish to compile the docs or create a production build.
-   - Finally, run `npm run dev` to start a dev server and visit [`http://localhost:5173/beta`](http://localhost:5173/beta).
+   - Finally, run `make dev` to start a dev server and visit [`http://localhost:5173/beta`](http://localhost:5173/beta).
 
 2. **Docker Setup** (Recommended for Windows†):
    - [Clone] the repository and install [Docker and Docker compose](https://docs.docker.com/get-docker/).
    - Run `docker compose up` in the project root directory.
      - To avoid running the make scripts when rebuilding, set `SKIP_MAKE_FILES=true` in your .env file. This reduces build time if all target files and docs have already been created.
 
-† Docker is recommended on Windows since you'll need `make` and a ideally Linux shell. You can alternatively [use in Cygwin](https://www.cygwin.com/), [install make](https://stackoverflow.com/a/73862277), or piece together what you need to run from the `Makefile` :)
+† Docker is recommended on Windows since you'll need `make` and a ideally Linux shell. You can alternatively [use make in Cygwin](https://www.cygwin.com/), [install make](https://stackoverflow.com/a/73862277), or piece together what you need to run from the `Makefile` :)
 
+[bun]: https://bun.sh/docs/installation
 [lfs]: https://git-lfs.com/
 [Clone]: https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository
 [nodejs]: https://nodejs.org/en/learn/getting-started/how-to-install-nodejs

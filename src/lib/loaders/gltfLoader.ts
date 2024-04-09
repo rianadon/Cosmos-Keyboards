@@ -2,7 +2,7 @@ import type { Mesh } from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 import { makeAsyncCacher } from './cacher'
 
-const browser = !!import.meta.env
+const browser = !!import.meta.glob
 let glbUrls = browser
   ? import.meta.glob(['$target/*.glb', '$assets/*.glb'], { as: 'url', eager: true })
   : {}

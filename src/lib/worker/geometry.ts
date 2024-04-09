@@ -7,7 +7,7 @@ import { wallBezier, wallCurveRounded, wallSurfacesInnerRoundedTop, wallSurfaces
 import cdt2d from 'cdt2d'
 import findBoundary from 'simplicial-complex-boundary'
 import { ExtrudeGeometry, Matrix3, Shape, Triangle } from 'three'
-import { Vector2 } from 'three/src/math/Vector2'
+import { Vector2 } from 'three/src/math/Vector2.js'
 import concaveman from './concaveman'
 import { type Cuttleform, type CuttleKey, type Geometry, keyRoundSize } from './config'
 import { intersectLineCircle, intersectPolyPoly, intersectPtPoly, intersectTriCircle } from './geometry.intersections'
