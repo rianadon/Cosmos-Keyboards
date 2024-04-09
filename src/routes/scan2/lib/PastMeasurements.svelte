@@ -89,6 +89,16 @@
       <button class="button2" on:click={deleteAll}>Delete All</button>
     </div>
   </ul>
+{:else}
+  <h2 class="mt-10 mb-4 text-3xl font-semibold text-purple">Past Scans</h2>
+  <p class="text-gray-400 max-w-[44ch] mx-auto">
+    If you've already scanned your hand on a different device, you can import it here.
+  </p>
+  <div class="flex justify-center my-6">
+    <button class="button shadow-lg shadow-purple/30" on:click={() => fileSelector.click()}
+      >Import An Existing Scan</button
+    >
+  </div>
 {/if}
 <input
   class="hidden"

@@ -21,6 +21,9 @@
 
   const GOAL = 150
 
+  const PHASES = 3
+  let phase = 1
+
   onMount(async () => {
     console.log('Remote stream', $remoteStream)
 
@@ -92,6 +95,8 @@
   $: nLeft = $leftPoseStats.history.length
   $: nRight = $rightPoseStats.history.length
 
+  $: leftQuality = nLeft / GOAL
+
   onMount(() => {
     $leftPoseStats = INITIAL_STAT()
     $rightPoseStats = INITIAL_STAT()
@@ -113,13 +118,18 @@
 <Step>
   <span slot="title" class="relative z-5">Measure Your Hand Poses</span>
   <div slot="prose">
-    <p class="mb-2">
-      Rest your phone on a vertical surface so that your hands are visible from the camera.
-    </p>
-    <p>
-      With your hands in view of the camera, rotate them both and flex your fingers so that the
-      scanner can measure how your fingers move.
-    </p>
+    {#if phase == 0}
+      <p class="mb-2">
+        Rest your phone on a vertical surface so that your hands are visible from the camera.
+        Leaning it on a laptop screen or wall works well.
+      </p>
+      <p>With the phone in a stable position, place both hands in view of the camrea.</p>
+    {:else if phase == 1}
+      <p class="mx--2 px-6 py-2 bg-pink-700 rounded text-lg">
+        [1/{PHASES}] Stretch out your hands, point your fingertips towards each other, and rotate
+        your palms downwards.
+      </p>
+    {/if}
   </div>
   <div slot="content">
     <div class="absolute top-0 right-0 shadow-lg shadow-slate-800">
@@ -129,7 +139,7 @@
       <canvas bind:this={canvas} style="height: 160px; transform: {transformation}" />
     </div>
 
-    {#if nLeft == 0 && nRight == 0}
+    {#if nLeft == 0 && nRight == 0 && phase == 0}
       <div class="absolute left-0 right-0 mt-[calc(50vh-16rem)]">
         <img src="{base}/hands.png" width={$mmToPx * 100} class="mx-auto" />
       </div>
@@ -137,14 +147,24 @@
 
     <div class="flex">
       <div class="flex-1 overflow-hidden justify-center mx-4 text-center">
-        <div
-          class="mb-4 bg-slate-700 px-6 py-2 rounded inline-block w-64 font-mono relative overflow-hidden"
-        >
-          <div class="absolute inset-0 bg-pink-700" style="width: {(nLeft / GOAL) * 100}%" />
-          <span class="relative">Left Hand: {nLeft} / {GOAL}</span>
-        </div>
+        <!-- <div
+               class="mb-4 bg-slate-700 px-6 py-2 rounded inline-block w-64 font-mono relative overflow-hidden"
+               >
+               <div class="absolute inset-0 bg-pink-700" style="width: {(nLeft / GOAL) * 100}%" />
+               <span class="relative">Left Hand: {nLeft} / {GOAL}</span>
+               </div> -->
         <div class="w-full overflow-hidden flex justify-center" bind:this={column}>
-          <Pose width={columnWidth} hand={leftHand} joints={leftJoints} />
+          <div class="relative">
+            <div
+              class="absolute inset-0 rounded-45%"
+              style="background: linear-gradient(#BE185D {50 * leftQuality}%, transparent {50 *
+                leftQuality}%, transparent {100 - 50 * leftQuality}%, #BE185D {100 -
+                50 * leftQuality}%)"
+            />
+            <div class="absolute inset-4 bg-slate-800 rounded-40%" />
+            <!-- <div style="height: {columnWidth}px; width: {columnWidth}px" /> -->
+            <Pose width={columnWidth} hand={leftHand} joints={leftJoints} />
+          </div>
         </div>
       </div>
       <div class="flex-1 overflow-hidden justify-center mx-4 text-center">
