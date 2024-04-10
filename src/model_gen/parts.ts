@@ -82,7 +82,7 @@ async function main() {
   const defaults = { spacing: 2.54, diameter: 0.9 }
   await genPart('switch-cherry-mx')
   await genPart('switch-evqwgd001')
-  await genPart('switch-adafruit-mini-thumbstick')
+  await genPart('switch-joystick-adafruit-joycon')
   await genUC('rp2040-black-usb-c-aliexpress', {}, [
     { start: 2.54, align: { side: 'left', offset: 2.54 }, ...defaults },
     { start: 2.54, align: { side: 'right', offset: 2.54 }, ...defaults },
