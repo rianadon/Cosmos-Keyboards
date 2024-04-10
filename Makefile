@@ -4,22 +4,24 @@ build: target/proto/manuform.ts target/proto/lightcycle.ts target/proto/cuttlefo
 ifneq (, $(shell which bun))
   NODE = bun
   NPM = bun
+  NPX = bunx
 else
   NODE = node --import ./src/model_gen/register_loader.js
   NPM = npm
+  NPX = npx
 endif
 
 target/openscad:
 	$(NODE) src/model_gen/download-openscad.ts
 
 target/proto/manuform.ts: src/proto/manuform.proto
-	npx protoc --ts_out target --proto_path src $<
+	$(NPX) protoc --ts_out target --proto_path src $<
 
 target/proto/cuttleform.ts: src/proto/cuttleform.proto
-	npx protoc --ts_out target --proto_path src $<
+	$(NPX) protoc --ts_out target --proto_path src $<
 
 target/proto/lightcycle.ts: src/proto/lightcycle.proto
-	npx protoc --ts_out target --proto_path src $<
+	$(NPX) protoc --ts_out target --proto_path src $<
 
 target/editorDeclarations.d.ts: src/lib/worker/config.ts src/lib/worker/modeling/transformation-ext.ts
 	$(NODE) src/model_gen/genEditorTypes.ts
