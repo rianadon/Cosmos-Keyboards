@@ -25,7 +25,7 @@ export function calcTravel(k: CuttleKey) {
 }
 
 export function simpleKeyGeo(key: CuttleKey, addTravel: boolean): BufferGeometry | undefined {
-  if (key.type == 'blank' || key.type == 'ec11' || 'trackball' in key) return
+  if (key.type == 'blank' || key.type == 'ec11' || 'trackball' in key || key.type === 'joystick-joycon-adafruit') return
   if (!('keycap' in key)) return
   const { aspect } = key
   const { profile, row } = key.keycap
