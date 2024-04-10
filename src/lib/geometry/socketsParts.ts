@@ -38,7 +38,7 @@ export function socketSize(key: CuttleKey): Vector {
   if (key.type == 'mx-hotswap') return new Vector(18, 18, 5.85)
   if (key.type == 'choc') return new Vector(17.5, 16.5, 2.2)
   if (key.type == 'ec11') return new Vector(14.5, 14.5, 4.5)
-  if (key.type == 'adafruit-mini-thumbstick') return new Vector(30, 32, 3.5)
+  if (key.type == 'adafruit-mini-thumbstick') return new Vector(24.25, 24.4, 3.5)
   if (key.type == 'evqwgd001') return new Vector(19.2, 19.2, 4.7)
   if (key.type == 'oled-128x32-0.91in-adafruit') return new Vector(22.044, 33.22, 5)
   if (key.type == 'oled-128x32-0.91in-dfrobot') return new Vector(11.6, 41.18, 2.84)
@@ -71,7 +71,7 @@ export function partBottom(sw: CuttleKey['type'] | undefined): [number, number, 
     return [box(12, 12, 14.5)]
   }
   if (sw == 'adafruit-mini-thumbstick') {
-    return [box(30, 32, 3.5)]
+    return [box(24.25, 22.4, 3.5)]
   }
   if (sw == 'evqwgd001') {
     return [box(16, 16, 5.8)]
