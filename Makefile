@@ -1,7 +1,7 @@
 .PHONY : build keycaps keycaps-simple keycaps2 keycaps-simple2 keyholes switches venv optimize docs docs-ci keyboards ci ci-base ci-setup vite-build quickstart npm-install dev
 build: target/proto/manuform.ts target/proto/lightcycle.ts target/proto/cuttleform.ts target/editorDeclarations.d.ts
 
-ifeq ($(shell bun -v > /dev/null),)
+ifneq (, $(shell which bun))
   NODE = bun
   NPM = bun
 else
