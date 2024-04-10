@@ -19,7 +19,7 @@ const PART_URLS: Record<Switch, string | null> = {
   'choc': '/src/assets/switch-choc.glb',
   'choc-hotswap': '/src/assets/switch-choc.glb',
   'ec11': '/src/assets/switch-ec11.glb',
-  'joystick-adafruit-joycon': '/target/switch-joystick-adafruit-joycon.glb',
+  'joystick-joycon-adafruit': '/target/switch-joystick-joycon-adafruit.glb',
   'evqwgd001': '/target/switch-evqwgd001.glb',
   'cirque-23mm': '/src/assets/switch-cirque-23mm.glb',
   'cirque-35mm': '/src/assets/switch-cirque-35mm.glb',

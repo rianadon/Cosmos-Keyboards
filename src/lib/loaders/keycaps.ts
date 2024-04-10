@@ -26,7 +26,7 @@ export async function keyGeometries(trsfs: Trsf[], keys: CuttleKey[]) {
       let key: THREE.BufferGeometry
       if (k.type == 'trackball') {
         return null
-      } else if (k.type == 'ec11' || k.type == 'blank' || k.type === 'joystick-adafruit-joycon') {
+      } else if (k.type == 'ec11' || k.type == 'blank' || k.type === 'joystick-joycon-adafruit') {
         return null
       } else if ('keycap' in k && k.keycap) {
         const aspect = closestAspect(k.aspect)
