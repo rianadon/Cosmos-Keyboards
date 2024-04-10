@@ -44,6 +44,8 @@
       localStorage.setItem('cosmosHands', JSON.stringify([handData]))
     }
     resize()
+
+    if (document.fullscreenElement) document.exitFullscreen()
   })
 
   function poseHistory(joints: Joints, stats: Statistics) {
@@ -85,7 +87,8 @@
       >.
     </p>
     <p class="mb-2">
-      Refer to the documentation to learn the format of this file and how you can use it.
+      Refer to the <a href="https://ryanis.cool/cosmos/docs/hand-scans/">documentation</a> to learn the
+      format of this file and how you can use it.
     </p>
   </div>
   <div slot="content">
@@ -120,11 +123,13 @@
 </Step>
 
 <style>
-  button {
+  button,
+  a[href] {
     color: #f0abfc;
   }
 
-  button:hover {
+  button:hover,
+  a[href]:hover {
     text-decoration: underline;
   }
 </style>

@@ -516,11 +516,17 @@
           <KeyboardMesh kind="case" geometry={webBuf} />
           {#if !$noBase}
             <KeyboardMesh kind="case" geometry={screwBaseBuf} />
-            <KeyboardMesh kind="key" geometry={plateTopBuf} opacity={plateTopOpacity} />
+            <KeyboardMesh
+              kind="key"
+              geometry={plateTopBuf}
+              opacity={plateTopOpacity}
+              renderOrder="10"
+            />
             <KeyboardMesh
               kind="key"
               geometry={plateBotBuf}
               opacity={Math.pow((cTransparency - 50) / 50, 3)}
+              renderOrder="10"
             />
             <KeyboardMesh kind="key" geometry={screwPlateBuf} opacity={plateScrewOpacity} />
             <KeyboardMesh kind="key" geometry={wristBuf} opacity={cTransparency / 100} />
@@ -562,11 +568,17 @@
           {#if !$noWall && !hideWall}<KeyboardMesh kind="case" geometry={wallBuf} />{/if}
           {#if !$noBase}
             <KeyboardMesh kind="case" geometry={screwBaseBuf} />
-            <KeyboardMesh kind="key" geometry={plateTopBuf} opacity={plateTopOpacity} />
+            <KeyboardMesh
+              kind="key"
+              geometry={plateTopBuf}
+              opacity={plateTopOpacity}
+              renderOrder="10"
+            />
             <KeyboardMesh
               kind="key"
               geometry={plateBotBuf}
               opacity={Math.pow((cTransparency - 50) / 50, 3)}
+              renderOrder="10"
             />
             <KeyboardMesh kind="key" geometry={screwPlateBuf} opacity={plateScrewOpacity} />
             <KeyboardMesh kind="key" geometry={wristBuf} opacity={cTransparency / 100} />

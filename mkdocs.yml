@@ -24,6 +24,7 @@ theme:
 plugins:
   - search
   - awesome-pages
+  - privacy
   - blog:
       post_url_format: "{slug}"
       archive: false

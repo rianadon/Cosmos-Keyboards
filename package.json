@@ -19,6 +19,7 @@
     "@mediapipe/hands": "^0.4.1675469240",
     "@threlte/core": "^5.0.9",
     "@threlte/extras": "^4.9.3",
+    "canvas-confetti": "^1.9.2",
     "cdt2d": "^1.0.0",
     "comlink": "^4.4.1",
     "monaco-editor": "^0.37.1",

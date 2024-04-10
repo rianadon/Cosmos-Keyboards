@@ -11,6 +11,7 @@
     screwHeight,
     type Cuttleform,
     type Geometry,
+    MAP_MICROCONTROLLER,
   } from '$lib/worker/config'
   import { checkConfig, isRenderable } from '$lib/worker/check'
   import Section from './Section.svelte'
@@ -31,12 +32,13 @@
     MICROCONTROLLER,
     ENCODER,
     SWITCH,
-  } from '$target/proto/cuttleform'
+  } from '../../../../../target/proto/cuttleform'
   import { clickedKey, hoveredKey, protoConfig } from '$lib/store'
   import Trsf from '$lib/worker/modeling/transformation'
   import { writable } from 'svelte/store'
   import defaults from '$assets/cuttleform.json'
   import { hasPro } from '@pro'
+  import { BOARD_PROPERTIES } from '$lib/geometry/microcontrollers'
 
   export let cuttleformConf: CuttleformProto
   export let conf: Cuttleform
@@ -286,6 +288,17 @@
   const [staggerPinkyX, staggerPinkyY, staggerPinkyZ, staggerPinkyO] = pinkyStore.components()
   pinkyStore.tuple.subscribe((t) => (cuttleformConf.stagger.staggerPinky = t))
   $: pinkyStore.update($protoConfig.stagger.staggerPinky)
+
+  function rearPins(conf: CuttleformProto): number {
+    const micro = MAP_MICROCONTROLLER[conf.wall.microcontroller]
+    if (micro == null) return 0
+    return BOARD_PROPERTIES[micro].rearPins || 0
+  }
+  function castellated(conf: CuttleformProto): boolean {
+    const micro = MAP_MICROCONTROLLER[conf.wall.microcontroller]
+    if (micro == null) return false
+    return BOARD_PROPERTIES[micro].castellated || false
+  }
 </script>
 
 <Section name="Upper Keys">
@@ -506,6 +519,19 @@
             bind:value={cuttleformConf.wall[key.var]}
             on:change={() => caseChange(key.var)}
           />
+          {#if key.var == 'microcontroller' && rearPins(cuttleformConf)}
+            <InfoBox>
+              Don't solder to the rear row of {rearPins(cuttleformConf)} pins on the microcontroller,
+              or be very careful if you do! Any protrusions in this area under the microcontroller will
+              prevent it from sliding into its holder.
+            </InfoBox>
+          {/if}
+          {#if key.var == 'microcontroller' && castellated(cuttleformConf)}
+            <InfoBox>
+              Only solder to the inner holes on the microcontroller. Soldering to the castellated
+              edges will prevent it from fitting into the holder.
+            </InfoBox>
+          {/if}
         {/if}
       {/if}
     {/each}

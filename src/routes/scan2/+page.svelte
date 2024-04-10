@@ -11,6 +11,18 @@
   import PastMeasurements from './lib/PastMeasurements.svelte'
 
   $: if ($step == 9) setTimeout(() => window.close(), 300)
+  let fullScreenErr = false
+
+  function startScan() {
+    document.documentElement.requestFullscreen({ navigationUI: 'hide' }).then(
+      () => {
+        $step++
+      },
+      () => {
+        fullScreenErr = true
+      }
+    )
+  }
 </script>
 
 <svelte:body class="bg-slate-900 text-gray-50" />
@@ -36,6 +48,14 @@
         To build the best possible computer model for your hand, Cosmos measures both the lengths of
         your limbs and the direction you naturally move your fingers.
       </p>
+      {#if fullScreenErr}
+        <div
+          class="absolute bg-red text-black mx-[-1rem] px-4 py-1 rounded max-w-prose shadow-lg shadow-slate-800 z-100"
+        >
+          Please allow the page to go fullscreen. This enables accurate screen measurements and
+          helps improve scanning accuracy.
+        </div>
+      {/if}
       <img class="max-w-lg mx-auto rounded mb-10" src="{base}/cosmos-hand-landing.png" />
       <p class="mb-2">
         This tool will use your smartphone camera and a large display (e.g. laptop or monitor) to
@@ -43,12 +63,13 @@
       </p>
       <button
         class="mt-10 bg-gradient-to-br from-purple-400 to-amber-600 text-xl p-1 rounded-2 shadow-lg shadow-pink/40 transition-all hover:shadow-pink/60 hover:scale-105 hover:-translate-y-0.5"
-        on:click={() => $step++}
+        on:click={startScan}
       >
         <span class="block bg-slate-900 px-8 py-2 rounded-1.5 text-pink-200 font-semibold">
           Start Scan
         </span>
       </button>
+      <p class="mt-5 text-purple-400/80 text-sm">Starting will full-screen this page</p>
       <PastMeasurements />
     </div>
   {:else if $step == 1}

@@ -20,7 +20,7 @@ import type { ConfError } from './check'
 import { createTriangleMap, type TriangleMap } from './concaveman'
 import { doWallsIntersect } from './concaveman-extra'
 import type { Cuttleform, CuttleKey, Geometry } from './config'
-import { type CriticalPoints, flattenKeyCriticalPoints, type WallCriticalPoints, webThickness } from './geometry'
+import { type CriticalPoints, flattenKeyCriticalPoints, type WallCriticalPoints, wallCurve, wallUpDir, webThickness } from './geometry'
 import { intersectPtPoly } from './geometry.intersections'
 import type Trsf from './modeling/transformation'
 import { Vector } from './modeling/transformation'
@@ -49,11 +49,11 @@ const shiftWallTop = (wall: WallCriticalPoints, direction: Vector, amount: numbe
   sm: wall.sm?.translated(direction, amount),
 })
 
-const shiftWallBot = (wall: WallCriticalPoints, direction: Vector, amount: number) => {
+const shiftWallBot = (c: Cuttleform, wall: WallCriticalPoints, direction: Vector, amount: number, worldZ: Vector, bottomZ: number) => {
   // Subtract vertical component from the direction vector for moving the bottom points
-  const mobo = wall.mo.origin().sub(wall.bo.origin()).normalize()
-  const directionsubmobo = direction.clone().addScaledVector(mobo, -direction.dot(mobo))
-  return {
+  const up = wallUpDir(c, wall)
+  const directionsubmobo = direction.clone().addScaledVector(up, -direction.dot(up))
+  const newWall = {
     ...wall,
     ki: wall.ki.translated(direction, amount),
     bi: wall.bi.translated(directionsubmobo, amount),
@@ -61,14 +61,20 @@ const shiftWallBot = (wall: WallCriticalPoints, direction: Vector, amount: numbe
     mi: wall.mi.translated(direction, amount),
     mo: wall.mo.translated(direction, amount),
   }
+  const moZ = newWall.mo.origin().dot(worldZ)
+  const miZ = newWall.mi.origin().dot(worldZ)
+  if (moZ < bottomZ) newWall.mo.translate(worldZ, bottomZ - moZ)
+  if (miZ < bottomZ) newWall.mi.translate(worldZ, bottomZ - miZ)
+
+  return newWall
 }
 
-const shiftWall = (wall: WallCriticalPoints, direction: Vector, amount: number, top: boolean) => (
-  top ? shiftWallTop(wall, direction, amount) : shiftWallBot(wall, direction, amount)
+const shiftWall = (c: Cuttleform, wall: WallCriticalPoints, direction: Vector, amount: number, top: boolean, worldZ: Vector, bottomZ: number) => (
+  top ? shiftWallTop(wall, direction, amount) : shiftWallBot(c, wall, direction, amount, worldZ, bottomZ)
 )
 
-export const shiftWalls = (walls: WallCriticalPoints[], shifts: WallShifts, top: boolean) => (
-  walls.map((w, i) => shifts[i] ? shiftWall(w, shifts[i].direction, shifts[i].offset, top) : w)
+export const shiftWalls = (c: Cuttleform, walls: WallCriticalPoints[], shifts: WallShifts, top: boolean, worldZ: Vector, bottomZ: number) => (
+  walls.map((w, i) => shifts[i] ? shiftWall(c, w, shifts[i].direction, shifts[i].offset, top, worldZ, bottomZ) : w)
 )
 
 /**
@@ -236,9 +242,9 @@ function reinforcementOffsetVec(thisTop: Trsf, thisThick: number, nextTop: Trsf,
 /** Calculate the thickness between two wall cross sections using the same formula I
  * use for triangles. Surprisingly, this works.
  */
-export function wallThickness(prev: WallCriticalPoints, next: WallCriticalPoints) {
+export function wallThickness(c: Cuttleform, prev: WallCriticalPoints, next: WallCriticalPoints) {
   const out = prev.bo.origin().sub(prev.bi.origin()).normalize()
-  const up = prev.mo.origin().sub(prev.bo.origin()).normalize()
+  const up = wallUpDir(c, prev)
   const side = out.clone().cross(up)
   const rotation = new Matrix3().set(side.x, side.y, side.z, out.x, out.y, out.z, 0, 0, 0)
   const _thisTop = prev.bo.origin()
@@ -258,13 +264,13 @@ export function wallThickness(prev: WallCriticalPoints, next: WallCriticalPoints
  *
  * This only applies to the points that will affect the wall bottom. The wall top can be shifted pretty mercilessly.
  */
-function maxOffsetForWall(c: Cuttleform, walls: WallCriticalPoints[], i: number, offset: number, direction: Vector) {
+function maxOffsetForWall(c: Cuttleform, walls: WallCriticalPoints[], i: number, offset: number, direction: Vector, worldZ: Vector, bottomZ: number) {
   const prevWall = walls[(i - 1 + walls.length) % walls.length]
   const nextWall = walls[(i + 1) % walls.length]
   for (let divisor = 1; divisor <= 4; divisor *= 2) {
-    const newWall = shiftWallBot(walls[i], direction, offset / divisor)
+    const newWall = shiftWallBot(c, walls[i], direction, offset / divisor, worldZ, bottomZ)
     if (doWallsIntersect(c, prevWall, newWall, nextWall)) continue
-    const minThick = Math.min(wallThickness(newWall, prevWall), wallThickness(newWall, nextWall))
+    const minThick = Math.min(wallThickness(c, newWall, prevWall), wallThickness(c, newWall, nextWall))
     if (minThick < c.wallThickness / 2) continue
     return offset / divisor
   }
@@ -298,7 +304,7 @@ function maybeFlip(v: number, vTri: number, e0: number, e1: number, triangles: n
       const ang1 = angleAbout(triangleNormTrsf(allPts[v], allPts[e0], allPts[e1]), triangleNormTrsf(allPts[e1], allPts[e0], allPts[adjP]), _s0.subVectors(pe1, pe0))
       const ang2 = angleAbout(triangleNormTrsf(allPts[adjP], allPts[e1], allPts[v]), triangleNormTrsf(allPts[e0], allPts[adjP], allPts[v]), _s0.subVectors(pV, pAdj))
 
-      // Seocnd condition: The mesh with the flipped edge must be more "convex" than the original one.
+      // Second condition: The mesh with the flipped edge must be more "convex" than the original one.
       // i.e. the angle between the two faces, from normal to normal, must have increased.
       if (ang2 < ang1) return false
     }
@@ -350,7 +356,7 @@ export function flipAllTriangles(triangles: number[][], allPts: Trsf[]) {
  * and the offset of the right side. This adds a little more flexibility in the kind of geometry this method
  * can tackle.
  */
-export function reinforceTriangles(c: Cuttleform, geo: Geometry, triangles: number[][], allPolys: CriticalPoints[], top = true, walls?: WallCriticalPoints[]) {
+export function reinforceTriangles(c: Cuttleform, geo: Geometry, triangles: number[][], allPolys: CriticalPoints[], worldZ: Vector, bottomZ: number, top = true, walls?: WallCriticalPoints[]) {
   // addExtraWallsForExtremeAngles(c, geo, allPolys, walls)
 
   const keyIdx = allPolys.flatMap((p, i) => p.map(_ => i))
@@ -380,7 +386,7 @@ export function reinforceTriangles(c: Cuttleform, geo: Geometry, triangles: numb
     for (let i = 0; i < N; i++) {
       const i0 = i, i1 = (i + 1) % N, i2 = (i + 2) % N, i3 = (i + 3) % N
       let pi0 = polyInd[i0], pi1 = polyInd[i1], pi2 = polyInd[i2], pi3 = polyInd[i3]
-      const oPi1 = originalPolyInd[i1], oPi2 = originalPolyInd[i2]
+      const oPi0 = originalPolyInd[i0], oPi1 = originalPolyInd[i1], oPi2 = originalPolyInd[i2], oPi3 = originalPolyInd[i3]
 
       if (!triangleMap[pi1] || !triangleMap[pi1][pi2]) continue
 
@@ -423,7 +429,7 @@ export function reinforceTriangles(c: Cuttleform, geo: Geometry, triangles: numb
 
       // Adjust length if necessary to ensure wall stays valid
       const wallPrev = boundary.indexOf(pi1)
-      if (!top && wallPrev >= 0 && walls) offsetPrev = maxOffsetForWall(c, walls, wallPrev, offsetPrev, normal)
+      if (!top && wallPrev >= 0 && walls) offsetPrev = maxOffsetForWall(c, walls, wallPrev, offsetPrev, normal, worldZ, bottomZ)
 
       if (offsetPrev > OFFSET_THRESH) {
         // Add the new point
@@ -451,7 +457,7 @@ export function reinforceTriangles(c: Cuttleform, geo: Geometry, triangles: numb
 
         // Move wall connected to original point and add new triangular wall for the gap
         if (wallPrev >= 0) newWallOffsets[wallPrev] = { direction: normal, offset: offsetPrev }
-        if (innerBoundary.includes(pi1)) extraWalls.push([newPrevInd, pi1, pi1])
+        if (innerBoundary.includes(oPi1) && innerBoundary.includes(oPi0)) extraWalls.push([newPrevInd, pi1, pi1])
 
         // Add new triangle to connect old points to new points
         triangles.push([polyInd[i2], pi1, newPrevInd])
@@ -460,7 +466,7 @@ export function reinforceTriangles(c: Cuttleform, geo: Geometry, triangles: numb
 
       // Adjust length if necessary to ensure wall stays valid
       const wallNext = boundary.indexOf(pi2)
-      if (!top && wallNext >= 0 && walls) offsetNext = maxOffsetForWall(c, walls, wallNext, offsetNext, normal)
+      if (!top && wallNext >= 0 && walls) offsetNext = maxOffsetForWall(c, walls, wallNext, offsetNext, normal, worldZ)
 
       if (offsetNext > OFFSET_THRESH) {
         // Add the new point
@@ -488,7 +494,7 @@ export function reinforceTriangles(c: Cuttleform, geo: Geometry, triangles: numb
 
         // Move wall connected to original point and add new triangular wall for the gap
         if (wallNext >= 0) newWallOffsets[wallNext] = { direction: normal, offset: offsetNext }
-        if (innerBoundary.includes(pi2)) extraWalls.push([pi2, newNextInd, pi2])
+        if (innerBoundary.includes(oPi2) && innerBoundary.includes(oPi3)) extraWalls.push([pi2, newNextInd, pi2])
 
         // Add new triangle to connect old points to new points
         triangles.push([newNextInd, pi2, polyInd[i1]])

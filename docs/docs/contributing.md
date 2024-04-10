@@ -107,7 +107,7 @@ If you're looking for some code to follow along as you complete these steps, you
 
 1. Give the socket a name. The standard I've been loosely following is `thing-dimensions-vendor`. The vendor & dimensions can be omitted if they are obvious. For example, `trackpad-23mm-cirque` and `oled-128x32-0.91in-adafruit`.
 2. Edit `src/lib/worker/config.ts` and add the name of your socket to the config. You'll probably be adding it under `CuttleBaseKey`. Look for a similar part.
-3. Design a STEP file for the socket. Place it at `src/assets/key-(name).step`. If you're using someone else's STEP file, make sure it is licensed for reuse.
+3. Design a STEP file for the socket with the origin located at top center. Place it at `src/assets/key-(name).step`. If you're using someone else's STEP file, make sure it is licensed for reuse.
 4. The boundary of the socket must be a rectangle, but it can be of any size. Take note of the dimensions. (You can also make it a cylinder—reference the trackpad).
 5. Edit `src/lib/geometry/socketsParts.ts`. Add your part to `PART_NAMES` so it can be correctly shown in the BOM. Also edit `socketSize` to return the size of the rectangle from step 3.
 6. The `partBottom` function returns a box describing the boundary of the part that rests in the socket, referenced from the top of the socket. This is used to raise the model high enough so that your part doesn't collide with the ground! Measure the part and modify this function.

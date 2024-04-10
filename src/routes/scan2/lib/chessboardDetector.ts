@@ -18,7 +18,10 @@ export default class ChessboardDetector {
   public markermatrix = new Matrix4()
   public hands: { Left?: PoseHand; Right?: PoseHand } = {}
 
-  constructor(public cv: OpenCV, private w: number, private h: number, private scale = 0.7) {
+  public boardWidth = 0
+  public boardHeight = 0
+
+  constructor(public cv: OpenCV, w: number, h: number, private scale = 0.7) {
     this.mat = new cv.Mat()
     // this.mat3 = new cv.Mat()
     this.gray = new cv.Mat()
@@ -27,15 +30,24 @@ export default class ChessboardDetector {
     // const dictMat = new cv.Mat(50, 8, cv.CV_8U)
     // console.log(this.cv.aruco_Dictionary)
     this.dictionary = new this.cv.aruco_Dictionary(0)
-    this.board = new this.cv.aruco_CharucoBoard(this.w, this.h, 1, this.scale, this.dictionary)
+    this.resizeBoard(w, h)
+  }
+
+  resizeBoard(w: number, h: number): boolean {
+    if (w == this.boardWidth && h == this.boardHeight) return false
+    this.boardWidth = w
+    this.boardHeight = h
+    if (this.board) this.board.delete()
+    this.board = new this.cv.aruco_CharucoBoard(this.boardWidth, this.boardHeight, 1, this.scale, this.dictionary)
+    return true
   }
 
   image() {
     const arucoPts = 6
     const marginpts = (1 - this.scale) * arucoPts
     const ptsize = Math.round(arucoPts + marginpts) * 6
-    const width = this.w * ptsize
-    const height = this.h * ptsize
+    const width = this.boardWidth * ptsize
+    const height = this.boardHeight * ptsize
 
     const size = new this.cv.Size(width, height)
     const img = new this.cv.Mat(height, width, this.cv.CV_8UC1)
@@ -43,6 +55,7 @@ export default class ChessboardDetector {
 
     const canvas = document.createElement('canvas')
     this.cv.imshow(canvas, img)
+    img.delete()
     return canvas.toDataURL()
   }
 

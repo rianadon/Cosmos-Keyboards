@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte'
   import Step from '../lib/Step.svelte'
   import { mmToPx } from '../store'
   import { browser } from '$app/environment'
@@ -11,6 +12,12 @@
 
   let cardEl: HTMLElement
   let startX: number, startY: number, startMmToPx: number
+  let screenWidth: number, screenHeight: number
+
+  onMount(() => {
+    screenWidth = window.innerWidth
+    screenHeight = window.innerHeight
+  })
 
   function initDrag(e: MouseEvent, r: number) {
     startMmToPx = $mmToPx
@@ -46,7 +53,7 @@
     if (key == 'ArrowLeft' || key == 'ArrowUp') $mmToPx = (Math.round($mmToPx * 100) - 1) / 100
   }
 
-  $: screenSize = browser ? Math.sqrt(screen.width ** 2 + screen.height ** 2) / $mmToPx / 25.4 : 0
+  $: screenSize = browser ? Math.sqrt(screenWidth ** 2 + screenHeight ** 2) / $mmToPx / 25.4 : 0
 </script>
 
 <Step showNext>
@@ -68,8 +75,10 @@
         worry about camera quality! You'll connect your phone in the next step.
       </div>
     {/if}
-    <p>For best results, you should be viewing this page on a large screen.</p>
-    <p>Click "Next" when you are finished.</p>
+    <p>
+      For best results, you should be viewing this page on a large screen and should keep the page
+      full-screened. Click "Next" when you are finished.
+    </p>
   </div>
   <div slot="content">
     <div class="mb-4 bg-slate-700 px-6 py-2 rounded inline-block">
@@ -115,6 +124,13 @@
         </div>
       </div>
     </div>
+    {#if browser}
+      <div class="fixed bottom-2 right-4 text-gray-500 leading-4">
+        {screenWidth} &times; {screenHeight}<br />
+        Diag: {Math.sqrt(screenWidth ** 2 + screenHeight ** 2).toFixed(2)}<br />
+        Size: {(Math.sqrt(screenWidth ** 2 + screenHeight ** 2) / $mmToPx / 25.4).toFixed(2)}
+      </div>
+    {/if}
   </div>
 </Step>
 

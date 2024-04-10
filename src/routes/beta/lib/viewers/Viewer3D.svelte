@@ -876,7 +876,7 @@
 
 {#if $debugViewport}
   <div
-    class="absolute bottom-8 right-8 bg-gray-100/80 dark:bg-gray-800/80 backdrop-blur-md rounded px-4 py-2 text-xs font-mono w-72 text-end"
+    class="absolute bottom-8 right-8 bg-gray-100/80 dark:bg-gray-800/80 backdrop-blur-md rounded px-4 py-2 text-xs font-mono w-76 text-end"
   >
     <p>Camera Position: {cameraPosition.map((a) => Math.round(a * 100) / 100).join(', ')}</p>
     <p><button class="inline-block!" on:click={copyCanvas}>Copy Canvas to clipboard</button></p>

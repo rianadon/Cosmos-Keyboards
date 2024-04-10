@@ -3,6 +3,7 @@
   import { Vector3, type Vector3Tuple, Matrix4 } from 'three'
   import { cameraToMarkerPoint } from './reconstruction'
   import { onMount } from 'svelte'
+  import type ChessboardDetector from './chessboardDetector'
 
   export let handPts: PoseHand | undefined
   export let arTag: HTMLElement
@@ -17,6 +18,7 @@
   let canvas: HTMLCanvasElement
 
   export let tslu: number
+  export let detector: ChessboardDetector
 
   function to2D(x: number, v: Vector3) {
     return [v.x, v.y, 0] as Vector3Tuple
@@ -57,7 +59,7 @@
     if (!arTag) return
     const arbr = arTag.getBoundingClientRect()
     // The AR tag is 5 AR tags high
-    scale = arbr.height / 5
+    scale = Math.min(arbr.height / detector.boardHeight, arbr.width / detector.boardWidth)
     AR2Screen.setPosition(br.x - arbr.x, br.y - arbr.y - arbr.height, 0)
   }
 

@@ -52,6 +52,7 @@
     <!-- <div class="text-brand-green absolute top-5% left-[33.5%] text-xl opacity-50">Cosmos</div> -->
     <!-- <img class="absolute top-20% left-45% w-64" src="verticalweb2.png" /> -->
     <video
+      playsinline
       autoplay
       muted
       loop
@@ -216,7 +217,7 @@
   <h2 class="text-brand-green text-4xl mb-4">Sound fun?</h2>
   <a
     href="{base}/beta"
-    class="text-black bg-brand-pink font-semibold sm:pt-1 sm:px-10 rounded sm:border-b-6 border-[#68e4a9] inline-flex items-center gap-30 cta sm:text-xl my-4 sm:pb-0.5 px-6 border-b-4"
+    class="text-black bg-brand-pink font-semibold sm:pt-1 sm:px-10 rounded sm:border-b-6 border-brand-green inline-flex items-center gap-30 cta sm:text-xl my-4 sm:pb-0.5 px-6 border-b-4"
     on:click={join}
   >
     Join the beta

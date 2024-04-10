@@ -96,14 +96,14 @@ async function main() {
     { start: 5.25, align: { side: 'right', offset: 1.53 }, ...defaults },
   ])
   await genUC('waveshare-rp2040-zero', { fillet: 1 }, [
-    { start: 1.59, align: { side: 'left', offset: 1.88 }, ...defaults },
-    { start: 1.59, align: { side: 'right', offset: 1.88 }, ...defaults },
+    { start: 1.59, align: { side: 'left', offset: 1.88 + 0.05 }, ...defaults },
+    { start: 1.59, align: { side: 'right', offset: 1.88 + 0.05 }, ...defaults },
     // Castellated Pads
-    { start: 1.59, align: { side: 'left', offset: 0 }, ...defaults },
-    { start: 1.59, align: { side: 'right', offset: 0 }, ...defaults },
+    { start: 1.59, align: { side: 'left', offset: 0.05 }, ...defaults },
+    { start: 1.59, align: { side: 'right', offset: 0.05 }, ...defaults },
     // Bottom holes
-    { start: 3.92, end: 3.92, align: { side: 'bottom', offset: 1.38 }, ...defaults },
-    { start: 3.92, end: 3.92, align: { side: 'bottom', offset: 0 }, ...defaults },
+    { start: 3.92, end: 3.92, align: { side: 'bottom', offset: 1.38 + 0.05 }, ...defaults },
+    { start: 3.92, end: 3.92, align: { side: 'bottom', offset: 0.05 }, ...defaults },
   ])
   await genUC('weact-studio-ch552t', { connector_y_offset: -1.5 }, [
     { start: 1.48, align: { side: 'left', offset: 1.38 }, ...defaults },
