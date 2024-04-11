@@ -4,10 +4,12 @@ import type { CuttleKey } from './config'
 import { makeAsyncCacher } from './modeling/cacher'
 import type Trsf from './modeling/transformation'
 
-const browser = !!import.meta.glob
-let keyUrls: Record<string, string> = browser
-  ? import.meta.glob(['$target/*.step', '$assets/*.step'], { as: 'url', eager: true })
-  : {}
+let keyUrls: Record<string, string> = {}
+try {
+  keyUrls = import.meta.glob(['$target/*.step', '$assets/*.step'], { as: 'url', eager: true })
+} catch (e) {
+  keyUrls = undefined
+}
 
 export const KEY_URLS: Record<CuttleKey['type'], string> = {
   'old-box': '/target/key-old-box.step',
@@ -37,12 +39,12 @@ const keyCacher = makeAsyncCacher(async (key: CuttleKey) => {
   if (key.type == 'blank') return makeBaseBox(key.size?.width ?? 18.5, key.size?.height ?? 18.5, 5).translateZ(-5)
   const url = KEY_URLS[key.type]
   if (!url) throw new Error(`No model for key ${key.type}`)
-  if (!browser) keyUrls = JSON.parse(process.env.SOCKET_URLS!)
-  if (!keyUrls[url]) throw new Error(`Model for url ${url} does not exist`)
-  return browser
-    ? await fetch(keyUrls[url]).then(r => r.blob())
+  const urls = keyUrls || JSON.parse(process.env.SOCKET_URLS!)
+  if (!urls[url]) throw new Error(`Model for url ${url} does not exist`)
+  return keyUrls
+    ? await fetch(urls[url]).then(r => r.blob())
       .then(r => importSTEP(r) as Promise<Solid>)
-    : (await import(process.env.FS!)).readFile(keyUrls[url])
+    : (await import(process.env.FS!)).readFile(urls[url])
       .then(r => importSTEP(new Blob([r])) as Promise<Solid>)
 })
 
