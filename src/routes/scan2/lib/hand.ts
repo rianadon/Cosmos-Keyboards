@@ -52,7 +52,7 @@
 
 import type { LandmarkList, NormalizedLandmarkList } from '@mediapipe/hands'
 import { SVD } from 'svd-js'
-import { Euler, Matrix4, Vector3, type Vector3Tuple } from 'three'
+import { Euler, Matrix4, Quaternion, Vector3, type Vector3Tuple } from 'three'
 import { DEG2RAD } from 'three/src/math/MathUtils'
 
 export interface PoseHand {
@@ -177,6 +177,11 @@ export function makeHand(hand: PoseHand, is2D = false, ptTransform = (pt: Vector
     ]),
   )
   return { hand, vectors, handedness, score, limbs, basis }
+}
+
+export function handOrientation(hand: Hand): Quaternion {
+  const mat = hand.basis.clone().invert()
+  return new Quaternion().setFromRotationMatrix(mat)
 }
 
 /** Create a joint by averaging together vectors.
