@@ -42,7 +42,7 @@ export function socketSize(key: CuttleKey): Vector {
   if (key.type == 'oled-128x32-0.91in-adafruit') return new Vector(22.044, 33.22, 5)
   if (key.type == 'oled-128x32-0.91in-dfrobot') return new Vector(11.6, 41.18, 2.84)
   if (key.type == 'alps') return new Vector(18.6, 17, 5)
-  if (key.type == 'joystick-40x45-ps2') return new Vector(40, 45, 17)
+  if (key.type == 'joystick-40x45-ps2') return new Vector(40, 45, 4)
   if (key.type.startsWith('cirque')) return new Vector(0, 0, 3)
   return new Vector(18, 18, 5)
 }
@@ -77,7 +77,7 @@ export function partBottom(sw: CuttleKey['type'] | undefined): [number, number, 
     return [box(11.5, 24.4, 4.3)]
   }
   if (sw == 'joystick-40x45-ps2') {
-    return [box(40, 45, 18)]
+    return [box(40, 45, 19.5)]
   }
   return [box(10, 10, 2)]
 }
