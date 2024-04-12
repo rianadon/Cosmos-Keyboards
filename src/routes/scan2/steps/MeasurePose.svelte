@@ -179,8 +179,13 @@
       </p>
     {:else if phase == 1}
       <p class="mx--2 px-6 py-2 bg-pink-700 rounded text-lg">
-        [1/{PHASES}] Stretch out your hands and point your fingertips towards the camera, keeping
+        [2/{PHASES}] Stretch out your hands and point your fingertips towards the camera, keeping
         your palms downwards.
+      </p>
+    {:else if phase == 2}
+      <p class="mx--2 px-6 py-2 bg-pink-700 rounded text-lg">
+        [3/{PHASES}] Stretch out your hands and point your fingertips upwardsand your palms towards
+        the camera.
       </p>
     {/if}
   </div>
