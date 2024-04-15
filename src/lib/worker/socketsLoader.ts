@@ -29,7 +29,7 @@ export const KEY_URLS: Record<CuttleKey['type'], string> = {
   'cirque-23mm': '/src/assets/key-cirque-23mm.step',
   'cirque-35mm': '/src/assets/key-cirque-35mm.step',
   'cirque-40mm': '/src/assets/key-cirque-40mm.step',
-  'joystick-ps2-40x45': '/src/assets/key-joystick-ps2-.step',
+  'joystick-ps2-40x45': '/src/assets/key-joystick-ps2-40x45.step',
   'blank': '',
 }
 
