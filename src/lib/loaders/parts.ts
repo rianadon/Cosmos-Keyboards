@@ -25,7 +25,7 @@ const PART_URLS: Record<Switch, string | null> = {
   'cirque-40mm': '/src/assets/switch-cirque-40mm.glb',
   'oled-128x32-0.91in-dfrobot': '/target/switch-oled-128x32-0.91in-dfrobot.glb',
   'oled-128x32-0.91in-adafruit': null,
-  'joystick-40x45-ps2': '/target/switch-joystick-40x45-ps2.glb',
+  'joystick-ps2-40x45': '/target/switch-joystick-ps2-40x45.glb',
   'trackball': null,
   'blank': null,
 }
