@@ -12,12 +12,14 @@
 
   let cardEl: HTMLElement
   let startX: number, startY: number, startMmToPx: number
-  let screenWidth: number, screenHeight: number
+  let screenWidth = 0,
+    screenHeight = 0
 
-  onMount(() => {
-    screenWidth = window.innerWidth
-    screenHeight = window.innerHeight
-  })
+  onMount(refreshScreenSize)
+  function refreshScreenSize() {
+    screenWidth = Math.max(window.innerWidth, screenWidth)
+    screenHeight = Math.max(window.innerHeight, screenHeight)
+  }
 
   function initDrag(e: MouseEvent, r: number) {
     startMmToPx = $mmToPx
@@ -55,6 +57,8 @@
 
   $: screenSize = browser ? Math.sqrt(screenWidth ** 2 + screenHeight ** 2) / $mmToPx / 25.4 : 0
 </script>
+
+<svelte:window on:resize={refreshScreenSize} />
 
 <Step showNext>
   <span slot="title">Calibrate Your Display</span>

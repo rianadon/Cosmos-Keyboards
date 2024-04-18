@@ -24,7 +24,8 @@ theme:
 plugins:
   - search
   - awesome-pages
-  - privacy
+  - privacy:
+      cache_dir: target/privacy
   - blog:
       post_url_format: "{slug}"
       archive: false

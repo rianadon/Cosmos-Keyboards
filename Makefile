@@ -1,19 +1,28 @@
-.PHONY : build keycaps keycaps-simple keycaps2 keycaps-simple2 keyholes switches venv optimize docs docs-ci keyboards ci ci-base ci-setup vite-build quickstart npm-install
+.PHONY : build keycaps keycaps-simple keycaps2 keycaps-simple2 keyholes switches venv optimize docs docs-ci keyboards ci ci-base ci-setup vite-build quickstart npm-install dev
 build: target/proto/manuform.ts target/proto/lightcycle.ts target/proto/cuttleform.ts target/editorDeclarations.d.ts
 
-NODE = node --import ./src/model_gen/register_loader.js
+BUN := $(shell command -v bun 2> /dev/null)
+ifdef BUN
+  NODE = bun
+  NPM = bun
+  NPX = bunx
+else
+  NODE = node --import ./src/model_gen/register_loader.js
+  NPM = npm
+  NPX = npx
+endif
 
 target/openscad:
 	$(NODE) src/model_gen/download-openscad.ts
 
 target/proto/manuform.ts: src/proto/manuform.proto
-	npx protoc --ts_out target --proto_path src $<
+	$(NPX) protoc --ts_out target --proto_path src $<
 
 target/proto/cuttleform.ts: src/proto/cuttleform.proto
-	npx protoc --ts_out target --proto_path src $<
+	$(NPX) protoc --ts_out target --proto_path src $<
 
 target/proto/lightcycle.ts: src/proto/lightcycle.proto
-	npx protoc --ts_out target --proto_path src $<
+	$(NPX) protoc --ts_out target --proto_path src $<
 
 target/editorDeclarations.d.ts: src/lib/worker/config.ts src/lib/worker/modeling/transformation-ext.ts
 	$(NODE) src/model_gen/genEditorTypes.ts
@@ -44,6 +53,9 @@ optimize:
 keyboards:
 	$(NODE) src/model_gen/keyboards.ts
 
+dev:
+	$(NPM) run dev
+
 venv:
 	if test ! -d venv; then python3 -m venv venv; . venv/bin/activate && pip install mkdocs-material[imaging]==9.5.17 mkdocs-awesome-pages-plugin==2.9.2 mkdocs-rss-plugin==1.9.0 lxml==4.9.3; fi
 docs: venv
@@ -55,9 +67,9 @@ docs-ci: venv
 ci-setup:
 	mkdir -p target && mkdir -p docs/assets/target
 vite-build:
-	npm run build
+	$(NPM) run build
 npm-install:
-	npm install --omit=optional
+	$(NPM) install --omit=optional
 ci-base: build keycaps-simple2 keycaps2 parts parts-simple
 ci: ci-setup ci-base vite-build docs-ci
 quickstart: npm-install ci-setup ci-base

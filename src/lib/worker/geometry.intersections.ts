@@ -4,7 +4,7 @@
  * The general naming convertion is intersect<A><B>, where A and B are two shapes.
  */
 
-import { Vector2 } from 'three/src/math/Vector2'
+import { Vector2 } from 'three/src/math/Vector2.js'
 import Trsf, { Vector } from './modeling/transformation'
 
 /** Determine whether two 2D polygons intersect each other. */

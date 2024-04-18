@@ -8,7 +8,7 @@ WORKDIR /Cosmos-Keyboards
 
 RUN apt-get update
 RUN apt-get install -y python3.11-full python3.11-venv python3-pip \
-    libgl1-mesa-dev libglu1-mesa-dev libxi-dev libglew-dev leiningen xvfb
+    libgl1-mesa-dev libglu1-mesa-dev libxi-dev libglew-dev leiningen xvfb dos2unix
 
 RUN ln -s /usr/bin/python3.11 /usr/bin/python
 
@@ -26,5 +26,6 @@ RUN mkdir -p /temp-cosmos
 RUN cp -r ./* /temp-cosmos
 
 COPY docker/entrypoint.sh /entrypoint.sh
+RUN dos2unix /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]

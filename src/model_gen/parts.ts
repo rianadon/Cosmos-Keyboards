@@ -5,7 +5,7 @@ import { readFile, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { getOC } from 'replicad'
 import { importSTEP, makeBaseBox } from 'replicad'
-import { STLLoader } from 'three/examples/jsm/loaders/STLLoader'
+import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
 import { fileURLToPath } from 'url'
 import { PART_NAMES } from '../lib/geometry/socketsParts'
 import { exportGLTF } from './exportGLTF'
@@ -82,6 +82,7 @@ async function main() {
   const defaults = { spacing: 2.54, diameter: 0.9 }
   await genPart('switch-cherry-mx')
   await genPart('switch-evqwgd001')
+  await genPart('switch-joystick-joycon-adafruit')
   await genUC('rp2040-black-usb-c-aliexpress', {}, [
     { start: 2.54, align: { side: 'left', offset: 2.54 }, ...defaults },
     { start: 2.54, align: { side: 'right', offset: 2.54 }, ...defaults },

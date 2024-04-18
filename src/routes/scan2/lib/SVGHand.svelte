@@ -6,6 +6,7 @@
   const FR = 10
 
   export let side: 'Left' | 'Right'
+  const baseAngle = side == 'Left' ? 45 : -45
 
   const angles: Record<string, number[]> = {
     thumb: [156, 130, 115, 109],
@@ -73,7 +74,8 @@
     'L40,10',
   ].join(' ')
 
-  const style = side == 'Left' ? 'transform: scale(-1, 1)' : undefined
+  const style =
+    side == 'Left' ? 'transform: rotate(45deg) scale(-1, 1)' : 'transform: rotate(-45deg)'
 </script>
 
 <svg viewBox="{minX} {minY} {maxX - minX} {maxY - minY}" height={180 * $mmToPx} {style}>
@@ -84,3 +86,9 @@
     fill="rgba(236, 72, 153, 0.2)"
   />
 </svg>
+
+<style>
+  svg {
+    transform-origin: 50% 60%;
+  }
+</style>
