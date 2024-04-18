@@ -120,6 +120,9 @@ async function main() {
   }
   await genDisplayModel('oled-128x32-0.91in-dfrobot', dfDisplayProps, 0.5)
   await genDisplaySocket('oled-128x32-0.91in-dfrobot', dfDisplayProps)
+  await genPart('switch-joystick-ps2-40x45')
+  await genSocket('joystick-ps2-40x45')
+
   const masses: Record<string, number> = {}
   for (const socket of Object.keys(PART_NAMES)) {
     try {
