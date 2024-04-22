@@ -78,8 +78,13 @@
     video.play()
     video.addEventListener('loadeddata', () => {
       status = '[6/6] Connnected!'
-      if (!added) $step++
-      added = true
+      video.srcObject = null
+      requestAnimationFrame(() => {
+        if (!added) {
+          added = true
+          $step++
+        }
+      })
     })
   })
 </script>

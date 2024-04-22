@@ -128,13 +128,13 @@
         </div>
       </div>
     </div>
-    {#if browser}
+    <!-- {#if browser}
       <div class="fixed bottom-2 right-4 text-gray-500 leading-4">
         {screenWidth} &times; {screenHeight}<br />
         Diag: {Math.sqrt(screenWidth ** 2 + screenHeight ** 2).toFixed(2)}<br />
         Size: {(Math.sqrt(screenWidth ** 2 + screenHeight ** 2) / $mmToPx / 25.4).toFixed(2)}
       </div>
-    {/if}
+    {/if} -->
   </div>
 </Step>
 

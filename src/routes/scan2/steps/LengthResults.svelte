@@ -1,11 +1,13 @@
 <script lang="ts">
+  import { download } from '$lib/browser'
   import Step from '../lib/Step.svelte'
   import { calculateJoints, FINGERS, type Hand, type Joints } from '../lib/hand'
-  import { stats } from '../store'
+  import { stats, debugImgs } from '../store'
   import Stage from '../lib/Stage.svelte'
   import { onMount } from 'svelte'
   import { developer } from '$lib/store'
   import { statMedians, type Statistics } from '../lib/stats'
+  import { Zip, ZipPassThrough, type FlateError, strToU8 } from 'fflate'
 
   export let desiredHand: 'Left' | 'Right'
   export let otherHand: 'Left' | 'Right' | undefined = undefined
@@ -35,6 +37,29 @@
   let column: HTMLElement
   const resize = () => {
     canvasSize = window.innerHeight - column.getBoundingClientRect().top - 64
+  }
+
+  function downloadZip() {
+    const blocks: ArrayBuffer[] = []
+    const zip = new Zip((_err, dat, final) => {
+      blocks.push(dat.buffer)
+      if (final) {
+        const blob = new Blob(blocks, { type: 'application/x-zip' })
+        download(blob, 'images.zip')
+      }
+    })
+    $debugImgs.forEach(({ img }, i) => {
+      const file = new ZipPassThrough(`img${i}.png`)
+      const imgBase64 = atob(img.substring(img.indexOf(',') + 1))
+      const data = Uint8Array.from(imgBase64, (c) => c.charCodeAt(0))
+      zip.add(file)
+      file.push(data, true)
+      console.log('added', i)
+    })
+    const data = new ZipPassThrough('data.json')
+    zip.add(data)
+    data.push(strToU8(JSON.stringify($debugImgs.map((i) => i.data))), true)
+    zip.end()
   }
 
   $: console.log('hand', hand)
@@ -72,6 +97,7 @@
       </div>
     </div>
     {#if $developer && $stat.history.length > 0 && medians}
+      <button class="underline" on:click={downloadZip}>Download Images</button>
       <details class="overflow-scroll">
         <summary class="text-gray-300 bg-slate-7 px-2 rounded">Detailed Measurements</summary>
         {#each FINGERS as f}

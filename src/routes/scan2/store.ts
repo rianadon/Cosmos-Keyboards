@@ -14,3 +14,4 @@ export const poseStats = {
   Left: writable(INITIAL_STAT()),
   Right: writable(INITIAL_STAT()),
 }
+export const debugImgs = writable<{ img: string; data: any }[]>([])

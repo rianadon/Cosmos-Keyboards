@@ -67,17 +67,30 @@
     const ctx = canvas.getContext('2d')!
     ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-    ctx.strokeStyle = 'white'
+    // ctx.strokeStyle = 'white'
     ctx.lineWidth = 100
     ctx.fillStyle = 'blue'
     ctx.lineCap = 'round'
     for (const line of lines2D) {
-      ctx.beginPath()
-      ctx.moveTo(line[0][0], line[0][1])
       for (let i = 1; i < line.length; i++) {
+        const dx = line[i - 1][0] - line[i][0]
+        const dy = line[i - 1][1] - line[i][1]
+        const m = 50 / Math.sqrt(dx * dx + dy * dy)
+        const grad = ctx.createLinearGradient(
+          line[i - 1][0] + m * dy,
+          line[i - 1][1] - m * dx,
+          line[i - 1][0] - m * dy,
+          line[i - 1][1] + m * dx
+        )
+        grad.addColorStop(0, 'rgba(255, 255, 255, 0)')
+        grad.addColorStop(0.5, 'rgb(255, 255, 255)')
+        grad.addColorStop(1, 'rgba(255, 255, 255, 0)')
+        ctx.strokeStyle = grad
+        ctx.beginPath()
+        ctx.moveTo(line[i - 1][0], line[i - 1][1])
         ctx.lineTo(line[i][0], line[i][1])
+        ctx.stroke()
       }
-      ctx.stroke()
     }
   }
 

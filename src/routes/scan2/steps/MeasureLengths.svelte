@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte/internal'
   import Step from '../lib/Step.svelte'
-  import { pc, remoteStream, mmToPx, step, stats } from '../store'
+  import { pc, remoteStream, mmToPx, step, stats, debugImgs } from '../store'
+  import { developer } from '$lib/store'
   // import ARTK from '@ar-js-org/artoolkit5-js'
   // import AR from '../lib/aruco/aruco.mjs';
   import { Matrix4, Vector3, Vector4 } from 'three'
@@ -123,9 +124,14 @@
   function ontick(context?: CanvasRenderingContext2D) {
     if (detector.valid && context) {
       detector.drawAxes(context)
-      if (detector.hands.Left) drawKeypoints(canvas, context, detector.hands.Left.keypoints, 'Left')
-      if (detector.hands.Right)
-        drawKeypoints(canvas, context, detector.hands.Right.keypoints, 'Right')
+      const hands = detector.hands
+      if (hands.Left) drawKeypoints(canvas, context, hands.Left.keypoints, 'Left')
+      if (hands.Right) drawKeypoints(canvas, context, hands.Right.keypoints, 'Right')
+      if ($developer && (hands.Left || hands.Right))
+        $debugImgs = [
+          ...$debugImgs,
+          { img: context.canvas.toDataURL(), data: detector.debugData() },
+        ]
     }
 
     timeSinceLastUpdate = performance.now() - lastUpdate
@@ -209,7 +215,7 @@
     <!-- </div> -->
     <div class="pointer-events-none">
       <div class="fixed top-0 bottom-0 left-0 right-0 flex items-center justify-center">
-        <SVGHand side={desiredHand} />
+        <!-- <SVGHand side={desiredHand} /> -->
       </div>
       <BigHand {detector} {handPts} {size} {camera2AR} arTag={arTag1} tslu={timeSinceLastUpdate} />
     </div>

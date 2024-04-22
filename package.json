@@ -49,6 +49,7 @@
     "@unocss/transformer-directives": "^0.52.7",
     "canvas": "^2.11.2",
     "concurrently": "^8.2.2",
+    "fflate": "^0.8.2",
     "lint-staged": "^15.1.0",
     "manifold-3d": "^2.2.2",
     "meshoptimizer": "^0.20.0",
