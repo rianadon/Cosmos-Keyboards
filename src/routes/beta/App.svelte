@@ -38,6 +38,7 @@
   } from '$lib/worker/config'
   import { checkConfig, type ConfError, isRenderable, isWarning } from '$lib/worker/check'
   import VisualEditor from './lib/editor/VisualEditor.svelte'
+  import VisualEditor2 from './lib/editor/VisualEditor2.svelte'
   import { Vector3, BufferGeometry, Matrix4 } from 'three'
   import { estimatedCenter } from '$lib/worker/geometry'
   import {
@@ -58,6 +59,7 @@
   import { hasPro } from '@pro'
   import ViewerDev from './lib/viewers/ViewerDev.svelte'
   import DownloadDialog from './lib/dialogs/DownloadDialog.svelte'
+  import { decodeConfig, deserializeCosmosConfig } from '$lib/worker/config.new'
 
   let supportGeometries: BufferGeometry[] = []
   let center = [-35.510501861572266, -17.58449935913086, 35.66889877319336] as [
@@ -76,10 +78,11 @@
   let hideWall = false
 
   // @ts-ignore
-  let state: { keyboard: string; options: CuttleformProto } = deserialize(
-    browser ? location.hash.substring(1) : '',
-    cuttleform
-  )
+  // let state: { keyboard: string; options: Keyboard } = deserialize(
+  // browser ? location.hash.substring(1) : '',
+  // cuttleform
+  // )
+  let state = { keyboard: 'cm', options: deserializeCosmosConfig('') }
   let initialEditorContent = state.content
 
   function onHashChange() {
@@ -487,7 +490,7 @@
         </Popover>
       </div>
       {#if viewer == '3d'}
-        <Viewer3D
+        <!-- <Viewer3D
           {geometry}
           transparency={cTransparency}
           conf={isRenderable(confError) ? config : undefined}
@@ -543,7 +546,7 @@
               <KeyboardMesh kind="case" geometry={geo} brightness={0.5} opacity={0.8} />
             {/each}
           {/if}
-        </Viewer3D>
+        </Viewer3D> -->
       {:else if viewer == 'thick'}
         <Thick3D
           {geometry}
@@ -888,9 +891,9 @@
       </div>
 
       {#if mode == 'basic' || mode == 'intermediate'}
-        <VisualEditor
+        <VisualEditor2
           basic={mode == 'basic'}
-          cuttleformConf={state.options}
+          cosmosConf={state.options}
           bind:conf={config}
           bind:geometry
           on:goAdvanced={() => (mode = 'intermediate')}

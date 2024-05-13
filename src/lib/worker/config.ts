@@ -155,8 +155,8 @@ export interface Keycap {
   home?: 'thumb' | 'index' | 'middle' | 'ring' | 'pinky'
 }
 
-interface CuttleKeycapKey extends CuttleBaseKey {
-  type: 'old-box' | 'old-mx' | 'mx-better' | 'old-mx-snap-in' | 'alps' | 'choc' | 'mx-pcb' | 'old-mx-hotswap' | 'old-mx-snap-in-hotswap' | 'choc-hotswap' | 'mx-hotswap'
+export interface CuttleKeycapKey extends CuttleBaseKey {
+  type: 'old-box' | 'old-mx' | 'mx-better' | 'old-mx-snap-in' | 'alps' | 'choc' | 'mx-pcb' | 'mx-pcb-twist' | 'old-mx-hotswap' | 'old-mx-snap-in-hotswap' | 'choc-hotswap' | 'mx-hotswap'
   keycap: Keycap
 }
 
@@ -464,6 +464,7 @@ export function switchType(c: DeepRequired<CuttleformProto>): Required<CuttleKey
   if (c.upperKeys.switchType == SWITCH.MX_HOTSWAP) return 'mx-hotswap'
   if (c.upperKeys.switchType == SWITCH.MX_BETTER) return 'mx-better'
   if (c.upperKeys.switchType == SWITCH.MX_PCB) return 'mx-pcb'
+  if (c.upperKeys.switchType == SWITCH.MX_PCB_TWIST) return 'mx-pcb-twist'
   if (c.upperKeys.switchType == SWITCH.CHOC) return 'choc'
   if (c.upperKeys.switchType == SWITCH.ALPS) return 'alps'
   return 'box'
@@ -511,13 +512,19 @@ function keycapInfo(c: CuttleformProto, row: number, column: number): CuttleKeyc
       4: 'pinky',
     } as Record<number, CuttleKeycapKey['keycap']['home']>)[column]
   }
-  const letter = {
+  let letter = {
     1: '67890',
     2: 'yuiop',
     3: "hjkl;'",
     4: 'nm,./',
+    5: '{}[]\\',
   }[row]?.charAt(column) || undefined
-  return { profile: keycapType(c), row, home, letter }
+  if (row == 0) letter = ['F6', 'F7', 'F8', 'F9', 'F10'][column] || undefined
+
+  // Row 5 is used for thumb keys (in MT3, the 5th row key has zero tilt)
+  // So don't use it for the non-thumb keys since it is special!
+  // (hence the Math.min(x, 4)
+  return { profile: keycapType(c), row: Math.min(row, 4), home, letter }
 }
 
 export function decodeTuple(tuple: bigint) {
@@ -556,7 +563,7 @@ export function encodeTuple(values: number[]) {
   }
   let result = encode(values[0]) | encode(values[1]) | encode(values[2])
   if (values.length > 3 && values[3]) result |= encode(values[3])
-  console.log('Encoded tuple', result)
+  // console.log('Encoded tuple', result)
   return result
 }
 
@@ -602,16 +609,16 @@ export function fingers(c: DeepRequired<CuttleformProto>): CuttleKey[] {
 
   const keyPlane = upperKeysPlane(c)
 
-  // Row 5 is used for thumb keys (in MT3, the 5th row key has zero tilt)
-  // So don't use it for the non-thumb keys since it is special!
-  // (hence the Math.min(x, 4)
-  const row2Row = (r: number) => Math.min(6 - c.upperKeys.rows + r, 4)
+  const row2Row = (r: number) => 6 - c.upperKeys.rows + r
 
   let modifierKeys: CuttleKey[] = []
   if (c.upperKeys.extraColumn == EXTRA_COLUMN.KEYS) {
     modifierKeys = range(0, cornerRow).map(row => ({
       type: switchType(c),
-      keycap: { profile: keycapType(c), row: row2Row(row) },
+      // Row 5 is used for thumb keys (in MT3, the 5th row key has zero tilt)
+      // So don't use it for the non-thumb keys since it is special!
+      // (hence the Math.min(x, 4)
+      keycap: { profile: keycapType(c), row: Math.min(row2Row(row), 4) },
       aspect: 1,
       cluster: 'fingers',
       position: new ETrsf().placeOnMatrix(mergedCurvature(c, false, {
@@ -730,7 +737,7 @@ export function fingers(c: DeepRequired<CuttleformProto>): CuttleKey[] {
   const spreadOriginsBot = normalKeys.map(col => col.length > 0 ? keyPosition(posC, col[col.length - 1], false).pretranslate(8.75, -8.75, 0).premultiply(keyPlaneInv) : null)
   const spreadOriginsTop = normalKeys.map(col => col.length > 0 ? keyPosition(posC, col[0], false).pretranslate(8.75, 8.75, 0).premultiply(keyPlaneInv) : null)
   const spreadAngles = [stag.staggerInnerIndex, stag.staggerIndex, stag.staggerMiddle, stag.staggerRing, stag.staggerPinky].map(s => decodeTuple(s)[3] / 45)
-  console.log(spreadAngles)
+  // console.log(spreadAngles)
   normalKeys.forEach((col, i) => {
     for (let j = Math.min(i, spreadAngles.length - 1); j >= 0; j--) {
       const angle = spreadAngles[j]
@@ -917,7 +924,6 @@ export function decodeCustomKey(k: Cuttleform_CustomThumb_Key, keyType: KeyType,
   const customType = ID_TO_TYPE[customId] ?? keyType
 
   const rot = tupleToRot(k.rotation!)
-  console.log('decode aspect', rot.extra)
   let newKey = {
     type: customType,
     aspect: rot.extra < 0 ? -100 / rot.extra : rot.extra / 100,

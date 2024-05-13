@@ -1,0 +1,97 @@
+syntax = "proto2";
+
+package dactyl;
+
+message Keyboard {
+  repeated Cluster cluster = 1;
+  optional uint32 key_profile = 2;
+  optional uint32 part_type = 3;
+  optional Curvature curvature = 4;
+
+  optional int32 wall_shrouding = 5;
+  optional int32 wall_thickness = 6;
+  optional uint32 key_basis = 7;
+  optional uint32 connector = 8; // Bitmask for the connector size + type
+  optional int32 n_screws = 9;
+  optional uint32 screw_flags = 10; // screw type (3bit), size (3bit), countersink (1bit), clear screws (1bit)
+  optional uint32 microcontroller = 11;
+  optional uint32 microcontroller_flags = 12; // Bitmask for fasten microcontroller
+  optional uint32 rounded_flags = 13; /* Rounded side (1bit), rounded top (1bit) */
+  optional uint32 wrist_rest_flags = 14; // Enable (1bit)
+
+  optional KeyboardExtra extra = 15;
+
+  oneof shell {
+    BasicShell basic_shell = 30;
+    TiltShell tilt_shell = 31;
+    StiltsShell stilts_shell = 32;
+  }
+}
+
+message BasicShell {
+  optional uint32 flags = 1; // Lip
+}
+
+message StiltsShell {
+  optional uint32 flags = 1; // Inside
+}
+
+message TiltShell {
+  optional uint32 flags = 1; // Use pattern
+  optional sint32 tilt = 2;
+  optional sint32 raiseBy = 3;
+  optional int64 tilt_vector = 4;
+  repeated int32 pattern = 5;
+}
+
+message KeyboardExtra {
+  optional float web_min_thickness_factor = 1;
+  optional int32 connector_index = 2;
+  optional int32 screw_indices = 3; // Both this and n_screws do similar things
+
+  optional int32 vertical_clearance = 4;
+  optional int32 rounded_side_divisor = 5;
+  optional int32 rounded_side_concavity = 6;
+  optional int32 rounded_top_horizontal = 7;
+  optional int32 rounded_top_vertical = 8;
+
+  optional int32 wrist_rest_length = 9;
+  optional sint32 wrist_rest_angle = 10;
+  optional int32 wrist_rest_max_width= 11;
+  optional sint32 wrist_rest_x_offset = 12;
+  optional sint32 wrist_rest_z_offset = 13;
+  optional sint32 wrist_rest_tenting = 14;
+}
+
+message Curvature {
+  optional int32 horizontal_spacing = 1;
+  optional int32 vertical_spacing = 2;
+  optional sint32 curvature_a = 3;
+  optional sint32 curvature_b = 4;
+  optional sint32 arc = 5;
+}
+
+message Cluster {
+  repeated Cluster cluster = 1;
+  repeated Key key = 2;
+  optional uint32 id_type = 3;
+  optional Curvature curvature = 4;
+  optional uint32 key_profile = 5;
+  optional uint32 part_type = 6;
+  optional sint32 column = 7;
+  optional int64 position = 8;
+  optional int64 rotation = 9;
+}
+
+message Key {
+  optional uint32 part_type = 1;
+  optional uint32 key_profile = 2;
+  optional sint32 column = 3;
+  optional sint32 row = 4;
+  optional uint32 size_a = 5;
+  optional uint32 size_b = 6;
+  optional int64 position = 8;
+  optional int64 rotation = 9;
+  optional sint32 row2 = 10;
+  optional sint32 column2 = 11;
+}

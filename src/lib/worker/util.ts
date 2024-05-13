@@ -74,3 +74,25 @@ export class DefaultMap<K, V> extends Map<K, V> {
     return v
   }
 }
+
+export class TallyMap<K> extends DefaultMap<K, number> {
+  constructor() {
+    super(() => 0)
+  }
+
+  incr(k: K) {
+    this.set(k, this.get(k) + 1)
+  }
+
+  max(): K | undefined {
+    let maximum = -1
+    let best: K | undefined = undefined
+    for (const [k, tally] of this.entries()) {
+      if (tally > maximum) {
+        maximum = tally
+        best = k
+      }
+    }
+    return best
+  }
+}

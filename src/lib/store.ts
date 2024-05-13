@@ -1,9 +1,9 @@
 import { browser } from '$app/environment'
-import type { CuttleformProto } from '$lib/worker/config'
 import { derived, type Readable, type Writable, writable } from 'svelte/store'
+import type { Keyboard } from 'target/proto/cosmos'
 import type { User } from '../routes/beta/lib/login'
 
-export const protoConfig = writable<CuttleformProto>(undefined)
+export const protoConfig = writable<Keyboard>(undefined)
 export const transformMode = writable<'translate' | 'rotate' | 'select'>('select')
 export const flip = writable(false)
 export const user = writable<User>({ success: false, sponsor: undefined })
