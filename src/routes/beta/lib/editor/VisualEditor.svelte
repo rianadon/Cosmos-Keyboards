@@ -11,8 +11,9 @@
     screwHeight,
     type Cuttleform,
     type Geometry,
+    MAP_MICROCONTROLLER,
   } from '$lib/worker/config'
-  import { checkConfig } from '$lib/worker/check'
+  import { checkConfig, isRenderable } from '$lib/worker/check'
   import Section from './Section.svelte'
   import DecimalInput from './DecimalInput.svelte'
   import AngleInput from './AngleInput.svelte'
@@ -29,17 +30,19 @@
     Cuttleform_DefaultThumb_KEY_COUNT,
     KEYCAP,
     MICROCONTROLLER,
+    ENCODER,
     SWITCH,
-  } from '$target/proto/cuttleform'
+  } from '../../../../../target/proto/cuttleform'
   import { clickedKey, hoveredKey, protoConfig } from '$lib/store'
   import Trsf from '$lib/worker/modeling/transformation'
   import { writable } from 'svelte/store'
   import defaults from '$assets/cuttleform.json'
   import { hasPro } from '@pro'
+  import { BOARD_PROPERTIES } from '$lib/geometry/microcontrollers'
 
   export let cuttleformConf: CuttleformProto
   export let conf: Cuttleform
-  export let geometry: Geometry
+  export let geometry: Geometry | null
   export let basic: boolean
 
   $: protoConfig.set(cuttleformConf)
@@ -49,18 +52,6 @@
 
   function goAdvanced() {
     dispatch('goAdvanced')
-  }
-
-  function loadPreset(preset: any) {
-    dispatch(
-      'preset',
-      JSON.parse(
-        JSON.stringify({
-          ...manuform.options,
-          ...preset.options,
-        })
-      )
-    )
   }
 
   let lastWristRest = defaults.options.wall.wristRest
@@ -257,7 +248,7 @@
     if (!geometry) return '...'
     try {
       const confError = checkConfig(conf, geometry, false)
-      if (confError && (confError.type != 'intersection' || confError.what == 'hole')) {
+      if (confError && !isRenderable(confError)) {
         return '?'
       }
       return geometry.screwIndices.length * multiplier
@@ -270,33 +261,44 @@
   const thumbStore = new TupleStore(cuttleformConf.stagger.staggerThumb)
   const [staggerThumbX, staggerThumbY, staggerThumbZ, staggerThumbO] = thumbStore.components()
   thumbStore.tuple.subscribe((t) => (cuttleformConf.stagger.staggerThumb = t))
-  $: thumbStore.update(cuttleformConf.stagger.staggerThumb)
+  $: thumbStore.update($protoConfig.stagger.staggerThumb)
 
   const innerIndexStore = new TupleStore(cuttleformConf.stagger.staggerInnerIndex)
   const [staggerInnerIndexX, staggerInnerIndexY, staggerInnerIndexZ, staggerInnerIndexO] =
     innerIndexStore.components()
   innerIndexStore.tuple.subscribe((t) => (cuttleformConf.stagger.staggerInnerIndex = t))
-  $: innerIndexStore.update(cuttleformConf.stagger.staggerInnerIndex)
+  $: innerIndexStore.update($protoConfig.stagger.staggerInnerIndex)
 
   const indexStore = new TupleStore(cuttleformConf.stagger.staggerIndex)
   const [staggerIndexX, staggerIndexY, staggerIndexZ, staggerIndexO] = indexStore.components()
   indexStore.tuple.subscribe((t) => (cuttleformConf.stagger.staggerIndex = t))
-  $: indexStore.update(cuttleformConf.stagger.staggerIndex)
+  $: indexStore.update($protoConfig.stagger.staggerIndex)
 
   const middleStore = new TupleStore(cuttleformConf.stagger.staggerMiddle)
   const [staggerMiddleX, staggerMiddleY, staggerMiddleZ, staggerMiddleO] = middleStore.components()
   middleStore.tuple.subscribe((t) => (cuttleformConf.stagger.staggerMiddle = t))
-  $: middleStore.update(cuttleformConf.stagger.staggerMiddle)
+  $: middleStore.update($protoConfig.stagger.staggerMiddle)
 
   const ringStore = new TupleStore(cuttleformConf.stagger.staggerRing)
   const [staggerRingX, staggerRingY, staggerRingZ, staggerRingO] = ringStore.components()
   ringStore.tuple.subscribe((t) => (cuttleformConf.stagger.staggerRing = t))
-  $: ringStore.update(cuttleformConf.stagger.staggerRing)
+  $: ringStore.update($protoConfig.stagger.staggerRing)
 
   const pinkyStore = new TupleStore(cuttleformConf.stagger.staggerPinky)
   const [staggerPinkyX, staggerPinkyY, staggerPinkyZ, staggerPinkyO] = pinkyStore.components()
   pinkyStore.tuple.subscribe((t) => (cuttleformConf.stagger.staggerPinky = t))
-  $: pinkyStore.update(cuttleformConf.stagger.staggerPinky)
+  $: pinkyStore.update($protoConfig.stagger.staggerPinky)
+
+  function rearPins(conf: CuttleformProto): number {
+    const micro = MAP_MICROCONTROLLER[conf.wall.microcontroller]
+    if (micro == null) return 0
+    return BOARD_PROPERTIES[micro].rearPins || 0
+  }
+  function castellated(conf: CuttleformProto): boolean {
+    const micro = MAP_MICROCONTROLLER[conf.wall.microcontroller]
+    if (micro == null) return false
+    return BOARD_PROPERTIES[micro].castellated || false
+  }
 </script>
 
 <Section name="Upper Keys">
@@ -327,12 +329,23 @@
       <InfoBox>
         <p class="mb-1">
           This variant requires the Amoeba King PCB. The board should fit snug within the guides.
-          Attach using glue/epoxy, two 3/16 in #0-80 screws or two 4–5 mm M1.6 screws for each key ({conf
-            .keys.length * 4} screws total).
+          Friction holds the sockets onto the switch, but you can reinforce using glue/epoxy, two
+          3/16 in #0-80 screws or two 4–5 mm M1.6 screws for each key ({conf.keys.length * 4} screws
+          total).
         </p>
         <p>
           To fasten, screw down forcefully so the screws carve threads into the plastic. For hard
           plastics, you'll need to tap the holes.
+        </p>
+      </InfoBox>
+    {:else if cuttleformConf.upperKeys.switchType == SWITCH.MX_HOTSWAP}
+      <InfoBox>
+        <p>
+          This variant requires Kailh MX hotswap sockets and a well-tuned 3D printer. Alternatives
+          are <a class="text-pink-600 underline" href="https://www.printables.com/model/158559"
+            >these printable hotswap sockets</a
+          >, together with the MX-Compatible (no hotswap) setting, but they don't grip as well as
+          the Kailh MX sockets.
         </p>
       </InfoBox>
     {/if}
@@ -385,8 +398,19 @@
         <Field schema={key} bind:value={cuttleformConf.thumbCluster[whichThumb][key.var]} />
       {/if}
     {/each}
-    {#if (cuttleformConf.thumbCluster.oneofKind == 'defaultThumb' && cuttleformConf.thumbCluster.defaultThumb.encoder) || (cuttleformConf.thumbCluster.oneofKind == 'curvedThumb' && cuttleformConf.thumbCluster.curvedThumb.encoder)}
-      <InfoBox>You'll need an EC11 encoder (I measured the keebio one) and a knob.</InfoBox>
+    {#if cuttleformConf.thumbCluster.oneofKind == 'defaultThumb' && cuttleformConf.thumbCluster.defaultThumb.encoder}
+      <InfoBox
+        >You'll need an {cuttleformConf.thumbCluster.defaultThumb.encoderType == ENCODER.EC11
+          ? 'EC11 encoder (I measured the keebio one)'
+          : 'EVQWGD001 encoder'} and a knob.</InfoBox
+      >
+    {/if}
+    {#if cuttleformConf.thumbCluster.oneofKind == 'curvedThumb' && cuttleformConf.thumbCluster.curvedThumb.encoder}
+      <InfoBox
+        >You'll need an {cuttleformConf.thumbCluster.curvedThumb.encoderType == ENCODER.EC11
+          ? 'EC11 encoder (I measured the keebio one)'
+          : 'EVQWGD001 encoder'} and a knob.</InfoBox
+      >
     {/if}
   </svelte:fragment>
 </Section>
@@ -495,6 +519,19 @@
             bind:value={cuttleformConf.wall[key.var]}
             on:change={() => caseChange(key.var)}
           />
+          {#if key.var == 'microcontroller' && rearPins(cuttleformConf)}
+            <InfoBox>
+              Don't solder to the rear row of {rearPins(cuttleformConf)} pins on the microcontroller,
+              or be very careful if you do! Any protrusions in this area under the microcontroller will
+              prevent it from sliding into its holder.
+            </InfoBox>
+          {/if}
+          {#if key.var == 'microcontroller' && castellated(cuttleformConf)}
+            <InfoBox>
+              Only solder to the inner holes on the microcontroller. Soldering to the castellated
+              edges will prevent it from fitting into the holder.
+            </InfoBox>
+          {/if}
         {/if}
       {/if}
     {/each}

@@ -34,10 +34,10 @@ export function for2<A, B, R>(a: A[], b: B[], ...cond: ((a: A, b: B) => boolean)
   }
 }
 
-export function mapObj<K extends string, V, R>(obj: Record<K, V>, f: (a: V) => R): Record<K, R> {
+export function mapObj<K extends string, V, R>(obj: Record<K, V>, f: (a: V, k: K) => R): Record<K, R> {
   const newObj: any = {}
-  for (const key of Object.keys(obj)) {
-    newObj[key] = f(obj[key])
+  for (const key of Object.keys(obj) as K[]) {
+    newObj[key] = f(obj[key], key)
   }
   return newObj
 }
@@ -60,4 +60,17 @@ export function reverseMap<A extends string | number, B extends string | number>
 
 export function notNull<E>(a: E[]): Exclude<E, undefined | null>[] {
   return a.filter(e => !!e) as Exclude<E, undefined | null>[]
+}
+
+export class DefaultMap<K, V> extends Map<K, V> {
+  constructor(private cons: () => V) {
+    super()
+  }
+
+  get(k: K): V {
+    if (this.has(k)) return super.get(k)!
+    const v = this.cons()
+    super.set(k, v)
+    return v
+  }
 }

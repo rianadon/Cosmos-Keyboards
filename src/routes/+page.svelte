@@ -1,242 +1,362 @@
-<script>
+<script lang="ts">
   import { base } from '$app/paths'
-  import HorizontalFeature from '../lib/horizontal-feature.svelte'
-  import VerticalFeature from '../lib/vertical-feature.svelte'
+  import Icon from '$lib/presentation/Icon.svelte'
+  import { mdiChevronRight, mdiEmail } from '@mdi/js'
+  import Dialog from '$lib/presentation/Dialog.svelte'
+  import { discordMsg } from '$lib/store'
+  import Header from '$lib/Header.svelte'
 
   const discord = 'https://discord.gg/nXjqkfgtGy'
+  const discordUsers = fetch('https://cosmos.ryanis.cool/discord/members', { method: 'POST' }).then(
+    (r) => r.text()
+  )
+
+  let joining = false
+
+  function join(ev: Event) {
+    if ($discordMsg) {
+      ev.preventDefault()
+      joining = true
+    }
+  }
+
+  function subbed(ev: Event) {
+    $discordMsg = false
+  }
 </script>
 
 <svelte:head>
   <title>Cosmos Keyboard</title>
   <link rel="canonical" href="https://ryanis.cool/cosmos/" />
+  <link rel="icon" href="{base}/favicon.png" />
 </svelte:head>
 
-<header class="flex justify-end gap-4 px-8 pt-2">
-  <a href="blog/">Blog</a>
-  <a href="docs/">Docs</a>
-  <a href="https://github.com/rianadon/Cosmos-Keyboards">GitHub</a>
-</header>
-<main class="text-center font-sans bg-slate-900 text-white">
-  <div class="background mx-4 relative" style="background-image: url('{base}/keyboard2.png')">
-    <h1
-      class="capitalize absolute w-full text-2xl top-[min(calc(15vh-1.5em),4em)] text-purple font-semibold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-amber-600 tracking-tight"
+<svelte:body class="bg-brand-dark font-urbanist" />
+
+<Header on:join={(e) => join(e.detail)} />
+
+<section class="text-[#faeedc] text-center py-10 overflow-hidden">
+  <div class="tracking-wide">
+    <p class="uppercase sm:text-2xl">Custom-Build A Keyboard Fit To You</p>
+    <p
+      class="uppercase text-7xl sm:text-8xl bg-clip-text text-transparent bg-gradient-rct to-[#F368E9] from-[#E6B09F] font-semibold"
     >
-      A new ergonomic keyboard generator
-    </h1>
-    <h1 class="sr-only">Cosmos</h1>
+      Don't Settle
+    </p>
+    <p class="uppercase text-2xl sm:text-4xl text-brand-pink font-medium">For One-Size-Fits-All</p>
   </div>
-  <p class="mx-6">
-    Cosmos is not yet ready for release. However, if you'd like to beta test, join the discord.
-  </p>
-  <a
-    class="inline-block font-sans font-semibold rounded-2 border-3 border-teal-500 px-8 py-2 m-2 mt-6 transition shadow-lg hover:shadow-teal-500/50 hover:scale-105 ease-in-out"
-    href={discord}>Join the Discord</a
-  >
-  <img class="mt-8 h-[4vw]" src="{base}/bg2.png" alt="" />
-  <div class="bg-[#003935] p-5">
-    <h2 class="w-full text-2xl top-[min(calc(20vh-2em),4em)] font-semibold mb-4">
-      See It In Action
-    </h2>
-    <video controls muted class="max-w-4xl w-full mx-auto rounded">
+  <div class="relative">
+    <img src="{base}/alien.svg" class="alien absolute" alt="" />
+    <!-- <img src="mainpagegraphics.png" width="40%" class="mx-auto mt-8" /> -->
+    <!-- <img src="canvas.svg" width="38%" class="mx-auto mt-8 opacity-50" /> -->
+    <!-- <div class="text-brand-green absolute top-5% left-[33.5%] text-xl opacity-50">Cosmos</div> -->
+    <!-- <img class="absolute top-20% left-45% w-64" src="verticalweb2.png" /> -->
+    <video
+      playsinline
+      autoplay
+      muted
+      loop
+      class="w-80% md:w-60% lg:w-50% mx-auto rounded my-8"
+      poster="{base}/cosmos-cover.png"
+    >
       <source type="video/mp4" src="{base}/cosmos.mp4" />
     </video>
-    {#if false}
-      <p class="m-auto font-sans max-w-4xl p-8">
-        Early this year I printed and made my first keyboard, a Dactyl Manuform. I built <a
-          href="https://ryanis.cool/dactyl">an online generator</a
-        > to design more of them too. I've been overjoyed seeing the positive reception it's gotten since
-        its release, but in building the generator I've seen so many opportunities for improvement. Cosmos
-        is my answer to these ideas. A new generator built on a different set of principles, its aim
-        is to let you build the most comfortable and beautiful keyboard and celebrate the joy of making
-        yourself.
-      </p>
-      <div class="md:flex max-w-7xl gap-4 lg:gap-8 m-auto">
-        <VerticalFeature src="/positions.mp4">
-          <span slot="title"
-            >Flexible In <span class="font-bold text-purple">All Dimensions</span></span
-          >
-          <p slot="content">
-            Take control of every key's position. Designing a 3-key macropad? Cosmos will give you a
-            fitting case.
-          </p>
-        </VerticalFeature>
-        <VerticalFeature src="/keyboard.mp4">
-          <span slot="title"
-            >For <span class="font-bold text-emerald">First-Time Pioneers</span> and Seasoned Adventurers</span
-          >
-          <p slot="content">
-            Cosmos will walk you through designing, wiring, and programming your keyboard.
-          </p>
-        </VerticalFeature>
-        <VerticalFeature src="/curves.mp4">
-          <span slot="title">As <span class="font-bold text-lightblue">Smooth</span> As Water</span>
-          <p slot="content">
-            Not only can you replace sharp edges with configurable curves, but the generator runs
-            buttery smooth too.
-          </p>
-        </VerticalFeature>
-      </div>
-      <p class="text-xs text-white/70 my-6">
-        Every frame of the animations above was created with the help of the Cosmos generator. You
-        can make any one of these keyboards yourself.
-      </p>
-    {/if}
+    <img src="{base}/monster.svg" class="monster absolute bottom-[-40px]" alt="" />
   </div>
-  <img class="h-[4vw]" src="{base}/bg3.png" alt="" />
-  <div
-    class="features max-w-4xl mx-auto mt-24 mb-4 text-xl font-semibold sm:columns-2 md:columns-3 bg-clip-text text-transparent bg-gradient-to-br from-purple-300 to-amber-300"
+  <a
+    href="{base}/beta"
+    class="text-black bg-brand-green font-semibold sm:pt-1 sm:px-10 rounded sm:border-b-6 border-[#f57aec] inline-flex items-center gap-30 cta sm:text-xl my-4 sm:pb-0.5 px-6 border-b-4"
+    on:click={join}
   >
-    <p>EC11 Encoders</p>
-    <p>Amoeba PCB Holders</p>
-    <p>Microcontroller Holder ¹</p>
-    <p>Trackballs</p>
-    <p>Choc Switches</p>
-    <p>OLED Displays</p>
-    <p>Smart Screw Hole Placement</p>
-    <p>20% Less Filament ²</p>
-    <p>Angular Key Spread</p>
-    <p>Adapts to Keycap Tilt ³</p>
-    <p>Automatic Model Height</p>
-    <p>Uniform Wall Cross Sections</p>
-    <p>Thin Surface Detection</p>
-    <p>Key Intersection Detection</p>
-    <p>Rounded Edges</p>
-    <p>Hand Scanning</p>
-    <p>BOM Generation</p>
-    <p>And More!</p>
-  </div>
-  <div class="mb-18">
-    <p class="text-slate-400">
-      ¹ Integrated Board Holder supports Pro Micro, RP2040, and nRF5280-based boards.
+    Join the beta
+    <Icon path={mdiChevronRight} size="100%" class="w-[28px] sm:w-[32px]" />
+  </a>
+</section>
+<section class="section">
+  <img src="{base}/hand.svg" class="<sm:mx-auto sm:float-right w-72 ml-6 mb-6 mt--6" alt="" />
+  <h2 class="heading">Scan Your Hand, Build a Keyboard</h2>
+  <p class="font-system">
+    Cosmos is the easiest way to design a keyboard around your one-of-a-kind hands. Scan your hand
+    using just your phone camera, then fit a keyboard to the scan. The key positions align to your
+    fingers' lengths and movement.
+  </p>
+</section>
+<section class="section">
+  <img src="{base}/all.svg" class="<sm:mx-auto sm:float-left w-72 ml-4 mr-6 mb-6 mt--6" alt="" />
+  <h2 class="heading">Add All The Things</h2>
+  <p class="font-system">
+    Add a trackball, trackpad, encoder, or OLED display. There's support for MX, Choc, and Alps
+    switches, and almost every type of keycap. Plus with 7 different microcontrollers, you can mix
+    and match all you like.
+  </p>
+  <a
+    href="{base}/parts"
+    class="text-black font-semibold rounded inline-flex items-center gap-16 my-4 pl-6 pr-4 bg-brand-green <sm:ml-6 transition hover:shadow-lg shadow-teal/30"
+  >
+    Browse the Parts
+    <Icon path={mdiChevronRight} size="100%" class="w-[28px] sm:w-[32px]" />
+  </a>
+</section>
+<section class="max-w-240 mx-auto bg-gradient-rc-far from-[#f57aec]/15 to-transparent">
+  <div class="lightbox lightbox-gradient">
+    <h2 class="lightheading">Generate Stunning Keyboards</h2>
+    <p class="font-system">
+      Choose from 3 types of cases, split or unibody, and many customizations.
     </p>
-    <p class="text-slate-400">
-      ² Comparing a 5x5-key model with the <a style="color: unset" href="https://ryanis.cool/dactyl"
-        >Dactyl generator</a
+    <img src="{base}/cases.png" alt="Keyboards generated with Cosmos" />
+  </div>
+  <div class="sm:flex">
+    <div class="lightbox">
+      <h2 class="lightheading">Print Worry-Free</h2>
+      <p class="font-system">
+        Cosmos catches errors before you print and automatically fixes common model issues.
+      </p>
+    </div>
+    <div class="lightbox">
+      <h2 class="lightheading">Take Control</h2>
+      <p class="font-system">
+        Custom Thumbs mode allows you to drag and drop keys and trackballs in the thumb cluster into
+        place.
+      </p>
+    </div>
+  </div>
+  <div class="sm:flex">
+    <div class="lightbox">
+      <h2 class="lightheading">Mix and Match Keycaps</h2>
+      <p class="font-system">
+        Your artisans are now ergonomic. Whatever batch of keycaps you decide to use, Cosmos will
+        arrange them to fit your desired curvature.
+      </p>
+      <img
+        src="{base}/adaptive.png"
+        class="pt-8"
+        alt="Keys with different styles of keycaps with their tops lined up"
+      />
+    </div>
+    <div class="lightbox lightbox-gradient">
+      <h2 class="lightheading">RGB and Hotswap Ready</h2>
+      <p class="font-system">
+        Cosmos has first-class support for Amoeba King PCBs, which let you easily integrate per-key
+        RGB and hotswap sockets. It also has high-quality built-in-hotswap and PCB-less options if
+        you're on a budget.
+      </p>
+      <img src="{base}/hotswapsockets.png" alt="Hotswap sockets in Cosmos" />
+    </div>
+  </div>
+</section>
+
+<p class="text-center mt-20 text-lg text-white">And last but not least…</p>
+
+<section class="section mb-0!">
+  <img
+    src="{base}/fusion-keyboard.png"
+    class="<sm:mx-auto sm:float-left w-72 ml-4 mr-10 mb-6 pt-4"
+    alt="Keyboard in Autodesk Fusion"
+  />
+  <h2 class="heading">Give it to your CAD friend</h2>
+  <p class="font-system">
+    Every model can export to STLs, which are meant to be sent to your 3D printer or an online
+    printing service, or to STEP models, which can be modified in CAD programs. If you don't like
+    the way your model looks, ask your closest CAD guru to make adjustments.
+  </p>
+  <a
+    href="{base}/docs/cad/"
+    class="text-black font-semibold rounded inline-flex items-center gap-16 my-4 pl-6 pr-4 bg-brand-green <sm:ml-6 transition hover:shadow-lg shadow-teal/30"
+  >
+    Learn About CAD Export
+    <Icon path={mdiChevronRight} size="100%" class="w-[28px] sm:w-[32px]" />
+  </a>
+</section>
+
+<section
+  class="text-center bg-gradient-rc-close from-[#f57aec]/5 to-transparent py-30 px-6 my-5 sm:py-60"
+>
+  <h2 class="text-brand-pink text-4xl mb-4">Join us in revolutionizing keyboard design.</h2>
+
+  <div class="max-w-[75ch] mx-auto">
+    <p class="font-system mb-2">
+      Cosmos is <a class="s-link" href="{base}/blog/category/technical/">made in the open</a>, and
+      95% of
+      <a class="s-link" href="https://github.com/rianadon/Cosmos-Keyboards">the code</a> is open-source.
+      It's our firm belief everyone should have free access to technology to relieve and prevent typing
+      pain.
+    </p>
+    <p class="font-system">
+      Come see the unique keyboards we all are making on the Discord server.
+    </p>
+    <div class="bg-gray-800 inline-flex my-6 py-2 px-4 rounded items-center gap-4">
+      <img src="{base}/cosmos-icon.png" class="w-12 h-12 rounded-4" />
+      <div class="text-left mr-8">
+        <p class="text-lg">Cosmos Keyboard</p>
+        <p class="text-gray-400 mt--1">
+          <span class="mr-1">●</span>
+          {#await discordUsers then count}{count} members{/await}
+        </p>
+      </div>
+      <a
+        class="px-4 py-1 bg-brand-green text-black rounded font-semibold"
+        href={discord}
+        on:click={subbed}>Join</a
+      >
+    </div>
+    <p class="font-system">
+      Don't have an account? I send a few recaps per year to <a
+        class="s-link"
+        href="https://newsletter.ryanis.cool/subscribe/"
+        on:click={subbed}>my newsletter <Icon class="inline relative top--0.3" path={mdiEmail} /></a
       >.
     </p>
-    <p class="text-slate-400">³ Compatible with XDA, DSA, SA, MT3—even OEM and Cherry!</p>
+    <p class="inline-block font-system text-sm opacity-50 max-w-60ch mt-6">
+      The other 5% of code? That's for the Pro features, which add extra cosmetic options to your
+      keyboard and help keep this project sustainable.
+    </p>
   </div>
+</section>
 
-  <div class="max-w-5xl m-auto">
-    <HorizontalFeature src="/hand.mp4" reversed>
-      <span slot="title">A Keyboard for Every Being In the Universe</span>
-      <p slot="content">Measure your hand and use it to design the perfect keyboard</p>
-      <p slot="description">
-        A great ergonomic keyboard should fit your hand shape, but it's difficult iterating through
-        prints and testing. Cosmos lets you measure your hand and place it in the editor, allowing
-        you to put yourself in the design process.
-      </p>
-    </HorizontalFeature>
-    <HorizontalFeature src="/cosmos.png">
-      <span slot="title">Intuitive Controls, Everywhere</span>
-      <p slot="content">Play with sliders or code, your choice</p>
-      <p slot="description">
-        If you've configured a Dactyl keyboard before, the Cosmos generator gives you a familiar set
-        of options to adjust. But the true power of the editor lies in Expert mode, where you can
-        adjust the position and rotation of every key. Alternatively, take over and code using
-        TypeScript to programmatically generate the key layout.
-      </p>
-    </HorizontalFeature>
-    <HorizontalFeature src="/cosmoboard.png" reversed>
-      <span slot="title">The Galaxy is the Limit</span>
-      <p slot="content">Design anything, as long as it's a keyboard</p>
-      <p slot="description">
-        The generator isn't limited to keyboards that fit a single adult human hand. Design
-        keyboards for babies. Design keyboards for cats. Design keyboards that fit two hands... like
-        a normal keyboard. Dream it and with some practice in Expert mode, you can design keyboards
-        like the ones on the left in under 5 minutes.
-      </p>
-    </HorizontalFeature>
-    <HorizontalFeature src="/cad.mp4">
-      <span slot="title">Compatible With Your 3D Printer And Your CAD Software</span>
-      <p slot="content">
-        Generate high-quality STLs for printing or STEP files for further editing
-      </p>
-      <p slot="description">
-        Cosmos uses the <a href="https://dev.opencascade.org/">OpenCascade</a> geometry kernel, the
-        same kernel that powers <a href="https://www.freecad.org/">FreeCAD</a> and
-        <a href="https://cadquery.readthedocs.io/en/latest/#">CadQuery</a>. It can export STEP
-        files, making it easy to use Cosmos as a starting point and build your next keyboard in your
-        favorite CAD software.
-      </p>
-    </HorizontalFeature>
-  </div>
-
-  <div class="faq my-20 max-w-xl mx-auto px-4">
-    <h2
-      class="w-full text-2xl top-[min(calc(20vh-2em),4em)] text-purple font-semibold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-amber-600 mb-4"
-    >
-      FAQ
-    </h2>
-    <h3 class="font-bold mb-1 mt-8">When is the generator being released?</h3>
-    <p>By the end of this year (but hopefully sooner).</p>
-    <p>
-      If you don't mind buggy software, join the <a href={discord}>Discord</a> and try the beta!
-    </p>
-    <h3 class="font-bold mb-1 mt-8">Is the project Open Source?</h3>
-    <p>
-      Cosmos uses an open-core model. Everything you need to scan your hand to build and program a
-      keyboard is or is going to be open source. Meanwhile some cosmetic features (such as rounded
-      sides) are not open-source and available for a small fee so that I can recoup some of the
-      costs buying keyboard parts.
-    </p>
-    <p>
-      So far <a href="https://github.com/rianadon/cosmos-Keyboards/"
-        >the hand-scanning process is open source</a
-      >. I'll be open-sourcing more as the codebase stabilizes.
-    </p>
-    <h3 class="font-bold mb-1 mt-8">Can I use the generator today?</h3>
-    <p>
-      If you're migrating from my <a href="https://ryanis.cool/dactyl">Dactyl generator</a>, you'll
-      find Cosmos already produces more robust models, and I recommend you switch, as long as you're
-      ok with a few breaking changes.
-    </p>
-    <p>
-      New features like trackball support and OLED displays have been released, but I recommend
-      waiting for Cosmos to mature before using these unless you like hot glue.
-    </p>
-  </div>
-  <p class="text-sm mb-10">
-    Brought to you by <a href="https://github.com/rianadon">@rianadon</a>.
+<section class="text-center">
+  <h2 class="text-brand-green text-4xl mb-4">Sound fun?</h2>
+  <a
+    href="{base}/beta"
+    class="text-black bg-brand-pink font-semibold sm:pt-1 sm:px-10 rounded sm:border-b-6 border-brand-green inline-flex items-center gap-30 cta sm:text-xl my-4 sm:pb-0.5 px-6 border-b-4"
+    on:click={join}
+  >
+    Join the beta
+    <Icon path={mdiChevronRight} size="100%" class="w-[28px] sm:w-[32px]" />
+  </a>
+  <p class="mt-6 max-w-prose mx-auto px-6 text-gray-200">
+    Psst! Come here from my Dactyl generator? You should give Cosmos a try. It's changing a&nbsp;lot
+    but it will give you a much better Dactyl-like case and microcontroller holder.
   </p>
-</main>
-<img
-  style="position: absolute; width: 0; height: 0;"
-  alt=""
-  aria-hidden="true"
-  src="https://pageviews.ryanis.cool/by/cosmos"
-/>
+</section>
+
+<footer class="text-center mt-20 pb-8 text-gray-400">
+  Brought to you by <a class="s-link" href="https://github.com/rianadon">@rianadon</a>.
+</footer>
+
+{#if joining}
+  <Dialog forceDark center on:close={() => (joining = false)}>
+    <span slot="title" class="font-urbanist">Before you leave…</span>
+    <div slot="content" class="text-center text-white font-urbanist">
+      <p class="font-system">
+        Don't miss out on updates! The generator is in constant flux during the beta, and joining
+        the Discord server will keep you up to date with the changes.
+      </p>
+      <div class="bg-gray-700 inline-flex my-6 py-2 px-4 rounded items-center gap-4">
+        <img src="{base}/cosmos-icon.png" class="w-12 h-12 rounded-4" />
+        <div class="text-left mr-8">
+          <p class="text-lg">Cosmos Keyboard</p>
+          <p class="text-gray-400 mt--1">
+            <span class="mr-1">●</span>
+            {#await discordUsers then count}{count} members{/await}
+          </p>
+        </div>
+        <a
+          class="px-4 py-1 bg-brand-green text-black rounded font-semibold"
+          href={discord}
+          on:click={subbed}>Join</a
+        >
+      </div>
+      <p class="font-system">
+        Don't have an account? I send a few recaps per year to <a
+          class="s-link"
+          href="https://newsletter.ryanis.cool/subscribe/"
+          on:click={subbed}
+          >my newsletter <Icon class="inline relative top--0.3" path={mdiEmail} /></a
+        >.
+      </p>
+      <a
+        href="beta"
+        class="inline-block text-black bg-brand-pink rounded px-2 py-0.5 font-semibold mt-6"
+        on:click={subbed}>Just take me to the beta already</a
+      >
+    </div>
+  </Dialog>
+{/if}
 
 <style>
-  :global(html) {
-    background: rgb(15, 23, 42);
+  section {
+    --at-apply: 'text-white';
+  }
+  .section {
+    --at-apply: 'max-w-240 mx-auto mt-20 mb-36';
+  }
+  .heading {
+    --at-apply: 'uppercase text-2xl sm:text-4xl bg-clip-text text-transparent bg-gradient-to-r to-[#68e4a9] from-[#f3b068] font-medium mb-4';
+  }
+  .lightbox {
+    --at-apply: 'bg-gradient-to-b from-[#2e272d]/50 to-[#17171d]/0 p-8 rounded-2 flex-basis-full m-2';
+  }
+  .bg-gradient-rc-close {
+    --un-gradient-shape: closest-side ellipse at center;
+    --un-gradient: var(--un-gradient-shape), var(--un-gradient-stops);
+    background-image: radial-gradient(var(--un-gradient));
+  }
+  .bg-gradient-rc-far {
+    --un-gradient-shape: farthest-side circle at center;
+    --un-gradient: var(--un-gradient-shape), var(--un-gradient-stops);
+    background-image: radial-gradient(var(--un-gradient));
+  }
+  .lightbox-gradient {
+    --at-apply: 'pb-1';
+  }
+  .lightbox-gradient img {
+    margin-top: 2rem;
+    mask-image: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0),
+      rgba(0, 0, 0, 0.55) 12%,
+      rgba(0, 0, 0, 1) 30%
+    );
+  }
+  .lightheading {
+    --at-apply: 'uppercase text-xl sm:text-3xl text-[#68e4a9] font-medium mb-4';
+  }
+  .section p,
+  .section .heading {
+    --at-apply: 'mx-6';
+  }
+  .bg-gradient-rct {
+    --un-gradient-shape: 600px 300px ellipse at center -80%;
+    --un-gradient: var(--un-gradient-shape), var(--un-gradient-stops);
+    background-image: radial-gradient(var(--un-gradient));
+  }
+  .cta {
+    --at-apply: 'transition hover:scale-105 ease-in-out';
+    box-shadow: 40px 10px 15px -5px rgba(243, 104, 233, 0.2),
+      -40px 10px 15px -5px rgba(243, 104, 233, 0.2), 0 10px 15px 0 rgba(243, 104, 233, 0.2);
+  }
+  .cta:hover {
+    box-shadow: 40px 12px 15px -5px rgba(243, 104, 233, 0.2),
+      -40px 12px 15px -5px rgba(243, 104, 233, 0.2), 0 12px 15px 0 rgba(243, 104, 233, 0.2);
+  }
+  .alien {
+    width: calc(hypot(20vw, 100px) - 3vw);
+    left: min(hypot(20vw, 100px) - 200px, 50px);
+    bottom: clamp(hypot(20vw, 100px) - 200px, -30px, 50px);
+    animation: bounce-slow 5s ease-in-out alternate infinite;
+  }
+  .monster {
+    width: calc(1.6 * ((hypot(20vw, 100px) - 3vw)));
+    right: calc(0.1 * hypot(20vw, 100px) - 170px);
+    transform-origin: 80% 95%;
+    animation: rotate-slow 4s ease-in-out alternate infinite;
   }
 
-  .background {
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-    height: calc(80vh - 170px);
-    max-height: 600px;
+  @keyframes bounce-slow {
+    100% {
+      transform: translateY(-6%);
+    }
+    0% {
+      transform: translateY(0);
+    }
   }
 
-  a[href]:not(.inline-block) {
-    color: #f0abfc;
-  }
-
-  a[href]:not(.inline-block):hover {
-    text-decoration: underline;
-  }
-
-  .faq p {
-    --at-apply: 'mb-1 <sm:text-sm';
-  }
-
-  .features p {
-    --at-apply: 'mb-2 sm:mb-6';
-  }
-
-  :root header a[href] {
-    color: #c28f80;
+  @keyframes rotate-slow {
+    100% {
+      transform: rotate(-1deg);
+    }
+    0% {
+      transform: rotate(1deg);
+    }
   }
 </style>

@@ -2,21 +2,23 @@ import type { Mesh } from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 import { makeAsyncCacher } from './cacher'
 
-const browser = !!import.meta.env
-let glbUrls = browser
-  ? import.meta.glob(['$target/*.glb', '$assets/*.glb'], { as: 'url', eager: true })
-  : {}
+let glbUrls: Record<string, string> | undefined = {}
+try {
+  glbUrls = import.meta.glob(['$target/*.glb', '$assets/*.glb'], { as: 'url', eager: true })
+} catch (e) {
+  glbUrls = undefined
+}
 const loader = new GLTFLoader()
 
 const load = async (url: string) =>
-  browser
+  glbUrls
     ? loader.loadAsync(url)
     : loader.parseAsync((await (await import(process.env.FS!)).readFile(url)).buffer, '')
 
 const cacher = makeAsyncCacher(async (url: string) => {
-  if (!browser) glbUrls = JSON.parse(process.env.GLB_URLS!)
-  if (!glbUrls[url]) throw new Error(`Model for url ${url} does not exist`)
-  return load(glbUrls[url]).then(g => (g.scene.children[0] as Mesh).geometry)
+  const urls = glbUrls || JSON.parse(process.env.GLB_URLS!)
+  if (!urls[url]) throw new Error(`Model for url ${url} does not exist`)
+  return load(urls[url]).then(g => (g.scene.children[0] as Mesh).geometry)
 })
 
 export default function loadGLTF(url: string) {

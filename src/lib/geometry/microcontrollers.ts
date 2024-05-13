@@ -27,6 +27,14 @@ interface BoardProperties {
   cutouts: { origin: Vector; size: Vector }[]
   sidecutout: number
   tappedHoleDiameter?: number
+  /** Names of pins each on the sides of the microcontroller.
+   * If it could be side OR rear, it's a side pin. */
+  sidePins: number
+  /** Names of pins on the rear side of the microcontroller (if any).
+   * Connectors don't count. */
+  rearPins?: number
+  /** If the microcontroller has castellated holes. */
+  castellated?: boolean
 }
 
 type Microcontroller = Exclude<Cuttleform['microcontroller'], null>
@@ -43,6 +51,9 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     ],
     sidecutout: 3,
     tappedHoleDiameter: 1.6,
+    sidePins: 20,
+    rearPins: 3,
+    castellated: true,
   },
   'rp2040-black-usb-c-aliexpress': {
     name: 'RP2040 Black Board USB-C (Aliexpress)',
@@ -54,6 +65,8 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
       { origin: new Vector(0, -2.1 * IN / 2, 0), size: new Vector(6, 23, 0) },
     ],
     sidecutout: 4,
+    sidePins: 20,
+    rearPins: 4,
   },
   'promicro-usb-c': {
     name: 'Pro Micro (USB-C)',
@@ -63,6 +76,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     holes: [],
     cutouts: [],
     sidecutout: 3.1,
+    sidePins: 12,
   },
   'promicro': {
     name: 'Pro Micro',
@@ -72,6 +86,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     holes: [],
     cutouts: [],
     sidecutout: 0.1 * IN,
+    sidePins: 12,
   },
   'itsybitsy-adafruit': {
     name: 'Adafruit ItsyBitsy',
@@ -81,6 +96,8 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     holes: [],
     cutouts: [],
     sidecutout: 0.1 * IN,
+    sidePins: 14,
+    rearPins: 5,
   },
   'kb2040-adafruit': {
     name: 'Adafruit KB2040',
@@ -90,6 +107,8 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     holes: [],
     cutouts: [],
     sidecutout: 0.1 * IN,
+    sidePins: 13,
+    castellated: true,
   },
   'nrfmicro-or-nicenano': {
     name: 'nRFMicro or Nice!Nano',
@@ -101,6 +120,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
       { size: new Vector(0.36 * IN, 100, 0), origin: new Vector(0, 50 - 2, 0) },
     ],
     sidecutout: 0.105 * IN,
+    sidePins: 13,
   },
   'seeed-studio-xiao': {
     name: 'Seeed Studio Xiao',
@@ -110,15 +130,19 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     holes: [],
     cutouts: [],
     sidecutout: 2,
+    sidePins: 7,
   },
   'waveshare-rp2040-zero': {
     name: 'WaveShare RP2040-Zero',
-    size: new Vector(18, 23.5, 1),
+    size: new Vector(18.1, 23.5, 1 + 0.9), // Add extra 0.9mm for the rp2040 chip on underside
     boundingBoxZ: 5,
-    offset: new Vector(0, 0, 2.4),
+    offset: new Vector(0, 0, 2.4 - 0.9),
     holes: [],
     cutouts: [],
-    sidecutout: 2,
+    sidecutout: 2.1,
+    sidePins: 9,
+    rearPins: 5,
+    castellated: true,
   },
   'weact-studio-ch552t': {
     name: 'WeAct Studio CH552T',
@@ -128,6 +152,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     holes: [],
     cutouts: [],
     sidecutout: 3.1,
+    sidePins: 10,
   },
 }
 

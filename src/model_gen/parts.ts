@@ -3,8 +3,9 @@ import type { Cuttleform, CuttleKey } from '$lib/worker/config'
 import { KEY_URLS } from '$lib/worker/socketsLoader'
 import { readFile, writeFile } from 'fs/promises'
 import { join } from 'path'
+import { getOC } from 'replicad'
 import { importSTEP, makeBaseBox } from 'replicad'
-import { STLLoader } from 'three/examples/jsm/loaders/STLLoader'
+import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
 import { fileURLToPath } from 'url'
 import { PART_NAMES } from '../lib/geometry/socketsParts'
 import { exportGLTF } from './exportGLTF'
@@ -37,9 +38,15 @@ async function genSocket(name: string) {
   const glbName = join(targetDir, 'socket-' + name + '.glb')
   const model = await loadSocket(name)
   const mesh = model.mesh({ tolerance: 0.1, angularTolerance: 10 })
+  const oc = getOC()
+  const props = new oc.GProp_GProps_1()
+  oc.BRepGProp.VolumeProperties_2(model.wrapped, props, 0.01, false, true)
+  const mass = props.Mass()
+  props.delete()
   model.delete()
   const geometry = fromGeometry(mesh)
   await exportGLTF(glbName, geometry!)
+  return mass
 }
 
 type Microcontroller = Exclude<Cuttleform['microcontroller'], null>
@@ -74,6 +81,8 @@ async function main() {
 
   const defaults = { spacing: 2.54, diameter: 0.9 }
   await genPart('switch-cherry-mx')
+  await genPart('switch-evqwgd001')
+  await genPart('switch-joystick-joycon-adafruit')
   await genUC('rp2040-black-usb-c-aliexpress', {}, [
     { start: 2.54, align: { side: 'left', offset: 2.54 }, ...defaults },
     { start: 2.54, align: { side: 'right', offset: 2.54 }, ...defaults },
@@ -87,14 +96,14 @@ async function main() {
     { start: 5.25, align: { side: 'right', offset: 1.53 }, ...defaults },
   ])
   await genUC('waveshare-rp2040-zero', { fillet: 1 }, [
-    { start: 1.59, align: { side: 'left', offset: 1.88 }, ...defaults },
-    { start: 1.59, align: { side: 'right', offset: 1.88 }, ...defaults },
+    { start: 1.59, align: { side: 'left', offset: 1.88 + 0.05 }, ...defaults },
+    { start: 1.59, align: { side: 'right', offset: 1.88 + 0.05 }, ...defaults },
     // Castellated Pads
-    { start: 1.59, align: { side: 'left', offset: 0 }, ...defaults },
-    { start: 1.59, align: { side: 'right', offset: 0 }, ...defaults },
+    { start: 1.59, align: { side: 'left', offset: 0.05 }, ...defaults },
+    { start: 1.59, align: { side: 'right', offset: 0.05 }, ...defaults },
     // Bottom holes
-    { start: 3.92, end: 3.92, align: { side: 'bottom', offset: 1.38 }, ...defaults },
-    { start: 3.92, end: 3.92, align: { side: 'bottom', offset: 0 }, ...defaults },
+    { start: 3.92, end: 3.92, align: { side: 'bottom', offset: 1.38 + 0.05 }, ...defaults },
+    { start: 3.92, end: 3.92, align: { side: 'bottom', offset: 0.05 }, ...defaults },
   ])
   await genUC('weact-studio-ch552t', { connector_y_offset: -1.5 }, [
     { start: 1.48, align: { side: 'left', offset: 1.38 }, ...defaults },
@@ -111,9 +120,13 @@ async function main() {
   }
   await genDisplayModel('oled-128x32-0.91in-dfrobot', dfDisplayProps, 0.5)
   await genDisplaySocket('oled-128x32-0.91in-dfrobot', dfDisplayProps)
+  await genPart('switch-joystick-ps2-40x45')
+  await genSocket('joystick-ps2-40x45')
+
+  const masses: Record<string, number> = {}
   for (const socket of Object.keys(PART_NAMES)) {
     try {
-      await genSocket(socket)
+      masses[socket] = await genSocket(socket)
     } catch (e) {
       if (e instanceof Error && 'code' in e && e.code === 'ENOENT') {
         console.log(`Warning: could not generate ${socket} since its file was not present in the filesystem`)
@@ -121,6 +134,9 @@ async function main() {
       } else throw e
     }
   }
+
+  const filename = join(targetDir, `part-masses.json`)
+  await writeFile(filename, JSON.stringify(masses))
 }
 
 main()

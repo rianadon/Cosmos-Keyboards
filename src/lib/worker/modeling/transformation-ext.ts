@@ -1,6 +1,6 @@
 import { flippedKey, keyInfo } from '$lib/geometry/keycaps'
 import { switchInfo } from '$lib/geometry/switches'
-import type { CuttleKey } from '../config'
+import type { Cuttleform, CuttleKey } from '../config'
 import Trsf, { Vector } from './transformation'
 
 /**
@@ -33,6 +33,7 @@ interface MatrixOptions {
   curvatureOfRow: number
   spacingOfColumns: number
   spacingOfRows: number
+  arc?: number
 }
 
 interface SphereOptions {
@@ -76,6 +77,11 @@ export function stringifyObj(a: any, indent: number) {
 function opToString({ name, args }: Operation, indent: number) {
   /* @ts-ignore */
   if ((name === 'rotate' || name === 'translate') && args[3]) args = args.slice(0, 3)
+  for (let i = args.length - 1; i >= 0; i--) {
+    /* @ts-ignore */
+    if (typeof args[i] == 'undefined') args = args.slice(0, i)
+    else break
+  }
   return name + '(' + args.map(a => stringifyObj(a, indent)).join(', ') + ')'
 }
 
@@ -105,6 +111,7 @@ export default class ETrsf {
     this.history.push(last)
   }
 
+  /** Translates by a certain amount of mm. */
   translate(xDist: number, yDist: number, zDist: number, inFlat?: boolean): ETrsf
   translate(vector: Point, inFlat?: boolean): ETrsf
   translate(...args: any) {
@@ -117,12 +124,14 @@ export default class ETrsf {
     return this.applied({ name: 'translate', args: [...args.flat(), true].slice(0, 4) as any })
   }
 
+  /** Rotates through an axis about some position by some number of degrees. */
   rotate(angle: number, position?: Point, direction?: Point, inFlat = true) {
     return this.apply({ name: 'rotate', args: [angle, position, direction, inFlat] })
   }
   rotated(angle: number, position?: Point, direction?: Point, inFlat = true) {
     return this.applied({ name: 'rotate', args: [angle, position, direction, inFlat] })
   }
+  /** Rotates the z axis towards a new z axis by some fraction. */
   rotateTowards(vector: Point, fraction: number) {
     return this.apply({ name: 'rotateTowards', args: [vector, fraction] })
   }
@@ -130,6 +139,10 @@ export default class ETrsf {
     return this.apply({ name: 'rotateTowards', args: [[0, 0, 1], fraction] })
   }
 
+  /**
+   * Reflect across an axis about some position. If no position is given, reflects about the origin.
+   * This preserves the right-handedness of the coordinate system, so that key labels do not get flipped.
+   */
   mirror(axis: Point, origin?: Point) {
     return this.apply({ name: 'mirror', args: [axis, origin] })
   }
@@ -137,6 +150,11 @@ export default class ETrsf {
     return this.applied({ name: 'mirror', args: [axis, origin] })
   }
 
+  /**
+   * Apply the transformations of the given Trsf to this Trsf.
+   *
+   * This is the same as the premultiply function for matrices. A.transformBy(B) is equivalent to BA.
+   */
   transformBy(t: ETrsf) {
     return this.apply({ name: 'transformBy', args: [t] })
   }
@@ -144,13 +162,25 @@ export default class ETrsf {
     return this.applied({ name: 'transformBy', args: [t] })
   }
 
+  /**
+   * Apply the translation part of a given Trsf to this Trsf.
+   *
+   * This Trsf will be translated by however much this.transformBy(t) would translate it,
+   * but this Trsf's rotation will be preserved.
+   */
   translateBy(t: ETrsf) {
     return this.apply({ name: 'translateBy', args: [t] })
   }
 
+  /**
+   * Apply a transformation for a key on a specified matrix.
+   */
   placeOnMatrix(opts: MatrixOptions) {
     return this.apply({ name: 'placeOnMatrix', args: [opts] })
   }
+  /**
+   * Apply a transformation for a key on a specified sphere.
+   */
   placeOnSphere(opts: SphereOptions) {
     return this.apply({ name: 'placeOnSphere', args: [opts] })
   }
@@ -159,7 +189,7 @@ export default class ETrsf {
     return this.history.reduce((t, op) => impl(t, context, op), t)
   }
 
-  toString(indent: number) {
+  toString(indent: number): string {
     if (this.history.length == 1) return 'new Trsf().' + opToString(this.history[0], indent)
     return 'new Trsf()\n' + this.history.map(h => ' '.repeat(indent) + '.' + opToString(h, indent)).join('\n')
   }
@@ -207,7 +237,17 @@ const Y: [number, number, number] = [0, 1, 0]
 
 const sin = (x: number) => Math.sin(x * Math.PI / 180)
 
-export const KEY_BASE = 14.3 // The origin of the key (key.position) is positioned this far from the top
+/** The origin of the key (key.position) is positioned this far from the top */
+export function keyBase(c: Cuttleform) {
+  const sw: CuttleKey['type'] = c.keyBasis == 'choc' ? 'choc' : 'mx-better'
+  const switchHeight = switchInfo(sw).height
+  const keyHeight = c.keyBasis
+    ? keyInfo({
+      keycap: { profile: c.keyBasis, row: 4 },
+    } as any).depth * 0.9
+    : 14.3 - switchHeight // 14.3 is the old value of this function
+  return switchHeight + keyHeight
+}
 
 const capTopHeight = (c: EvaluationContext) => switchInfo(c.key?.type).height
 
@@ -245,6 +285,13 @@ function placeOnMatrixImpl(t: Trsf, opts: Unmerged<MatrixOptions>, c: Evaluation
     }
   }
   rotateRow(options, c, t)
+  // t.rotate(90 * Math.tanh(options.column * options.row / 20))
+  if (options.arc && options.arc != 0) {
+    // 28.636 comes from ensuring rotation = 1deg when options.column * options.row = 1 and arc = 1.
+    // I chose atan because it's odd, has two horizontal asymptotes, and it's trig so intuitively seems well-suited for geometry stuff.
+    // 90 / Math*PI ensures the asymptotes occur at +- 45 degrees.
+    t.rotate(90 / Math.PI * Math.atan(options.arc * options.column * options.row / 28.636))
+  }
   rotateCol(options, c, t)
   return t
 }
@@ -274,22 +321,22 @@ export class Constant extends ETrsf {
   }
 }
 
-export function keyPosition(key: CuttleKey, flat: boolean) {
+export function keyPosition(c: Cuttleform, key: CuttleKey, flat: boolean) {
   const info = keyInfo(key)
   return key.position.evaluate(
     { flat, key },
     new Trsf()
       .translate(0, 0, -keyInfo(key).depth - switchInfo(key.type).height)
       .rotate(info.tilt, [0, 0, 0], [1, 0, 0])
-      .translate(0, 0, KEY_BASE),
+      .translate(0, 0, keyBase(c)),
   )
 }
 
-export function keyPositionTop(key: CuttleKey, flat: boolean) {
+export function keyPositionTop(c: Cuttleform, key: CuttleKey, flat: boolean) {
   return key.position.evaluate(
     { flat, key },
     new Trsf()
-      .translate(0, 0, KEY_BASE),
+      .translate(0, 0, keyBase(c)),
   )
 }
 
@@ -307,7 +354,7 @@ function rotate(keys: CuttleKey[], angle: number, position: [number, number, num
  * This is useful for creating full keyboards instead of ones split in half.
  */
 export function mirror(keys: CuttleKey[], gap = 30, angle = 0) {
-  const minX = Math.min(...keys.map(k => keyPosition(k, false).origin().x))
+  const minX = Math.min(...keys.map(k => keyPosition({} as any, k, false).origin().x))
   const axisX = minX - gap / 2 - 10
   const mirroredKeys = keys.map(k => {
     const newK = {

@@ -12,16 +12,32 @@
 */
 
 import type { Cuttleform } from '$lib/worker/config'
-import { inside, type KeyTrsf, wallCriticalPoints } from '$lib/worker/geometry'
+import { type KeyTrsf, wallCriticalPoints } from '$lib/worker/geometry'
 import type { Vector } from '$lib/worker/modeling/transformation'
 import type Trsf from '$lib/worker/modeling/transformation'
 import { doWallsIntersect } from './concaveman-extra'
+import { intersectPtPoly } from './geometry.intersections'
 import { thickness } from './thickness'
 
 interface Node {
   p: number
   next: Node
   prev: Node
+}
+
+export type TriangleMap = Record<number, Record<number, number[]>>
+
+export function createTriangleMap(triangles: number[][]) {
+  const triangleMap: TriangleMap = {}
+  triangles.forEach(([a, b, c], i) => {
+    if (!triangleMap[a]) triangleMap[a] = {}
+    if (!triangleMap[b]) triangleMap[b] = {}
+    if (!triangleMap[c]) triangleMap[c] = {}
+    triangleMap[a][b] = [c, i]
+    triangleMap[b][c] = [a, i]
+    triangleMap[c][a] = [b, i]
+  })
+  return triangleMap
 }
 
 export default function concaveman(
@@ -44,19 +60,11 @@ export default function concaveman(
   // when a segment goes below this length threshold, it won't be drilled down further
   lengthThreshold = lengthThreshold || 0
 
-  const triangleMap = {}
-  triangles.forEach(([a, b, c], i) => {
-    if (!triangleMap[a]) triangleMap[a] = {}
-    if (!triangleMap[b]) triangleMap[b] = {}
-    if (!triangleMap[c]) triangleMap[c] = {}
-    triangleMap[a][b] = [c, i]
-    triangleMap[b][c] = [a, i]
-    triangleMap[c][a] = [b, i]
-  })
+  const triangleMap = createTriangleMap(triangles)
 
   const beginning = bnd[0][0]
 
-  const next = {}
+  const next: Record<number, number> = {}
   for (const [a, b] of bnd) {
     next[a] = b
   }
@@ -112,7 +120,7 @@ function canFixBadWalls(
   conf: Cuttleform,
   inserted: number,
   node: Node,
-  triangleMap: any,
+  triangleMap: TriangleMap,
   trsfs: KeyTrsf[],
   points: number[][],
   sqConcavity: number,
@@ -169,7 +177,7 @@ function canSplitEdge(
     for (let pt = 0; pt < bottomPts2D.length; pt++) {
       if (pt == i || pt == j || pt == k) continue
       const triangle = [bottomPts2D[i].xyz(), bottomPts2D[j].xyz(), bottomPts2D[k].xyz()]
-      if (inside(bottomPts2D[pt].xyz(), triangle)) return [false, 0, 0, 'discards bottom point']
+      if (intersectPtPoly(bottomPts2D[pt].xyz(), triangle)) return [false, 0, 0, 'discards bottom point']
     }
   }
 
@@ -252,7 +260,7 @@ function removeNode(node: Node) {
 }
 
 // square distance between 2 points
-function getSqDist(p1, p2) {
+function getSqDist(p1: number[], p2: number[]) {
   var dx = p1[0] - p2[0],
     dy = p1[1] - p2[1]
 
@@ -260,7 +268,7 @@ function getSqDist(p1, p2) {
 }
 
 // square distance from a point to a segment
-function sqSegDist(p, p1, p2) {
+function sqSegDist(p: number[], p1: number[], p2: number[]) {
   var x = p1[0],
     y = p1[1],
     dx = p2[0] - x,

@@ -4,33 +4,35 @@ import type { CuttleKey } from './config'
 import { makeAsyncCacher } from './modeling/cacher'
 import type Trsf from './modeling/transformation'
 
-const keyMxURL = '/target/key-mx.step'
+let keyUrls: Record<string, string> = {}
+try {
+  keyUrls = import.meta.glob(['$target/*.step', '$assets/*.step'], { as: 'url', eager: true })
+} catch (e) {
+  keyUrls = undefined
+}
 
-const browser = !!import.meta.env
-let keyUrls: Record<string, string> = browser
-  ? import.meta.glob(['$target/*.step', '$assets/*.step'], { as: 'url', eager: true })
-  : {}
-
-export const KEY_URLS: Record<string, string> = {
-  box: '/target/key-box.step',
-  mx: keyMxURL,
-  'mx-original': keyMxURL,
-  'mx-snap-in': '/target/key-mxSnapIn.step',
+export const KEY_URLS: Record<CuttleKey['type'], string> = {
+  'old-box': '/target/key-old-box.step',
+  'old-mx': '/target/key-old-mx.step',
+  'old-mx-snap-in': '/target/key-mxSnapIn.step',
   alps: '/src/assets/key-alps.step',
   choc: '/src/assets/key-choc.step',
-  'box-hotswap': '/target/key-box-hotswap.step',
   'mx-hotswap': '/target/key-mx-hotswap.step',
-  'mx-snap-in-hotswap': '/target/key-mxSnapIn-hotswap.step',
+  'old-mx-hotswap': '/target/key-old-mx-hotswap.step',
+  'old-mx-snap-in-hotswap': '/target/key-old-mxSnapIn-hotswap.step',
   'mx-better': '/src/assets/key-mx-better.step',
   'mx-pcb': '/src/assets/key-mx-pcb.step',
   'choc-hotswap': '/target/key-choc-hotswap.step',
   'trackball': '/src/assets/trackball_holder.step',
   'ec11': '/src/assets/key-ec11.step',
+  'joystick-joycon-adafruit': '/src/assets/key-joystick-joycon-adafruit.step',
+  'evqwgd001': '/src/assets/key-evqwgd001.step',
   'oled-128x32-0.91in-adafruit': '/src/assets/key-oled-128x32-0.91in-adafruit.step',
   'oled-128x32-0.91in-dfrobot': '/target/key-oled-128x32-0.91in-dfrobot.step',
   'cirque-23mm': '/src/assets/key-cirque-23mm.step',
   'cirque-35mm': '/src/assets/key-cirque-35mm.step',
   'cirque-40mm': '/src/assets/key-cirque-40mm.step',
+  'joystick-ps2-40x45': '/src/assets/key-joystick-ps2-40x45.step',
   'blank': '',
 }
 
@@ -38,12 +40,12 @@ const keyCacher = makeAsyncCacher(async (key: CuttleKey) => {
   if (key.type == 'blank') return makeBaseBox(key.size?.width ?? 18.5, key.size?.height ?? 18.5, 5).translateZ(-5)
   const url = KEY_URLS[key.type]
   if (!url) throw new Error(`No model for key ${key.type}`)
-  if (!browser) keyUrls = JSON.parse(process.env.SOCKET_URLS!)
-  if (!keyUrls[url]) throw new Error(`Model for url ${url} does not exist`)
-  return browser
-    ? await fetch(keyUrls[url]).then(r => r.blob())
+  const urls = keyUrls || JSON.parse(process.env.SOCKET_URLS!)
+  if (!urls[url]) throw new Error(`Model for url ${url} does not exist`)
+  return keyUrls
+    ? await fetch(urls[url]).then(r => r.blob())
       .then(r => importSTEP(r) as Promise<Solid>)
-    : (await import(process.env.FS!)).readFile(keyUrls[url])
+    : (await import(process.env.FS!)).readFile(urls[url])
       .then(r => importSTEP(new Blob([r])) as Promise<Solid>)
 })
 

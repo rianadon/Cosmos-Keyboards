@@ -13,7 +13,7 @@
   import { bomMultiplier as multiplier } from '$lib/store'
   import MultiplierDropdown from './MultiplierDropdown.svelte'
 
-  export let geometry: Geometry
+  export let geometry: Geometry | null
   export let conf: Cuttleform
 
   function keycaps(c: Cuttleform, multiplier: number) {
@@ -46,7 +46,7 @@
   $: console.log(keycaps(conf, Number($multiplier)))
 
   function switchIcon(item: CuttleKey['type']) {
-    if (item == 'ec11') return 'knob'
+    if (item == 'ec11' || item == 'evqwgd001') return 'knob'
     if (item == 'trackball') return 'trackball'
     if (item == 'oled-128x32-0.91in-adafruit') return 'oled'
     if (item.startsWith('cirque')) return 'knob'
@@ -66,7 +66,8 @@
       sockets[key.type].count += multiplier
     }
     const nDiodes =
-      (sockets['mx']?.count || 0) +
+      (sockets['old-mx']?.count || 0) +
+      (sockets['mx-hotswap']?.count || 0) +
       (sockets['mx-better']?.count || 0) +
       (sockets['mx-pcb']?.count || 0) +
       (sockets['box']?.count || 0) +
@@ -98,6 +99,14 @@
         item: 'SK6812MINI-E LEDs (Optional)',
         icon: 'led',
         count: sockets['mx-pcb'].count,
+      }
+    }
+    const nHotswap = sockets['mx-hotswap']?.count || 0
+    if (nHotswap > 0) {
+      sockets['pcb-hotswap'] = {
+        item: 'Kailh Hotswap Sockets',
+        icon: 'hotswap',
+        count: nHotswap,
       }
     }
     const nTrackball = sockets['trackball']?.count || 0

@@ -1,0 +1,13 @@
+version: "3"
+
+services:
+  cosmos:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    volumes:
+      - .:/Cosmos-Keyboards
+    ports:
+      - "5173:5173"
+      - "8000:8000"
+    restart: unless-stopped

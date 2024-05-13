@@ -24,10 +24,12 @@ theme:
 plugins:
   - search
   - awesome-pages
+  - privacy:
+      cache_dir: target/privacy
   - blog:
       post_url_format: "{slug}"
       archive: false
-      categories: false
+      categories: true
       authors: false
   - rss:
       match_path: blog/posts/.*
@@ -42,8 +44,16 @@ hooks:
 extra:
   analytics:
     provider: custom
+
+
+extra_javascript:
+  - javascripts/katex.js
+  - https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js
+  - https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js
+
 extra_css:
   - stylesheets/extra.css
+  - https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css
 
 markdown_extensions:
   - attr_list
@@ -57,3 +67,6 @@ markdown_extensions:
   - pymdownx.highlight
   - pymdownx.inlinehilite
   - pymdownx.snippets
+  - pymdownx.keys
+  - pymdownx.arithmatex:
+      generic: true

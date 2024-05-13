@@ -37,6 +37,19 @@ img {
     display: block;
     margin: 0 auto;
 }
+.circle {
+    border-radius: 100%;
+    aspect-ratio: 1;
+    object-fit: contain;
+    transition: transform 0.3s ease;
+}
+.circle.cover { object-fit: cover; }
+.circle.left { object-position: left center; }
+.circle.black { background: #000; }
+
+div:hover>p>.circle {
+    transform: scale(1.3);
+}
 
 /* For auto-generated images that need extra padding */
 .pad {
@@ -51,6 +64,10 @@ img {
 }
 .clearfix img[align] {
     margin-bottom: 0;
+}
+.less-margin p {
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
 }
 
 /* Add extra padding + border radius for header images in posts */
@@ -74,6 +91,12 @@ img.header {
 .md-typeset .info > .admonition-title::before,
 .md-typeset .info > summary::before {
     background-color: #00bfa5;
+}
+
+/** Style iframes */
+iframe {
+    border: none;
+    width: 100%;
 }
 
 /* Styles copied from Dactyl configurator */
@@ -122,4 +145,8 @@ img.header {
     color: #fff;
     box-shadow: 0 4px 6px -1px rgb(19 78 74 / .3), 0 2px 4px -2px rgb(19 78 74 / .3);
     --gradient-stops: #7e22ce, #115e59;
+}
+
+.katex-display {
+    margin: -1em 0 !important;
 }

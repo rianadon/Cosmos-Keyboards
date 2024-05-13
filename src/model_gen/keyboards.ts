@@ -1,6 +1,9 @@
-import { type Cuttleform, type CuttleKey, orbylThumbs } from '$lib/worker/config'
+import cuttleform from '$assets/cuttleform.json' assert { type: 'json' }
+import { cuttleConf, type Cuttleform, type CuttleKey, orbylThumbs } from '$lib/worker/config'
 import ETrsf from '$lib/worker/modeling/transformation-ext'
 import { for2, range } from '$lib/worker/util'
+import { readFile } from 'fs/promises'
+import { deserialize } from 'src/routes/beta/lib/serialize'
 import { type Part, setup } from './node-model'
 import { render, renderMulti, type RenderOptions } from './node-render'
 import { PromisePool } from './promisePool'
@@ -18,6 +21,13 @@ async function renderTrimmed(conf: Cuttleform, filename: string, opts?: Opts) {
 
 async function renderMult(confs: Cuttleform[], filename: string, opts?: Opts) {
   const img = await renderMulti(confs, opts?.parts, 5000, 5000, { color: COLOR, ...opts })
+  await img.resize(500, 500, { fit: 'outside' }).trim().toFile(filename)
+}
+
+async function renderURL(hash: string, filename: string, opts?: Opts) {
+  const proto = deserialize(hash, cuttleform).options as any
+  const conf = cuttleConf(proto)
+  const img = await render(conf, opts?.parts, 5000, 5000, { color: COLOR, ...opts })
   await img.resize(500, 500, { fit: 'outside' }).trim().toFile(filename)
 }
 
@@ -251,6 +261,27 @@ export function kbCosmos(): Cuttleform {
   return [{ ...DEFAULTS, keys }, kbOpenSource()[1]]
 }
 
+function kbAdaptive() {
+  const profiles = ['xda', 'cherry', 'mt3', 'des', 'oem']
+  const keys = profiles.map((profile, i) => ({
+    type: 'mx-better',
+    aspect: 1,
+    keycap: { profile, row: i + 1 },
+    aspect: 1,
+    cluster: 'fingers',
+    position: new ETrsf().placeOnMatrix({
+      curvatureOfColumn: 15,
+      curvatureOfRow: 5,
+      spacingOfRows: 20.5,
+      spacingOfColumns: 21.5,
+      column: 0,
+      row: i - 2,
+    }),
+  }))
+
+  return { ...DEFAULTS, keys }
+}
+
 async function main() {
   console.log('Setting up OpenCascade...')
   await setup()
@@ -262,6 +293,25 @@ async function main() {
   pool.add('Stadium', () => renderTrimmed(kbStadium(), docs('/stadium.png'), { cameraPos: [-1, 0.5, 0] }))
   pool.add('OpenSource', () => renderMult(kbOpenSource(), docs('/gen-opensource.png'), { zoom: 300, cameraPos: [0, 1, 0.4] }))
   pool.add('Cosmos', () => renderMult(kbCosmos(), docs('/gen-cosmos.png'), { zoom: 350, cameraPos: [0, 1, 0.4] }))
+  pool.add('Adaptive', () => renderTrimmed(kbAdaptive(), docs('/adaptive.png'), { cameraPos: [1, 0.1, 0], parts: ['holes', 'web'] }))
+  pool.add(
+    'VerticalWeb',
+    () =>
+      renderURL(
+        'cf:ChYIBRAFWAAYBCAFKNIBMM0BUAJAAEgAWpUBChEIy4vMpdAxEI3FlK3is4rkARIRCKCDoIzACBDCmaCVkLyB5AESDwi8ieAwENCVgN2Q9YPkARIQCPSWiqgFEMKZoJWQvIHkARIPCP+DwI3ABxDmmfSnkItyEhEIq4Wcj7ANEPCZzLXQsIDkARIRCN6Sh5jfQBCOoZCdkpCC5AESEwiEhZSVsJeCARCim+CU8tCB5AE=',
+        docs('/verticalweb.png'),
+        { cameraPos: [0.64, 0.15, 0.75] },
+      ),
+  )
+  pool.add(
+    'Arc',
+    () =>
+      renderURL(
+        'cf:ChYIBRAFWAAYASAFKM0BMM0BUAJAAEgAEhEIxgoYyhEg5Qg4jgIoWjC4CCoMCMEDEIMHGMgBIM0BUhQwJwgAEIDwTBiAzvABIAAoqO7BAkJTCAPgAQF4BtgBARABSABIAEgASABIAEgASABgAGgAcAEYACAAKACYAfQDqAHoB6AByAGwAQCQAYQHuAEAgAEAMAA4KFgBiAEBwAEAyAHYBNABhAc=',
+        docs('/kb-arc.png'),
+        { cameraPos: [0.48, 0.56, 0.68] },
+      ),
+  )
 
   await pool.run()
 }

@@ -7,12 +7,12 @@
   import SharedRenderer from '$lib/3d/SharedRenderer.svelte'
 
   const BACK_COMPATIBLE = [
-    'mx-original',
+    'old-mx',
     'choc-hotswap',
-    'mx-snap-in',
-    'mx-hotswap',
-    'box',
-    'mx-snap-in-hotswap',
+    'old-mx-snap-in',
+    'old-mx-hotswap',
+    'old-box',
+    'old-mx-snap-in-hotswap',
   ]
   const BLOCK = ['blank']
 
@@ -29,6 +29,8 @@
   <link rel="canonical" href="https://ryanis.cool/cosmos/parts/" />
   <link rel="icon" href="{base}/favicon.png" />
 </svelte:head>
+
+<svelte:body class="bg-slate-900 mx-4" />
 
 <header class="block py-4 md:flex justify-between px-4">
   <a href="{base}/">
@@ -78,10 +80,6 @@
 </main>
 
 <style>
-  :global(html) {
-    background: rgb(15, 23, 42);
-    margin: 0 1rem;
-  }
   h2 {
     --at-apply: 'text-teal-300 text-3xl mt-12 mx-2 mb-6';
   }

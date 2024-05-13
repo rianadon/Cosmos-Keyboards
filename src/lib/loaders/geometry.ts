@@ -20,12 +20,23 @@ export function fromGeometry(geometry: ShapeMesh | undefined | null) {
   return geo
 }
 
-export function boundingSize(geometry: THREE.BufferGeometry[]) {
+type TransformedGeometry = {
+  mesh: THREE.BufferGeometry
+  matrix: THREE.Matrix4
+}
+
+export function boundingSize(geometry: (THREE.BufferGeometry | TransformedGeometry)[]) {
   const size = new Vector3()
   const boundingBox = new Box3(new Vector3(-0.1, -0.1, -0.1), new Vector3(0.1, 0.1, 0.1))
   for (const g of geometry) {
-    g.computeBoundingBox()
-    boundingBox.union(g.boundingBox!)
+    if ('matrix' in g) {
+      g.mesh.computeBoundingBox()
+      g.mesh.boundingBox!.applyMatrix4(g.matrix)
+      boundingBox.union(g.mesh.boundingBox!)
+    } else {
+      g.computeBoundingBox()
+      boundingBox.union(g.boundingBox!)
+    }
   }
   boundingBox.getSize(size)
   return size

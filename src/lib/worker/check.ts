@@ -1,17 +1,21 @@
 import { BOARD_PROPERTIES } from '$lib/geometry/microcontrollers'
 import { SCREWS } from '$lib/geometry/screws'
+import { socketSize } from '$lib/geometry/socketsParts'
 import { switchInfo } from '$lib/geometry/switches'
-import { Triangle, Vector2, Vector3 } from 'three'
+import { simpleSocketTris } from '$lib/loaders/simpleparts'
+import type { Triangle } from 'three'
 import { Octree } from 'three/examples/jsm/math/Octree'
+import { Vector2 } from 'three/src/math/Vector2'
+import { calcTravel, ITriangle, simpleKey, simpleKeyPosition } from '../loaders/simplekeys'
 import type { Cuttleform, CuttleKey, Geometry } from './config'
-import { allKeyCriticalPoints, allWallCriticalPoints, boardIndices, keyHolesTrsfs, keyHolesTrsfs2D, solveTriangularization } from './geometry'
-import Trsf from './modeling/transformation'
+import type { CriticalPoints } from './geometry'
+import { intersectPolyPoly } from './geometry.intersections'
+import Trsf, { Vector } from './modeling/transformation'
 import ETrsf from './modeling/transformation-ext'
-import { ITriangle, simpleKey, simplekeyGeo, simpleTris } from './simplekeys'
 
 interface IntersectionError {
   type: 'intersection'
-  what: 'hole' | 'keycap'
+  what: 'keycap' | 'socket' | 'part'
   i: number
   j: number
   travel?: number[]
@@ -51,12 +55,25 @@ interface NanError {
 interface NoKeysError {
   type: 'nokeys'
 }
+interface WallBoundsError {
+  type: 'wallBounds'
+  i: number
+}
 
 const PROPERTIES = ['aspect', 'type', 'position']
 
-export type ConfError = IntersectionError | MissingError | WrongError | OobError | InvalidError | ExceptionError | NanError | NoKeysError
+export type ConfError = IntersectionError | MissingError | WrongError | OobError | InvalidError | ExceptionError | NanError | NoKeysError | WallBoundsError
 
-export function checkConfig(conf: Cuttleform, geometry: Geometry, check3d = true): ConfError | null {
+export function isRenderable(e: ConfError | undefined) {
+  if (!e) return true
+  return e.type == 'intersection' || e.type == 'wallBounds'
+}
+
+export function isWarning(e: ConfError) {
+  return e.type == 'wallBounds' || (e.type == 'intersection' && e.what == 'socket')
+}
+
+export function checkConfig(conf: Cuttleform, geometry: Geometry, check3d = true): ConfError | undefined {
   if (!conf.keys.length) return { type: 'nokeys' }
 
   for (const key of conf.keys) {
@@ -86,29 +103,32 @@ export function checkConfig(conf: Cuttleform, geometry: Geometry, check3d = true
   if (!SCREWS[conf.screwSize].mounting[conf.screwType]) {
     return { type: 'invalid', item: 'screwType', value: conf.screwType, valid: Object.keys(SCREWS[conf.screwSize].mounting) }
   }
+  if (!['average', 'slim', 'big', undefined].includes(conf.connectorSizeUSB)) {
+    return { type: 'invalid', item: 'connectorSizeUSB', value: conf.connectorSizeUSB, valid: ['average', 'slim', 'big'] }
+  }
 
   const cpts = geometry.allKeyCriticalPoints2D
   const pts = cpts.map(a => a.map(x => new Vector2(...x.xy())))
 
-  for (const intersection of holeIntersections(pts)) {
-    return intersection
-  }
+  // for (const intersection of holeIntersections(pts)) {
+  //   return intersection
+  // }
 
   if (!check3d) return null
 
   try {
-    const trsfs3d = geometry.keyHolesTrsfs
-    const cpts3d = geometry.allKeyCriticalPoints
-    const { triangles } = geometry.solveTriangularization
-    const flatpts = cpts3d.flat()
-    const tris = triangles.map(([a, b, c]) => new ITriangle(flatpts[a].origin(), flatpts[b].origin(), flatpts[c].origin(), -1))
+    // const trsfs3d = geometry.keyHolesTrsfs
+    // const cpts3d = geometry.allKeyCriticalPoints
+    // const { triangles } = geometry.solveTriangularization
+    // const flatpts = cpts3d.flat()
+    // const tris = triangles.map(([a, b, c]) => new ITriangle(flatpts[a].origin(), flatpts[b].origin(), flatpts[c].origin(), -1))
 
     // @ts-ignore
-    for (const intersection of keycapIntersections(conf, trsfs3d, tris)) {
-      console.log(intersection)
-      return intersection
-    }
-    const wallPts = geometry.allWallCriticalPoints()
+    // for (const intersection of keycapIntersections(conf, trsfs3d, tris)) {
+    //   console.log(intersection)
+    //   return intersection
+    // }
+    const wallPts = geometry.allWallCriticalPointsBase()
     for (const idx of conf.screwIndices) {
       if (idx >= wallPts.length) return { type: 'oob', idx, item: 'screwIndices', len: wallPts.length }
     }
@@ -117,75 +137,132 @@ export function checkConfig(conf: Cuttleform, geometry: Geometry, check3d = true
     }
   } catch (e) {
     console.error(e)
-    return { type: 'exception', when: 'laying out the walls', error: e }
+    return { type: 'exception', when: 'laying out the walls', error: e as Error }
   }
 
   try {
     const boardInd = geometry.boardIndices
   } catch (e) {
     console.error(e)
-    return { type: 'exception', when: 'positioning the board', error: e }
-  }
-
-  return null
-}
-
-export function* holeIntersections(polys: Vector2[][]): Generator<IntersectionError> {
-  for (let i = 0; i < polys.length; i++) {
-    for (let j = i + 1; j < polys.length; j++) {
-      if (intersects(polys[i], polys[j])) {
-        yield {
-          type: 'intersection',
-          what: 'hole',
-          i,
-          j,
-        }
-      }
-    }
+    return { type: 'exception', when: 'positioning the board', error: e as Error }
   }
 }
 
-function travel(k: CuttleKey) {
-  const swInfo = switchInfo(k.type)
-  return swInfo.height - swInfo.pressedHeight
+// export function* holeIntersections(polys: Vector2[][]): Generator<IntersectionError> {
+//   for (let i = 0; i < polys.length; i++) {
+//     for (let j = i + 1; j < polys.length; j++) {
+//       if (intersectPolyPoly(polys[i], polys[j])) {
+//         yield {
+//           type: 'intersection',
+//           what: 'hole',
+//           i,
+//           j,
+//         }
+//       }
+//     }
+//   }
+// }
+
+/** Return triangles covering a prism defined by its top face & depth.
+ * The triangle is centered at XY and extrudes down, like a socket */
+function prismTriangles(facePoints: Trsf[], center: Trsf, depth: number, index: number) {
+  const topCenter = center.origin()
+  const botCenter = center.pretranslated(0, 0, -depth).origin()
+  const topPts = facePoints.map(p => p.origin())
+  const botPts = facePoints.map(p => p.pretranslated(0, 0, -depth).origin())
+  return facePoints.flatMap((_, i) => {
+    const j = (i + 1) % facePoints.length
+    return [
+      new ITriangle(topPts[i], topPts[j], topCenter, index), // Top
+      new ITriangle(botPts[j], botPts[i], botCenter, index), // Bottom
+      new ITriangle(topPts[i], botPts[i], topPts[j], index), // First side
+      new ITriangle(botPts[i], botPts[j], topPts[j], index), // Second side
+    ]
+  })
 }
 
-function* keycapIntersections(conf: Cuttleform, trsfs: Trsf[], web: ITriangle[]) {
+export function* keycapIntersections(conf: Cuttleform, trsfs: Trsf[], web: ITriangle[]) {
   const tree = new Octree()
   for (const tri of web) {
     tree.addTriangle(tri)
   }
-  simplekeyGeo.update(() => [])
-  simpleTris.update(() => [])
   for (let i = 0; i < trsfs.length; i++) {
     const key = conf.keys[i]
-    if (key.type == 'blank' || key.type == 'ec11' || 'trackball' in key) continue
-    if (!('keycap' in key)) continue
-    const position = trsfs[i].pretranslated(0, 0, switchInfo(key.type).height).Matrix4()
-    const skey = simpleKey(key.keycap.profile, key.aspect, key.keycap.row, position, i, travel(key))
+    const position = simpleKeyPosition(key, trsfs[i])
+    const skey = simpleKey(key, position.Matrix4(), i, true)
     if (!skey) continue
     for (const triangle of skey) {
       tree.addTriangle(triangle)
     }
   }
   tree.build()
-  yield* treeIntersections(conf, tree)
+  yield* treeIntersections(conf, tree, 'keycap')
 }
 
-function* treeIntersections(conf: Cuttleform, tree: Octree) {
+export function* partIntersections(conf: Cuttleform, trsfs: Trsf[]) {
+  const tree = new Octree()
+  for (let i = 0; i < trsfs.length; i++) {
+    const key = conf.keys[i]
+    const skey = simpleSocketTris(key.type, trsfs[i].Matrix4(), i)
+    for (const triangle of skey) {
+      tree.addTriangle(triangle)
+    }
+  }
+  if (tree.triangles.length == 0) return
+  tree.build()
+  yield* treeIntersections(conf, tree, 'part')
+}
+
+export function* unsortedSocketIntersections(conf: Cuttleform, trsfs: Trsf[], critPts: CriticalPoints[], web: ITriangle[]) {
+  const tree = new Octree()
+  for (const tri of web) {
+    tree.addTriangle(tri)
+  }
+  for (let i = 0; i < trsfs.length; i++) {
+    const size = socketSize(conf.keys[i])
+    const prism = prismTriangles(critPts[i], trsfs[i], size.z, i)
+    for (const triangle of prism) {
+      tree.addTriangle(triangle)
+    }
+  }
+  tree.build()
+  yield* treeIntersections(conf, tree, 'socket', true)
+}
+
+/**
+ * Sort socket intersections so that socket<-->socket intersections are returned first.
+ *
+ * Every socket-socket intersection will generate a socket->wall intersection as well,
+ * but the socket-socket intersections are easier to debug so they should get priority.
+ */
+export function* socketIntersections(conf: Cuttleform, trsfs: Trsf[], critPts: CriticalPoints[], web: ITriangle[]) {
+  const socketSocketIntersections: ConfError[] = []
+  const socketWallIntersections: ConfError[] = []
+  for (const intersection of unsortedSocketIntersections(conf, trsfs, critPts, web)) {
+    if (intersection.type != 'intersection') throw new Error('Only intersection errors expected')
+    if (intersection.i == -1 || intersection.j == -1) {
+      socketWallIntersections.push(intersection)
+    } else {
+      socketSocketIntersections.push(intersection)
+    }
+  }
+  yield* socketSocketIntersections
+  yield* socketWallIntersections
+}
+
+function* treeIntersections(conf: Cuttleform, tree: Octree, what: 'keycap' | 'socket' | 'part', ignoreTouching = false): Generator<ConfError> {
   const triangles = tree.triangles as ITriangle[]
   for (let i = 0; i < triangles.length; i++) {
     for (let j = 0; j < i; j++) {
       const ti = triangles[i].i, tj = triangles[j].i
       if (tj == ti) continue
-      if (doTrianglesIntersect(triangles[i], triangles[j])) {
+      if (doTrianglesIntersect(triangles[i], triangles[j], ignoreTouching)) {
         let trvl: number[] = []
-        if (ti >= 0) trvl.push(travel(conf.keys[ti]))
-        if (tj >= 0) trvl.push(travel(conf.keys[tj]))
-        simpleTris.update(t => [...t, triangles[i], triangles[j]])
+        if (ti >= 0) trvl.push(calcTravel(conf.keys[ti]))
+        if (tj >= 0) trvl.push(calcTravel(conf.keys[tj]))
         yield {
           type: 'intersection',
-          what: 'keycap',
+          what,
           i: ti,
           j: tj,
           travel: trvl,
@@ -194,33 +271,8 @@ function* treeIntersections(conf: Cuttleform, tree: Octree) {
     }
   }
   for (const sub of tree.subTrees) {
-    yield* treeIntersections(conf, sub)
+    yield* treeIntersections(conf, sub, what, ignoreTouching)
   }
-}
-
-/** Determine whether two 2D polygons intersect each other. */
-function intersects(a: Vector2[], b: Vector2[]) {
-  for (let i = 0; i < a.length; i++) {
-    const side = new Vector2().copy(a[i]).sub(a[(i + 1) % a.length]).normalize()
-    const normal = new Vector2(-side.y, side.x)
-
-    const projA = a.map(p => p.dot(normal))
-    const projB = b.map(p => p.dot(normal))
-    if (Math.max(...projA) < Math.min(...projB) || Math.min(...projA) > Math.max(...projB)) {
-      return false
-    }
-  }
-  for (let i = 0; i < b.length; i++) {
-    const side = new Vector2().copy(b[i]).sub(b[(i + 1) % b.length]).normalize()
-    const normal = new Vector2(-side.y, side.x)
-
-    const projA = a.map(p => p.dot(normal))
-    const projB = b.map(p => p.dot(normal))
-    if (Math.max(...projA) < Math.min(...projB) || Math.min(...projA) > Math.max(...projB)) {
-      return false
-    }
-  }
-  return true
 }
 
 export function isPro(conf: Cuttleform) {
@@ -228,7 +280,18 @@ export function isPro(conf: Cuttleform) {
 }
 
 // https://stackoverflow.com/questions/7113344/find-whether-two-triangles-intersect-or-not
-export function doTrianglesIntersect(t1: Triangle, t2: Triangle) {
+export function doTrianglesIntersect(t1: Triangle, t2: Triangle, ignoreTouching = false) {
+  if (ignoreTouching) {
+    // Return false if any triangles share a vertex
+    if (
+      t1.a.equals(t2.a) || t1.a.equals(t2.b) || t1.a.equals(t2.c)
+      || t1.b.equals(t2.a) || t1.b.equals(t2.b) || t1.b.equals(t2.c)
+      || t1.c.equals(t2.a) || t1.c.equals(t2.b) || t1.c.equals(t2.c)
+    ) {
+      return false
+    }
+  }
+
   /*
     Adapated from section "4.1 Separation of Triangles" of:
 
@@ -266,8 +329,8 @@ export function doTrianglesIntersect(t1: Triangle, t2: Triangle) {
   var D = B0.clone().sub(A0)
 
   // START ADDITIONS: Detect coplanar
-  const n1 = new Vector3().copy(N).normalize()
-  const n2 = new Vector3().copy(M).normalize()
+  const n1 = new Vector().copy(N).normalize()
+  const n2 = new Vector().copy(M).normalize()
 
   // They have the same normal vector
   if (1 - n1.dot(n2) < 1e-9) {
@@ -280,7 +343,7 @@ export function doTrianglesIntersect(t1: Triangle, t2: Triangle) {
     // F0 and F1 are already perpendicular to the normal vector, so there's no need
     // to subtract out their projections
     const a = F0
-    const b = new Vector3().copy(F1).addScaledVector(a, -a.dot(F1)).normalize()
+    const b = new Vector().copy(F1).addScaledVector(a, -a.dot(F1)).normalize()
     // Project the triangle points onto these axes
     const ptsA = [
       new Vector2(t1.a.dot(a), t1.a.dot(b)),
@@ -292,12 +355,12 @@ export function doTrianglesIntersect(t1: Triangle, t2: Triangle) {
       new Vector2(t2.b.dot(a), t2.b.dot(b)),
       new Vector2(t2.c.dot(a), t2.c.dot(b)),
     ]
-    return intersects(ptsA, ptsB)
+    return intersectPolyPoly(ptsA, ptsB)
   }
 
   // END ADDITIONS
 
-  function areProjectionsSeparated(p0, p1, p2, q0, q1, q2) {
+  function areProjectionsSeparated(p0: number, p1: number, p2: number, q0: number, q1: number, q2: number) {
     var min_p = Math.min(p0, p1, p2),
       max_p = Math.max(p0, p1, p2),
       min_q = Math.min(q0, q1, q2),

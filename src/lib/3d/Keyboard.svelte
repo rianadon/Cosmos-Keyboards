@@ -3,7 +3,7 @@
   import { keyHolesTrsfs } from '$lib/worker/geometry'
   import Trsf from '$lib/worker/modeling/transformation'
   import type { BufferGeometry, Matrix4 } from 'three'
-  import type { ConfError } from '$lib/worker/check'
+  import { isWarning, type ConfError } from '$lib/worker/check'
   import KeyboardKey from './KeyboardKey.svelte'
   import GroupMatrix from './GroupMatrix.svelte'
   import type { CuttleKey, Cuttleform } from '$lib/worker/config'
@@ -11,7 +11,8 @@
   import * as flags from '$lib/flags'
   import type { KeyStatus } from './keyboardKey'
   import { keyGeometries } from '$lib/loaders/keycaps'
-  import { offsetPart, partGeometries } from '$lib/loaders/parts'
+  import { partGeometries } from '$lib/loaders/parts'
+  import { showKeyInts } from '$lib/store'
 
   export let config: Cuttleform
   export let transparency: number
@@ -30,6 +31,7 @@
     status?: KeyStatus
     offset: number
     matrix: Matrix4
+    renderOrder?: number
   }
 
   let geos: Key[][] = []
@@ -54,7 +56,8 @@
         let status: KeyStatus = undefined
         if (reachability && !reachability[x.i]) status = 'warning'
         if (error && error.type == 'intersection' && (error.i == x.i || error.j == x.i))
-          status = 'error'
+          status = isWarning(error) ? 'warning' : 'error'
+        if (error && error.type == 'wallBounds' && error.i == x.i) status = 'warning'
         const offset = offsetHeight(config.keys[x.i])
         geos[x.i].push({
           geometry: x.geometry,
@@ -64,16 +67,27 @@
           status,
           offset,
           matrix: x.matrix,
+          renderOrder: 5,
         })
       })
     for (const x of s) {
       if (!x) throw new Error('oops')
+      let status: KeyStatus = undefined
+      if (
+        error &&
+        error.type == 'intersection' &&
+        error.what == 'socket' &&
+        (error.i == x.i || error.j == x.i)
+      )
+        status = isWarning(error) ? 'warning' : 'error'
+      if (error && error.type == 'wallBounds' && error.i == x.i) status = 'warning'
       geos[x.i].push({
         geometry: x.geometry,
         brightness: 0.7,
         matrix: x.matrix,
-        offset: offsetPart(config.keys[x.i].type)[2],
+        offset: 0,
         translation: 0,
+        status,
       })
     }
   }
@@ -88,7 +102,7 @@
   }
 </script>
 
-{#if transparency != 0}
+{#if transparency != 0 && !$showKeyInts}
   {#each geos as g, i}
     {#if customThumbConfig && i >= customStart && i - customStart < customThumbConfig.length}
       {#each g as k}
@@ -101,6 +115,7 @@
             status={k.status}
             geometry={k.geometry}
             position={[0, 0, k.offset + k.translation]}
+            renderOrder={k.renderOrder}
           />
         </GroupMatrix>
       {/each}
@@ -115,6 +130,7 @@
             status={k.status}
             geometry={k.geometry}
             position={[0, 0, k.translation]}
+            renderOrder={k.renderOrder}
           />
         </GroupMatrix>
       {/each}

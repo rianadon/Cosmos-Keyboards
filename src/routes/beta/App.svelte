@@ -8,29 +8,27 @@
   import ViewerBottom from './lib/viewers/ViewerBottom.svelte'
   import ViewerTiming from './lib/viewers/ViewerTiming.svelte'
   import KeyboardMesh from '$lib/3d/KeyboardMesh.svelte'
+  import GroupMatrix from '$lib/3d/GroupMatrix.svelte'
   import Popover from 'svelte-easy-popover'
   import Icon from '$lib/presentation/Icon.svelte'
-  import Checkbox from '$lib/presentation/Checkbox.svelte'
   import * as mdi from '@mdi/js'
   import { boundingSize, fromGeometry } from '$lib/loaders/geometry'
-  import { estimateFilament, SUPPORTS_DENSITY } from './lib/filament'
+  import { estimateFilament, SUPPORTS_DENSITY, type FilamentEstimate } from './lib/filament'
   import * as flags from '$lib/flags'
-  import { trackEvent } from '$lib/telemetry'
   import Performance from './lib/Performance.svelte'
 
   import UrlView from './lib/dialogs/URLView.svelte'
   import BomView from './lib/dialogs/BomView.svelte'
   import KleView from './lib/dialogs/KleView.svelte'
+  import HandFitView from './lib/dialogs/HandFitView.svelte'
   import cuttleform from '$assets/cuttleform.json'
-  import Dialog from './lib/dialogs/Dialog.svelte'
+  import Dialog from '$lib/presentation/Dialog.svelte'
   import Footer from './lib/Footer.svelte'
   import Editor from './lib/editor/CodeEditor.svelte'
   import Preset from '$lib/presentation/Preset.svelte'
   import FilamentChart from './lib/FilamentChart.svelte'
   import DarkTheme from './lib/DarkTheme.svelte'
   import { serialize, deserialize } from './lib/serialize'
-
-  import { download } from './lib/browser'
   import { WorkerPool, type TaskError } from './lib/workerPool'
   import {
     newGeometry,
@@ -38,14 +36,28 @@
     type CuttleformProto,
     type Geometry,
   } from '$lib/worker/config'
-  import { checkConfig, isPro, type ConfError } from '$lib/worker/check'
+  import { checkConfig, type ConfError, isRenderable, isWarning } from '$lib/worker/check'
   import VisualEditor from './lib/editor/VisualEditor.svelte'
-  import { Vector3, type BufferGeometry } from 'three'
+  import { Vector3, BufferGeometry, Matrix4 } from 'three'
   import { estimatedCenter } from '$lib/worker/geometry'
-  import { codeError, flip, protoConfig, user, theme, showHand, stiltsMsg } from '$lib/store'
+  import {
+    codeError,
+    flip,
+    protoConfig,
+    user,
+    theme,
+    showHand,
+    stiltsMsg,
+    developer,
+    showTiming,
+    noWall,
+    noBase,
+  } from '$lib/store'
   import { onDestroy } from 'svelte'
   import { browser } from '$app/environment'
   import { hasPro } from '@pro'
+  import ViewerDev from './lib/viewers/ViewerDev.svelte'
+  import DownloadDialog from './lib/dialogs/DownloadDialog.svelte'
 
   let supportGeometries: BufferGeometry[] = []
   let center = [-35.510501861572266, -17.58449935913086, 35.66889877319336] as [
@@ -54,10 +66,9 @@
     number
   ]
   let size = new Vector3(140, 120, 100)
-  let filament
+  let filament: FilamentEstimate | undefined
   let referenceElement
-  let referenceElementTools
-  let referenceElementStitch
+  let referenceElementTools: HTMLButtonElement
   let darkMode: boolean
 
   let proOpen = false
@@ -76,8 +87,6 @@
     //  state = deserialize(location.hash.substring(1), cuttleform);
   }
 
-  let logs = []
-
   let ocError: TaskError | undefined
   let modelOpacity = 1
   let confError: ConfError | undefined
@@ -86,6 +95,7 @@
   let mode = state.content ? 'advanced' : 'basic'
   let viewer = '3d'
   let transparency = 95
+  let errorMsg = false
   $: cTransparency = showSupports ? 0 : transparency
   $: plateTopOpacity = Math.pow(
     plateBotBuf
@@ -102,12 +112,12 @@
   let urlView = false
   let bomView = false
   let kleView = false
+  let showFit = false
 
   const pool = new WorkerPool<typeof import('$lib/worker/api')>(4, () => {
     return new Worker(new URL('$lib/worker?worker', import.meta.url), { type: 'module' })
   })
   onDestroy(() => pool.reset())
-  let webMeshId = ''
 
   $: if ($protoConfig || (mode == 'advanced' && editorContent))
     try {
@@ -137,77 +147,13 @@
   //$: config = cuttleConf(state.options)
   let config: Cuttleform
   let geometry: Geometry | null = null
-  $: if (config && browser) process(config, $theme).catch((e) => console.error(e))
-
-  let generatingSTEP = false
-  let generatingSTL = false
-  let generatingError: Error | undefined
-  let stitchWalls = true
-
-  function downloadSTEP(flip: boolean) {
-    const begin = window.performance.now()
-    generatingSTEP = true
-    pool
-      .executeNow((w) => w.getSTEP(config, flip, stitchWalls) as Promise<Blob>)
-      .then(addMetadataToSTEP)
-      .then(
-        (blob) => {
-          trackEvent('cosmos-step', {
-            model: 'keyboard',
-            time: window.performance.now() - begin,
-          })
-          download(blob, 'keyboard' + (flip ? '-left' : '-right') + '.step')
-          generatingError = undefined
-          generatingSTEP = false
-        },
-        (e) => {
-          generatingSTEP = false
-          console.error(e)
-          generatingError = e
-        }
-      )
-  }
-
-  async function addMetadataToSTEP(blob: Blob) {
-    const text = await blob.text()
-    const replaced = text
-      .replace("FILE_DESCRIPTION(('Open CASCADE Model')", "FILE_DESCRIPTION(('Cosmos Model')")
-      .replace("FILE_NAME('Open CASCADE Shape Model'", `FILE_NAME('${location.href}'`)
-    return new Blob([replaced], { type: blob.type })
-  }
-
-  function downloadSTL(model: string, flip: boolean) {
-    const begin = window.performance.now()
-    generatingSTL = true
-    pool
-      .executeNow((w) => w.getSTL(config, model, flip) as Promise<Blob>)
-      .then(
-        (blob) => {
-          trackEvent('cosmos-stl', { model, time: window.performance.now() - begin })
-          download(blob, model + (flip ? '-left' : '-right') + '.stl')
-          generatingError = undefined
-          generatingSTL = false
-        },
-        (e) => {
-          generatingSTL = false
-          console.error(e)
-          generatingError = e
-        }
-      )
-  }
-
-  /** Unused: While technically valid, prusaslicer does not like trailing metadata. */
-  async function addMetadataToSTL(blob: Blob) {
-    const contents = await blob.arrayBuffer()
-    const trailing = '\0Exported from ' + location.href
-    return new Blob([contents, trailing], { type: blob.type })
-  }
+  $: if (config && browser) process(config).catch((e) => console.error(e))
 
   let wristBuf: BufferGeometry | undefined
   let plateTopBuf: BufferGeometry | undefined
   let plateBotBuf: BufferGeometry | undefined
   let webBuf: BufferGeometry | undefined
-  let keyBuf: BufferGeometry | undefined
+  let keyBufs: BufferGeometry | undefined
   let wallBuf: BufferGeometry | undefined
   let screwBaseBuf: BufferGeometry | undefined
   let screwPlateBuf: BufferGeometry | undefined
@@ -221,7 +167,7 @@
       ]
     : []
 
-  function areDifferent(c1, c2) {
+  function areDifferent(c1: any, c2: any) {
     const differences = []
 
     for (const prop of new Set([...Object.keys(c1), ...Object.keys(c2)])) {
@@ -230,9 +176,9 @@
     return differences
   }
 
-  let oldConfig = null
-  async function process(conf: Cuttleform, theme) {
-    if (oldConfig) {
+  let oldConfig: Cuttleform | null = null
+  async function process(conf: Cuttleform) {
+    if (oldConfig && geometry) {
       const differences = areDifferent(oldConfig, conf)
       if (differences.length == 0) return
       oldConfig = conf
@@ -248,7 +194,7 @@
           ocError = undefined
         } catch (e) {
           console.error(e)
-          ocError = e
+          ocError = e as TaskError
         }
         return
       }
@@ -258,10 +204,7 @@
 
     geometry = newGeometry(conf)
     confError = checkConfig(conf, geometry)
-    if (confError && (confError.type != 'intersection' || confError.what == 'hole')) {
-      // modelOpacity = 0
-      return
-    }
+    if (confError) return
 
     const settings = conf
 
@@ -272,6 +215,10 @@
 
     pool.reset()
     try {
+      const intersectionsPromise = pool.execute(
+        (w) => w.intersections(settings) as Promise<ConfError | undefined>,
+        'Intersections'
+      )
       const wallPromise = pool.execute((w) => w.generateWalls(settings), 'Walls')
       const webPromise = pool.execute((w) => w.generateWeb(settings), 'Web')
       const keyPromise = pool.execute((w) => w.generateKeys(settings), 'Keys')
@@ -283,7 +230,7 @@
       holderBuf = undefined
       wallBuf = undefined
       webBuf = undefined
-      keyBuf = undefined
+      keyBufs = undefined
       plateTopBuf = undefined
       plateBotBuf = undefined
 
@@ -298,14 +245,19 @@
       }
 
       center = estimatedCenter(geometry, !!config.wristRest)
+      confError = await intersectionsPromise
       const wallMesh = await wallPromise
       const webMesh = await webPromise
       const keyMesh = await keyPromise
       let plateMesh = await platePromise
 
       webBuf = fromGeometry(webMesh.mesh)
-      keyBuf = fromGeometry(keyMesh.mesh)
-      size = boundingSize([keyBuf!, webBuf!])
+      keyBufs = keyMesh.keys.map((k) => ({
+        ...k,
+        mesh: fromGeometry(k.mesh),
+        matrix: new Matrix4().copy(k.matrix),
+      }))
+      size = boundingSize([...keyBufs!, webBuf!])
       const wallMeshMesh = fromGeometry(wallMesh.mesh)
       wallBuf = wallMeshMesh
       plateTopBuf = fromGeometry(plateMesh.top.mesh)
@@ -370,17 +322,8 @@
       ocError = undefined
     } catch (e) {
       console.error(e)
-      ocError = e
+      ocError = e as TaskError
     }
-  }
-
-  function loadPreset(s: any) {
-    for (const [k1, o1] of Object.entries(s)) {
-      for (const [k2, o2] of Object.entries(o1)) {
-        state.options[k1][k2] = o2
-      }
-    }
-    state = state
   }
 
   function setMode(newMode: string) {
@@ -410,6 +353,12 @@
        <Github size="2em" />
        </a>-->
 
+  <a
+    class="mr-6 flex items-center gap-2 border-2 px-3 py-1 rounded border-gray-500/20 hover:border-gray-500 transition-border-color text-gray-600 dark:text-gray-200"
+    href="docs/"
+  >
+    Docs & FAQ
+  </a>
   {#if flags.login && hasPro}
     <Login bind:dialogOpen={proOpen} />
   {/if}
@@ -444,7 +393,7 @@
           on:click={() => (viewer = 'programming')}
           selected={viewer == 'programming'}>Program</Preset
         >
-        <div class="preset-overflow hidden xl:block">
+        <div class="preset-overflow <xl:hidden">
           <Preset
             purple
             class="relative z-10 !px-2"
@@ -457,17 +406,25 @@
             on:click={() => (viewer = 'thick')}
             selected={viewer == 'thick'}>Thickness</Preset
           >
-          {#if flags.timing}<Preset
+          {#if $showTiming}<Preset
               purple
               class="relative z-10 !px-2"
               on:click={() => (viewer = 'timing')}
               selected={viewer == 'timing'}>Timing</Preset
             >{/if}
+          {#if $developer}
+            <Preset
+              purple
+              class="relative z-10 !px-2"
+              on:click={() => (viewer = 'dev')}
+              selected={viewer == 'dev'}>Dev</Preset
+            >
+          {/if}
         </div>
         <Preset
           purple
           class="xl:hidden relative z-10 !px-2 flex items-center gap-2"
-          selected={viewer == 'board' || viewer == 'thick' || viewer == 'timing'}
+          selected={['board', 'thick', 'timing', 'dev'].includes(viewer)}
           bind:button={referenceElementTools}><Icon path={mdi.mdiToolboxOutline} /> ...</Preset
         >
         <input
@@ -512,12 +469,20 @@
               on:click={() => (viewer = 'thick')}
               selected={viewer == 'thick'}>Thickness</Preset
             >
-            {#if flags.timing}<Preset
+            {#if $showTiming}<Preset
                 purple
                 class="relative z-10 !px-2"
                 on:click={() => (viewer = 'timing')}
                 selected={viewer == 'timing'}>Timing</Preset
               >{/if}
+            {#if $developer}
+              <Preset
+                purple
+                class="relative z-10 !px-2"
+                on:click={() => (viewer = 'dev')}
+                selected={viewer == 'dev'}>Dev</Preset
+              >
+            {/if}
           </div>
         </Popover>
       </div>
@@ -525,37 +490,54 @@
         <Viewer3D
           {geometry}
           transparency={cTransparency}
-          conf={confError && confError.type != 'intersection' ? undefined : config}
+          conf={isRenderable(confError) ? config : undefined}
           is3D
           isExpert={mode == 'advanced'}
           {showSupports}
           {center}
           {size}
+          bind:showFit
           style="opacity: {modelOpacity}"
           enableZoom={true}
           flip={$flip}
           showHand={$showHand}
           error={confError}
         >
-          <KeyboardMesh kind="case" geometry={keyBuf} />
-          <KeyboardMesh kind="case" geometry={screwBaseBuf} />
-          <KeyboardMesh
-            kind="case"
-            geometry={holderBuf}
-            brightness={0.5}
-            opacity={0.9}
-            visible={!showSupports}
-          />
-          {#if !flags.noWall && !hideWall}<KeyboardMesh kind="case" geometry={wallBuf} />{/if}
+          {#each keyBufs || [] as key}
+            <GroupMatrix matrix={key.matrix}>
+              <KeyboardMesh
+                kind="case"
+                scale={key.flip && $flip ? [-1, 1, 1] : [1, 1, 1]}
+                geometry={key.mesh}
+              />
+            </GroupMatrix>
+          {/each}
+          {#if !$noWall && !hideWall}<KeyboardMesh kind="case" geometry={wallBuf} />{/if}
           <KeyboardMesh kind="case" geometry={webBuf} />
-          <KeyboardMesh kind="key" geometry={plateTopBuf} opacity={plateTopOpacity} />
-          <KeyboardMesh
-            kind="key"
-            geometry={plateBotBuf}
-            opacity={Math.pow((cTransparency - 50) / 50, 3)}
-          />
-          <KeyboardMesh kind="key" geometry={screwPlateBuf} opacity={plateScrewOpacity} />
-          <KeyboardMesh kind="key" geometry={wristBuf} opacity={cTransparency / 100} />
+          {#if !$noBase}
+            <KeyboardMesh kind="case" geometry={screwBaseBuf} />
+            <KeyboardMesh
+              kind="key"
+              geometry={plateTopBuf}
+              opacity={plateTopOpacity}
+              renderOrder="10"
+            />
+            <KeyboardMesh
+              kind="key"
+              geometry={plateBotBuf}
+              opacity={Math.pow((cTransparency - 50) / 50, 3)}
+              renderOrder="10"
+            />
+            <KeyboardMesh kind="key" geometry={screwPlateBuf} opacity={plateScrewOpacity} />
+            <KeyboardMesh kind="key" geometry={wristBuf} opacity={cTransparency / 100} />
+            <KeyboardMesh
+              kind="case"
+              geometry={holderBuf}
+              brightness={0.5}
+              opacity={0.9}
+              visible={!showSupports}
+            />
+          {/if}
           {#if showSupports}
             {#each supportGeometries as geo}
               <KeyboardMesh kind="case" geometry={geo} brightness={0.5} opacity={0.8} />
@@ -565,36 +547,49 @@
       {:else if viewer == 'thick'}
         <Thick3D
           {geometry}
-          transparency={cTransparency}
-          conf={confError && confError.type != 'intersection' ? undefined : config}
+          conf={isRenderable(confError) ? config : undefined}
           is3D
-          isExpert={mode == 'advanced'}
           {center}
           {size}
           style="opacity: {modelOpacity}"
           enableZoom={true}
           flip={$flip}
-          showHand={$showHand}
-          error={confError}
+          {darkMode}
         >
-          <KeyboardMesh kind="case" geometry={keyBuf} />
-          <KeyboardMesh kind="case" geometry={screwBaseBuf} />
-          <KeyboardMesh
-            kind="case"
-            geometry={holderBuf}
-            brightness={0.5}
-            opacity={0.9}
-            visible={!showSupports}
-          />
-          {#if !flags.noWall && !hideWall}<KeyboardMesh kind="case" geometry={wallBuf} />{/if}
-          <KeyboardMesh kind="key" geometry={plateTopBuf} opacity={plateTopOpacity} />
-          <KeyboardMesh
-            kind="key"
-            geometry={plateBotBuf}
-            opacity={Math.pow((cTransparency - 50) / 50, 3)}
-          />
-          <KeyboardMesh kind="key" geometry={screwPlateBuf} opacity={plateScrewOpacity} />
-          <KeyboardMesh kind="key" geometry={wristBuf} opacity={cTransparency / 100} />
+          {#each keyBufs || [] as key}
+            <GroupMatrix matrix={key.matrix}>
+              <KeyboardMesh
+                kind="case"
+                scale={key.flip && $flip ? [-1, 1, 1] : [1, 1, 1]}
+                geometry={key.mesh}
+              />
+            </GroupMatrix>
+          {/each}
+          {#if !$noWall && !hideWall}<KeyboardMesh kind="case" geometry={wallBuf} />{/if}
+          {#if !$noBase}
+            <KeyboardMesh kind="case" geometry={screwBaseBuf} />
+            <KeyboardMesh
+              kind="key"
+              geometry={plateTopBuf}
+              opacity={plateTopOpacity}
+              renderOrder="10"
+            />
+            <KeyboardMesh
+              kind="key"
+              geometry={plateBotBuf}
+              opacity={Math.pow((cTransparency - 50) / 50, 3)}
+              renderOrder="10"
+            />
+            <KeyboardMesh kind="key" geometry={screwPlateBuf} opacity={plateScrewOpacity} />
+            <KeyboardMesh kind="key" geometry={wristBuf} opacity={cTransparency / 100} />
+            <KeyboardMesh
+              kind="case"
+              geometry={holderBuf}
+              brightness={0.5}
+              opacity={0.9}
+              visible={!showSupports}
+            />
+          {/if}
           {#if showSupports}
             {#each supportGeometries as geo}
               <KeyboardMesh kind="case" geometry={geo} brightness={0.5} opacity={0.8} />
@@ -609,6 +604,8 @@
         <ViewerBottom {geometry} {darkMode} conf={config} {confError} />
       {:else if viewer == 'timing'}
         <ViewerTiming {pool} {darkMode} />
+      {:else if viewer == 'dev'}
+        <ViewerDev />
       {/if}
       {#if filament && config.shell?.type == 'basic'}
         <div
@@ -658,41 +655,16 @@
           <h3 class="font-bold">There is an error with your code.</h3>
           <p class="mb-2">{$codeError.message}</p>
         </div>
-      {/if}
-      {#if confError && viewer == '3d'}
-        <div class="absolute text-white m-4 left-0 right-0 rounded p-4 top-[10%] bg-red-700">
-          <h3 class="font-bold">There is a problem with the configuration.</h3>
-          {#if confError.type == 'intersection'}
-            {#if confError.what == 'hole'}
-              <p class="mb-2">Two of the key wells intersect.</p>
-              <p class="mb-2">Switch to the "Keys" tab to view the problem.</p>
-            {:else if confError.what == 'keycap' && (confError.i < 0 || confError.j < 0)}
-              <p class="mb-2">
-                One of the keycaps intersects the walls{#if confError.travel}&nbsp;when pressed down {confError
-                    .travel[0]}mm{/if}.
-              </p>
-            {:else if confError.what == 'keycap'}
-              <p class="mb-2">
-                Two of the keycaps intersect, either in their current positions or when pressed down{#if confError.travel}&nbsp;with
-                  {confError.travel[0]}mm of travel{/if}.
-              </p>
-            {/if}
-            <p class="mb-2">
-              If you're using Advanced mode, you can try adjusting the stagger to correct the issue.
-            </p>
-            <p class="mb-2">
-              If the issue is within the thumb cluster, increase the vertical and horizontal
-              spacings in Advanced mode.
-            </p>
-          {:else if confError.type == 'missing'}
-            <p class="mb-2">
-              In your configuration, the property <code>{confError.item}</code> is missing.
-            </p>
-            {#if confError.key}
-              <p class="mb-2">Check the key with this configuration:</p>
-              <pre class="text-xs"><code>{JSON.stringify(confError.key, null, 2)}</code></pre>
-            {/if}
-          {:else if confError.type == 'invalid'}
+      {:else if confError && viewer == '3d'}
+        <div
+          class="errorMsg"
+          class:expand={errorMsg}
+          class:custom={$protoConfig && $protoConfig.thumbCluster.oneofKind == 'customThumb'}
+          class:bg-red-700={!isWarning(confError)}
+          class:bg-yellow-700={isWarning(confError)}
+        >
+          {#if errorMsg}<h3 class="font-bold">There is a problem with the configuration.</h3>{/if}
+          {#if confError.type == 'invalid'}
             <p class="mb-2">
               In your configuration, the property <code>{confError.item}</code> has the wrong data type.
             </p>
@@ -726,6 +698,94 @@
               You silly goose! You can't make a keyboard without keys. <br />That's like riding a
               snowboard without snow.
             </p>
+          {:else if confError.type == 'missing'}
+            <p class="mb-2">
+              In your configuration, the property <code>{confError.item}</code> is missing.
+            </p>
+            {#if confError.key}
+              <p class="mb-2">Check the key with this configuration:</p>
+              <pre class="text-xs"><code>{JSON.stringify(confError.key, null, 2)}</code></pre>
+            {/if}
+          {:else if errorMsg}
+            <div>
+              {#if confError.type == 'intersection'}
+                {#if confError.what == 'keycap' && (confError.i < 0 || confError.j < 0)}
+                  <p class="mb-2">
+                    One of the keycaps intersects the walls{#if confError.travel}&nbsp;when pressed
+                      down {confError.travel[0]}mm{/if}.
+                  </p>
+                {:else if confError.what == 'keycap'}
+                  <p class="mb-2">
+                    Two of the keycaps intersect, either in their current positions or when pressed
+                    down{#if confError.travel}&nbsp;with
+                      {confError.travel[0]}mm of travel{/if}.
+                  </p>
+                {:else if confError.what == 'part'}
+                  <p class="mb-2">
+                    Two of the parts
+                    {#if config && (config.keys[confError.i].type == 'mx-pcb' || config.keys[confError.j].type == 'mx-pcb')}
+                      (switches or PCBs)
+                    {:else}
+                      (switches)
+                    {/if} intersect.
+                  </p>
+                {:else if confError.what == 'socket' && (confError.i < 0 || confError.j < 0)}
+                  <p class="mb-2">
+                    One of the sockets intersects the walls. This is ok, but the exported model will
+                    contains errors and might create problems when slicing.
+                  </p>
+                {:else if confError.what == 'socket'}
+                  <p class="mb-2">
+                    Two of the key sockets intersect. This is ok, but the exported model will
+                    contain errors and might create problems when slicing.
+                  </p>
+                {/if}
+                <p class="mb-2">
+                  If you're using Advanced mode, you can try adjusting the stagger, increasing the
+                  spacing, or adding outwards arc to correct the issue.
+                  {#if confError.what != 'socket'}You can also try decreasing webMinThicknessFactor
+                    in expert mode.{/if}
+                </p>
+                <p class="mb-2">
+                  If the issue is within the thumb cluster, increase the vertical and horizontal
+                  spacings in Advanced mode or switch to custom thumbs mode.
+                </p>
+              {:else if confError.type == 'wallBounds'}
+                <p class="mb-2">
+                  One of the keys sticks out past the wall boundary. The keyboard will print, but
+                  you may see a small hole in this spot.
+                </p>
+                <p>To correct this issue, try adjusting the stagger or moving the keys around.</p>
+              {/if}
+            </div>
+            <div class="flex-0 pl-2 absolute top-[1rem] right-[1.5rem]">
+              <button on:click={() => (errorMsg = !errorMsg)}
+                ><Icon path={mdi.mdiArrowCollapseUp} /></button
+              >
+            </div>
+          {:else}
+            <div>
+              {#if confError.type == 'intersection'}
+                {#if confError.what == 'keycap' && (confError.i < 0 || confError.j < 0)}
+                  Keycap + Walls Intersect
+                {:else if confError.what == 'keycap'}
+                  Keycaps Intersect
+                {:else if confError.what == 'part'}
+                  Parts Intersect
+                {:else if confError.what == 'socket' && (confError.i < 0 || confError.j < 0)}
+                  Socket + Walls Intersect
+                {:else if confError.what == 'socket'}
+                  Sockets Intersect
+                {/if}
+              {:else if confError.type == 'wallBounds'}
+                Key Sticks Past Walls
+              {/if}
+            </div>
+            <div class="flex-0 pl-2">
+              <button on:click={() => (errorMsg = !errorMsg)}
+                ><Icon path={mdi.mdiArrowExpandDown} /></button
+              >
+            </div>
           {/if}
         </div>
       {:else if ocError && viewer == '3d'}
@@ -833,7 +893,6 @@
           cuttleformConf={state.options}
           bind:conf={config}
           bind:geometry
-          on:preset={(m) => loadPreset(m.detail)}
           on:goAdvanced={() => (mode = 'intermediate')}
         />
       {:else}
@@ -865,7 +924,7 @@
         <div class="bg-red-200 m-4 rounded p-4 dark:bg-red-700">
           Bill of Materials will not be available until the configuration is evaluated.
         </div>
-      {:else if confError}
+      {:else if !isRenderable(confError)}
         <div class="bg-red-200 m-4 rounded p-4 dark:bg-red-700">
           Bill of Materials will not be available until you fix the errors in your configuration.
         </div>
@@ -889,237 +948,29 @@
     </div>
   </Dialog>
 {/if}
-{#if downloading}
-  <Dialog on:close={() => (downloading = false)}>
-    <span slot="title">Download Your Model</span>
-    <div slot="content" class="text-center">
-      {#if isPro(config) && !($user.success && $user.sponsor)}
-        <p class="mb-2">
-          You're using some <span class="text-teal-500 dark:text-teal-400 font-bold">PRO</span> features
-          in this model.
-        </p>
-        <p>To download this model, sign up for a Pro account.</p>
-        {#if flags.login}
-          <button
-            class="flex items-center gap-2 border-2 px-3 py-1 rounded hover:shadow-md transition-shadow border-yellow-400 hover:bg-yellow-400/30 hover:shadow-yellow-400/30 mt-6 mx-auto"
-            on:click={() => {
-              downloading = false
-              proOpen = true
-            }}
-          >
-            <Icon
-              path={mdi.mdiStarShooting}
-              size="20px"
-              class="text-yellow-500 dark:text-yellow-300"
-            />
-            Get PRO
-          </button>
-        {:else}
-          <p class="mt-2">
-            Since I have not rolled out Pro accounts, please ping me on Discord with a link to your
-            model and I'll send you the files.
-          </p>{/if}
-      {:else}
-        <h2 class="mb-2 text-xl text-teal-500 dark:text-teal-300 font-semibold">
-          STL Files: For 3D Printing
-        </h2>
-        <p class="mb-4 text-gray-500 dark:text-gray-200 max-w-lg mx-auto">
-          I recommend using PrusaSlicer for slicing if you can. Otherwise, ask in the <a
-            class="text-teal-500 dark:text-teal-300 hover:underline"
-            href="https://discord.gg/nXjqkfgtGy">Discord server</a
-          > if your slicer has been tested!
-        </p>
-        <div class="columns-2">
-          <div class="break-inside-avoid">
-            <h3 class="mb-2 text-lg semibold text-black dark:text-white">Case/Shell</h3>
-            <div class="inline-flex items-center gap-2">
-              <button
-                class="button flex items-center gap-2"
-                on:click={() => downloadSTL('model', true)}
-                ><Icon path={mdi.mdiHandBackLeft} />Left</button
-              >
-              <button
-                class="button flex items-center gap-2"
-                on:click={() => downloadSTL('model', false)}
-                ><Icon path={mdi.mdiHandBackRight} />Right</button
-              >
-            </div>
-          </div>
-          <div class="break-inside-avoid">
-            <h3 class="mb-2 mt-4 text-lg semibold text-black dark:text-white">Plate</h3>
-            {#if config.shell.type == 'tilt' || config.shell.type == 'stilts'}
-              <div class="inline-flex items-center gap-2">
-                <button
-                  class="button flex items-center gap-2"
-                  on:click={() => downloadSTL('platetop', true)}
-                  ><Icon path={mdi.mdiHandBackLeft} />L / Top</button
-                >
-                <button
-                  class="button flex items-center gap-2"
-                  on:click={() => downloadSTL('platetop', false)}
-                  ><Icon path={mdi.mdiHandBackRight} />R / Top</button
-                >
-              </div>
-              <div class="inline-flex items-center gap-2 mt-2">
-                <button
-                  class="button flex items-center gap-2"
-                  on:click={() => downloadSTL('platebottom', true)}
-                  ><Icon path={mdi.mdiHandBackLeft} />L / Bot</button
-                >
-                <button
-                  class="button flex items-center gap-2"
-                  on:click={() => downloadSTL('platebottom', false)}
-                  ><Icon path={mdi.mdiHandBackRight} />R / Bot</button
-                >
-              </div>
-              <div class="text-sm opacity-70 text-center mt-2 pb-1">
-                Download both the Top and Bot models
-              </div>
-            {:else}
-              <div class="inline-flex items-center gap-2">
-                <button
-                  class="button flex items-center gap-2"
-                  on:click={() => downloadSTL('plate', true)}
-                  ><Icon path={mdi.mdiHandBackLeft} />Left</button
-                >
-                <button
-                  class="button flex items-center gap-2"
-                  on:click={() => downloadSTL('plate', false)}
-                  ><Icon path={mdi.mdiHandBackRight} />Right</button
-                >
-              </div>
-            {/if}
-          </div>
-          {#if config.microcontroller}
-            <div class="break-inside-avoid">
-              <h3 class="mb-2 mt-4 text-lg semibold text-black dark:text-white">
-                Microcontroller Holder
-              </h3>
-              <div class="inline-flex items-center gap-2">
-                <button
-                  class="button flex items-center gap-2"
-                  on:click={() => downloadSTL('holder', true)}
-                  ><Icon path={mdi.mdiHandBackLeft} />Left</button
-                >
-                <button
-                  class="button flex items-center gap-2"
-                  on:click={() => downloadSTL('holder', false)}
-                  ><Icon path={mdi.mdiHandBackRight} />Right</button
-                >
-              </div>
-            </div>
-          {/if}
-          {#if hasPro}
-            <div class="break-inside-avoid">
-              <h3 class="mb-2 mt-4 text-lg semibold text-black dark:text-white">Wrist Rest</h3>
-              {#if $user.success && $user.sponsor}
-                {#if config?.wristRest}
-                  <div class="inline-flex items-center gap-2">
-                    <button
-                      class="button flex items-center gap-2"
-                      on:click={() => downloadSTL('wristrest', true)}
-                      ><Icon path={mdi.mdiHandBackLeft} />Left</button
-                    >
-                    <button
-                      class="button flex items-center gap-2"
-                      on:click={() => downloadSTL('wristrest', false)}
-                      ><Icon path={mdi.mdiHandBackRight} />Right</button
-                    >
-                  </div>
-                {:else}
-                  None configured
-                {/if}
-              {:else}
-                <p class="mb-2">
-                  You need a <span class="text-teal-500 dark:text-teal-400 font-bold">PRO</span> account
-                  to download wrist rests.
-                </p>
-              {/if}
-            </div>
-          {/if}
-        </div>
-        <h2 class="my-2 text-xl text-teal-500 dark:text-teal-300 font-semibold">
-          STEP Files: For CAD Programs
-        </h2>
-        <p class="mb-4 text-gray-500 dark:text-gray-200 max-w-lg mx-auto">
-          These models are editable in Fusion and Onshape and include all parts. Check the <a
-            class="text-teal-500 dark:text-teal-300 hover:underline"
-            href="https://discord.gg/nXjqkfgtGy">#faq</a
-          > channel in Discord for importing instructions.
-        </p>
-        <div class="flex items-center justify-center mb-2 gap-1">
-          <!-- svelte-ignore a11y-label-has-associated-control-->
-          <label class="flex items-center">
-            <Checkbox basic bind:value={stitchWalls} /> Stitch Walls (uncheck if using Fusion)
-          </label>
-          <div class="s-help" bind:this={referenceElementStitch}>
-            <Icon path={mdi.mdiHelpCircle} size="20px" />
-          </div>
-          <Popover
-            triggerEvents={['hover', 'focus']}
-            referenceElement={referenceElementStitch}
-            placement="top"
-            spaceAway={4}
-          >
-            <div
-              class="rounded bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 px-2 py-1 mx-2 max-w-xl"
-              in:fade={{ duration: 100 }}
-              out:fade={{ duration: 250 }}
-            >
-              Fusion does not correctly import the stitched walls. You must import the unstitched
-              version then stitch the wall surfaces together yourself. But don't worry–It only takes
-              a minute and there's a video in Discord!
-            </div>
-          </Popover>
-        </div>
-        <div class="inline-flex items-center gap-2">
-          <button class="button flex items-center gap-2" on:click={() => downloadSTEP(true)}
-            ><Icon path={mdi.mdiHandBackLeft} />Left</button
-          >
-          <button class="button flex items-center gap-2" on:click={() => downloadSTEP(false)}
-            ><Icon path={mdi.mdiHandBackRight} />Right</button
-          >
-        </div>
-        {#if hasPro}
-          {#if !($user.success && $user.sponsor)}
-            <p class="mt-2">
-              A <span class="text-teal-500 dark:text-teal-400 font-bold">PRO</span> account will add
-              wrist rests will to this file.
-            </p>
-          {:else if !config?.wristRest}
-            <p class="mt-2">
-              Wrist rests will not be added to this assembly. Check "Show Wrists" rests in
-              basic/advanced view to enable them or add them to your expert mode configuration.
-            </p>
-          {/if}
-        {/if}
-        {#if flags.glb}
-          {#await import('./lib/GlbExport.svelte') then c}
-            <svelte:component this={c.default} {pool} {config} />
-          {/await}
-        {/if}
-        {#if generatingSTEP || generatingSTL}
-          <p class="mt-4">Generating... Please be patient.</p>
-        {:else if generatingError}
-          <div
-            class="bg-red-200 m-4 mb-2 rounded p-4 dark:bg-red-700 font-mono text-sm whitespace-pre-wrap"
-          >
-            {generatingError.message}
-          </div>
-          <p>Check the browser console for more details.</p>
-        {/if}
-      {/if}
+{#if showFit}
+  <Dialog big on:close={() => (showFit = false)}>
+    <span slot="title">Fit Stagger to Hand</span>
+    <div slot="content">
+      <HandFitView on:apply={() => (showFit = false)} />
     </div>
   </Dialog>
+{/if}
+{#if downloading}
+  <DownloadDialog
+    {config}
+    {pool}
+    on:close={() => (downloading = false)}
+    on:gopro={() => {
+      downloading = false
+      proOpen = true
+    }}
+  />
 {/if}
 
 <DarkTheme bind:darkMode />
 
 <style>
-  :global(html) {
-    --at-apply: 'dark:bg-gray-800 dark:text-white';
-  }
-
   @media (min-height: 480px) {
     .viewer {
       height: calc(100vh - 136px);
@@ -1139,5 +990,18 @@
 
   .infobutton {
     --at-apply: 'bg-purple-100 dark:bg-gray-900/50 hover:bg-purple-200 dark:hover:bg-pink-900/70 rounded px-4 py-1 focus:outline-none border border-transparent focus:border-pink-500';
+  }
+
+  .errorMsg {
+    --at-apply: 'absolute text-white m-4 right-[80px] rounded p-4 top-[5%] flex';
+  }
+  .errorMsg.custom {
+    --at-apply: 'top-[10%]';
+  }
+  .errorMsg.expand {
+    --at-apply: 'top-[5%] left-0 right-0 block';
+  }
+  .errorMsg.expand.custom {
+    --at-apply: 'top-[20%] left-0';
   }
 </style>

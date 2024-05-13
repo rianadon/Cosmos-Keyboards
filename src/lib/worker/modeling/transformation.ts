@@ -1,7 +1,7 @@
 import type { gp_Pnt, OpenCascadeInstance, TopoDS_Vertex } from '$assets/replicad_single'
 import { type AnyShape, cast, getOC, type Solid, Transformation as OCCTransformation } from 'replicad'
-import { Matrix4 } from 'three/src/math/Matrix4'
-import { Vector3 } from 'three/src/math/Vector3'
+import { Matrix4 } from 'three/src/math/Matrix4.js'
+import { Vector3 } from 'three/src/math/Vector3.js'
 
 type Point = [number, number, number]
 
@@ -122,6 +122,17 @@ export default class Trsf {
     const t = t3.multiply(t2).multiply(t1)
     this.wrapped.premultiply(t)
     return this
+  }
+
+  /** Scales up the entire model. Useful when working with individual parts, otherwise probably not what you want. */
+  scaleIsDangerous(x: number, y: number, z: number) {
+    this.wrapped.scale(new Vector(x, y, z))
+    return this
+  }
+
+  /** Returns a new Transformation that scaled the entire model. Useful when working with individual parts, otherwise probably not what you want. */
+  scaledIsDangerous(x: number, y: number, z: number) {
+    return new Trsf(this.wrapped.clone().scale(new Vector(x, y, z)))
   }
 
   multiply(t: Trsf) {

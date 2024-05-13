@@ -1,10 +1,10 @@
-import { Cuttleform } from '$target/proto/cuttleform'
-import { Lightcycle } from '$target/proto/lightcycle'
-import { Manuform } from '$target/proto/manuform'
+import { Cuttleform } from '../../../../target/proto/cuttleform'
+import { Lightcycle } from '../../../../target/proto/lightcycle'
+import { Manuform } from '../../../../target/proto/manuform'
 
-import cuttleform from '$assets/cuttleform.json'
-import lightcycle from '$assets/lightcycle.json'
-import manuform from '$assets/manuform.json'
+import cuttleform from '$assets/cuttleform.json' assert { type: 'json' }
+import lightcycle from '$assets/lightcycle.json' assert { type: 'json' }
+import manuform from '$assets/manuform.json' assert { type: 'json' }
 import * as pako from 'pako'
 
 interface State {
@@ -83,7 +83,7 @@ export function deserialize(str: string, fallback: State): State {
   if (split.length != 2) return clone(fallback)
 
   const [keyboard, b64] = split
-  const data = Uint8Array.from(window.atob(b64), c => c.charCodeAt(0))
+  const data = Uint8Array.from(atob(b64), c => c.charCodeAt(0))
 
   let options: object | null = null
   let content: string | undefined = undefined
@@ -102,13 +102,12 @@ export function deserialize(str: string, fallback: State): State {
   }
   if (!options) return clone(fallback)
 
-  console.log(options)
   return { keyboard, options, content }
 }
 
 export function serializeEditor(content: string) {
   const data = pako.deflate(content)
-  return 'expert' + SPLIT_CHAR + window.btoa(String.fromCharCode(...data))
+  return 'expert' + SPLIT_CHAR + btoa(String.fromCharCode(...data))
 }
 
 function deserializeEditor(data: Uint8Array) {

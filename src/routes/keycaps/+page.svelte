@@ -17,6 +17,8 @@
   <link rel="icon" href="{base}/favicon.png" />
 </svelte:head>
 
+<svelte:body class="bg-slate-900 mx-4" />
+
 <header class="block py-4 md:flex justify-between px-4">
   <a href="{base}/">
     <img
@@ -76,10 +78,6 @@
 </footer>
 
 <style>
-  :global(html) {
-    background: rgb(15, 23, 42);
-    margin: 0 1rem;
-  }
   h2 {
     --at-apply: 'text-teal-300 text-3xl mt-12 mx-2 mb-6';
   }

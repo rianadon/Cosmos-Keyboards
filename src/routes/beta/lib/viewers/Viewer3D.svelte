@@ -27,11 +27,21 @@
     decodeTuple,
     encodeTuple,
     type Geometry,
+    decodeCustomKey,
+    switchType,
+    keycapType,
   } from '$lib/worker/config'
   import type { ConfError } from '$lib/worker/check'
   import Viewer from './Viewer.svelte'
   import Trsf from '$lib/worker/modeling/transformation'
-  import { protoConfig, transformMode, clickedKey } from '$lib/store'
+  import {
+    debugViewport,
+    protoConfig,
+    transformMode,
+    clickedKey,
+    noBase,
+    showKeyInts,
+  } from '$lib/store'
   import HandModel from '$lib/3d/HandModel.svelte'
   import { FINGERS, type Joints, objectFromFingers, SolvedHand } from '../hand'
   import { refine } from '../handoptim'
@@ -40,15 +50,13 @@
   import TransformControls from '$lib/3d/TransformControls.svelte'
   import AxesHelper from '$lib/3d/AxesHelper.svelte'
   import Raycaster from '$lib/3d/Raycaster.svelte'
-  import { keyPosition, keyPositionTop } from '$lib/worker/modeling/transformation-ext'
+  import ETrsf, { keyPosition, keyPositionTop } from '$lib/worker/modeling/transformation-ext'
   import { closestAspect, keyInfo } from '$lib/geometry/keycaps'
   import { switchInfo } from '$lib/geometry/switches'
-  import { simplekeyGeo, simpleTris } from '$lib/worker/simplekeys'
   import { KeyMaterial } from '$lib/3d/materials'
   import { boardGeometries } from '$lib/loaders/boardElement'
   import {
     allKeyCriticalPoints,
-    allWallCriticalPoints,
     applyKeyAdjustment,
     keyHolesTrsfs,
     componentBoxes,
@@ -59,6 +67,12 @@
   import Icon from '$lib/presentation/Icon.svelte'
   import KeyboardMesh from '$lib/3d/KeyboardMesh.svelte'
   import { Cuttleform_CustomThumb } from '$target/proto/cuttleform'
+  import { mapObj } from '$lib/worker/util'
+  import { readHands, type HandData } from '$lib/handhelpers'
+  import Microcontroller from '$lib/3d/Microcontroller.svelte'
+  import { simpleSocketGeos } from '$lib/loaders/simpleparts'
+  import GroupMatrix from '$lib/3d/GroupMatrix.svelte'
+  import { simpleKeyGeo, simpleKeyPosition } from '$lib/loaders/simplekeys'
 
   export let showSupports = false
   export let style: string = ''
@@ -68,14 +82,15 @@
   export let enableRotate = true
   export let enableZoom = false
   export let is3D = false
-  export let isExpert
-  export let transparency
+  export let isExpert: boolean
+  export let transparency: number
   export let flip = true
   export let showHand = true
-  export let error: ConfError
+  export let showFit: boolean
+  export let error: ConfError | undefined
   export let geometry: Geometry | null
 
-  export let conf: Cuttleform
+  export let conf: Cuttleform | undefined
 
   let pressedLetter: string | null = null
   let raycast
@@ -132,11 +147,12 @@
     '/': 'pinky',
   }
 
-  function reachability(keys: CuttleKey[], joints: Joints[], origin: Vector3) {
+  function reachability(conf: Cuttleform, joints: Joints[], origin: Vector3) {
+    const keys = conf.keys
     return keys.map((k) => {
       const finger = 'keycap' in k && k.keycap.letter ? fingersToKeys[k.keycap.letter] : 'thumb'
       const reach = joints[finger || 'thumb'].reduce((a, j) => a + j.length, 0) * 1000
-      const distance = pos15(k).distanceTo(origin)
+      const distance = pos15(conf, k).distanceTo(origin)
       return distance <= reach
     })
   }
@@ -145,6 +161,7 @@
   $: updateThumbs(keyMatrices)
 
   function updateThumbs(keyMatrices) {
+    if (keyMatrices.length) console.log(cluster.customThumb.key, keyMatrices, conf.keys)
     customThumbConfig = keyMatrices.length
       ? cluster.customThumb.key.map((k, i) => keyToTrsf2(keyMatrices[i].matrix, i))
       : null
@@ -192,9 +209,15 @@
   }
 
   function keyToTrsf2(m: Matrix4, i: number) {
-    const keyIndex = conf.keys.length - cluster.customThumb.key.length + i
-    const key = conf.keys[keyIndex]
-    const adj = applyKeyAdjustment(key, new Trsf()).Matrix4()
+    // const keyIndex = conf.keys.length - cluster.customThumb.key.length + i
+    // const key = conf.keys[keyIndex]
+    const key = decodeCustomKey(
+      cluster.customThumb.key[i],
+      switchType($protoConfig),
+      keycapType($protoConfig),
+      new ETrsf()
+    )
+    const adj = applyKeyAdjustment(conf, key, new Trsf()).Matrix4()
 
     return new Matrix4().multiplyMatrices(m, adj)
   }
@@ -210,7 +233,7 @@
     }
   }
 
-  let jointsJSON: { left: Joints; right: Joints } | undefined = readHands()
+  let jointsJSON: HandData | undefined = readHands()
   $: whichHand = flip ? 'left' : 'right'
 
   let theHand = jointsJSON ? new SolvedHand(jointsJSON[whichHand], new Matrix4()) : undefined
@@ -268,16 +291,16 @@
 
   const HAND_RADIUS = 2
 
-  const pos = (k: CuttleKey | undefined) =>
+  const pos = (c: Cuttleform, k: CuttleKey | undefined) =>
     k
-      ? keyPositionTop(k, false)
+      ? keyPositionTop(c, k, false)
           .pretranslated(0, 0, HAND_RADIUS)
           .origin()
           .sub(new Vector3(center[0], center[1], center[2] - addHeight))
       : undefined
-  const pos15 = (k: CuttleKey | undefined) =>
+  const pos15 = (c: Cuttleform, k: CuttleKey | undefined) =>
     k
-      ? keyPositionTop(k, false)
+      ? keyPositionTop(c, k, false)
           .pretranslated(
             0,
             0,
@@ -288,11 +311,11 @@
       : undefined
   function theBigFit() {
     return fit({
-      indexFinger: pos(findKeyByAttr(conf, 'home', 'index')),
-      middleFinger: pos(findKeyByAttr(conf, 'home', 'middle')),
-      ringFinger: pos(findKeyByAttr(conf, 'home', 'ring')),
-      pinky: pos(findKeyByAttr(conf, 'home', 'pinky')),
-      thumb: pos(findKeyByAttr(conf, 'home', 'thumb')),
+      indexFinger: pos(conf, findKeyByAttr(conf, 'home', 'index')),
+      middleFinger: pos(conf, findKeyByAttr(conf, 'home', 'middle')),
+      ringFinger: pos(conf, findKeyByAttr(conf, 'home', 'ring')),
+      pinky: pos(conf, findKeyByAttr(conf, 'home', 'pinky')),
+      thumb: pos(conf, findKeyByAttr(conf, 'home', 'thumb')),
     })
   }
   $: if (conf && jointsJSON) {
@@ -335,7 +358,7 @@
       const letter = sentence[index]
       const finger = fingersToKeys[letter]
       targets = fit({
-        [finger]: pos15(findKeyByAttr(conf, 'letter', letter)),
+        [finger]: pos15(conf, findKeyByAttr(conf, 'letter', letter)),
       })
       console.log('letter', pressedLetter)
     }
@@ -361,7 +384,7 @@
         if (f == fingersToKeys[pressedLetter]) {
           console.log('pl', pressedLetter)
           const key = findKeyByAttr(conf, 'letter', pressedLetter)
-          const ti = keyPosition(key, false)
+          const ti = keyPosition(conf, key, false)
             .translate(-center[0], -center[1], -center[2])
             .invert()
             .Matrix4()
@@ -395,7 +418,7 @@
     if (pressedLetter) {
       const finger = fingersToKeys[pressedLetter]
       fit({
-        [finger]: pos15(findKeyByAttr(conf, 'letter', pressedLetter)),
+        [finger]: pos15(conf, findKeyByAttr(conf, 'letter', pressedLetter)),
       })
     } else {
       theBigFit()
@@ -419,18 +442,9 @@
     }
   }
 
-  function readHands() {
-    try {
-      const json = localStorage.getItem('cosmosHands')
-      return JSON.parse(json)[0]
-    } catch (e) {
-      return undefined
-    }
-  }
-
   let timer = 0
   function scanHand() {
-    const win = window.open('https://ryanis.cool/cosmos/scan')
+    const win = window.open('scan')
     timer = setInterval(() => {
       if (win.closed) {
         clearInterval(timer)
@@ -448,6 +462,8 @@
   }
 
   function handleKeydown(event: KeyboardEvent) {
+    if (document.activeElement != document.body || event.ctrlKey || event.metaKey || event.altKey)
+      return
     switch (event.key) {
       case 'Escape':
       case 'q':
@@ -506,18 +522,6 @@
       : null
   )
   $: console.log('CLICKED', $clickedKey)
-
-  function simpleMeshh(tris: Triangle[]) {
-    const geo = new Float32Array(tris.length * 9)
-    tris.forEach(({ a, b, c }, i) => {
-      a.toArray(geo, i * 9)
-      b.toArray(geo, i * 9 + 3)
-      c.toArray(geo, i * 9 + 6)
-    })
-    const geometry = new BufferGeometry()
-    geometry.setAttribute('position', new BufferAttribute(geo, 3))
-    return geometry
-  }
 
   function makeKey(direction = 'current') {
     if (selectedKey == null) {
@@ -586,9 +590,8 @@
     const position = decodeTuple(
       $protoConfig.thumbCluster.customThumb.key[selectedKey - 1].position
     )
-    if (position[3] == 1) return
     protoConfig.update((p) => {
-      const customType = 1
+      const customType = { 1: 6, 6: 1 }[position[3]] ?? 1
       p.thumbCluster.customThumb.key[selectedKey - 1].position = encodeTuple([
         position[0],
         position[1],
@@ -645,21 +648,30 @@
     })
   }
 
-  $: simpleMesh = simpleMeshh($simpleTris)
+  $: if ($debugViewport) {
+    const origFn = HTMLCanvasElement.prototype.getContext
+    HTMLCanvasElement.prototype.getContext = function (type, attributes) {
+      if (type === 'webgl' || type === 'webgl2') {
+        attributes = Object.assign({}, attributes, {
+          preserveDrawingBuffer: true,
+        })
+      }
+      return origFn.call(this, type, attributes)
+    }
+  }
+
+  function copyCanvas() {
+    document.querySelector('canvas').toBlob(function (blob) {
+      const item = new ClipboardItem({ 'image/png': blob })
+      console.log(item)
+      navigator.clipboard.write([item]).then(console.log, console.error)
+    })
+  }
 
   $: reachabilityArr =
     conf && flags.hand && showHand && jointsJSON
-      ? reachability(
-          conf.keys,
-          jointsJSON[whichHand],
-          new Vector3().setFromMatrixPosition(handMatrix)
-        )
+      ? reachability(conf, jointsJSON[whichHand], new Vector3().setFromMatrixPosition(handMatrix))
       : undefined
-
-  $: boardGeos =
-    !error && conf?.microcontroller && geometry
-      ? boardGeometries(conf, geometry)
-      : Promise.resolve([])
 
   // $: matrices = conf ? allKeyCriticalPoints(conf, keyHolesTrsfs(conf, new Trsf())).flat().map(m => m.Matrix4()) : []
   // $: matrices = conf ? allWallCriticalPoints(conf, allKeyCriticalPoints(conf, keyHolesTrsfs(conf, new Trsf()))).map(m => m.ti.Matrix4()) : []
@@ -706,6 +718,13 @@
         <div class="flex">
           <button on:click={scanHand}>Scan Hand</button>
           {#if jointsJSON}
+            {#if !isExpert && flags.fitToHand}
+              <button
+                on:click={() => (showFit = true)}
+                class="bg-gradient-to-r! from-pink-300 to-orange-300 dark:from-pink-800 dark:to-orange-800"
+                >Fit to Hand</button
+              >
+            {/if}
             <button on:click={() => toggleplay(sentence)}>Simulate</button>
           {/if}
         </div>
@@ -723,9 +742,9 @@
           >
           <button
             class="button"
-            class:selected={conf.keys[
-              conf.keys.length - cluster.customThumb.key.length + selectedKey - 1
-            ].type == 'ec11'}
+            class:selected={['ec11', 'evqwgd001'].includes(
+              conf.keys[conf.keys.length - cluster.customThumb.key.length + selectedKey - 1].type
+            )}
             on:click|stopPropagation={() => makeEncoder()}
             ><Icon size="24px" name="knob" />Encoder (l)</button
           >
@@ -752,6 +771,13 @@
     <div class="flex justify-center">
       <button on:click={scanHand}>Scan Hand</button>
       {#if jointsJSON}
+        {#if !isExpert && flags.fitToHand}
+          <button
+            on:click={() => (showFit = true)}
+            class="bg-gradient-to-r! from-pink-300 to-orange-300 dark:from-pink-800 dark:to-orange-700 hover:from-pink-400 hover:to-orange-400"
+            >Fit to Hand</button
+          >
+        {/if}
         <button on:click={() => toggleplay(sentence)}>Simulate</button>
       {/if}
     </div>
@@ -767,7 +793,7 @@
   {style}
   {center}
   {size}
-  {cameraPosition}
+  bind:cameraPosition
   {flip}
   {enableRotate}
   {enableZoom}
@@ -785,13 +811,24 @@
     {/if}
     <SC.Group position={[-center[0], -center[1], -center[2]]}>
       {#if flags.intersection && conf}
-        {#each $simplekeyGeo as g}
-          <SC.Mesh geometry={g} material={new KeyMaterial(1, 1, 'red')} />
-        {/each}
         {#each componentBoxes(conf, geometry) as box}
           <SC.Mesh geometry={componentGeometry(box)} material={new KeyMaterial(1, 1, 'red')} />
         {/each}
-        <SC.Mesh geometry={simpleMesh} material={new MeshBasicMaterial({ color: 0xff0000 })} />
+      {/if}
+      {#if $showKeyInts && geometry}
+        {#each conf.keys as k, i}
+          <GroupMatrix matrix={geometry.keyHolesTrsfs[i].Matrix4()}>
+            {#each simpleSocketGeos(k.type) as g}
+              <KeyboardMesh geometry={g} status="error" kind="key" />
+            {/each}
+            {@const skey = simpleKeyGeo(k, true)}
+            {#if skey}
+              <GroupMatrix matrix={simpleKeyPosition(k, new Trsf()).Matrix4()}>
+                <KeyboardMesh geometry={skey} status="error" kind="key" />
+              </GroupMatrix>
+            {/if}
+          </GroupMatrix>
+        {/each}
       {/if}
       <Raycaster on:click={raycasterClick} enabled={!!plane && raycast}>
         <Keyboard
@@ -805,11 +842,7 @@
           {error}
         />
       </Raycaster>
-      {#await boardGeos then boards}
-        {#each boards as board}
-          <KeyboardMesh kind="key" geometry={board} visible={!showSupports} />
-        {/each}
-      {/await}
+      {#if !$noBase}<Microcontroller {conf} {geometry} {showSupports} />{/if}
       <slot />
     </SC.Group>
   </svelte:fragment>
@@ -840,6 +873,15 @@
     {/if}
   </svelte:fragment>
 </Viewer>
+
+{#if $debugViewport}
+  <div
+    class="absolute bottom-8 right-8 bg-gray-100/80 dark:bg-gray-800/80 backdrop-blur-md rounded px-4 py-2 text-xs font-mono w-76 text-end"
+  >
+    <p>Camera Position: {cameraPosition.map((a) => Math.round(a * 100) / 100).join(', ')}</p>
+    <p><button class="inline-block!" on:click={copyCanvas}>Copy Canvas to clipboard</button></p>
+  </div>
+{/if}
 
 <style>
   button.selected {

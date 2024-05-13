@@ -87,7 +87,7 @@ export class WorkerPool<T> {
       name,
       start,
       end: performance.now(),
-      ocTime: (result as any)?.ocTime,
+      ocTime: (result as any)?.ocTime || 0,
     }])
     worker.availableStore.set(true)
     worker.available = true

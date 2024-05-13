@@ -25,7 +25,9 @@
     "package",
     "target",
     "**/*.wasm.js",
-    "**/replicad_single*"
+    "**/replicad_single*",
+    "venv",
+    "opencv*"
   ],
   "plugins": [
     "https://plugins.dprint.dev/typescript-0.88.4.wasm",

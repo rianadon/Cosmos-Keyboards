@@ -17,7 +17,7 @@ def on_page_content(html, page, config, files):
         src = tag.attrib.get("src")
         if not src:
             continue
-        if src.endswith('.png'):
+        if src.endswith('.png') and not src.startswith('http'):
             tag.getparent().replace(tag, create_repl_tag(tag))
     return lxml.html.tostring(content, encoding="unicode")
 
