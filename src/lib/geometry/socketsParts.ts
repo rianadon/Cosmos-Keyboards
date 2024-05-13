@@ -3,6 +3,7 @@ import { Vector } from '../worker/modeling/transformation'
 
 export const PART_NAMES: Record<CuttleKey['type'], string> = {
   'mx-better': 'MX-Compatible Switches',
+  'mx-better-pcb': 'MX-Compatible Switches',
   'old-mx': 'MX-Compatible Switches',
   'mx-pcb': 'MX-Compatible Switches',
   'mx-hotswap': 'MX-Compatible Switches',
@@ -36,6 +37,7 @@ export function socketSize(key: CuttleKey): Vector {
   if (key.type == 'blank') return new Vector(key.size?.width ?? 18.5, key.size?.height ?? 18.5, 5)
   if (key.type == 'mx-pcb') return new Vector(19.2, 19.2, 4.7)
   if (key.type == 'mx-better') return new Vector(18, 18, 4.7)
+  if (key.type == 'mx-better-pcb') return new Vector(18, 18, 6.8)
   if (key.type == 'mx-hotswap') return new Vector(18, 18, 5.85)
   if (key.type == 'choc') return new Vector(17.5, 16.5, 2.2)
   if (key.type == 'ec11') return new Vector(14.5, 14.5, 4.5)
