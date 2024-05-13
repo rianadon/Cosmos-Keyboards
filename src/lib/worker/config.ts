@@ -156,7 +156,7 @@ export interface Keycap {
 }
 
 interface CuttleKeycapKey extends CuttleBaseKey {
-  type: 'old-box' | 'old-mx' | 'mx-better' | 'old-mx-snap-in' | 'alps' | 'choc' | 'mx-pcb' | 'old-mx-hotswap' | 'old-mx-snap-in-hotswap' | 'choc-hotswap' | 'mx-hotswap'
+  type: 'old-box' | 'old-mx' | 'mx-better' | 'old-mx-snap-in' | 'alps' | 'choc' | 'mx-pcb' | 'mx-pcb-twist' | 'old-mx-hotswap' | 'old-mx-snap-in-hotswap' | 'choc-hotswap' | 'mx-hotswap'
   keycap: Keycap
 }
 
@@ -464,6 +464,7 @@ export function switchType(c: DeepRequired<CuttleformProto>): Required<CuttleKey
   if (c.upperKeys.switchType == SWITCH.MX_HOTSWAP) return 'mx-hotswap'
   if (c.upperKeys.switchType == SWITCH.MX_BETTER) return 'mx-better'
   if (c.upperKeys.switchType == SWITCH.MX_PCB) return 'mx-pcb'
+  if (c.upperKeys.switchType == SWITCH.MX_PCB_TWIST) return 'mx-pcb-twist'
   if (c.upperKeys.switchType == SWITCH.CHOC) return 'choc'
   if (c.upperKeys.switchType == SWITCH.ALPS) return 'alps'
   return 'box'

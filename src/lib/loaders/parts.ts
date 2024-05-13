@@ -14,6 +14,7 @@ const PART_URLS: Record<Switch, string | null> = {
   'old-mx': '/target/switch-cherry-mx.glb',
   'mx-hotswap': '/target/switch-cherry-mx.glb',
   'mx-pcb': '/target/switch-cherry-mx.glb',
+  'mx-pcb-twist': '/target/switch-cherry-mx.glb',
   'old-box': '/target/switch-cherry-mx.glb',
   'alps': '/src/assets/switch-alps.glb',
   'choc': '/src/assets/switch-choc.glb',

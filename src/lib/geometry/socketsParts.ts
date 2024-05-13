@@ -6,6 +6,7 @@ export const PART_NAMES: Record<CuttleKey['type'], string> = {
   'old-mx': 'MX-Compatible Switches',
   'mx-pcb': 'MX-Compatible Switches',
   'mx-hotswap': 'MX-Compatible Switches',
+  'mx-pcb-twist': 'MX-Compatible Switches',
   'old-mx-snap-in': 'MX-Compatible Switches',
   'old-mx-hotswap': 'MX-Compatible Switches',
   'old-mx-snap-in-hotswap': 'MX-Compatible Switches',
@@ -37,6 +38,7 @@ export function socketSize(key: CuttleKey): Vector {
   if (key.type == 'mx-pcb') return new Vector(19.2, 19.2, 4.7)
   if (key.type == 'mx-better') return new Vector(18, 18, 4.7)
   if (key.type == 'mx-hotswap') return new Vector(18, 18, 5.85)
+  if (key.type == 'mx-pcb-twist') return new Vector(18.7, 18.7, 8)
   if (key.type == 'choc') return new Vector(17.5, 16.5, 2.2)
   if (key.type == 'ec11') return new Vector(14.5, 14.5, 4.5)
   if (key.type == 'joystick-joycon-adafruit') return new Vector(24.25, 24.4, 3.5)
