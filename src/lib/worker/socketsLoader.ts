@@ -21,6 +21,7 @@ export const KEY_URLS: Record<CuttleKey['type'], string> = {
   'old-mx-hotswap': '/target/key-old-mx-hotswap.step',
   'old-mx-snap-in-hotswap': '/target/key-old-mxSnapIn-hotswap.step',
   'mx-better': '/src/assets/key-mx-better.step',
+  'mx-better-pcb': '/src/assets/key-mx-better-pcb.step',
   'mx-pcb': '/src/assets/key-mx-pcb.step',
   'choc-hotswap': '/target/key-choc-hotswap.step',
   'trackball': '/src/assets/trackball_holder.step',
