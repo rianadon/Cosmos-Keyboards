@@ -1,7 +1,7 @@
 <script lang="ts">
   import { fade } from 'svelte/transition'
   import Login from './lib/Login.svelte'
-  import Viewer3D from './lib/viewers/Viewer3D.svelte'
+  import Viewer3D from './lib/viewers/NewViewer3D.svelte'
   import Thick3D from './lib/viewers/ViewerThickness.svelte'
   import ViewerLayout from './lib/viewers/ViewerLayout.svelte'
   import ViewerMatrix from './lib/viewers/ViewerMatrix.svelte'
@@ -59,7 +59,7 @@
   import { hasPro } from '@pro'
   import ViewerDev from './lib/viewers/ViewerDev.svelte'
   import DownloadDialog from './lib/dialogs/DownloadDialog.svelte'
-  import { decodeConfig, deserializeCosmosConfig } from '$lib/worker/config.new'
+  import { decodeConfigIdk } from '$lib/worker/config.serialize'
 
   let supportGeometries: BufferGeometry[] = []
   let center = [-35.510501861572266, -17.58449935913086, 35.66889877319336] as [
@@ -78,11 +78,10 @@
   let hideWall = false
 
   // @ts-ignore
-  // let state: { keyboard: string; options: Keyboard } = deserialize(
-  // browser ? location.hash.substring(1) : '',
-  // cuttleform
-  // )
-  let state = { keyboard: 'cm', options: deserializeCosmosConfig('') }
+  let state: { keyboard: string; options: Keyboard } = deserialize(
+    browser ? location.hash.substring(1) : '',
+    deserialize('cm', null)
+  )
   let initialEditorContent = state.content
 
   function onHashChange() {
@@ -129,12 +128,12 @@
         console.log(
           'Setting hash',
           serialize({
-            keyboard: 'cf',
+            keyboard: 'cm',
             options: $protoConfig,
           })
         )
         window.location.hash = serialize({
-          keyboard: 'cf',
+          keyboard: 'cm',
           options: $protoConfig,
         })
       } else if (editorContent) {
@@ -181,7 +180,9 @@
 
   let oldConfig: Cuttleform | null = null
   async function process(conf: Cuttleform) {
+    console.log('Oldconfig', oldConfig, 'geometry', geometry)
     if (oldConfig && geometry) {
+      console.log('PROCESSING')
       const differences = areDifferent(oldConfig, conf)
       if (differences.length == 0) return
       oldConfig = conf
@@ -490,7 +491,7 @@
         </Popover>
       </div>
       {#if viewer == '3d'}
-        <!-- <Viewer3D
+        <Viewer3D
           {geometry}
           transparency={cTransparency}
           conf={isRenderable(confError) ? config : undefined}
@@ -546,7 +547,7 @@
               <KeyboardMesh kind="case" geometry={geo} brightness={0.5} opacity={0.8} />
             {/each}
           {/if}
-        </Viewer3D> -->
+        </Viewer3D>
       {:else if viewer == 'thick'}
         <Thick3D
           {geometry}
@@ -662,7 +663,6 @@
         <div
           class="errorMsg"
           class:expand={errorMsg}
-          class:custom={$protoConfig && $protoConfig.thumbCluster.oneofKind == 'customThumb'}
           class:bg-red-700={!isWarning(confError)}
           class:bg-yellow-700={isWarning(confError)}
         >

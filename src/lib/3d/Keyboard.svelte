@@ -14,7 +14,7 @@
   import { partGeometries } from '$lib/loaders/parts'
   import { showKeyInts } from '$lib/store'
 
-  export let config: Cuttleform
+  export let config: Cuttleform | undefined
   export let transparency: number
   export let pressedLetter: string | null = null
   export let translation: number
@@ -43,7 +43,7 @@
   async function updateKeyboard(reachability, pressedLetter, translation) {
     const p = keyHolesTrsfs(config, new Trsf())
     const keyPromise = keyGeometries(p, config.keys)
-    const switchPromise = partGeometries(p, config.keys)
+    const switchPromise = partGeometries(p, config.keys, false)
 
     const k = await keyPromise
     const s = await switchPromise

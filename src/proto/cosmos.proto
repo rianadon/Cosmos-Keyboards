@@ -15,11 +15,10 @@ message Keyboard {
   optional int32 n_screws = 9;
   optional uint32 screw_flags = 10; // screw type (3bit), size (3bit), countersink (1bit), clear screws (1bit)
   optional uint32 microcontroller = 11;
-  optional uint32 microcontroller_flags = 12; // Bitmask for fasten microcontroller
-  optional uint32 rounded_flags = 13; /* Rounded side (1bit), rounded top (1bit) */
-  optional uint32 wrist_rest_flags = 14; // Enable (1bit)
+  optional uint32 rounded_flags = 12; /* Rounded side (1bit), rounded top (1bit) */
+  optional uint32 wrist_rest_flags = 13; // Enable (1bit)
 
-  optional KeyboardExtra extra = 15;
+  optional KeyboardExtra extra = 14;
 
   oneof shell {
     BasicShell basic_shell = 30;
@@ -81,6 +80,7 @@ message Cluster {
   optional sint32 column = 7;
   optional int64 position = 8;
   optional int64 rotation = 9;
+  optional sint32 column2 = 10;
 }
 
 message Key {

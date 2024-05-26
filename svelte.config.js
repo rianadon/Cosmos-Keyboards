@@ -1,7 +1,6 @@
 import adapter from '@sveltejs/adapter-static'
 import { vitePreprocess } from '@sveltejs/kit/vite'
 import { preprocessor as documentPreprocessor } from '@sveltekit-addons/document'
-import { preprocessThrelte } from '@threlte/preprocess'
 import seqPreprocessor from 'svelte-sequential-preprocessor'
 
 const dev = process.argv.includes('dev')
@@ -10,7 +9,7 @@ const dev = process.argv.includes('dev')
 const config = {
   // Consult https://kit.svelte.dev/docs/integrations#preprocessors
   // for more information about preprocessors
-  preprocess: seqPreprocessor([vitePreprocess(), preprocessThrelte(), documentPreprocessor()]),
+  preprocess: seqPreprocessor([vitePreprocess(), documentPreprocessor()]),
 
   kit: {
     // adapter-auto only supports some environments, see https://kit.svelte.dev/docs/adapter-auto for a list.

@@ -8,7 +8,7 @@ export class TransparentNormalMaterial extends MeshNormalMaterial {
   }
 }
 
-const VERTEX_SHADER = `
+export const VERTEX_SHADER = `
 varying vec2 vUv;
 varying vec3 vNormal;
 varying vec4 vPosition;
@@ -27,7 +27,7 @@ void main() {
  *   - An HSV part which takes into account lambertian reflectance (matte/diffuse)
  *   - An irridescent-ish part which is computed from surface normals
  */
-const FRAGMENT_SHADER = `
+export const FRAGMENT_SHADER = `
 varying vec2 vUv;
 varying vec3 vNormal;
 varying vec4 vPosition;
@@ -62,22 +62,38 @@ void main() {
 `
 
 export class KeyboardMaterial extends ShaderMaterial {
-  constructor(opts: { opacity: number; brightness: number; saturation: Vector3; color: Vector3 }) {
+  constructor() {
     super()
     this.vertexShader = VERTEX_SHADER
     this.fragmentShader = FRAGMENT_SHADER
     this.uniforms = {
-      uOpacity: { value: opts.opacity },
-      uBrightness: { value: opts.brightness },
-      uSaturation: { value: opts.saturation },
+      uOpacity: { value: 0 },
+      uBrightness: { value: new Vector3(0.6, 1, 1) },
+      uSaturation: { value: new Vector3(0.4, 1, 1) },
       uAmbient: { value: 0.8 },
-      uColor: { value: opts.color },
+      uColor: { value: new Vector3(0.3, 1, 1) },
       tLetter: { value: null },
     }
-    this.opacity = opts.opacity
-    if (opts.opacity < 1) this.transparent = true
   }
 }
+
+// export class KeyboardMaterial extends ShaderMaterial {
+//   constructor(opts: { opacity: number; brightness: number; saturation: Vector3; color: Vector3 }) {
+//     super()
+//     this.vertexShader = VERTEX_SHADER
+//     this.fragmentShader = FRAGMENT_SHADER
+//     this.uniforms = {
+//       uOpacity: { value: opts.opacity },
+//       uBrightness: { value: opts.brightness },
+//       uSaturation: { value: opts.saturation },
+//       uAmbient: { value: 0.8 },
+//       uColor: { value: opts.color },
+//       tLetter: { value: null },
+//     }
+//     this.opacity = opts.opacity
+//     if (opts.opacity < 1) this.transparent = true
+//   }
+// }
 
 export const COLORCONFIG = {
   green: {

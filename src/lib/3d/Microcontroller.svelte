@@ -1,9 +1,10 @@
 <script lang="ts">
   import { boardGeometries } from '$lib/loaders/boardElement'
   import type { Cuttleform, Geometry } from '$lib/worker/config'
-  import KeyboardMesh from './KeyboardMesh.svelte'
+  import { T } from '@threlte/core'
+  import KeyboardMaterial from './KeyboardMaterial.svelte'
 
-  export let conf: Cuttleform
+  export let conf: Cuttleform | undefined
   export let geometry: Geometry | null
   export let showSupports: boolean
 
@@ -13,6 +14,8 @@
 
 {#await boardGeos then boards}
   {#each boards as board}
-    <KeyboardMesh kind="key" geometry={board} visible={!showSupports} />
+    <T.Mesh geometry={board} visible={!showSupports}>
+      <KeyboardMaterial kind="key" />
+    </T.Mesh>
   {/each}
 {/await}

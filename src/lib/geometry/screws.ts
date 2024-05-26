@@ -17,7 +17,7 @@ interface Screw {
 export const SCREWS: Record<Cuttleform['screwSize'], Screw> = {
   M3: {
     mounting: {
-      'screw insert': { diameter: 4, height: 5 },
+      'screw insert': { diameter: 4.3, height: 5 },
       'tapered screw insert': { diameter: 5, height: 4.6, taper: 8 },
       'expanding screw insert': { diameter: 4, height: 4.8 },
       'tapped hole': { diameter: 2.5, height: 4.8 },

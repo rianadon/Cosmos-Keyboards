@@ -26,6 +26,7 @@ import type Trsf from './modeling/transformation'
 import { Vector } from './modeling/transformation'
 
 export const DEFAULT_MWT_FACTOR = 0.8
+const MAX_WEB_THICKNESS = 5 // Maximum web thickness used for calculating the reinforced web. Very large web thicknesses cause things to go wacky.
 
 /** Find the normal of a triangle. */
 function triangleNorm(a: Vector, b: Vector, c: Vector, reverse = false) {
@@ -360,7 +361,7 @@ export function reinforceTriangles(c: Cuttleform, geo: Geometry, triangles: numb
   // addExtraWallsForExtremeAngles(c, geo, allPolys, walls)
 
   const keyIdx = allPolys.flatMap((p, i) => p.map(_ => i))
-  const thickness = allPolys.flatMap((p, i) => p.map(_ => webThickness(c, c.keys[i])))
+  const thickness = allPolys.flatMap((p, i) => p.map(_ => Math.min(webThickness(c, c.keys[i]), MAX_WEB_THICKNESS)))
   const trsfs = allPolys.flatMap((p, i) => p.map(_ => geo.keyHolesTrsfs[i]))
   const keys = allPolys.flatMap((p, i) => p.map(_ => c.keys[i]))
   const allPts = allPolys.flat()

@@ -1,9 +1,10 @@
 import { browser } from '$app/environment'
+import type { CosmosKeyboard } from '$lib/worker/config.cosmos'
 import { derived, type Readable, type Writable, writable } from 'svelte/store'
-import type { Keyboard } from 'target/proto/cosmos'
 import type { User } from '../routes/beta/lib/login'
+import type { ColorScheme } from './3d/materials'
 
-export const protoConfig = writable<Keyboard>(undefined)
+export const protoConfig = writable<CosmosKeyboard>(undefined)
 export const transformMode = writable<'translate' | 'rotate' | 'select'>('select')
 export const flip = writable(false)
 export const user = writable<User>({ success: false, sponsor: undefined })
@@ -13,7 +14,7 @@ export const hoveredKey = writable<number | null>(null)
 export const clickedKey = writable<number | null>(null)
 
 // Preferences
-export const theme = storable('theme', 'purple')
+export const theme = storable<ColorScheme>('theme', 'purple')
 export const showHand = storable('showHand', true)
 export const bomMultiplier = storable('bomMultiplier', '2')
 export const stiltsMsg = storable('stiltsMsg', true)

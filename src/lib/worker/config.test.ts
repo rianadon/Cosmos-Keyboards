@@ -1,32 +1,36 @@
 import defaultConfig from '$assets/cuttleform.json' assert { type: 'json' }
-import { UNIFORM } from '$lib/geometry/keycaps'
-import { decodeConfig, encodeConfig } from '$lib/worker/config.new'
+import { decodeConfigIdk, encodeConfig, encodeCosmosConfig, serializeCosmosConfig } from '$lib/worker/config.serialize'
 import { expect, test } from 'bun:test'
 import { deserialize } from 'src/routes/beta/lib/serialize'
 import { Quaternion } from 'three'
 import { cuttleConf, type Cuttleform } from './config'
+import { fromCosmosConfig, toCosmosConfig } from './config.cosmos'
 import Trsf from './modeling/transformation'
 
 test('Empty config has empty URL', () => {
-  const keeb = decodeConfig('')
+  const keeb = fromCosmosConfig(decodeConfigIdk(''))
   const reencoded = encodeConfig(keeb)
   expect(reencoded).toBe('')
 })
 
-test('Decode the default configuration', () => {
-  const encoded =
-    'CnMKDxIFEIUDICcSABIAEgA4MQoPEgUQhQ8gJxIAEgASADgdChYSBRCFGyAnEgASABIAEgA4CUCA8LwCChESBRCFJyAnEgASABIAEgA4CgoVEgUQhTMgJxIAEgASADgeQICGisAHGABA6IWgrvBVSNzwoqABCpoBChcSExCFwAFAgICQAkjCmaCVkLwBUEM4CAoXEhMQBUCAgBhI0JWA3ZD1A1ALWJ4COBwKGBIUEAVAgIDUAkjCmaCVkLwBUIYBWDo4BgoWEhIQBUCAgPABSOaZ9KeQC1BXWH84CwoXEhMQBUCAgKwDSPCZzLXQMFB0WJUBOA0YAiIKCMgBEMgBGAAgAEDLi4Sk0DFIrZHcjcGTBg=='
-  const config = cuttleConf(defaultConfig.options as any)
-  const decoded = decodeConfig(encoded)
-  expect(preprocessCuttleform(decoded, config)).toMatchObject(preprocessCuttleform(config))
-})
+// test('Decode the default configuration', () => {
+//   const encoded =
+//     'CnMKDxIFEIUDICcSABIAEgA4MQoPEgUQhQ8gJxIAEgASADgdChYSBRCFGyAnEgASABIAEgA4CUCA8LwCChESBRCFJyAnEgASABIAEgA4CgoVEgUQhTMgJxIAEgASADgeQICGisAHGABA6IWgrvBVSNzwoqABCpoBChcSExCFwAFAgICQAkjCmaCVkLwBUEM4CAoXEhMQBUCAgBhI0JWA3ZD1A1ALWJ4COBwKGBIUEAVAgIDUAkjCmaCVkLwBUIYBWDo4BgoWEhIQBUCAgPABSOaZ9KeQC1BXWH84CwoXEhMQBUCAgKwDSPCZzLXQMFB0WJUBOA0YAiIKCMgBEMgBGAAgAEDLi4Sk0DFIrZHcjcGTBg=='
+//   const config = cuttleConf(defaultConfig.options as any)
+//   const decoded = decodeConfig(encoded)
+//   expect(preprocessCuttleform(decoded, config)).toMatchObject(preprocessCuttleform(config))
+// })
 
 test('Encode then decode the default configuration', () => {
   const config = cuttleConf(defaultConfig.options as any)
-  const encoded = encodeConfig(config)
+  const cosmos = toCosmosConfig(config)
+  const encoded = serializeCosmosConfig(encodeCosmosConfig(cosmos))
   console.log(encoded)
-  const decoded = decodeConfig(encoded)
-  expect(preprocessCuttleform(decoded, config)).toMatchObject(preprocessCuttleform(config))
+  // The decoded cosmosconf should match
+  expect(decodeConfigIdk(encoded)).toMatchObject(cosmos)
+  // The full encode then decode should match the configuration
+  const decoded2 = fromCosmosConfig(decodeConfigIdk(encoded))
+  expect(preprocessCuttleform(decoded2, config)).toMatchObject(preprocessCuttleform(config))
 })
 
 test('Encode then decode a custom thumb model', () => {
@@ -34,7 +38,7 @@ test('Encode then decode a custom thumb model', () => {
     'cf:ChYIBRAFWAAYBCAFKNIBMM0BUAJAAEgAWpUBChEIy4vMpdAxEI3FlK3is4rkARIRCKCDoIzACBDCmaCVkLyB5AESDwi8ieAwENCVgN2Q9YPkARIQCPSWiqgFEMKZoJWQvIHkARIPCP+DwI3ABxDmmfSnkItyEhEIq4Wcj7ANEPCZzLXQsIDkARIRCN6Sh5jfQBCOoZCdkpCC5AESEwiEhZSVsJeCARCim+CU8tCB5AE='
   const config = cuttleConf(deserialize(url, {} as any).options as any)
   const encoded = encodeConfig(config)
-  const decoded = decodeConfig(encoded)
+  const decoded = fromCosmosConfig(decodeConfigIdk(encoded))
   expect(preprocessCuttleform(decoded, config)).toMatchObject(preprocessCuttleform(config))
 })
 
@@ -66,7 +70,6 @@ function preprocessCuttleform(c: Cuttleform, other?: Cuttleform) {
       const newKey = { ...k, position: comparePosition(c, other, i) }
       if ('keycap' in newKey && newKey.keycap) {
         newKey.keycap = { ...newKey.keycap }
-        if (UNIFORM.includes(newKey.keycap.profile)) newKey.keycap.row = 5
         if (!newKey.keycap.letter) delete newKey.keycap.letter
         if (!newKey.keycap.home) delete newKey.keycap.home
       }

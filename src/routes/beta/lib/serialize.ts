@@ -5,6 +5,7 @@ import { Manuform } from '../../../../target/proto/manuform'
 import cuttleform from '$assets/cuttleform.json' assert { type: 'json' }
 import lightcycle from '$assets/lightcycle.json' assert { type: 'json' }
 import manuform from '$assets/manuform.json' assert { type: 'json' }
+import { decodeConfigIdk, encodeCosmosConfig, serializeCosmosConfig } from '$lib/worker/config.serialize'
 import * as pako from 'pako'
 
 interface State {
@@ -65,6 +66,9 @@ export function serialize(state: State) {
     diff = { thumbCluster: {}, shell: {}, ...diff } // Avoids errors in toBinary
     console.log('ser', state, diff)
     data = Cuttleform.toBinary(diff)
+  } else if (state.keyboard == 'cm') {
+    const ser = serializeCosmosConfig(encodeCosmosConfig(state.options as any))
+    return 'cm' + SPLIT_CHAR + ser
   } else {
     throw new Error(`Unknown keyboard type ${state.keyboard}`)
   }
@@ -78,6 +82,14 @@ function clone(a: any) {
 export function deserialize(str: string, fallback: State): State {
   if (str === 'manuform') return clone(manuform)
   if (str === 'lightcycle') return clone(lightcycle)
+  if (str == 'cm') {
+    return {
+      keyboard: 'cm',
+      options: decodeConfigIdk(
+        'CnMKDxIFEIADICcSABIAEgA4MQoPEgUQgA8gJxIAEgASADgdChYSBRCAGyAnEgASABIAEgA4CUCA8LwCChESBRCAJyAnEgASABIAEgA4CgoVEgUQgDMgJxIAEgASADgeQICGisAHGABA6IWgrvBVSNzwoqABCpIBChcSExDAwAFAgICQAkjCmaCVkLwBUEM4CAoVEhAQQECAgBhI0JWA3ZD1A1ALUJ4CChYSEhBAQICA1AJIwpmglZC8AVCGAVA6ChQSEBBAQICA8AFI5pn0p5ALUFdQfwoVEhAQQECAgKwDSPCZzLXQMFB0UJUBGAIiCgjIARDIARgAIABAy4uEpNAxSK2R3I3BkwY=',
+      ),
+    }
+  }
 
   const split = str.split(SPLIT_CHAR)
   if (split.length != 2) return clone(fallback)
@@ -87,6 +99,7 @@ export function deserialize(str: string, fallback: State): State {
 
   let options: object | null = null
   let content: string | undefined = undefined
+  console.log('DECODE CM', keyboard)
   if (keyboard === 'manuform') {
     options = recreate2(Manuform.fromBinary(data), clone(manuform.options))
   }
@@ -95,6 +108,11 @@ export function deserialize(str: string, fallback: State): State {
   }
   if (keyboard === 'cf') {
     options = recreate2(Cuttleform.fromBinary(data), clone(cuttleform.options))
+  }
+  if (keyboard == 'cm') {
+    options = decodeConfigIdk(
+      b64,
+    )
   }
   if (keyboard == 'expert') {
     options = clone(fallback).options

@@ -1,5 +1,5 @@
 .PHONY : build keycaps keycaps-simple keycaps2 keycaps-simple2 keyholes switches venv optimize docs docs-ci keyboards ci ci-base ci-setup vite-build quickstart npm-install dev
-build: target/proto/manuform.ts target/proto/lightcycle.ts target/proto/cuttleform.ts target/editorDeclarations.d.ts
+build: target/proto/manuform.ts target/proto/lightcycle.ts target/proto/cuttleform.ts target/proto/cosmos.ts target/editorDeclarations.d.ts
 
 BUN := $(shell command -v bun 2> /dev/null)
 ifdef BUN
@@ -22,6 +22,9 @@ target/proto/cuttleform.ts: src/proto/cuttleform.proto
 	$(NPX) protoc --ts_out target --proto_path src $<
 
 target/proto/lightcycle.ts: src/proto/lightcycle.proto
+	$(NPX) protoc --ts_out target --proto_path src $<
+
+target/proto/cosmos.ts: src/proto/cosmos.proto
 	$(NPX) protoc --ts_out target --proto_path src $<
 
 target/editorDeclarations.d.ts: src/lib/worker/config.ts src/lib/worker/modeling/transformation-ext.ts
