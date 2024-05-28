@@ -64,8 +64,7 @@
             <T.Mesh geometry={geometry.geometry} material={geometry.material} />
           {/each}
         </T.Group>
-        <slot name="geometry" />
-        <slot name="controls" />
+        <slot />
 
         <T.PerspectiveCamera
           makeDefault

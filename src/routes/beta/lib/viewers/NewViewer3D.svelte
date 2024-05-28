@@ -42,6 +42,8 @@
     clickedKey,
     noBase,
     showKeyInts,
+    selectMode,
+    tempConfig,
   } from '$lib/store'
   import HandModel from '$lib/3d/HandModel.svelte'
   import { FINGERS, type Joints, objectFromFingers, SolvedHand } from '../hand'
@@ -84,6 +86,7 @@
     cosmosKeyPosition,
     nthKey,
     nthPartType,
+    toPosRotation,
     type CosmosKey,
     type CosmosKeyboard,
   } from '$lib/worker/config.cosmos'
@@ -137,8 +140,8 @@
         column.keys.splice(column.keys.indexOf(key) + (dy == 1 ? 1 : 0), 0, {
           profile: {},
           partType: {},
-          position: undefined,
-          rotation: undefined,
+          position: key.position,
+          rotation: key.rotation,
           row: key.row! + dy,
         })
       else if (columnCluster)
@@ -181,30 +184,61 @@
       return proto
     })
   }
+  function onMove(obj: Matrix4, change: boolean) {
+    ;(change ? protoConfig : tempConfig).update((proto) => {
+      const { key, column, cluster } = nthKey(proto, $clickedKey!)
+      const zkey = { ...key, position: 0n, rotation: 0n }
+      const oldPosition = cosmosKeyPosition(zkey, column, cluster, proto)
+      obj.premultiply(oldPosition.evaluate({ flat: false }, new Trsf()).Matrix4().invert())
+      const { position, rotation } = toPosRotation(obj)
+      key.position = position
+      // key.rotation = rotation
+      console.log(position, rotation)
+      return proto
+    })
+  }
+
+  function keyPos(n: number, kbd: CosmosKeyboard) {
+    const { key, column, cluster } = nthKey(kbd, n)
+    return cosmosKeyPosition(key, column, cluster, kbd)
+  }
 
   function adjacentKey(kbd: CosmosKeyboard, n: number, dx: number, dy: number) {
     const { key, column, cluster } = nthKey(kbd, n)
-    const newKey: CosmosKey = {
+    const k: CosmosKey = {
       ...key,
       column: (key.column || cluster.column || column.column!) + dx,
       row: key.row! + dy,
     }
-    return {
-      dx,
-      dy,
-      pos: cosmosKeyPosition(newKey, cluster, column, kbd).evaluate({ flat: false }, new Trsf()),
-    }
+    const pos = cosmosKeyPosition(k, cluster, column, kbd).evaluate({ flat: false }, new Trsf())
+    return { dx, dy, pos }
   }
 
-  function adjacentPositions(geo: Geometry | null, n: number | null, protoConfig: CosmosKeyboard) {
-    if (n == null || !geo) return []
+  function midColumnKey(kbd: CosmosKeyboard, n: number, dx: number) {
+    const { key, column, cluster } = nthKey(kbd, n)
+    const startIndex = n - column.keys.indexOf(key)
+    const dy = (column.keys[column.keys.length - 1].row! - column.keys[0].row!) / 2
+    return adjacentKey(kbd, startIndex, dx, dy)
+  }
+
+  function adjacentPositions(
+    geo: Geometry | null,
+    n: number | null,
+    protoConfig: CosmosKeyboard,
+    mode: 'key' | 'column' | 'cluster'
+  ) {
+    if (n == null || !geo || mode == 'cluster') return []
     const positions = geo.keyHolesTrsfs.map((t) => t.origin())
-    return [
-      adjacentKey(protoConfig, n, 1, 0),
-      adjacentKey(protoConfig, n, 0, 1),
-      adjacentKey(protoConfig, n, -1, 0),
-      adjacentKey(protoConfig, n, 0, -1),
-    ]
+    return (
+      mode == 'key'
+        ? [
+            adjacentKey(protoConfig, n, 1, 0),
+            adjacentKey(protoConfig, n, 0, 1),
+            adjacentKey(protoConfig, n, -1, 0),
+            adjacentKey(protoConfig, n, 0, -1),
+          ]
+        : [midColumnKey(protoConfig, n, 1), midColumnKey(protoConfig, n, -1)]
+    )
       .filter((a) => !positions.some((b) => a.pos.origin().distanceTo(b) < 15))
       .map(({ dx, dy, pos }) => ({ dx, dy, pos: pos.Matrix4() }))
   }
@@ -266,6 +300,26 @@
     on:click|stopPropagation={() => transformMode.set('rotate')}
     ><Icon path={mdi.mdiOrbitVariant} size="24px" />e r</button
   >
+  <div class="my-4" />
+
+  <button
+    class="button"
+    class:selected={$selectMode == 'key'}
+    on:click|stopPropagation={() => selectMode.set('key')}
+    ><Icon size="24px" name="keycap" />key</button
+  >
+  <button
+    class="button"
+    class:selected={$selectMode == 'column'}
+    on:click|stopPropagation={() => selectMode.set('column')}
+    ><Icon name="column" size="24px" />col</button
+  >
+  <button
+    class="button"
+    class:selected={$selectMode == 'cluster'}
+    on:click|stopPropagation={() => selectMode.set('cluster')}
+    ><Icon path={mdi.mdiKeyboard} size="24px" />clr</button
+  >
 </div>
 
 <NewViewer
@@ -280,26 +334,32 @@
   enablePan={true}
   {is3D}
 >
-  <svelte:fragment slot="geometry">
-    <T.Group position={[-center[0], -center[1], -center[2]]}>
-      <Keyboard config={conf} {transparency} {flip} />
-      {#if !$noBase}<Microcontroller {conf} {geometry} {showSupports} />{/if}
-      <slot />
-      {#each adjacentPositions(geometry, $clickedKey, $protoConfig) as adj}
+  <T.Group position={[-center[0], -center[1], -center[2]]}>
+    <Keyboard config={conf} {transparency} {flip} />
+    {#if !$noBase}<Microcontroller {conf} {geometry} {showSupports} />{/if}
+    <slot />
+    {#if $transformMode == 'select'}
+      {#each adjacentPositions(geometry, $clickedKey, $protoConfig, $selectMode) as adj}
         <GroupMatrix matrix={adj.pos}>
           <AddButton on:click={() => addKey(adj.dx, adj.dy)} />
         </GroupMatrix>
       {/each}
-    </T.Group>
-  </svelte:fragment>
-  <svelte:fragment slot="controls">
-    <Gizmo verticalPlacement="top" horizontalPlacement="left" paddingX={50} paddingY={50} />
-    <T.GridHelper
-      args={[150, 10]}
-      position.z={floorZ - center[2]}
-      rotation={[-Math.PI / 2, 0, 0]}
+    {/if}
+  </T.Group>
+  <Gizmo verticalPlacement="top" horizontalPlacement="left" paddingX={50} paddingY={50} />
+  <T.GridHelper args={[150, 10]} position.z={floorZ - center[2]} rotation={[-Math.PI / 2, 0, 0]} />
+  {#if $clickedKey != null}
+    <TransformControls
+      {center}
+      transformation={keyPos($clickedKey, $protoConfig)
+        .evaluate({ flat: false }, new Trsf())
+        .Matrix4()}
+      plane={false}
+      flip={false}
+      on:move={(e) => onMove(e.detail, false)}
+      on:change={(e) => onMove(e.detail, true)}
     />
-  </svelte:fragment>
+  {/if}
 </NewViewer>
 {#if $debugViewport}
   <div

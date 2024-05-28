@@ -5,7 +5,10 @@ import type { User } from '../routes/beta/lib/login'
 import type { ColorScheme } from './3d/materials'
 
 export const protoConfig = writable<CosmosKeyboard>(undefined)
+export const tempConfig = writable<CosmosKeyboard>(undefined)
+protoConfig.subscribe(c => tempConfig.set(c))
 export const transformMode = writable<'translate' | 'rotate' | 'select'>('select')
+export const selectMode = writable<'key' | 'column' | 'cluster'>('key')
 export const flip = writable(false)
 export const user = writable<User>({ success: false, sponsor: undefined })
 export const codeError = writable<Error | null>(null)

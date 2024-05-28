@@ -401,7 +401,7 @@ function collectByColumn(keys: CuttleKey[]) {
   return results
 }
 
-function toPosRotation(m: Matrix4) {
+export function toPosRotation(m: Matrix4) {
   const translation = new Vector3().setFromMatrixPosition(m)
   const rpy = matrixToRPY(m)
   const pos = encodeTuple([Math.round(translation.x * 10), Math.round(translation.y * 10), Math.round(translation.z * 10)])

@@ -16,15 +16,13 @@ import { getUser } from '../../routes/beta/lib/login'
 import { ITriangle } from '../loaders/simplekeys'
 import { type ConfError, isPro, keycapIntersections, partIntersections, socketIntersections } from './check'
 import { type Cuttleform, type CuttleKey, type Geometry, newGeometry } from './config'
-import { boardHolder, cutWithConnector, keyHoles, makeConnector, makePlate, makerScrewInserts, makeWalls, type ScrewInsertTypes, webSolid } from './model'
+import { boardHolder, cutWithConnector, keyHoles, makeConnector, makePlate, makePlateMesh, makerScrewInserts, makeWalls, type ScrewInsertTypes, webSolid } from './model'
 import { Assembly } from './modeling/assembly'
 import { blobSTL, combine } from './modeling/index'
 import { supportMesh } from './modeling/supports'
 import Trsf, { Vector } from './modeling/transformation'
 
 let oc: OpenCascadeInstance
-let web: Solid
-let walls: Solid
 let model: Solid
 let ocTime = 0
 
@@ -102,28 +100,43 @@ export async function generateKeysMesh(config: Cuttleform) {
 }
 
 export async function generateWeb(config: Cuttleform) {
-  await ensureOC()
+  // await ensureOC()
+  // const geo = newGeometry(config)
+  // const web = webSolid(config, geo).toSolid(false, true)
+  // return meshWithVolumeAndSupport(web, geo.bottomZ)
   const geo = newGeometry(config)
-  web = webSolid(config, geo, false)
-  return meshWithVolumeAndSupport(web, geo.bottomZ)
+  const mesh = webSolid(config, geo).toMesh()
+  const supports = supportMesh(mesh, geo.bottomZ)
+  return { mesh, supports }
 }
 
 export async function generateWalls(config: Cuttleform) {
-  await ensureOC()
+  // await ensureOC()
+  // const geo = newGeometry(config)
+  // const walls = makeWalls(config, geo.allWallCriticalPoints(), geo.worldZ, geo.bottomZ).toSolid(false, false)
+  // return meshWithVolume(walls)
   const geo = newGeometry(config)
-  walls = makeWalls(config, geo.allWallCriticalPoints(), geo.worldZ, geo.bottomZ, false)
-  return meshWithVolume(walls)
+  const mesh = makeWalls(config, geo.allWallCriticalPoints(), geo.worldZ, geo.bottomZ).toMesh()
+  const supports = supportMesh(mesh, geo.bottomZ)
+  return { mesh, supports }
 }
 
 export async function generatePlate(config: Cuttleform, cut = false) {
-  await ensureOC()
+  // await ensureOC()
+  // const geo = newGeometry(config)
+  // const { top, bottom } = makePlate(config, geo, cut)
+  // const topMesh = meshWithVolume(top())
+  // return {
+  //   top: topMesh,
+  //   bottom: bottom ? meshWithVolume(bottom()) : { mesh: null, mass: 0 },
+  //   ocTime: topMesh.ocTime,
+  // }
   const geo = newGeometry(config)
-  const { top, bottom } = makePlate(config, geo, cut)
-  const topMesh = meshWithVolume(top())
+  const mesh = makePlateMesh(config, geo, cut)
+  const supports = supportMesh(mesh, geo.bottomZ)
   return {
-    top: topMesh,
-    bottom: bottom ? meshWithVolume(bottom()) : { mesh: null, mass: 0 },
-    ocTime: topMesh.ocTime,
+    top: { mesh, supports },
+    bottom: { mesh: null, mass: 0 },
   }
 }
 
@@ -142,8 +155,9 @@ export async function generate(config: Cuttleform, geo: Geometry, stitchWalls: b
   console.timeEnd('Calculating geometry')
 
   console.time('Creating walls')
+  let walls: Solid
   try {
-    walls = makeWalls(config, wallPts, geo.worldZ, geo.bottomZ, stitchWalls)
+    walls = makeWalls(config, wallPts, geo.worldZ, geo.bottomZ).toSolid(stitchWalls, false)
   } catch (e) {
     throw new Error('Error Generating the Walls: ' + e + "\n\nThis is caused by bad geometry. Check that the walls don't intersect themselves.")
   }
@@ -153,7 +167,7 @@ export async function generate(config: Cuttleform, geo: Geometry, stitchWalls: b
   console.time('Making web')
   let web: Solid
   try {
-    web = webSolid(config, geo, true)
+    web = webSolid(config, geo).toSolid(true, true)
   } catch (e) {
     throw new Error('Error Generating the Key Web: ' + e + "\n\nThis is caused by bad geometry. Check that the walls don't intersect the key sockets in any part of the model.")
   }
@@ -249,12 +263,12 @@ export async function generateWristRest(config: Cuttleform) {
 
 export async function cutWall(config: Cuttleform) {
   await ensureOC()
-  const geometry = newGeometry(config)
-  await generateWalls(config)
-  if (config.connector && geometry.connectorOrigin) {
-    walls = cutWithConnector(config, walls, config.connector, geometry.connectorOrigin)
+  const geo = newGeometry(config)
+  let walls = makeWalls(config, geo.allWallCriticalPoints(), geo.worldZ, geo.bottomZ).toSolid(false, false)
+  if (config.connector && geo.connectorOrigin) {
+    walls = cutWithConnector(config, walls, config.connector, geo.connectorOrigin)
   }
-  const result = meshWithVolumeAndSupport(walls, geometry.bottomZ)
+  const result = meshWithVolumeAndSupport(walls, geo.bottomZ)
   // walls.delete()
   return result
 }

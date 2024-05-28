@@ -15,30 +15,16 @@
 
 import { socketSize } from '$lib/geometry/socketsParts'
 import { switchInfo } from '$lib/geometry/switches'
-import { Matrix3 } from 'three/src/math/Matrix3.js'
-import type { ConfError } from './check'
+import { Matrix3 } from 'three/src/math/Matrix3'
 import { createTriangleMap, type TriangleMap } from './concaveman'
 import { doWallsIntersect } from './concaveman-extra'
 import type { Cuttleform, CuttleKey, Geometry } from './config'
-import { type CriticalPoints, flattenKeyCriticalPoints, type WallCriticalPoints, wallCurve, wallUpDir, webThickness } from './geometry'
-import { intersectPtPoly } from './geometry.intersections'
+import { type CriticalPoints, triangleNormTrsf, type WallCriticalPoints, wallUpDir, webThickness } from './geometry'
 import type Trsf from './modeling/transformation'
 import { Vector } from './modeling/transformation'
 
 export const DEFAULT_MWT_FACTOR = 0.8
 const MAX_WEB_THICKNESS = 5 // Maximum web thickness used for calculating the reinforced web. Very large web thicknesses cause things to go wacky.
-
-/** Find the normal of a triangle. */
-function triangleNorm(a: Vector, b: Vector, c: Vector, reverse = false) {
-  const u = b.clone().sub(a)
-  const v = c.clone().sub(b)
-  const norm = u.cross(v).normalize()
-  if (reverse) norm.negate()
-  return norm
-}
-export function triangleNormTrsf(a: Trsf, b: Trsf, c: Trsf, reverse = false) {
-  return triangleNorm(a.origin(), b.origin(), c.origin(), reverse)
-}
 
 type WallShifts = Record<number, { direction: Vector; offset: number }>
 

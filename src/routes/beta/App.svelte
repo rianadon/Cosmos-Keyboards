@@ -149,7 +149,18 @@
   //$: config = cuttleConf(state.options)
   let config: Cuttleform
   let geometry: Geometry | null = null
-  $: if (config && browser) process(config).catch((e) => console.error(e))
+  let processing = false
+  $: if (config && browser) {
+    debounceprocess(config).catch((e) => console.error(e))
+  }
+
+  async function debounceprocess(config: Cuttleform) {
+    console.log('isprocessing', processing)
+    if (processing) return
+    processing = true
+    await process(config)
+    processing = false
+  }
 
   let wristBuf: BufferGeometry | undefined
   let plateTopBuf: BufferGeometry | undefined
@@ -191,7 +202,7 @@
         try {
           ocError = undefined
           modelOpacity = 0.6
-          center = estimatedCenter(geometry, config.wristRest)
+          // center = estimatedCenter(geometry, config.wristRest)
           const wristMesh = await pool.executeNow((w) => w.generateWristRest(conf), 'Wrist Rest')
           wristBuf = fromGeometry(wristMesh.mesh, cTransparency)
           modelOpacity = 1
@@ -215,7 +226,7 @@
     // Reset the state
     ocError = undefined
     console.log('Generating!')
-    modelOpacity = 0.2
+    // modelOpacity = 0.2
 
     pool.reset()
     try {
@@ -228,15 +239,15 @@
       const keyPromise = pool.execute((w) => w.generateKeys(settings), 'Keys')
       const platePromise = pool.execute((w) => w.generatePlate(settings), 'Plate')
 
-      screwBaseBuf = undefined
-      screwPlateBuf = undefined
-      // wristBuf = undefined
-      holderBuf = undefined
-      wallBuf = undefined
-      webBuf = undefined
-      keyBufs = undefined
-      plateTopBuf = undefined
-      plateBotBuf = undefined
+      // screwBaseBuf = undefined
+      // screwPlateBuf = undefined
+      // // wristBuf = undefined
+      // holderBuf = undefined
+      // wallBuf = undefined
+      // webBuf = undefined
+      // keyBufs = undefined
+      // plateTopBuf = undefined
+      // plateBotBuf = undefined
 
       let cutPromise, holderPromise, screwPromise, wristRestPromise, cutPlatePromise
       if (!flags.fast) {
@@ -248,8 +259,8 @@
           cutPlatePromise = pool.execute((w) => w.generatePlate(settings, true), 'Full Plate')
       }
 
-      center = estimatedCenter(geometry, !!config.wristRest)
-      confError = await intersectionsPromise
+      // center = estimatedCenter(geometry, !!config.wristRest)
+      // confError = await intersectionsPromise
       const wallMesh = await wallPromise
       const webMesh = await webPromise
       const keyMesh = await keyPromise

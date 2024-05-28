@@ -167,6 +167,18 @@ function xyAngle(a: Vector, b: Vector) {
   return Math.abs(a.x * b.x + a.y * b.y)
 }
 
+/** Find the normal of a triangle. */
+export function triangleNorm(a: Vector, b: Vector, c: Vector, reverse = false) {
+  const u = b.clone().sub(a)
+  const v = c.clone().sub(b)
+  const norm = u.cross(v).normalize()
+  if (reverse) norm.negate()
+  return norm
+}
+export function triangleNormTrsf(a: Trsf, b: Trsf, c: Trsf, reverse = false) {
+  return triangleNorm(a.origin(), b.origin(), c.origin(), reverse)
+}
+
 function offsetScale(c: Cuttleform, bisector: Trsf, pt: Trsf) {
   if (!c.rounded.side) return 1
   const axis = bisector.axis(1, 0, 0)

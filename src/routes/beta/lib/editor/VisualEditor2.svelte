@@ -33,7 +33,7 @@
     ENCODER,
     SWITCH,
   } from '../../../../../target/proto/cuttleform'
-  import { clickedKey, hoveredKey, protoConfig } from '$lib/store'
+  import { clickedKey, hoveredKey, protoConfig, tempConfig } from '$lib/store'
   import Trsf from '$lib/worker/modeling/transformation'
   import { writable } from 'svelte/store'
   import defaults from '$assets/cuttleform.json'
@@ -48,7 +48,7 @@
   export let basic: boolean
 
   $: protoConfig.set(cosmosConf)
-  $: conf = fromCosmosConfig($protoConfig)
+  $: conf = fromCosmosConfig($tempConfig)
 
   const dispatch = createEventDispatcher()
 

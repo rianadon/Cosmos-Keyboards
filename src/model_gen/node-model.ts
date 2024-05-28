@@ -40,13 +40,13 @@ export async function generate(config: Cuttleform, parts = DEFAULT_PARTS) {
 
   const components: Record<Part, () => Promise<AnyShape | undefined>> = {
     walls: async () => {
-      let walls = makeWalls(config, geo.allWallCriticalPoints(), geo.worldZ, geo.bottomZ, true)
+      let walls = makeWalls(config, geo.allWallCriticalPoints(), geo.worldZ, geo.bottomZ).toSolid(true)
       if (config.connector) {
         walls = cutWithConnector(config, walls, config.connector, geo.connectorOrigin!)
       }
       return walls
     },
-    web: async () => webSolid(config, geo, false),
+    web: async () => webSolid(config, geo).toSolid(false),
     holes: async () => keyHoles(config, geo.keyHolesTrsfs.flat()),
     inserts: async () => geo.screwPositions.length ? makerScrewInserts(config, geo, ['base']) : undefined,
     plate: async () => combine(Object.values(makePlate(config, geo, true, true)).map(a => a())),
