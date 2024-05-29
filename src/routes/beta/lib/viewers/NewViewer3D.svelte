@@ -186,20 +186,49 @@
   }
   function onMove(obj: Matrix4, change: boolean) {
     ;(change ? protoConfig : tempConfig).update((proto) => {
-      const { key, column, cluster } = nthKey(proto, $clickedKey!)
-      const zkey = { ...key, position: 0n, rotation: 0n }
-      const oldPosition = cosmosKeyPosition(zkey, column, cluster, proto)
+      const oldPosition = transformationCenter($clickedKey!, proto, $selectMode, true)
       obj.premultiply(oldPosition.evaluate({ flat: false }, new Trsf()).Matrix4().invert())
       const { position, rotation } = toPosRotation(obj)
-      key.position = position
+
+      const { key, column, cluster } = nthKey(proto, $clickedKey!)
+      if ($selectMode == 'key') key.position = position
+      if ($selectMode == 'column') column.position = position
+      if ($selectMode == 'cluster') cluster.position = position
       // key.rotation = rotation
       console.log(position, rotation)
       return proto
     })
   }
 
-  function keyPos(n: number, kbd: CosmosKeyboard) {
-    const { key, column, cluster } = nthKey(kbd, n)
+  function mid(x: (number | undefined)[]) {
+    const f = x.filter((v) => typeof v !== 'undefined') as number[]
+    if (!f.length) return undefined
+    return (Math.max(...f) + Math.min(...f)) / 2
+  }
+
+  function transformationCenter(
+    n: number,
+    kbd: CosmosKeyboard,
+    mode: 'key' | 'column' | 'cluster',
+    zeroPosition = false
+  ) {
+    let { key, column, cluster } = nthKey(kbd, n)
+    if (mode != 'key' || zeroPosition) key = { ...key, position: 0n, rotation: 0n } // key position is almost always zeroed
+    if (mode == 'column' && zeroPosition) column = { ...column, position: 0n, rotation: 0n }
+    if (mode == 'cluster' && zeroPosition) cluster = { ...cluster, position: 0n, rotation: 0n }
+
+    if (mode == 'column')
+      key = {
+        ...key,
+        row: mid(column.keys.map((k) => k.row)),
+        column: mid(column.keys.map((k) => k.column || column.column)),
+      }
+    if (mode == 'cluster')
+      key = {
+        ...key,
+        row: mid(cluster.clusters.flatMap((col) => col.keys.map((k) => k.row))),
+        column: mid(cluster.clusters.flatMap((col) => col.keys.map((k) => k.column || col.column))),
+      }
     return cosmosKeyPosition(key, column, cluster, kbd)
   }
 
@@ -351,7 +380,7 @@
   {#if $clickedKey != null}
     <TransformControls
       {center}
-      transformation={keyPos($clickedKey, $protoConfig)
+      transformation={transformationCenter($clickedKey, $protoConfig, $selectMode)
         .evaluate({ flat: false }, new Trsf())
         .Matrix4()}
       plane={false}
