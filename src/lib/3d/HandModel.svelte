@@ -1,9 +1,9 @@
 <script lang="ts">
   import type { SolvedHand } from '../hand'
-  import * as SC from 'svelte-cubed'
   import { type GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
   import handModel from '$assets/hand.glb?url'
   import { Euler, Matrix4, Mesh, MeshNormalMaterial, Object3D, type Vector3Tuple } from 'three'
+  import { T } from '@threlte/core'
 
   export let scale = 66.7
   export let reverse = false
@@ -46,9 +46,5 @@
 </script>
 
 {#if handNodes}
-  <SC.Primitive
-    object={handNodes['Hand_Armature']}
-    scale={[scale, scale, reverse ? -scale : scale]}
-    {position}
-  />
+  <T is={handNodes['Hand_Armature']} scale={[scale, scale, reverse ? -scale : scale]} {position} />
 {/if}

@@ -1,5 +1,4 @@
-import cdt2d from 'cdt2d'
-import { CompSolid, Face, getOC, type ShapeMesh, Sketcher } from 'replicad'
+import { draw, Face, getOC, type PlaneName, type ShapeMesh } from 'replicad'
 import { BufferAttribute, ExtrudeGeometry, Shape } from 'three'
 import { bezierPatch, type Curve, evalPatch, lineToCurve, loftCurves, type Patch, patchGradient, triangleNormTrsf } from '../geometry'
 import { buildSewnSolid, buildSolid, makeQuad, makeTriangle } from './index'
@@ -135,7 +134,7 @@ function patchToMesh(p: Patch): FaceMesh {
       .add(new Vector().fromArray(mesh.vertices, i20 * 3))
       .add(new Vector().fromArray(mesh.vertices, i22 * 3))
       .divideScalar(4)
-    if (level >= 4 || midpoint.distanceTo(p11) < 3e-2) {
+    if (level >= 2 || midpoint.distanceTo(p11) < 3e-2) {
       mesh.triangles.push(i00, i02, i22, i00, i22, i20)
       return
     }
@@ -297,7 +296,7 @@ export function bezierFace(patch: Patch) {
 // }
 
 export class BezierSketch {
-  constructor(private sketcher: Shape) {
+  constructor(private sketcher: Shape, private ops: [string, any[]][]) {
   }
 
   extrudeMesh(depth: number): ShapeMesh {
@@ -316,27 +315,38 @@ export class BezierSketch {
       faceGroups: [],
     }
   }
+
+  sketchOnPlane(inputPlane?: PlaneName, origin?: number | Point) {
+    const sketch = draw()
+    // @ts-ignore
+    this.ops.forEach(([op, args]) => sketch[op].apply(sketch, args))
+    return sketch.close().sketchOnPlane(inputPlane, origin)
+  }
 }
 
 export class BezierSketcher {
   private shape = new Shape()
+  private ops: [string, any[]][] = []
 
   movePointerTo(p: Point) {
     this.shape.moveTo(p[0], p[1])
+    this.ops.push(['movePointerTo', [p]])
     return this
   }
 
   lineTo(point: Point) {
     this.shape.lineTo(point[0], point[1])
+    this.ops.push(['lineTo', [point]])
     return this
   }
 
   bezierCurveTo(point: Point, [a, b]: [Point, Point]) {
     this.shape.bezierCurveTo(a[0], a[1], b[0], b[1], point[0], point[1])
+    this.ops.push(['bezierCurveTo', [point, [a, b]]])
     return this
   }
 
   close() {
-    return new BezierSketch(this.shape)
+    return new BezierSketch(this.shape, this.ops)
   }
 }

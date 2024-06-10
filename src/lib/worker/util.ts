@@ -58,7 +58,7 @@ export function reverseMap<A extends string | number, B extends string | number>
   return Object.fromEntries(Object.entries(m).map(([a, b]) => [b, a]))
 }
 
-export function notNull<E>(a: E[]): Exclude<E, undefined | null>[] {
+export function notNull<E>(a: readonly E[]): Exclude<E, undefined | null>[] {
   return a.filter(e => !!e) as Exclude<E, undefined | null>[]
 }
 
@@ -95,4 +95,9 @@ export class TallyMap<K> extends DefaultMap<K, number> {
     }
     return best
   }
+}
+
+export function diff<T>(n: T, parent: T) {
+  if (n == parent) return undefined
+  return n
 }

@@ -68,7 +68,7 @@
     class="text-black bg-brand-green font-semibold sm:pt-1 sm:px-10 rounded sm:border-b-6 border-[#f57aec] inline-flex items-center gap-30 cta sm:text-xl my-4 sm:pb-0.5 px-6 border-b-4"
     on:click={join}
   >
-    Join the beta
+    Try the beta
     <Icon path={mdiChevronRight} size="100%" class="w-[28px] sm:w-[32px]" />
   </a>
 </section>
@@ -220,7 +220,7 @@
     class="text-black bg-brand-pink font-semibold sm:pt-1 sm:px-10 rounded sm:border-b-6 border-brand-green inline-flex items-center gap-30 cta sm:text-xl my-4 sm:pb-0.5 px-6 border-b-4"
     on:click={join}
   >
-    Join the beta
+    Try the beta
     <Icon path={mdiChevronRight} size="100%" class="w-[28px] sm:w-[32px]" />
   </a>
   <p class="mt-6 max-w-prose mx-auto px-6 text-gray-200">

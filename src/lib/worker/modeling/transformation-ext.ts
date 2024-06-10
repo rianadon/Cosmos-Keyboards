@@ -185,8 +185,8 @@ export default class ETrsf {
     return this.apply({ name: 'placeOnSphere', args: [opts] })
   }
 
-  evaluate(context: EvaluationContext, t: Trsf): Trsf {
-    return this.history.reduce((t, op) => impl(t, context, op), t)
+  evaluate(context: EvaluationContext, t?: Trsf): Trsf {
+    return this.history.reduce((t, op) => impl(t, context, op), t || new Trsf())
   }
 
   toString(indent: number): string {

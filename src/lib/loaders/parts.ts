@@ -49,22 +49,16 @@ export async function partGeometry(type: Switch) {
   return part
 }
 
+async function partGeometry2(trsf: Trsf, k: CuttleKey) {
+  if (!(k.type in PART_URLS) || !PART_URLS[k.type]) return null
+  return {
+    geometry: await partGeometry(k.type),
+    matrix: trsf.Matrix4(),
+  }
+}
+
 export async function partGeometries(trsfs: Trsf[], keys: CuttleKey[], flipped: boolean) {
   return notNull(
-    await Promise.all(keys.map(async (k, i) => {
-      if (k.type == 'trackball') {
-        return {
-          i: i,
-          geometry: new SphereGeometry(17.5, 64, 32),
-          matrix: trsfs[keys.indexOf(k)].pretranslated(0, 0, -2.5).Matrix4(),
-        }
-      }
-      if (!(k.type in PART_URLS) || !PART_URLS[k.type]) return null
-      return {
-        i: i,
-        geometry: await cacher(k.type, k.type),
-        matrix: trsfs[keys.indexOf(k)].Matrix4(),
-      }
-    })),
+    await Promise.all(keys.map(async (k, i) => partGeometry2(trsfs[i], k))),
   )
 }

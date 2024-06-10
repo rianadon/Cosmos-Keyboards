@@ -3,7 +3,7 @@ import ETrsf from '$lib/worker/modeling/transformation-ext'
 import { Matrix4, Vector3 } from 'three'
 import { type ClusterName, type ClusterSide, type ClusterType, type Connector, decodeClusterFlags, encodeClusterFlags, type ScrewFlags } from '../../../target/cosmosStructs'
 import type { Curvature } from '../../../target/proto/cosmos'
-import { type AnyShell, type Cuttleform, type CuttleKey, type CuttleKeycapKey, encodeTuple, type Keycap, matrixToRPY, tupleToRot, tupleToXYZ } from './config'
+import { type AnyShell, type Cuttleform, type CuttleKey, type CuttleKeycapKey, decodeTuple, encodeTuple, type FullCuttleform, type Keycap, matrixToRPY, tupleToRot, tupleToXYZ } from './config'
 import { decodePartType, encodePartType } from './config.serialize'
 import Trsf from './modeling/transformation'
 import { DefaultMap, TallyMap } from './util'
@@ -17,12 +17,12 @@ export interface Profile {
   profile?: Keycap['profile'] // 4 bits
   row?: number // 3 bits
   letter?: string // 7 bits
-  home?: Keycap['home'] | null // 3 bits
+  home: Exclude<Keycap['home'], undefined> | null // 3 bits
 }
 
 type CosmosCurvature = Curvature
 
-type CosmosCluster = {
+export type CosmosCluster = {
   name: ClusterName
   side: ClusterSide
   type: ClusterType
@@ -47,7 +47,7 @@ export type CosmosKey = {
 }
 export type CosmosKeyboard =
   & {
-    curvature: CosmosCurvature
+    curvature: Required<CosmosCurvature>
     profile: Keycap['profile']
     partType: PartType
     wallShrouding: number
@@ -61,6 +61,9 @@ export type CosmosKeyboard =
     rounded: Cuttleform['rounded']
     webMinThicknessFactor: number
     shell: AnyShell
+    wristRestEnable: boolean
+    wristRestProps: Exclude<Cuttleform['wristRest'], undefined>
+    wristRestPosition: bigint
   }
   & ScrewFlags
   & Connector
@@ -69,7 +72,7 @@ export type CosmosKeyboard =
  * List of parts that are used with physical keys.
  * All of these have configurable key aspect ratios.
  */
-const PARTS_WITH_KEYCAPS = [
+export const PARTS_WITH_KEYCAPS = [
   'mx-better',
   'mx-pcb',
   'mx-hotswap',
@@ -110,6 +113,14 @@ export function toCosmosConfig(conf: Cuttleform): CosmosKeyboard {
     verticalClearance: conf.verticalClearance,
     rounded: conf.rounded,
     shell: conf.shell,
+    wristRestEnable: !!conf.wristRest,
+    wristRestProps: conf.wristRest || {
+      angle: 10,
+      slope: 5,
+      maxWidth: 100,
+      tenting: 6,
+    },
+    wristRestPosition: encodeTuple([100, -1000, 0]),
     clusters: [],
   }
   for (const [trsf, trsfGrp] of collectByTransformBy(conf.keys).entries()) {
@@ -155,8 +166,7 @@ export function toCosmosConfig(conf: Cuttleform): CosmosKeyboard {
       }
       cluster.clusters.push(column)
       for (const colKey of colGrp) {
-        let keyColumn = undefined
-        let keyRow = undefined
+        let keyRow = 0
         const matOp = colKey.position.history.find(h => h.name == 'placeOnMatrix')
         const sphereOp = colKey.position.history.find(h => h.name == 'placeOnSphere')
 
@@ -164,7 +174,6 @@ export function toCosmosConfig(conf: Cuttleform): CosmosKeyboard {
         if (matOp) {
           // @ts-check
           const opts: any = 'merged' in matOp.args[0] ? matOp.args[0].merged : matOp.args[0]
-          keyColumn = opts.column
           keyRow = opts.row
           matsphTrsf = new ETrsf([matOp]).evaluate({ flat: false }, new Trsf())
         } else if (sphereOp) {
@@ -189,10 +198,12 @@ export function toCosmosConfig(conf: Cuttleform): CosmosKeyboard {
           profile: {
             profile: diff(keycap?.profile, columnProfile ?? clusterProfile ?? globalProfile),
             letter: keycap?.letter,
-            row: keycap?.row,
-            home: keycap?.home,
+            row: keycap?.row ?? 5,
+            home: keycap?.home ?? null,
           },
           row: keyRow,
+          sizeA: undefined,
+          sizeB: undefined,
           ...toPosRotation(trsf.Matrix4()),
         })
       }
@@ -229,7 +240,8 @@ function dominantCurvature(keys: CuttleKey[]) {
   }
 }
 
-export function fromCosmosConfig(c: CosmosKeyboard): Cuttleform {
+export function fromCosmosConfig(c: CosmosKeyboard): FullCuttleform {
+  const wrPos = decodeTuple(c.wristRestPosition)
   const conf: Cuttleform = {
     wallThickness: c.wallThickness,
     wallShrouding: c.wallShrouding,
@@ -243,14 +255,14 @@ export function fromCosmosConfig(c: CosmosKeyboard): Cuttleform {
     screwSize: c.screwSize,
     screwType: c.screwType,
     clearScrews: c.clearScrews,
-    rounded: c.rounded,
+    rounded: JSON.parse(JSON.stringify(c.rounded)),
     connector: c.connector,
     connectorSizeUSB: c.connectorSizeUSB,
     connectorIndex: -1,
     microcontroller: c.microcontroller,
     fastenMicrocontroller: c.fastenMicrocontroller,
-    wristRest: undefined,
-    wristRestOrigin: new ETrsf(),
+    wristRest: c.wristRestEnable ? { ...c.wristRestProps } : undefined,
+    wristRestOrigin: new ETrsf().translate(wrPos[0] / 10, wrPos[1] / 10, wrPos[2] / 10),
     shell: c.shell,
   }
   for (const clusterA of c.clusters) {
@@ -277,7 +289,10 @@ export function fromCosmosConfig(c: CosmosKeyboard): Cuttleform {
       }
     }
   }
-  return conf
+  return {
+    left: conf,
+    right: conf,
+  }
 }
 
 export function cosmosKeyPosition(key: CosmosKey, column: CosmosCluster, cluster: CosmosCluster, keeb: CosmosKeyboard): ETrsf {
@@ -285,11 +300,11 @@ export function cosmosKeyPosition(key: CosmosKey, column: CosmosCluster, cluster
   const columnTrsf = rotationPositionETrsf(column)
   const trsf = rotationPositionETrsf(key) || new ETrsf()
 
-  const col = key.column || column.column || cluster.column
+  const col = key.column ?? column.column ?? cluster.column
   const row = key.row
   if (typeof row !== 'undefined' && typeof col !== 'undefined') {
     // console.log(JSON.stringify(clusterTrsf), JSON.stringify(columnTrsf))
-    const curvature = { ...keeb.curvature, ...cluster.curvature, ...column.curvature } as Required<Curvature>
+    const curvature = { ...trimUndefined(keeb.curvature), ...trimUndefined(cluster.curvature), ...trimUndefined(column.curvature) } as Required<Curvature>
 
     if (cluster.type == 'matrix') {
       trsf.placeOnMatrix({
@@ -299,6 +314,7 @@ export function cosmosKeyPosition(key: CosmosKey, column: CosmosCluster, cluster
         spacingOfRows: curvature.verticalSpacing,
         curvatureOfRow: curvature.curvatureA,
         curvatureOfColumn: curvature.curvatureB,
+        arc: curvature.arc,
       })
     }
   }
@@ -396,8 +412,8 @@ function collectByColumn(keys: CuttleKey[]) {
       rest.push(key)
     }
   }
-  const results: [number | undefined, CuttleKey[]][] = [...matrices.entries(), ...spheres.entries()]
-  if (rest.length) results.push([undefined, rest])
+  const results: [number, CuttleKey[]][] = [...matrices.entries(), ...spheres.entries()]
+  if (rest.length) results.push([0, rest])
   return results
 }
 
@@ -414,9 +430,9 @@ export function toPosRotation(m: Matrix4) {
 
 function diffCurvature(c: Curvature, parent: Curvature): Curvature {
   const trimmed = { ...c }
-  for (const key of Object.keys(c)) {
-    // @ts-ignore
+  for (const key of Object.keys(c) as (keyof Curvature)[]) {
     if (parent[key] == trimmed[key]) delete trimmed[key]
+    if (typeof trimmed[key] == 'undefined') delete trimmed[key]
   }
   return trimmed
 }
@@ -445,7 +461,62 @@ export function nthKey(conf: CosmosKeyboard, n: number) {
   throw new Error(`Key ${n} not in bounds`)
 }
 
-export function nthPartType(conf: CosmosKeyboard, n: number) {
+export function indexOfKey(conf: CosmosKeyboard, test: CosmosKey): number | null {
+  let i = 0
+  for (const cluster of conf.clusters) {
+    for (const column of cluster.clusters) {
+      for (const key of column.keys) {
+        if (key == test) return i
+        i++
+      }
+    }
+  }
+  return null
+}
+
+export function nthPartType(conf: CosmosKeyboard, n: number, mode: 'key' | 'column' | 'cluster') {
   const { key, column, cluster } = nthKey(conf, n)
-  return key.partType.type || column.partType.type || cluster.partType.type || conf.partType.type!
+  let type = cluster.partType.type || conf.partType.type!
+  if (mode == 'cluster') return type
+  type = column.partType.type || type
+  if (mode == 'column') return type
+  return key.partType.type || type
+}
+
+export function nthPartAspect(conf: CosmosKeyboard, n: number, mode: 'key' | 'column' | 'cluster') {
+  const { key, column, cluster } = nthKey(conf, n)
+  let type = cluster.partType.aspect ?? conf.partType.aspect!
+  if (mode == 'cluster') return type
+  type = column.partType.aspect ?? type
+  if (mode == 'column') return type
+  return key.partType.aspect ?? type
+}
+
+export function nthProfile(conf: CosmosKeyboard, n: number, mode: 'key' | 'column' | 'cluster') {
+  const { key, column, cluster } = nthKey(conf, n)
+  let prof = cluster.profile ?? conf.profile
+  if (mode == 'cluster') return prof
+  prof = column.profile ?? prof
+  if (mode == 'column') return prof
+  return key.profile.profile ?? prof
+}
+
+export function nthCurvature(conf: CosmosKeyboard, n: number, elem: keyof Curvature, mode: 'column' | 'cluster' | 'kb') {
+  const { column, cluster } = nthKey(conf, n)
+  let curv = conf.curvature[elem]
+  if (mode == 'kb') return curv
+  curv = cluster.curvature[elem] ?? curv
+  if (mode == 'cluster') return curv
+  curv = column.curvature[elem] ?? curv
+  if (mode == 'column') return curv
+}
+
+export function isNthLastColumn(conf: CosmosKeyboard, n: number) {
+  const { column, cluster } = nthKey(conf, n)
+  return cluster.clusters.every(c => column.column! >= c.column!)
+}
+
+export function isNthFirstColumn(conf: CosmosKeyboard, n: number) {
+  const { column, cluster } = nthKey(conf, n)
+  return cluster.clusters.every(c => column.column! <= c.column!)
 }

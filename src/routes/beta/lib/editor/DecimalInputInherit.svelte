@@ -1,21 +1,22 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte'
 
-  export let value: number
+  export let value: number | undefined
   export let small = false
-  export let supersmall = false
   export let units = ''
   export let divisor = 10
+  export let inherit: number | undefined
   let clazz = ''
 
   export { clazz as class }
   const dispatch = createEventDispatcher()
 
   $: rounding = divisor == 100 ? 100 : 10
-  $: rounded = Math.round(value * rounding) / rounding
+  $: rounded = Math.round((value ?? inherit!) * rounding) / rounding
 
   function onChange(e: Event) {
     value = Math.round(divisor * (e.target! as any).value) / divisor
+    if (value == inherit) value = undefined
     dispatch('change')
   }
 </script>
@@ -24,21 +25,21 @@
   <div class="relative">
     <input
       class="input {clazz ? clazz : small ? 'w-[5.4rem]' : 'w-44'}"
+      class:text-yellow!={typeof value === 'undefined'}
       type="number"
       value={rounded}
-      step={divisor == 1 ? 1 : 0.1}
+      step="0.1"
       on:change={onChange}
     />
     <span class="text-right absolute top-0 bottom-0 right-9 w-8 input-units">{units}</span>
   </div>
-{:else if supersmall}
-  <input class="input appearance-none w-14 ml-1!" value={rounded} on:change={onChange} />
 {:else}
   <input
     class="input {clazz ? clazz : small ? 'w-[5.4rem]' : 'w-44'}"
+    class:text-yellow!={typeof value === 'undefined'}
     type="number"
     value={rounded}
-    step={divisor == 1 ? 1 : 0.1}
+    step="0.1"
     on:change={onChange}
   />
 {/if}

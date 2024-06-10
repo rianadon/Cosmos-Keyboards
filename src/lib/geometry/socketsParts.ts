@@ -1,7 +1,7 @@
 import type { CuttleKey } from '../worker/config'
 import { Vector } from '../worker/modeling/transformation'
 
-export const PART_NAMES: Record<CuttleKey['type'], string> = {
+export const BOM_PART_NAMES: Record<CuttleKey['type'], string> = {
   'mx-better': 'MX-Compatible Switches',
   'old-mx': 'MX-Compatible Switches',
   'mx-pcb': 'MX-Compatible Switches',
@@ -24,8 +24,43 @@ export const PART_NAMES: Record<CuttleKey['type'], string> = {
   'cirque-23mm': 'Cirque 23 mm Flat Circle Trackpads',
   'cirque-35mm': 'Cirque 35 mm Flat Circle Trackpads',
   'cirque-40mm': 'Cirque 40 mm Flat Circle Trackpads',
+  'joystick-ps2-40x45': 'PS2 style joystick modules',
+}
+
+export const PART_NAMES: Record<CuttleKey['type'], string> = {
+  'mx-better': 'MX-Compatible (Cherry, Gateron, ...)',
+  'old-mx': 'Old MX-Compatible',
+  'mx-pcb': 'MX-Compatible PCB (Amoeba King)',
+  'mx-hotswap': 'MX-Compatible with 3DP Hotswap',
+  'mx-pcb-twist': 'MX-Compatible PCB (Amoeba Twist)',
+  'old-mx-snap-in': 'Old MX-Compatible snap-in',
+  'old-mx-hotswap': 'Old MX-Compatible',
+  'old-mx-snap-in-hotswap': 'Old MX-Compatible Hotswap',
+  'alps': 'Alps (and clones)',
+  'old-box': 'Old Kailh Box Switches',
+  'choc': 'Choc (Kailh)',
+  'choc-hotswap': 'Old Choc (Kailh)',
+  'ec11': 'EC11 Encoder',
+  'joystick-joycon-adafruit': 'Adafruit Mini Thumbstick',
+  'evqwgd001': 'EVQWGD001 Encoder',
+  'trackball': '34 mm (1.34") Trackball',
+  'blank': 'Blank',
+  'oled-128x32-0.91in-adafruit': 'Adafruit 128x32 1" OLED',
+  'oled-128x32-0.91in-dfrobot': 'DFRobot 128x32 0.91" OLED',
+  'cirque-23mm': 'Cirque 23 mm Flat Circle Trackpad',
+  'cirque-35mm': 'Cirque 35 mm Flat Circle Trackpad',
+  'cirque-40mm': 'Cirque 40 mm Flat Circle Trackpad',
   'joystick-ps2-40x45': 'PS2 style joystick module',
 }
+
+export const SWITCHES: CuttleKey['type'][] = [
+  'mx-better',
+  'mx-pcb',
+  'mx-hotswap',
+  'mx-pcb-twist',
+  'alps',
+  'choc',
+]
 
 export const ASYMMETRIC_PARTS: CuttleKey['type'][] = [
   'mx-hotswap',

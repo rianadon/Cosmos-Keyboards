@@ -1,6 +1,7 @@
 import type manuform from '$assets/manuform.json'
 import { hasPro } from '@pro/index'
 import { StiltsGeometry } from '@pro/stiltsGeo'
+import type { Curvature } from 'target/proto/cosmos'
 import { Matrix4, Vector3 } from 'three'
 import {
   CONNECTOR,
@@ -24,6 +25,7 @@ import {
   SWITCH,
 } from '../../../target/proto/cuttleform'
 import { BaseGeometry, BlockGeometry, TiltGeometry } from './cachedGeometry'
+import type { CosmosCluster, CosmosKey, CosmosKeyboard } from './config.cosmos'
 import { DEFAULT_MWT_FACTOR } from './geometry.thickWebs'
 import Trsf from './modeling/transformation'
 import ETrsf, { Constant, keyPosition, mirror } from './modeling/transformation-ext'
@@ -68,12 +70,10 @@ export interface SpecificCuttleform<S> {
   screwSize: 'M3' | 'M4' | '#4-40' | '#6-32'
   screwCountersink: boolean
   wristRest?: {
-    length: number
     angle: number
     maxWidth: number
-    xOffset: number
-    zOffset: number
     tenting: number
+    slope: number
     stilts?: boolean
   }
   wristRestOrigin: ETrsf
@@ -82,10 +82,12 @@ export interface SpecificCuttleform<S> {
     | 'promicro'
     | 'promicro-usb-c'
     | 'itsybitsy-adafruit'
+    | 'itsybitsy-adafruit-nrf52840'
     | 'kb2040-adafruit'
     | 'rp2040-black-usb-c-aliexpress'
     | 'nrfmicro-or-nicenano'
     | 'seeed-studio-xiao'
+    | 'seeed-studio-xiao-nrf52840'
     | 'waveshare-rp2040-zero'
     | 'weact-studio-ch552t'
     | null
@@ -117,6 +119,12 @@ export interface SpecificCuttleform<S> {
 }
 
 export type Cuttleform = SpecificCuttleform<AnyShell>
+
+export type FullCuttleform = {
+  left?: Cuttleform
+  right?: Cuttleform
+  unibody?: Cuttleform
+}
 
 export interface BasicShell {
   type: 'basic'
@@ -345,14 +353,15 @@ export function cuttleConf(c: DeepRequired<CuttleformProto>): Cuttleform {
     connector: MAP_CONNECTOR[c.wall.connector],
     connectorSizeUSB: MAP_CONNECTOR_SIZE[c.wall.connectorSizeUsb],
     connectorIndex: -1,
-    wristRest: c.wall.wristRest && hasPro
+    wristRest: c.wall.wristRest
       ? {
-        length: c.wall.wristRestLength / 10,
+        // length: c.wall.wristRestLength / 10,
         maxWidth: c.wall.wristRestMaxWidth / 10,
-        xOffset: c.wall.wristRestXOffset / 10,
-        zOffset: c.wall.wristRestZOffset / 10,
+        // xOffset: c.wall.wristRestXOffset / 10,
+        // zOffset: c.wall.wristRestZOffset / 10,
         angle: c.wall.wristRestAngle / 45,
         tenting: c.curvature.tenting / 45 / 2 + c.wall.wristRestTenting / 45,
+        slope: 5,
       }
       : undefined,
     wristRestOrigin: thumbOrigin(c, true),
@@ -502,6 +511,18 @@ function mergedCurvature(c: CuttleformProto, pinky: boolean, curv: any): any {
   }
 }
 
+function letterForKeycap(row: number, column: number) {
+  let letter = {
+    1: '67890',
+    2: 'yuiop',
+    3: "hjkl;'",
+    4: 'nm,./',
+    5: '{}[]\\',
+  }[row]?.charAt(column) || undefined
+  if (row == 0) letter = ['F6', 'F7', 'F8', 'F9', 'F10'][column] || undefined
+  return letter
+}
+
 function keycapInfo(c: CuttleformProto, row: number, column: number): CuttleKeycapKey['keycap'] {
   let home: CuttleKeycapKey['keycap']['home']
   if (row == 3) {
@@ -512,19 +533,11 @@ function keycapInfo(c: CuttleformProto, row: number, column: number): CuttleKeyc
       4: 'pinky',
     } as Record<number, CuttleKeycapKey['keycap']['home']>)[column]
   }
-  let letter = {
-    1: '67890',
-    2: 'yuiop',
-    3: "hjkl;'",
-    4: 'nm,./',
-    5: '{}[]\\',
-  }[row]?.charAt(column) || undefined
-  if (row == 0) letter = ['F6', 'F7', 'F8', 'F9', 'F10'][column] || undefined
 
   // Row 5 is used for thumb keys (in MT3, the 5th row key has zero tilt)
   // So don't use it for the non-thumb keys since it is special!
   // (hence the Math.min(x, 4)
-  return { profile: keycapType(c), row: Math.min(row, 4), home, letter }
+  return { profile: keycapType(c), row: Math.min(row, 4), home, letter: letterForKeycap(row, column) }
 }
 
 export function decodeTuple(tuple: bigint) {
@@ -580,6 +593,65 @@ export function tupleToRot(tuple: bigint) {
 export function tupleToXYZ(tuple: bigint) {
   const decoded = decodeTuple(tuple)
   return [decoded[0] / 10, decoded[1] / 10, decoded[2] / 10] as Point
+}
+
+export function cosmosFingers(nRows: number, nCols: number): CosmosCluster[] {
+  let columns = range(0, nCols)
+  if (nCols <= 4) columns = range(1, nCols + 1)
+  const rows = range(0, nRows)
+
+  const lastRow = nRows - 1
+  const lastCol = nCols - 1
+  const usesWidePinky = (col: number) => (col == lastCol && col > 4)
+  const pinkySize = 1.5
+
+  function dmColumnOffset(column: number): bigint {
+    if (column == 1) return 0n
+    if (column == 2) return 5191680n
+    if (column == 3) return 0n
+    if (column >= 4) return 2013430528n
+    else return 0n
+  }
+
+  const centerCol = nCols / 2
+  const centerRow = nRows - match(nRows, {
+    3: 2.5,
+    2: 2,
+  }, 3)
+
+  const row2Row = (r: number) => 6 - nRows + r
+
+  const cosmosCols: CosmosCluster[] = columns.map(column => ({
+    name: 'fingers',
+    side: 'right',
+    type: 'matrix',
+    curvature: {},
+    profile: undefined,
+    partType: usesWidePinky(column) ? { aspect: pinkySize } : {},
+    clusters: [],
+    column: column - centerCol + (usesWidePinky(column) ? (pinkySize - 1) / 2 : 0),
+    keys: rows.filter(row => row != lastRow || [2, 3].includes(column)).map(row => ({
+      partType: {},
+      profile: {
+        row: Math.min(row2Row(row), 4),
+        home: row2Row(row) == 3
+          ? ({
+            1: 'index',
+            2: 'middle',
+            3: 'ring',
+            4: 'pinky',
+          } as Record<number, CuttleKeycapKey['keycap']['home']>)[column] ?? null
+          : null,
+        letter: letterForKeycap(row2Row(row), column),
+      },
+      row: row - centerRow,
+      position: undefined,
+      rotation: undefined,
+    })),
+    position: dmColumnOffset(column),
+    rotation: undefined,
+  }))
+  return cosmosCols
 }
 
 export function fingers(c: DeepRequired<CuttleformProto>): CuttleKey[] {
@@ -792,6 +864,30 @@ export function upperKeysPlane(c: CuttleformProto) {
     .rotate(c.curvature.tenting / 45, CENTER, Y, false)
     .rotate(c.curvature.rotateX / 45, CENTER, X, false)
     .translate(0, 0, 0, false) as Constant
+}
+
+export function approximateCosmosThumbOrigin(nRows: number, nCols: number) {
+  const centerCol = nCols / 2
+  const centerRow = nRows - match(nRows, {
+    3: 2.5,
+    2: 2,
+  }, 3)
+  const cornerRow = nRows - 2
+
+  const origin = new ETrsf()
+  origin.translateBy(
+    new ETrsf()
+      .placeOnMatrix({
+        row: cornerRow - centerRow,
+        column: 1 - centerCol,
+        curvatureOfColumn: 0,
+        curvatureOfRow: 0,
+        spacingOfColumns: 21,
+        spacingOfRows: 21,
+      }), // .transformBy(upperKeysPlane(curvature)).translate(17.5 / 2, -17.5 / 2, 0),
+  )
+
+  return origin.evaluate({ flat: false }).origin()
 }
 
 export function thumbOrigin(c: DeepRequired<CuttleformProto>, wristRest = false) {
@@ -1361,7 +1457,8 @@ export function orbylThumbs(keyType: KeyType, capType: CapType, opts: Cuttleform
 export function matrixToRPY(R: Matrix4): [number, number, number] {
   const e = R.elements
   const Z_rot = Math.atan2(e[1], e[0])
-  const Y_rot = Math.atan2(-e[2], Math.sqrt(Math.pow(e[6], 2) + Math.pow(e[10], 2)))
+  // const Y_rot = Math.atan2(-e[2], Math.sqrt(Math.pow(e[6], 2) + Math.pow(e[10], 2)))
+  const Y_rot = Math.asin(-e[2])
   const X_rot = Math.atan2(e[6], e[10])
   return [X_rot * 180 / Math.PI, Y_rot * 180 / Math.PI, Z_rot * 180 / Math.PI]
 }

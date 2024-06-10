@@ -3,13 +3,15 @@
 
   export let value: any
   export let small = false
+  export let inherit: number | undefined
 
   const dispatch = createEventDispatcher()
 
-  $: degrees = Math.round(value * 10) / 10
+  $: degrees = Math.round((value ?? inherit!) * 10) / 10
 
   function onChange(e: Event) {
-    value = Math.round(45 * (e.target as any).value) / 45
+    value = Math.round(45 * (e.target! as any).value) / 45
+    if (value == inherit) value = undefined
     dispatch('change')
   }
 </script>
@@ -17,6 +19,7 @@
 <div class="relative">
   <input
     class="input {small ? 'w-[5.4rem]' : 'w-44 mx-2 px-2'}"
+    class:text-yellow!={typeof value === 'undefined'}
     type="number"
     min="-179"
     max="180"

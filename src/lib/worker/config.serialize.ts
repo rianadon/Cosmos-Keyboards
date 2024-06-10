@@ -13,6 +13,7 @@ import {
   decodePartVariant,
   decodeRoundedFlags,
   decodeScrewFlags,
+  decodeWristRestFlags,
   encodeBasicShellFlags,
   encodeClusterFlags,
   encodeConnector,
@@ -24,7 +25,7 @@ import {
   encodeWristRestFlags,
 } from '../../../target/cosmosStructs'
 import { Cluster, Curvature, Key, Keyboard, KeyboardExtra } from '../../../target/proto/cosmos'
-import { type Cuttleform, type CuttleKey, type CuttleKeycapKey, type Keycap, tupleToRot, tupleToXYZ } from './config'
+import { type Cuttleform, type CuttleKey, type CuttleKeycapKey, encodeTuple, type Keycap, tupleToRot, tupleToXYZ } from './config'
 import { type CosmosKey, type CosmosKeyboard, type PartType, type Profile, toCosmosConfig } from './config.cosmos'
 import { DEFAULT_MWT_FACTOR } from './geometry.thickWebs'
 
@@ -80,7 +81,7 @@ export function decodePartType(type: number): PartType {
 const LETTERS = ['F6', '6', 'y', 'h', 'n', '{', 'F7', '7', 'u', 'j', 'm', '}', 'F8', '8', 'i', 'k', ',', '[', 'F9', '9', 'o', 'l', '.', ']', 'F10', '0', 'p', ';', '/', '\\']
 const INFERRED_HOMING = { [LETTERS.indexOf('j')]: 'index', [LETTERS.indexOf('k')]: 'middle', [LETTERS.indexOf('l')]: 'ring', [LETTERS.indexOf(';')]: 'pinky' } as const
 
-export function encodeProfile(p: Profile) {
+export function encodeProfile(p: Partial<Profile>) {
   let row = p.row ?? 1
   if (typeof row !== 'undefined' && (row < 1 || row > 8)) throw new Error('Row out of bounds')
   let letter = 0
@@ -108,7 +109,7 @@ export function decodeProfile(flags: number): Profile {
     letter = lookupId(LETTERS, letterId >> 1, 'letter')
     inferredHoming = INFERRED_HOMING[letterId >> 1]
   }
-  return { profile: profile ?? undefined, row: row + 1, letter, home: home || inferredHoming || undefined }
+  return { profile: profile ?? undefined, row: row + 1, letter, home: home || inferredHoming || null }
 }
 
 const KEYBOARD_DEFAULTS: Keyboard = {
@@ -130,6 +131,7 @@ const KEYBOARD_DEFAULTS: Keyboard = {
   microcontroller: encodeMicrocontroller({ microcontroller: 'kb2040-adafruit', fastenMicrocontroller: true }),
   roundedFlags: encodeRoundedFlags({ side: false, top: false }),
   wristRestFlags: encodeWristRestFlags({ enable: true }),
+  wristRestPosition: encodeTuple([100, -1000, 0]),
   cluster: [],
   shell: {
     oneofKind: 'basicShell',
@@ -145,6 +147,10 @@ const KEYBOARD_EXTRA_DEFAULTS: KeyboardExtra = {
   roundedSideConcavity: 15,
   roundedTopHorizontal: 25,
   roundedTopVertical: 67,
+  wristRestAngle: 450,
+  wristRestMaxWidth: 1000,
+  wristRestTenting: 270,
+  wristRestSlope: 225,
 }
 
 export function decodeShell(shell: Keyboard['shell']): Cuttleform['shell'] {
@@ -280,6 +286,14 @@ export function decodeConfigIdk(b64: string): CosmosKeyboard {
     ...decodeConnector(keeb.connector),
     ...decodeMicrocontroller(keeb.microcontroller),
     shell: decodeShell(keeb.shell),
+    wristRestEnable: decodeWristRestFlags(keeb.wristRestFlags).enable,
+    wristRestProps: {
+      angle: keebExtra.wristRestAngle / 45,
+      maxWidth: keebExtra.wristRestMaxWidth / 10,
+      tenting: keebExtra.wristRestTenting / 45,
+      slope: keebExtra.wristRestSlope / 45,
+    },
+    wristRestPosition: keeb.wristRestPosition,
     clusters: keeb.cluster.map(clusterA => {
       return {
         ...decodeClusterFlags(clusterA.idType ?? 0),
@@ -302,7 +316,7 @@ export function decodeConfigIdk(b64: string): CosmosKeyboard {
             partType: decodePartType(clusterB.partType || 0),
             position: clusterB.position,
             rotation: clusterB.rotation,
-            column: clusterB.column2 ? clusterB.column2 / 100 : (clusterB.column ? clusterB.column / 10 : undefined),
+            column: clusterB.column2 ? clusterB.column2 / 100 : (typeof clusterB.column != 'undefined' ? clusterB.column / 10 : undefined),
             clusters: [],
             keys: clusterB.key.map(key => {
               if (typeof key.row == 'undefined' && typeof key.row2 == 'undefined' && lastKey) key.row = (lastKey.row || 0) + 10
@@ -454,7 +468,7 @@ export function encodeCosmosConfig(conf: CosmosKeyboard): Keyboard {
       for (const key of clusterB.keys) {
         const cKey: Key = {
           partType: diff(encodePartType(key.partType), 0),
-          row: key.row && Math.round(key.row * 10) != lastRow + 10 ? Math.round(key.row * 10) : undefined,
+          row: typeof key.row != 'undefined' && Math.round(key.row * 10) != lastRow + 10 ? Math.round(key.row * 10) : undefined,
           rotation: key.rotation,
           position: key.position,
         }
@@ -488,8 +502,9 @@ export function encodeCosmosConfig(conf: CosmosKeyboard): Keyboard {
     nScrews: conf.screwIndices.length,
     screwFlags: encodeScrewFlags(conf),
     microcontroller: encodeMicrocontroller(conf),
-    roundedFlags: encodeRoundedFlags({ side: false, top: false }),
-    wristRestFlags: encodeWristRestFlags({ enable: true }),
+    roundedFlags: encodeRoundedFlags({ side: !!conf.rounded.side, top: !!conf.rounded.top }),
+    wristRestFlags: encodeWristRestFlags({ enable: conf.wristRestEnable }),
+    wristRestPosition: conf.wristRestPosition,
     cluster: clusters,
     shell: {
       oneofKind: 'basicShell',
@@ -499,6 +514,10 @@ export function encodeCosmosConfig(conf: CosmosKeyboard): Keyboard {
     },
     extra: {
       verticalClearance: Math.round(conf.verticalClearance * 10),
+      wristRestAngle: Math.round(conf.wristRestProps.angle * 45),
+      wristRestTenting: Math.round(conf.wristRestProps.tenting * 45),
+      wristRestMaxWidth: Math.round(conf.wristRestProps.maxWidth * 10),
+      wristRestSlope: Math.round(conf.wristRestProps.slope * 45),
     },
   }
 }

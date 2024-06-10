@@ -8,17 +8,19 @@
     MeshBasicMaterial,
     Vector3,
     Color,
+    MeshNormalMaterial,
+    MeshStandardMaterial,
   } from 'three'
-  import * as SC from 'svelte-cubed'
   import type { Cuttleform, Geometry } from '$lib/worker/config'
-  import Viewer from './Viewer.svelte'
+  import Viewer from './NewViewer.svelte'
   import { allKeyCriticalPoints, webThickness } from '$lib/worker/geometry'
   import { thickness } from '$lib/worker/thickness'
+  import { T } from '@threlte/core'
 
   export let style: string = ''
   export let center: [number, number, number]
   export let size: THREE.Vector3
-  export let cameraPosition: [number, number, number] = [0, 0.8, 1]
+  export let cameraPosition: [number, number, number] = [40, -240, 100]
   export let enableRotate = true
   export let enableZoom = false
   export let is3D = false
@@ -41,7 +43,7 @@
   }
 
   function webMesh(c: Cuttleform | undefined, geo: Geometry | null, darkMode: boolean) {
-    if (!c || !geo) return { group: null, minThickness: 0, maxThickness: 0, thicknessRange: 0 }
+    if (!c || !geo) return { topMesh: null, minThickness: 0, maxThickness: 0, thicknessRange: 0 }
 
     const { topReinf, botReinf } = geo.reinforcedTriangles
 
@@ -95,7 +97,10 @@
       if (t < 0) {
         color = darkMode ? [31 / 255, 41 / 255, 55 / 255] : [226 / 255, 232 / 255, 240 / 255]
       } else {
-        color = new Color().setHSL(hue(t) / 360, 1, 0.5).toArray()
+        color = new Color()
+          .setHSL(hue(t) / 360, 1, 0.5)
+          .convertSRGBToLinear()
+          .toArray()
         // color = new Vector3(1, 0.15, 0.15).lerp(new Vector3(0.15, 0.39, 1), scaled).toArray()
       }
       colors.set(color, i * 9)
@@ -107,18 +112,15 @@
     topMesh.geometry = new BufferGeometry()
     topMesh.geometry.setAttribute('position', new BufferAttribute(topGeo, 3))
     topMesh.geometry.setAttribute('color', new BufferAttribute(colors.slice(0, topGeo.length), 3))
-    topMesh.material = new MeshBasicMaterial({ vertexColors: true, side: DoubleSide })
+    topMesh.material = new MeshBasicMaterial({ vertexColors: true, toneMapped: false })
 
     const botMesh = new Mesh()
     botMesh.geometry = new BufferGeometry()
     botMesh.geometry.setAttribute('position', new BufferAttribute(botGeo, 3))
     botMesh.geometry.setAttribute('color', new BufferAttribute(colors.slice(topGeo.length), 3))
-    botMesh.material = new MeshBasicMaterial({ vertexColors: true })
+    botMesh.material = new MeshBasicMaterial({ vertexColors: true, toneMapped: false })
 
-    const group = new Group()
-    group.add(topMesh)
-    group.add(botMesh)
-    return { group, minThickness, maxThickness, thicknessRange }
+    return { topMesh, botMesh, minThickness, maxThickness, thicknessRange }
   }
 
   $: meshResult = webMesh(conf, geometry, darkMode)
@@ -159,15 +161,16 @@
   enablePan={true}
   {is3D}
 >
-  <svelte:fragment slot="geometry">
-    <SC.Group position={[-center[0], -center[1], -center[2]]}>
-      {#if meshResult.group}
-        <SC.Primitive object={meshResult.group} />
-      {/if}
-      <slot />
-    </SC.Group>
-  </svelte:fragment>
-  <svelte:fragment slot="controls" />
+  <T.Group
+    position={[flip ? center[0] : -center[0], -center[1], -center[2]]}
+    scale={[flip ? -1 : 1, 1, 1]}
+  >
+    {#if meshResult.topMesh}
+      <T is={meshResult.topMesh} />
+      <T is={meshResult.botMesh} />
+    {/if}
+    <slot />
+  </T.Group>
 </Viewer>
 
 <style>

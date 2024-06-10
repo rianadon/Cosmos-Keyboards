@@ -15,10 +15,11 @@ message Keyboard {
   optional int32 n_screws = 9;
   optional uint32 screw_flags = 10; // screw type (3bit), size (3bit), countersink (1bit), clear screws (1bit)
   optional uint32 microcontroller = 11;
-  optional uint32 rounded_flags = 12; /* Rounded side (1bit), rounded top (1bit) */
+  optional uint32 rounded_flags = 12; // Rounded side (1bit), rounded top (1bit)
   optional uint32 wrist_rest_flags = 13; // Enable (1bit)
 
   optional KeyboardExtra extra = 14;
+  optional int64 wrist_rest_position = 15; // For easy movement of the wrist rest
 
   oneof shell {
     BasicShell basic_shell = 30;
@@ -54,11 +55,11 @@ message KeyboardExtra {
   optional int32 rounded_top_horizontal = 7;
   optional int32 rounded_top_vertical = 8;
 
-  optional int32 wrist_rest_length = 9;
+  // optional int32 wrist_rest_length = 9;
   optional sint32 wrist_rest_angle = 10;
   optional int32 wrist_rest_max_width= 11;
-  optional sint32 wrist_rest_x_offset = 12;
-  optional sint32 wrist_rest_z_offset = 13;
+  // optional sint32 wrist_rest_x_offset = 12;
+  optional sint32 wrist_rest_slope = 13;
   optional sint32 wrist_rest_tenting = 14;
 }
 

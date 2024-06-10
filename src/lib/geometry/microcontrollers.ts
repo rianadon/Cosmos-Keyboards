@@ -11,6 +11,8 @@ const RAIL_RADIUS = 1 // How far in the rails stick
 
 const IN = 25.4 // in to mm
 
+export const MICROCONTROLLER_SIZES = ['Small', 'Medium', 'Large'] as const
+
 // Pi Pico Model: https://github.com/ncarandini/KiCad-RP-Pico
 // Pro Micro Model: https://grabcad.com/library/arduino-pro-micro-4
 // Pro Micro USB-C Model: https://grabcad.com/library/arduino-pro-micro-usb-type-c-1
@@ -20,8 +22,10 @@ const IN = 25.4 // in to mm
 
 interface BoardProperties {
   name: string
+  extraName?: string
   offset: Vector
   size: Vector
+  sizeName: typeof MICROCONTROLLER_SIZES[number]
   boundingBoxZ: number
   holes: Vector[]
   cutouts: { origin: Vector; size: Vector }[]
@@ -44,6 +48,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     name: 'Pi Pico',
     offset: new Vector(0, 0, 3.2),
     size: new Vector(21, 51, 1),
+    sizeName: 'Large',
     boundingBoxZ: 5,
     holes: [new Vector(-5.7, -2, 0), new Vector(5.7, -2, 0), new Vector(-5.7, -49, 0), new Vector(5.7, -49, 0)],
     cutouts: [
@@ -57,7 +62,9 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
   },
   'rp2040-black-usb-c-aliexpress': {
     name: 'RP2040 Black Board USB-C (Aliexpress)',
+    extraName: '(USB-C) ☆',
     size: new Vector(0.9 * IN, 2.1 * IN, 1.57),
+    sizeName: 'Large',
     boundingBoxZ: 5,
     offset: new Vector(0, 0, 1.835),
     holes: [],
@@ -70,7 +77,9 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
   },
   'promicro-usb-c': {
     name: 'Pro Micro (USB-C)',
+    extraName: '(Low Storage) ☆',
     size: new Vector(18.3, 34.7, 1.57),
+    sizeName: 'Medium',
     boundingBoxZ: 5,
     offset: new Vector(0, 0, 1.835),
     holes: [],
@@ -80,7 +89,9 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
   },
   'promicro': {
     name: 'Pro Micro',
+    extraName: '(Low Storage)',
     size: new Vector(0.7 * IN, 1.3 * IN, 1.57),
+    sizeName: 'Medium',
     boundingBoxZ: 5,
     offset: new Vector(0, 0, 1.835),
     holes: [],
@@ -89,8 +100,22 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     sidePins: 12,
   },
   'itsybitsy-adafruit': {
-    name: 'Adafruit ItsyBitsy',
+    name: 'Adafruit ItsyBitsy RP2040/M0/M4/32u4',
     size: new Vector(0.7 * IN, 1.4 * IN, 1.57),
+    sizeName: 'Medium',
+    boundingBoxZ: 5,
+    offset: new Vector(0, 0, 2.015),
+    holes: [],
+    cutouts: [],
+    sidecutout: 0.1 * IN,
+    sidePins: 14,
+    rearPins: 5,
+  },
+  'itsybitsy-adafruit-nrf52840': {
+    name: 'Adafruit ItsyBitsy nRF52840',
+    extraName: '(Bluetooth)',
+    size: new Vector(0.7 * IN, 1.4 * IN, 1.57),
+    sizeName: 'Medium',
     boundingBoxZ: 5,
     offset: new Vector(0, 0, 2.015),
     holes: [],
@@ -101,7 +126,9 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
   },
   'kb2040-adafruit': {
     name: 'Adafruit KB2040',
+    extraName: '(USB-C) ☆',
     size: new Vector(0.7 * IN, 1.3 * IN, 1.57),
+    sizeName: 'Medium',
     boundingBoxZ: 5,
     offset: new Vector(0, 0, 1.835),
     holes: [],
@@ -112,7 +139,9 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
   },
   'nrfmicro-or-nicenano': {
     name: 'nRFMicro or Nice!Nano',
+    extraName: '(USB-C, Bluetooth)',
     size: new Vector(0.71 * IN, 1.31 * IN, 1.57),
+    sizeName: 'Medium',
     boundingBoxZ: 5,
     offset: new Vector(0, 0, 3.4),
     holes: [],
@@ -123,8 +152,22 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     sidePins: 13,
   },
   'seeed-studio-xiao': {
-    name: 'Seeed Studio Xiao',
+    name: 'Seeed Studio Xiao RP2040/SAMD21',
+    extraName: '☆',
     size: new Vector(17.5, 21, 1.2),
+    sizeName: 'Small',
+    boundingBoxZ: 5,
+    offset: new Vector(0, 0, 2.2),
+    holes: [],
+    cutouts: [],
+    sidecutout: 2,
+    sidePins: 7,
+  },
+  'seeed-studio-xiao-nrf52840': {
+    name: 'Seeed Studio Xiao nRF52840',
+    extraName: '(Bluetooth) ☆',
+    size: new Vector(17.5, 21, 1.2),
+    sizeName: 'Small',
     boundingBoxZ: 5,
     offset: new Vector(0, 0, 2.2),
     holes: [],
@@ -135,6 +178,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
   'waveshare-rp2040-zero': {
     name: 'WaveShare RP2040-Zero',
     size: new Vector(18.1, 23.5, 1 + 0.9), // Add extra 0.9mm for the rp2040 chip on underside
+    sizeName: 'Small',
     boundingBoxZ: 5,
     offset: new Vector(0, 0, 2.4 - 0.9),
     holes: [],
@@ -146,7 +190,9 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
   },
   'weact-studio-ch552t': {
     name: 'WeAct Studio CH552T',
+    extraName: '(Low Storage)',
     size: new Vector(18.288, 25.908, 1.57),
+    sizeName: 'Small',
     boundingBoxZ: 5,
     offset: new Vector(0, 0, 1.835),
     holes: [],
@@ -154,6 +200,18 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     sidecutout: 3.1,
     sidePins: 10,
   },
+}
+
+export function sortMicrocontrollers(a: Microcontroller, b: Microcontroller) {
+  const score = (m: Microcontroller) => {
+    let s = 0
+    if (BOARD_PROPERTIES[m].extraName?.includes('☆')) s += 100
+    if (BOARD_PROPERTIES[m].extraName?.includes('Low Storage')) s -= 10
+    if (BOARD_PROPERTIES[m].extraName?.includes('USB-C')) s += 1
+    if (m == 'promicro') return 1 // Pro Micro is still popular
+    return s
+  }
+  return score(b) - score(a)
 }
 
 // Use a constant set of board properties for layout so

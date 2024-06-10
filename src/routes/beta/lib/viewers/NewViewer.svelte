@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type * as THREE from 'three'
+  import * as THREE from 'three'
   import { T, Canvas } from '@threlte/core'
   import WebGL from 'three/examples/jsm/capabilities/WebGL'
   import { OrbitControls } from '@threlte/extras'
@@ -57,7 +57,7 @@
 
 {#if WebGL.isWebGLAvailable()}
   <div class="container" bind:this={canvas} {style}>
-    <Canvas>
+    <Canvas toneMapping={0}>
       <Interactivity>
         <T.Group position={[-center[0], -center[1], -center[2]]}>
           {#each geometries as geometry}

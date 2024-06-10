@@ -3,9 +3,11 @@ import type { CosmosKeyboard } from '$lib/worker/config.cosmos'
 import { derived, type Readable, type Writable, writable } from 'svelte/store'
 import type { User } from '../routes/beta/lib/login'
 import type { ColorScheme } from './3d/materials'
+import type { ConfError } from './worker/check'
 
 export const protoConfig = writable<CosmosKeyboard>(undefined)
 export const tempConfig = writable<CosmosKeyboard>(undefined)
+export const confError = writable<ConfError | undefined>(undefined)
 protoConfig.subscribe(c => tempConfig.set(c))
 export const transformMode = writable<'translate' | 'rotate' | 'select'>('select')
 export const selectMode = writable<'key' | 'column' | 'cluster'>('key')

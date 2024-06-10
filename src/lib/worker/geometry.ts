@@ -1446,10 +1446,10 @@ export function wristRestGeometry(c: Cuttleform, geo: Geometry) {
   const midFrontWall = frontWalls[Math.floor(frontWalls.length / 2)]
 
   const origin = new ETrsf(c.wristRestOrigin.history).evaluate({ flat: false }, pts[0][0].cleared()).xyz()
-  origin[2] += additionalHeight(c, pts[0][0])
+  // origin[2] += additionalHeight(c, pts[0][0])
   console.log('origin', origin)
-  const left = Math.max(origin[0] + c.wristRest.xOffset - c.wristRest.maxWidth / 2, Math.min(...xMin))
-  const right = Math.min(origin[0] + c.wristRest.xOffset + c.wristRest.maxWidth / 2, Math.max(...xMax))
+  const left = Math.max(origin[0] + /*c.wristRest.xOffset*/ -c.wristRest.maxWidth / 2, Math.min(...xMin))
+  const right = Math.min(origin[0] + /*c.wristRest.xOffset*/ +c.wristRest.maxWidth / 2, Math.max(...xMax))
   if (left > right) throw new Error('Wrist rest is not wide enough')
 
   const leftWallY = wallXToY(walls, left, walls.indexOf(midFrontWall), 1, -1, 'to')
@@ -1479,22 +1479,29 @@ export function wristRestGeometry(c: Cuttleform, geo: Geometry) {
   }
 
   const minY = Math.min(leftStart.y, rightStart.y)
-  const leftLength = (c.wristRest.length + leftStart.y - minY) / cosAngle
-  const rightLength = (c.wristRest.length + rightStart.y - minY) / cosAngle
+  const length = minY - origin[1] + 8
+  const leftLength = (length + leftStart.y - minY) / cosAngle
+  const rightLength = (length + rightStart.y - minY) / cosAngle
 
   const leftEnd = new Vector(leftStart.x + sinAngle * leftLength, leftStart.y - cosAngle * leftLength, 0)
   const rightEnd = new Vector(rightStart.x - sinAngle * rightLength, rightStart.y - cosAngle * rightLength, 0)
 
-  if (leftEnd.x > rightEnd.x) throw new Error('Wrist rest width is not big enough to support taper angle')
+  if (leftEnd.x > rightEnd.x) {
+    const middle = (leftEnd.x + rightEnd.x) / 2
+    leftEnd.x = middle - 10
+    rightEnd.x = middle + 10
+    // throw new Error('Wrist rest width is not big enough to support taper angle')
+  }
   return {
     leftStart,
     leftEnd,
     rightStart,
     rightEnd,
     intermediatePoints,
-    zOffset: origin[2] - 30 + c.wristRest.zOffset,
+    // zOffset: origin[2] - 30 + c.wristRest.zOffset + additionalHeight(c, pts[0][0]),
     origin,
     minY,
+    length,
   }
 }
 

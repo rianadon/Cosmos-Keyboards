@@ -15,7 +15,7 @@
 
 import { socketSize } from '$lib/geometry/socketsParts'
 import { switchInfo } from '$lib/geometry/switches'
-import { Matrix3 } from 'three/src/math/Matrix3'
+import { Matrix3 } from 'three/src/math/Matrix3.js'
 import { createTriangleMap, type TriangleMap } from './concaveman'
 import { doWallsIntersect } from './concaveman-extra'
 import type { Cuttleform, CuttleKey, Geometry } from './config'

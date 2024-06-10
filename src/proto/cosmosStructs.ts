@@ -38,7 +38,7 @@ enumeration('PART', {
   115: 'old-mx-snap-in-hotswap',
 })
 
-enumeration('PROFILE', [null, 'dsa', 'mt3', 'oem', 'sa', 'xda', 'choc', 'cherry', 'des'])
+enumeration('PROFILE', [null, 'xda', 'dsa', 'choc', 'sa', 'mt3', 'oem', 'des', 'cherry'])
 enumeration('HOMING', [null, 'thumb', 'index', 'middle', 'ring', 'pinky'])
 
 enumeration('CONNECTOR_TYPE', [null, 'usb', 'trrs'])
@@ -57,10 +57,12 @@ enumeration('MICROCONTROLLER_NAME', [
   'promicro',
   'promicro-usb-c',
   'itsybitsy-adafruit',
+  'itsybitsy-adafruit-nrf52840',
   'kb2040-adafruit',
   'rp2040-black-usb-c-aliexpress',
   'nrfmicro-or-nicenano',
   'seeed-studio-xiao',
+  'seeed-studio-xiao-nrf52840',
   'waveshare-rp2040-zero',
   'weact-studio-ch552t',
 ])
@@ -115,7 +117,7 @@ function capitalize(name: string) {
 
 function enumeration<T extends string | null>(name: string, fields: Record<number, T> | T[], writeTransformers = false) {
   if (name.toUpperCase() != name) throw new Error('Enum name must be upercase')
-  code += `const ${name} = ${JSON.stringify(fields).replace(/"(\d+)":/g, '$1:')} as const\n`
+  code += `export const ${name} = ${JSON.stringify(fields).replace(/"(\d+)":/g, '$1:')} as const\n`
   enums[name] = { max: Math.max(...Object.keys(fields).map(Number)) }
   if (Array.isArray(fields)) {
     code += `export type ${capitalize(name)} = typeof ${name}[number]\n`

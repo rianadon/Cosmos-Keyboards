@@ -1,4 +1,4 @@
-import type { Compound, Solid } from 'replicad'
+import type { Compound, ShapeMesh, Solid } from 'replicad'
 import type { Cuttleform, Geometry, SpecificCuttleform, StiltsShell } from '../config'
 import type { StiltsGeometry } from './stiltsGeo'
 
@@ -7,5 +7,9 @@ export function splitStiltsScrewInserts(_c: SpecificCuttleform<StiltsShell>, _ge
 }
 
 export function makeStiltsPlate(_c: Cuttleform, _geo: Geometry, _cut = false): { top: () => Solid; bottom?: () => Solid } {
+  throw new Error('Not implemented')
+}
+
+export function makeStiltsPlateSimpleMesh(_c: Cuttleform, _geo: Geometry, _cut = false): ShapeMesh {
   throw new Error('Not implemented')
 }

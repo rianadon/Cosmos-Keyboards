@@ -2,7 +2,7 @@
   import type { Cuttleform, CuttleKey, Geometry } from '$lib/worker/config'
   import Icon from '$lib/presentation/Icon.svelte'
   import { closestAspect, KEY_NAMES, UNIFORM } from '$lib/geometry/keycaps'
-  import { PART_NAMES } from '$lib/geometry/socketsParts'
+  import { BOM_PART_NAMES } from '$lib/geometry/socketsParts'
   import {
     BOARD_PROPERTIES,
     holderScrewHeight,
@@ -59,7 +59,7 @@
       if (key.type == 'blank') continue
       if (!sockets[key.type])
         sockets[key.type] = {
-          item: PART_NAMES[key.type],
+          item: BOM_PART_NAMES[key.type],
           icon: switchIcon(key.type),
           count: 0,
         }

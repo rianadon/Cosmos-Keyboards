@@ -47,6 +47,10 @@ export class WorkerPool<T> {
     }
   }
 
+  someAvailable(): boolean {
+    return this.workers.some(w => w.available)
+  }
+
   async findAvailable(): Promise<PoolWorker<T>> {
     // Promise.resolve seems to prefer pending promises over resolved ones
     // So check to see if there are any immediately available workers

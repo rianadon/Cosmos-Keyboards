@@ -41,7 +41,7 @@
     <a
       href="{base}/beta"
       class="text-black bg-brand-amber rounded-0.8 px-2 py-0.5 font-semibold <md:hidden transition hover:shadow-lg shadow-amber/30"
-      on:click={join}>Join the beta</a
+      on:click={join}>Try the beta</a
     >
   </div>
 </header>

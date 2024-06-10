@@ -228,9 +228,7 @@
   }
 </script>
 
-<div
-  class="opacity-0 absolute top-12 left-8 right-8 flex justify-between bg-white/80 dark:bg-gray-800/70 z-10"
->
+<div class="absolute top-12 left-8 right-8 flex justify-between z-10">
   <table>
     <tr
       ><td class="w-8"><div class="rounded-full bg-[#0000ff] w-4 h-4 mx-auto" /></td><td>Screw</td

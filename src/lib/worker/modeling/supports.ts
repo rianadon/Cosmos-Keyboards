@@ -106,3 +106,25 @@ function polyhedronVolume(faces: Vector3[][]) {
   }
   return volume / 6
 }
+
+export function meshVolume(mesh: ShapeMesh) {
+  const a = new Vector3()
+  const b = new Vector3()
+  const c = new Vector3()
+
+  const cb = new Vector3()
+  const ab = new Vector3()
+
+  let volume = 0
+  for (let t = 0; t < mesh.triangles.length; t += 3) {
+    a.fromArray(mesh.vertices, mesh.triangles[t] * 3)
+    b.fromArray(mesh.vertices, mesh.triangles[t + 1] * 3)
+    c.fromArray(mesh.vertices, mesh.triangles[t + 2] * 3)
+
+    cb.subVectors(c, b)
+    ab.subVectors(a, b)
+    volume += cb.cross(ab).dot(a)
+  }
+
+  return volume / 6
+}

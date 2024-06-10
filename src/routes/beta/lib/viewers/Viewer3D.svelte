@@ -842,7 +842,7 @@
           {error}
         />
       </Raycaster>
-      {#if !$noBase}<Microcontroller {conf} {geometry} {showSupports} />{/if}
+      {#if !$noBase}<Microcontroller {config} {geometry} {showSupports} />{/if}
       <slot />
     </SC.Group>
   </svelte:fragment>

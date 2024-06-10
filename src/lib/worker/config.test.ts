@@ -37,7 +37,9 @@ test('Encode then decode a custom thumb model', () => {
   const url =
     'cf:ChYIBRAFWAAYBCAFKNIBMM0BUAJAAEgAWpUBChEIy4vMpdAxEI3FlK3is4rkARIRCKCDoIzACBDCmaCVkLyB5AESDwi8ieAwENCVgN2Q9YPkARIQCPSWiqgFEMKZoJWQvIHkARIPCP+DwI3ABxDmmfSnkItyEhEIq4Wcj7ANEPCZzLXQsIDkARIRCN6Sh5jfQBCOoZCdkpCC5AESEwiEhZSVsJeCARCim+CU8tCB5AE='
   const config = cuttleConf(deserialize(url, {} as any).options as any)
+  const cosmos = toCosmosConfig(config)
   const encoded = encodeConfig(config)
+  expect(decodeConfigIdk(encoded)).toMatchObject(cosmos)
   const decoded = fromCosmosConfig(decodeConfigIdk(encoded))
   expect(preprocessCuttleform(decoded, config)).toMatchObject(preprocessCuttleform(config))
 })
@@ -62,6 +64,21 @@ function comparePosition(c: Cuttleform, other: Cuttleform | undefined, i: number
   return error.length ? error.join(',') : 'ok'
 }
 
+function compareWRPosition(c: Cuttleform, other: Cuttleform | undefined) {
+  if (!other) return 'ok'
+  if (!other.wristRestOrigin) return 'missing'
+  const wrA = c.wristRestOrigin?.evaluate({ flat: false }, new Trsf()).invert() || new Trsf()
+  const wrB = other.wristRestOrigin?.evaluate({ flat: false }, new Trsf()).invert() || new Trsf()
+  const pA = c.wristRestOrigin.evaluate({ flat: false }, new Trsf()).premultiply(wrA)
+  const pB = other.wristRestOrigin.evaluate({ flat: false }, new Trsf()).premultiply(wrB)
+  const distance = pA.origin().distanceTo(pB.origin())
+  const angle = new Quaternion().setFromRotationMatrix(pA.Matrix4()).angleTo(new Quaternion().setFromRotationMatrix(pB.Matrix4())) * 180 / Math.PI
+  let error: string[] = []
+  if (distance > 0.5) error.push(`distance error=${distance}`)
+  if (angle > 1) error.push(`angle error=${angle}`)
+  return error.length ? error.join(',') : 'ok'
+}
+
 /** Ensure consistency when diffing. */
 function preprocessCuttleform(c: Cuttleform, other?: Cuttleform) {
   return {
@@ -77,6 +94,6 @@ function preprocessCuttleform(c: Cuttleform, other?: Cuttleform) {
       if (!newKey.size) delete newKey.size
       return newKey
     }),
-    wristRestOrigin: undefined,
+    wristRestOrigin: compareWRPosition(c, other),
   }
 }

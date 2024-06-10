@@ -2,13 +2,12 @@ import type { TopoDS_Shell } from '$assets/replicad_single'
 import { BOARD_PROPERTIES, type BoardElement, boardElements, holderOuterRadius, holderThickness, STOPPER_WIDTH } from '$lib/geometry/microcontrollers'
 import { SCREWS } from '$lib/geometry/screws'
 import { wallBezier } from '@pro/rounded'
-import { makeStiltsPlate, splitStiltsScrewInserts } from '@pro/stiltsModel'
+import { makeStiltsPlate, makeStiltsPlateSimpleMesh, splitStiltsScrewInserts } from '@pro/stiltsModel'
 import { cast, CornerFinder, downcast, draw, drawCircle, Drawing, drawRoundedRectangle, Face, loft, type Point, type Sketch, Sketcher, Solid } from 'replicad'
 import type { TiltGeometry } from './cachedGeometry'
 import { createTriangleMap } from './concaveman'
 import type { Cuttleform, Geometry } from './config'
 import {
-  allKeyCriticalPoints,
   bezierPatch,
   type CriticalPoints,
   joinWalls,
@@ -25,7 +24,6 @@ import {
   wallSurfaces,
   wallSurfacesInner,
   wallSurfacesOuter,
-  webThickness,
 } from './geometry'
 import { bezierFace, BezierSketch, BezierSketcher, CompBezierSurface } from './modeling/bezier'
 import { makeCacher } from './modeling/cacher'
@@ -288,7 +286,7 @@ function plateSketch(c: Cuttleform, geo: PlateParams, offset = 0) {
       const b0 = boundary[i]
       const b1 = boundary[(i + 1) % boundary.length]
       const spline = splines[b0][b1]
-      sketcher.bezierCurveTo(planePt(spline[3]), [planePt(spline[1]), planePt(spline[2])])
+      if (spline) sketcher.bezierCurveTo(planePt(spline[3]), [planePt(spline[1]), planePt(spline[2])])
     }
     sketch = sketcher.close()
   } else {
@@ -384,16 +382,27 @@ interface Plate {
 }
 
 export function makePlateMesh(c: Cuttleform, geo: Geometry, cut = false, inserts = false) {
-  const sketch = plateSketch(c, geo)
-  const plate = sketch.extrudeMesh(-PLATE_HEIGHT)
-  const trsf = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).pretranslate(0, 0, geo.bottomZ)
-  const mat = trsf.Matrix4()
-  console.log(plate.vertices)
-  for (let i = 0; i < plate.vertices.length; i += 3) {
-    plate.vertices.set(new Vector().fromArray(plate.vertices, i).applyMatrix4(mat).xyz(), i)
+  const makeThePlate = (geo: PlateParams) => {
+    const sketch = plateSketch(c, geo)
+    const plate = sketch.extrudeMesh(-PLATE_HEIGHT)
+    const trsf = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).pretranslate(0, 0, geo.bottomZ)
+    const mat = trsf.Matrix4()
+    for (let i = 0; i < plate.vertices.length; i += 3) {
+      plate.vertices.set(new Vector().fromArray(plate.vertices, i).applyMatrix4(mat).xyz(), i)
+    }
+    return plate
   }
-  console.log(plate.vertices)
-  return plate
+
+  if (c.shell.type == 'stilts') {
+    return { top: makeStiltsPlateSimpleMesh(c, geo, cut), bottom: null }
+  } else if (c.shell.type == 'tilt') {
+    return {
+      top: makeThePlate(geo),
+      bottom: makeThePlate(tiltBotGeo(c, geo as TiltGeometry)),
+    }
+  } else {
+    return { top: makeThePlate(geo), bottom: null }
+  }
 }
 
 export function makePlate(c: Cuttleform, geo: Geometry, cut = false, inserts = false): Plate {
