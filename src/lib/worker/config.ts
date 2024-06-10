@@ -88,6 +88,8 @@ export interface SpecificCuttleform<S> {
     | 'seeed-studio-xiao'
     | 'waveshare-rp2040-zero'
     | 'weact-studio-ch552t'
+    | 'adafruit-rp2040-feather'
+    | 'adafruit-rp2040-keeboar'
     | null
   fastenMicrocontroller: boolean
   /** Additional height to add to the model. */
