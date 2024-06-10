@@ -89,7 +89,6 @@ export interface SpecificCuttleform<S> {
     | 'waveshare-rp2040-zero'
     | 'weact-studio-ch552t'
     | 'adafruit-rp2040-feather'
-    | 'adafruit-rp2040-keeboar'
     | null
   fastenMicrocontroller: boolean
   /** Additional height to add to the model. */
@@ -238,6 +237,7 @@ export const MAP_MICROCONTROLLER: Record<MICROCONTROLLER, Cuttleform['microcontr
   [MICROCONTROLLER.XIAO_BT]: 'seeed-studio-xiao',
   [MICROCONTROLLER.RP2040_ZERO]: 'waveshare-rp2040-zero',
   [MICROCONTROLLER.WEACT_CH552T]: 'weact-studio-ch552t',
+  [MICROCONTROLLER.ADAFRUIT_RP2040_FEATHER]: 'adafruit-rp2040-feather',
 }
 
 export const MAP_CONNECTOR: Record<CONNECTOR, Cuttleform['connector']> = {

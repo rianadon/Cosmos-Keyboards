@@ -227,6 +227,7 @@
         case MICROCONTROLLER.ITSYBITSY_BT:
         case MICROCONTROLLER.XIAO_BT:
         case MICROCONTROLLER.NRFMICRO:
+        case MICROCONTROLLER.ADAFRUIT_RP2040_FEATHER:
           cuttleformConf.wall.connector = CONNECTOR.USB
           break
 

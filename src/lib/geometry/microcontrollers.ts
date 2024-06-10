@@ -18,7 +18,7 @@ const IN = 25.4 // in to mm
 // nrfmicro: use KiCad StepUp from freecad
 // seeed studio xiao: https://wiki.seeedstudio.com/XIAO-RP2040/
 // Adafruit RP2040 Feather Model: https://github.com/adafruit/Adafruit_CAD_Parts/tree/main/4884%20Feather%20RP2040
-// Adafruit RP2040 Kee Boar Model: https://github.com/adafruit/Adafruit_CAD_Parts/tree/main/5302%20KB2040
+// Adafruit KB2040 Kee Boar Model: https://github.com/adafruit/Adafruit_CAD_Parts/tree/main/5302%20KB2040
 
 interface BoardProperties {
   name: string
@@ -157,26 +157,17 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     sidePins: 10,
   },
   'adafruit-rp2040-feather': {
-    name: 'Adafruit rp2040 feather',
+    name: 'Adafruit rp2040 feather (USB-C)',
     size: new Vector(0.9 * IN, 2 * IN, 1.57),
     boundingBoxZ: 0.28 * IN,
     offset: new Vector(0, 0, 1.835),
     tappedHoleDiameter: 0.1 * IN,
-    holes: [new Vector(-5.7, -2, 0), new Vector(5.7, -2, 0), new Vector(-5.7, -49, 0), new Vector(5.7, -49, 0)],
+    holes: [new Vector(0.35 * IN, -0.1 * IN, 0), new Vector(-0.35 * IN, -0.1 * IN, 0), new Vector(0.35 * IN, -1.9 * IN, 0), new Vector(-0.35 * IN, -1.9 * IN, 0)],
     cutouts: [],
-    sidecutout: 3.1,
-    sidePins: 16,
-  },
-  'adafruit-rp2040-keeboar': {
-    name: 'Adafruit rp2040 Kee Boar',
-    size: new Vector(18.288, 25.908, 1.57),
-    boundingBoxZ: 5,
-    offset: new Vector(0, 0, 1.835),
-    holes: [],
-    cutouts: [],
-    sidecutout: 3.1,
-    sidePins: 10,
-    castellated: true,
+    sidecutout: 0.1 * IN,
+    sidePins: 16, //asymmetrical; only 12 on the I2C connector side
+
+    // holes: [new Vector(-5.7, -2, 0), new Vector(5.7, -2, 0), new Vector(-5.7, -49, 0), new Vector(5.7, -49, 0)],
   },
 }
 
