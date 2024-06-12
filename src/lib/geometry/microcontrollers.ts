@@ -165,7 +165,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     holes: [new Vector(0.35 * IN, -0.1 * IN, 0), new Vector(-0.35 * IN, -0.1 * IN, 0), new Vector(0.35 * IN, -1.9 * IN, 0), new Vector(-0.35 * IN, -1.9 * IN, 0)],
     cutouts: [],
     sidecutout: 0.1 * IN,
-    sidePins: 16, //asymmetrical; only 12 on the I2C connector side
+    sidePins: 16, // asymmetrical; only 12 on the I2C connector side
   },
 }
 
