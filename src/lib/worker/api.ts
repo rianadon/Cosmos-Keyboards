@@ -26,7 +26,7 @@ let oc: OpenCascadeInstance
 let model: Solid
 let ocTime = 0
 
-const NULL = { mesh: null, mass: 0 }
+const NULL: { mesh: ShapeMesh | null; mass: number } = { mesh: null, mass: 0 }
 
 async function ensureOC() {
   if (!oc) {

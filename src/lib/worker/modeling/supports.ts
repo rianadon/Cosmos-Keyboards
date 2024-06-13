@@ -4,7 +4,7 @@ import { Vector3 } from 'three/src/math/Vector3'
 const NEEDS_SUPPORT_ANGLE = Math.PI / 6 // angles of > 30 degrees need support
 const SUPPORT_THRESH = -Math.sin(NEEDS_SUPPORT_ANGLE) // faces with normal.z < thresh need support
 
-export function supportMesh(mesh: ShapeMesh, minZ: number) {
+export function supportMesh(mesh: ShapeMesh, minZ: number): ShapeMesh {
   const eps = 1e-6
   const cb = new Vector3()
   const ab = new Vector3()
@@ -89,7 +89,7 @@ export function supportMesh(mesh: ShapeMesh, minZ: number) {
     addFace(new Vector3(pos[e1].x, pos[e1].y, minZ), new Vector3(pos[e0].x, pos[e0].y, minZ), pos[e1], mesh.triangles.length * 18 + i * 18 + 9)
   })
 
-  return { vertices, normals, volume }
+  return { vertices, normals, volume } as any
 }
 
 /** Return the volume of a polyhedron made up of triangle faces. */

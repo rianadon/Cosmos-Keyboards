@@ -362,7 +362,7 @@ export function mirror(keys: CuttleKey[], gap = 30, angle = 0) {
       position: k.position.mirrored([1, 0, 0], [axisX, 0, 0]),
     }
     if ('keycap' in newK && newK.keycap.letter) {
-      newK.keycap = { ...newK.keycap, letter: flippedKey(newK.keycap.letter) }
+      // newK.keycap = { ...newK.keycap, letter: flippedKey(newK.keycap.letter) }
     }
     return newK
   })

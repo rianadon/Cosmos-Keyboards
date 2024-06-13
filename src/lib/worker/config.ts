@@ -1,6 +1,7 @@
 import type manuform from '$assets/manuform.json'
 import { hasPro } from '@pro/index'
 import { StiltsGeometry } from '@pro/stiltsGeo'
+import type { FullGeometry } from 'src/routes/beta/lib/viewers/viewer3dHelpers'
 import type { Curvature } from 'target/proto/cosmos'
 import { Matrix4, Vector3 } from 'three'
 import {
@@ -1503,4 +1504,12 @@ export function newGeometry(c: Cuttleform): Geometry {
     return new TiltGeometry(c as SpecificCuttleform<TiltShell>)
   }
   return new BaseGeometry(c)
+}
+
+export function newFullGeometry(c: FullCuttleform): FullGeometry {
+  const geo: FullGeometry = {}
+  if (c.left) geo.left = newGeometry(c.left)
+  if (c.right) geo.right = newGeometry(c.right)
+  if (c.unibody) geo.unibody = newGeometry(c.unibody)
+  return geo
 }

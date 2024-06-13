@@ -7,8 +7,9 @@
   import * as flags from '$lib/flags'
   import type { KeyStatus } from './keyboardKey'
   import { keyGeometry } from '$lib/loaders/keycaps'
-  import { confError, showKeyInts } from '$lib/store'
+  import { confError, protoConfig, showKeyInts } from '$lib/store'
   import { partGeometry } from '$lib/loaders/parts'
+  import { nthIndex } from '$lib/worker/config.cosmos'
 
   export let geometry: Geometry | null
   export let transparency: number
@@ -16,6 +17,7 @@
   export let translation: number
   export let flip = true
   export let reachability: boolean[] | undefined
+  export let side: 'left' | 'right' | 'unibody'
 
   $: console.log('new intersections', $confError)
 
@@ -49,7 +51,7 @@
         <GroupMatrix matrix={k.matrix}>
           {@const letter = 'keycap' in k.key ? k.key.keycap.letter : undefined}
           <KeyboardKey
-            index={i}
+            index={nthIndex($protoConfig, side, i)}
             opacity={transparency / 100}
             brightness={1}
             letter={flip ? flippedKey(letter) : letter}
@@ -57,6 +59,7 @@
             geometry={k.geometry}
             position={[0, 0, pressedLetter && letter === pressedLetter ? translation : 0]}
             renderOrder={5}
+            {flip}
           />
         </GroupMatrix>
       {/if}
@@ -65,7 +68,7 @@
       {#if geo}
         <GroupMatrix matrix={trsf.Matrix4()}>
           <KeyboardKey
-            index={i}
+            index={nthIndex($protoConfig, side, i)}
             opacity={transparency / 100}
             brightness={0.7}
             status={partStatus($confError, i)}

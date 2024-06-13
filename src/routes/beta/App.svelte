@@ -30,6 +30,7 @@
   import { serialize, deserialize } from './lib/serialize'
   import { WorkerPool, type TaskError } from './lib/workerPool'
   import {
+    newFullGeometry,
     newGeometry,
     type Cuttleform,
     type CuttleformProto,
@@ -64,11 +65,19 @@
   import { decodeConfigIdk } from '$lib/worker/config.serialize'
   import { fromCosmosConfig } from '$lib/worker/config.cosmos'
   import KMesh from '$lib/3d/KeyboardMeshBetter.svelte'
+  import KeyboardModel from '$lib/3d/KeyboardModel.svelte'
   import type { ShapeMesh } from 'replicad'
   import Keyboard from '$lib/3d/Keyboard.svelte'
   import Microcontroller from '$lib/3d/Microcontroller.svelte'
+  import {
+    kbdOffset,
+    type FullGeometry,
+    type FullKeyboardMeshes,
+  } from './lib/viewers/viewer3dHelpers'
+  import { notNull, objKeys } from '$lib/worker/util'
+  import { T } from '@threlte/core'
+  import type { ProcessPool } from 'src/model_gen/processPool'
 
-  let supportGeometries: ShapeMesh[] = []
   let center = [-35.510501861572266, -17.58449935913086, 35.66889877319336] as [
     number,
     number,
@@ -104,23 +113,14 @@
   let viewer = '3d'
   let transparency = 95
   let errorMsg = false
-  $: cTransparency = showSupports ? 0 : transparency
-  $: plateTopOpacity = Math.pow(
-    plateBotBuf
-      ? Math.min(cTransparency / 50, Math.pow(cTransparency / 100, 0.2))
-      : cTransparency / 100,
-    2
-  )
-  $: plateScrewOpacity = Math.pow(
-    plateBotBuf ? Math.min(cTransparency / 50, 1) : cTransparency / 100,
-    2
-  )
 
   let downloading = false
   let urlView = false
   let bomView = false
   let kleView = false
   let showFit = false
+
+  $: cTransparency = showSupports ? 0 : transparency
 
   const pool = new WorkerPool<typeof import('$lib/worker/api')>(3, () => {
     return new Worker(new URL('$lib/worker?worker', import.meta.url), { type: 'module' })
@@ -160,9 +160,9 @@
 
   //$: config = cuttleConf(state.options)
   let config: FullCuttleform
-  let geometry: Geometry | null = null
+  let geometry: FullGeometry = {}
   $: if (config && browser) {
-    process(config?.right!, true).catch((e) => console.error(e))
+    process(config, true).catch((e) => console.error(e))
   }
 
   $: if ($tempConfig && browser) {
@@ -170,22 +170,16 @@
   }
 
   async function debounceprocess(config: FullCuttleform) {
-    console.log('isprocessing not', tempPool.someAvailable())
-    if (tempPool.someAvailable()) await process(config?.right!, false)
-    else geometry = newGeometry(config?.right!) // Otherwise still update geometry so keyboard changes
+    if (tempPool.someAvailable()) await process(config, false)
+    else geometry = newFullGeometry(config) // Otherwise still update geometry so keyboard changes
   }
 
-  let wristBuf: ShapeMesh | undefined
-  let plateTopBuf: ShapeMesh | undefined
-  let plateBotBuf: ShapeMesh | undefined
-  let webBuf: ShapeMesh | undefined
-  let keyBufs: { mesh: ShapeMesh; flip: boolean; matrix: Matrix4; mass: number }[] | undefined
-  let wallBuf: ShapeMesh | undefined
-  let screwBaseBuf: ShapeMesh | undefined
-  let screwPlateBuf: ShapeMesh | undefined
-  let holderBuf: ShapeMesh | undefined
+  let meshes: FullKeyboardMeshes = {}
 
   function areDifferent(c1: any, c2: any) {
+    if (c1 == undefined && c2 == undefined) return []
+    if (c1 == undefined && c2 != undefined) return ['everything']
+    if (c1 != undefined && c2 == undefined) return ['everything']
     const differences = []
 
     for (const prop of new Set([...Object.keys(c1), ...Object.keys(c2)])) {
@@ -194,13 +188,35 @@
     return differences
   }
 
-  let oldTempConfig: Cuttleform | null = null
-  let oldConfig: Cuttleform | null = null
-  async function process(conf: Cuttleform, full: boolean) {
+  function areDifferent2(c1: FullCuttleform, c2: FullCuttleform) {
+    const diffLeft = areDifferent(c1.left, c2.left)
+    if (diffLeft.length) return diffLeft
+    const diffRight = areDifferent(c1.right, c2.right)
+    if (diffRight.length) return diffRight
+    const diffUnibody = areDifferent(c1.unibody, c2.unibody)
+    if (diffUnibody.length) return diffUnibody
+    return []
+  }
+
+  const calcOtherPromises = (conf: Cuttleform) => ({
+    intersectionsPromise: pool.execute(
+      (w) => w.intersections(conf) as Promise<ConfError | undefined>,
+      'Intersections'
+    ),
+    cutPromise: pool.execute((w) => w.cutWall(conf), 'Cut wall'),
+    holderPromise: pool.execute((w) => w.generateBoardHolder(conf), 'Holder'),
+    screwPromise: pool.execute((w) => w.generateScrewInserts(conf), 'Inserts'),
+    wristRestPromise: pool.execute((w) => w.generateWristRest(conf), 'Wrist Rest'),
+    cutPlatePromise: pool.execute((w) => w.generatePlate(conf, true), 'Full Plate'),
+  })
+
+  let oldTempConfig: FullCuttleform | null = null
+  let oldConfig: FullCuttleform | null = null
+  async function process(conf: FullCuttleform, full: boolean) {
+    if (!meshes.right) meshes.right = {}
     if (oldConfig && geometry && full) {
       console.log('PROCESSING')
-      const differences = areDifferent(oldConfig, conf)
-      console.log('differences')
+      const differences = areDifferent2(oldConfig, conf)
       if (differences.length == 0) return
       oldConfig = conf
       oldTempConfig = conf
@@ -213,8 +229,11 @@
           ocError = undefined
           generatorProgress = 0.5
           // center = estimatedCenter(geometry, config.wristRest)
-          const wristMesh = await pool.executeNow((w) => w.generateWristRest(conf), 'Wrist Rest')
-          wristBuf = wristMesh.mesh
+          const wristMesh = await pool.executeNow(
+            (w) => w.generateWristRest(conf.right),
+            'Wrist Rest'
+          )
+          meshes.right.wristBuf = wristMesh.mesh
           generatorProgress = 1
           ocError = undefined
         } catch (e) {
@@ -228,19 +247,18 @@
       oldTempConfig = conf
     } else {
       if (oldTempConfig) {
-        const differences = areDifferent(oldTempConfig, conf)
+        const differences = areDifferent2(oldTempConfig, conf)
         if (differences.length == 0) return
       }
       oldTempConfig = conf
     }
 
-    const newGeo = newGeometry(conf)
+    console.log('GENERATING')
+    const newGeo = newFullGeometry(conf)
     geometry = newGeo
-    const err = checkConfig(conf, newGeo)
+    const err = checkConfig(conf.right!, newGeo.right)
     confError.set(err)
     if (err) return
-
-    const settings = conf
 
     // Reset the state
     ocError = undefined
@@ -249,98 +267,95 @@
 
     const pl = full ? pool : tempPool
     if (full) pool.reset()
+    const kbdNames = objKeys(conf).filter((k) => !!conf[k])
+    console.log('NAMES', kbdNames)
     try {
-      const quickPromise = pl.execute((w) => w.generateQuick(settings), 'Preview')
+      const quickPromises = kbdNames.map((k) =>
+        pl.execute((w) => w.generateQuick(conf[k]!), 'Preview')
+      )
+      const otherPromises =
+        !flags.fast && full ? kbdNames.map((k) => calcOtherPromises(conf[k]!)) : []
 
-      let cutPromise, holderPromise, screwPromise, wristRestPromise, cutPlatePromise
-      let intersectionsPromise
+      if (full) center = estimatedCenter(newGeo.right, !!config.right.wristRest)
+      const quickResults = await Promise.all(quickPromises)
+      quickResults.forEach((prom, i) => {
+        meshes[kbdNames[i]] = {
+          ...meshes[kbdNames[i]],
+          webBuf: prom.web.mesh,
+          keyBufs: prom.keys.keys.map((k) => ({
+            ...k,
+            matrix: new Matrix4().copy(k.matrix),
+          })),
+          wallBuf: prom.wall.mesh,
+          plateTopBuf: prom.plate.top.mesh,
+          plateBotBuf: prom.plate.bottom.mesh || undefined,
+          holderBuf: undefined,
+          screwBaseBuf: undefined,
+          screwPlateBuf: undefined,
+        }
+        // size = boundingSize([...keyBufs!, webBuf!])
+      })
+
       if (!flags.fast && full) {
-        cutPromise = pl.execute((w) => w.cutWall(settings), 'Cut wall')
-        holderPromise = pl.execute((w) => w.generateBoardHolder(settings), 'Holder')
-        screwPromise = pl.execute((w) => w.generateScrewInserts(settings), 'Inserts')
-        wristRestPromise = pl.execute((w) => w.generateWristRest(settings), 'Wrist Rest')
-        intersectionsPromise = pool.execute(
-          (w) => w.intersections(settings) as Promise<ConfError | undefined>,
-          'Intersections'
+        const queue = otherPromises.flatMap((p, i) =>
+          Object.values(p).map((q) => ({ i, kbd: kbdNames[i], prom: q }))
         )
-        cutPlatePromise = pl.execute((w) => w.generatePlate(settings, true), 'Full Plate')
-      }
-
-      if (full) center = estimatedCenter(newGeo, !!config.wristRest)
-      const { wall, keys, web, plate } = await quickPromise
-
-      webBuf = web.mesh
-      keyBufs = keys.keys.map((k) => ({
-        ...k,
-        matrix: new Matrix4().copy(k.matrix),
-      }))
-      // size = boundingSize([...keyBufs!, webBuf!])
-      wallBuf = wall.mesh
-      plateTopBuf = plate.top.mesh
-      plateBotBuf = plate.bottom.mesh || undefined
-      holderBuf = undefined
-      screwBaseBuf = undefined
-      screwPlateBuf = undefined
-
-      if (!flags.fast && full) {
-        let holderMesh, screwPlateMesh, screwBaseMesh, cutMesh, wristMesh
-        const queue = [
-          intersectionsPromise,
-          holderPromise,
-          screwPromise,
-          cutPromise,
-          wristRestPromise,
-          cutPlatePromise,
-        ]
+        const initialLength = queue.length
         const errors: Error[] = []
         console.log('DIFFERENCES Set to 0.2', full)
         generatorProgress = 0.2
         while (queue.length) {
           const { result, finished, error } = await Promise.race(
             queue.map((p) =>
-              p.then(
+              p.prom.then(
                 (res) => ({ result: res, finished: p }),
                 (error) => ({ error, finished: p })
               )
             )
           )
           queue.splice(queue.indexOf(finished), 1)
-          generatorProgress = 0.2 + (6 - queue.length) / 7.5
+          generatorProgress = 0.2 + ((initialLength - queue.length) / initialLength) * 0.8
           if (error) {
             errors.push(error)
             continue
           }
-          if (finished == intersectionsPromise) {
+          if (finished.prom == otherPromises[finished.i].intersectionsPromise) {
             confError.set(result)
-          } else if (finished == holderPromise) {
-            holderMesh = result
-            if (conf.microcontroller) holderBuf = holderMesh.mesh
-          } else if (finished == screwPromise) {
-            console.log(result)
-            screwBaseMesh = result.baseInserts
-            screwPlateMesh = result.plateInserts
-            screwBaseBuf = screwBaseMesh.mesh
-            screwPlateBuf = screwPlateMesh.mesh
-          } else if (finished == cutPromise) {
-            cutMesh = result
-            wallBuf = cutMesh.mesh
-          } else if (finished == wristRestPromise) {
-            wristMesh = result
-            wristBuf = wristMesh.mesh
-          } else if (finished == cutPlatePromise) {
-            plateTopBuf = result.top.mesh
-            plateBotBuf = result.bottom.mesh || undefined
+          } else if (finished.prom == otherPromises[finished.i].holderPromise) {
+            if (conf[finished.kbd]!.microcontroller) meshes[finished.kbd]!.holderBuf = result.mesh
+          } else if (finished.prom == otherPromises[finished.i].screwPromise) {
+            meshes[finished.kbd]!.screwBaseBuf = result.plateInserts.mesh
+            meshes[finished.kbd]!.screwPlateBuf = result.baseInserts.mesh
+          } else if (finished.prom == otherPromises[finished.i].cutPromise) {
+            meshes[finished.kbd]!.wallBuf = result.mesh
+          } else if (finished.prom == otherPromises[finished.i].wristRestPromise) {
+            meshes[finished.kbd]!.wristBuf = result.mesh
+          } else if (finished.prom == otherPromises[finished.i].cutPlatePromise) {
+            meshes[finished.kbd]!.plateTopBuf = result.top.mesh
+            meshes[finished.kbd]!.plateBotBuf = result.bottom.mesh || undefined
           }
         }
         if (errors.length) throw errors[0]
 
         const volume =
-          cutMesh.mass + web.mass + keys.mass + screwBaseMesh.mass + screwPlateMesh.mass
-        const supportVolume = cutMesh.supports.volume + web.supports.volume + keys.supports.volume
-        console.log('volumes', volume, supportVolume)
-        console.log(cutMesh.mass, web.mass, keys.mass, screwBaseMesh.mass, screwPlateMesh.mass)
+          (await otherPromises[0].cutPromise).mass +
+          quickResults[0].web.mass +
+          quickResults[0].keys.mass +
+          (await otherPromises[0].screwPromise).plateInserts.mass +
+          (await otherPromises[0].screwPromise).baseInserts.mass
+        const supportVolume =
+          (await otherPromises[0].cutPromise).supports.volume +
+          quickResults[0].web.supports.volume +
+          quickResults[0].keys.supports.volume
         filament = estimateFilament(volume, supportVolume)
-        supportGeometries = [cutMesh.supports, web.supports, keys.supports]
+
+        for (let i = 0; i < kbdNames.length; i++) {
+          meshes[kbdNames[i]]!.supportGeometries = [
+            (await otherPromises[i].cutPromise).supports,
+            quickResults[i].web.supports,
+            quickResults[i].keys.supports as any,
+          ]
+        }
       }
       if (full) generatorProgress = 1
       ocError = undefined
@@ -526,42 +541,20 @@
           showHand={$showHand}
           progress={generatorProgress}
         >
-          {#if !$noBase}<Microcontroller config={config?.right} {geometry} {showSupports} />{/if}
-          {#each keyBufs || [] as key}
-            <GroupMatrix matrix={key.matrix}>
-              <KMesh
-                kind="case"
-                scale={key.flip && $flip ? [-1, 1, 1] : [1, 1, 1]}
-                geometry={key.mesh}
+          {#each notNull(Object.values(meshes)) as mesh, i}
+            <T.Group
+              position.x={kbdOffset(objKeys(meshes)[i])}
+              scale.x={objKeys(meshes)[i] == 'left' ? -1 : 1}
+            >
+              <KeyboardModel
+                {hideWall}
+                {transparency}
+                {showSupports}
+                geometry={geometry[objKeys(meshes)[i]]}
+                meshes={mesh}
               />
-            </GroupMatrix>
+            </T.Group>
           {/each}
-          {#if !$noWall && !hideWall}<KMesh kind="case" geometry={wallBuf} />{/if}
-          <KMesh kind="case" geometry={webBuf} />
-          {#if !$noBase}
-            <KMesh kind="case" geometry={screwBaseBuf} />
-            <KMesh kind="key" geometry={plateTopBuf} opacity={plateTopOpacity} renderOrder="10" />
-            <KMesh
-              kind="key"
-              geometry={plateBotBuf}
-              opacity={Math.pow((cTransparency - 50) / 50, 3)}
-              renderOrder="10"
-            />
-            <KMesh kind="key" geometry={screwPlateBuf} opacity={plateScrewOpacity} />
-            <KMesh kind="key" geometry={wristBuf} opacity={cTransparency / 100} />
-            <KMesh
-              kind="case"
-              geometry={holderBuf}
-              brightness={0.5}
-              opacity={0.9}
-              visible={!showSupports}
-            />
-          {/if}
-          {#if showSupports}
-            {#each supportGeometries as geo}
-              <KMesh kind="case" geometry={geo} brightness={0.5} opacity={0.8} />
-            {/each}
-          {/if}
         </Viewer3D>
       {:else if viewer == 'thick'}
         <Thick3D
@@ -905,7 +898,7 @@
           basic={mode == 'basic'}
           cosmosConf={state.options}
           bind:conf={config}
-          bind:geometry
+          bind:geometry={geometry.right}
           on:goAdvanced={() => (mode = 'intermediate')}
         />
       {:else}
@@ -948,7 +941,7 @@
             for any additional screws needed.
           </div>
         {/if}
-        <BomView {geometry} conf={config} />
+        <BomView geometry={geometry.right} conf={config} />
       {/if}
     </div>
   </Dialog>

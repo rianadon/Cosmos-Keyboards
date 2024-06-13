@@ -5,6 +5,8 @@ import { Manuform } from '../../../../target/proto/manuform'
 import cuttleform from '$assets/cuttleform.json' assert { type: 'json' }
 import lightcycle from '$assets/lightcycle.json' assert { type: 'json' }
 import manuform from '$assets/manuform.json' assert { type: 'json' }
+import { cuttleConf } from '$lib/worker/config'
+import { toCosmosConfig } from '$lib/worker/config.cosmos'
 import { decodeConfigIdk, encodeCosmosConfig, serializeCosmosConfig } from '$lib/worker/config.serialize'
 import * as pako from 'pako'
 
@@ -85,9 +87,10 @@ export function deserialize(str: string, fallback: State): State {
   if (str == 'cm') {
     return {
       keyboard: 'cm',
-      options: decodeConfigIdk(
-        'CnMKDxIFEIADICcSABIAEgA4MQoPEgUQgA8gJxIAEgASADgdChYSBRCAGyAnEgASABIAEgA4CUCA8LwCChESBRCAJyAnEgASABIAEgA4CgoVEgUQgDMgJxIAEgASADgeQICGisAHGABA6IWgrvBVSNzwoqABCpIBChcSExDAwAFAgICQAkjCmaCVkLwBUEM4CAoVEhAQQECAgBhI0JWA3ZD1A1ALUJ4CChYSEhBAQICA1AJIwpmglZC8AVCGAVA6ChQSEBBAQICA8AFI5pn0p5ALUFdQfwoVEhAQQECAgKwDSPCZzLXQMFB0UJUBGAIiCgjIARDIARgAIABAy4uEpNAxSK2R3I3BkwY=',
-      ),
+      // options: decodeConfigIdk(
+      //   'CnMKDxIFEIADICcSABIAEgA4MQoPEgUQgA8gJxIAEgASADgdChYSBRCAGyAnEgASABIAEgA4CUCA8LwCChESBRCAJyAnEgASABIAEgA4CgoVEgUQgDMgJxIAEgASADgeQICGisAHGABA6IWgrvBVSNzwoqABCpIBChcSExDAwAFAgICQAkjCmaCVkLwBUEM4CAoVEhAQQECAgBhI0JWA3ZD1A1ALUJ4CChYSEhBAQICA1AJIwpmglZC8AVCGAVA6ChQSEBBAQICA8AFI5pn0p5ALUFdQfwoVEhAQQECAgKwDSPCZzLXQMFB0UJUBGAIiCgjIARDIARgAIABAy4uEpNAxSK2R3I3BkwY=',
+      // ),
+      options: toCosmosConfig(cuttleConf(cuttleform.options)),
     }
   }
 

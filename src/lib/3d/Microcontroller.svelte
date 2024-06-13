@@ -5,12 +5,12 @@
   import KeyboardMaterial from './KeyboardMaterial.svelte'
   import GroupMatrix from './GroupMatrix.svelte'
 
-  export let config: Cuttleform | undefined
   export let geometry: Geometry | null
   export let showSupports: boolean
 
-  $: boardGeos =
-    config?.microcontroller && geometry ? boardGeometries(config, geometry) : Promise.resolve([])
+  $: boardGeos = geometry?.c.microcontroller
+    ? boardGeometries(geometry.c, geometry)
+    : Promise.resolve([])
 </script>
 
 {#await boardGeos then boards}

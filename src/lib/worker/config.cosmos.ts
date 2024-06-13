@@ -1,4 +1,4 @@
-import ETrsf from '$lib/worker/modeling/transformation-ext'
+import ETrsf, { mirror } from '$lib/worker/modeling/transformation-ext'
 // import { deserialize } from 'src/routes/beta/lib/serialize'
 import { Matrix4, Vector3 } from 'three'
 import { type ClusterName, type ClusterSide, type ClusterType, type Connector, decodeClusterFlags, encodeClusterFlags, type ScrewFlags } from '../../../target/cosmosStructs'
@@ -87,47 +87,14 @@ export const PARTS_WITH_KEYCAPS = [
   'blank',
 ]
 
-export function toCosmosConfig(conf: Cuttleform): CosmosKeyboard {
-  const globalCurvature = dominantCurvature(conf.keys)
-  const globalProfile = dominantProfile(conf.keys) ?? 'xda'
-  const globalPartType = decodePartType(dominantPartType(conf.keys) ?? encodePartType({ type: 'mx-better', aspect: 1 }))
-  const wrOriginInv = conf.wristRestOrigin.evaluate({ flat: false }, new Trsf()).invert()
+function toCosmosClusters(keys: CuttleKey[], side: 'left' | 'right', globalProfile: Profile, globalPartType: PartType, globalCurvature: Curvature, wrOriginInv: Trsf) {
+  const clusters: CosmosCluster[] = []
 
-  const keyboard: CosmosKeyboard = {
-    curvature: globalCurvature,
-    profile: globalProfile,
-    partType: globalPartType,
-    wallShrouding: conf.wallShrouding,
-    wallThickness: conf.wallThickness,
-    webMinThicknessFactor: conf.webMinThicknessFactor,
-    keyBasis: conf.keyBasis,
-    connector: conf.connector,
-    connectorSizeUSB: conf.connectorSizeUSB,
-    screwIndices: conf.screwIndices,
-    screwSize: conf.screwSize,
-    screwType: conf.screwType,
-    screwCountersink: conf.screwCountersink,
-    clearScrews: conf.clearScrews,
-    microcontroller: conf.microcontroller,
-    fastenMicrocontroller: conf.fastenMicrocontroller,
-    verticalClearance: conf.verticalClearance,
-    rounded: conf.rounded,
-    shell: conf.shell,
-    wristRestEnable: !!conf.wristRest,
-    wristRestProps: conf.wristRest || {
-      angle: 10,
-      slope: 5,
-      maxWidth: 100,
-      tenting: 6,
-    },
-    wristRestPosition: encodeTuple([100, -1000, 0]),
-    clusters: [],
-  }
-  for (const [trsf, trsfGrp] of collectByTransformBy(conf.keys).entries()) {
+  for (const [trsf, trsfGrp] of collectByTransformBy(keys).entries()) {
     const clusterCurvature = dominantCurvature(trsfGrp)
     const clusterProfile = dominantProfile(trsfGrp) ?? globalProfile
     const clusterPartType = decodePartType(dominantPartType(trsfGrp) ?? encodePartType(globalPartType))
-    const clusterType = decodeClusterFlags(dominantClusterType(trsfGrp))
+    const clusterType = decodeClusterFlags(dominantClusterType(trsfGrp, side))
     const clusterTrsf = new Trsf().fromMatrix(trsf.split(',').map(Number))
     const clusterTrsfInv = clusterTrsf.inverted()
     const cluster: CosmosCluster = {
@@ -142,13 +109,13 @@ export function toCosmosConfig(conf: Cuttleform): CosmosKeyboard {
       profile: diff(clusterProfile, globalProfile),
       ...toPosRotation(clusterTrsf.premultiplied(wrOriginInv).Matrix4()),
     }
-    keyboard.clusters.push(cluster)
+    clusters.push(cluster)
     for (const [col, colGrp] of collectByColumn(trsfGrp)) {
       const columnCurvature = dominantCurvature(colGrp)
       const columnProfile = dominantProfile(colGrp) ?? clusterProfile
       const columnPartType = decodePartType(dominantPartType(colGrp) ?? encodePartType(clusterPartType))
       const columnStagger = dominantStagger(colGrp)
-      const columnType = decodeClusterFlags(dominantClusterType(colGrp))
+      const columnType = decodeClusterFlags(dominantClusterType(colGrp, side))
       const columnTrsf = new Trsf().fromMatrix(columnStagger.split(',').map(Number))
       const columnTrsfInv = columnTrsf.inverted()
       const column: CosmosCluster = {
@@ -209,6 +176,48 @@ export function toCosmosConfig(conf: Cuttleform): CosmosKeyboard {
       }
     }
   }
+  return clusters
+}
+
+export function toCosmosConfig(conf: Cuttleform): CosmosKeyboard {
+  const globalCurvature = dominantCurvature(conf.keys)
+  const globalProfile = dominantProfile(conf.keys) ?? 'xda'
+  const globalPartType = decodePartType(dominantPartType(conf.keys) ?? encodePartType({ type: 'mx-better', aspect: 1 }))
+  const wrOriginInv = conf.wristRestOrigin.evaluate({ flat: false }, new Trsf()).invert()
+
+  const keyboard: CosmosKeyboard = {
+    curvature: globalCurvature,
+    profile: globalProfile,
+    partType: globalPartType,
+    wallShrouding: conf.wallShrouding,
+    wallThickness: conf.wallThickness,
+    webMinThicknessFactor: conf.webMinThicknessFactor,
+    keyBasis: conf.keyBasis,
+    connector: conf.connector,
+    connectorSizeUSB: conf.connectorSizeUSB,
+    screwIndices: conf.screwIndices,
+    screwSize: conf.screwSize,
+    screwType: conf.screwType,
+    screwCountersink: conf.screwCountersink,
+    clearScrews: conf.clearScrews,
+    microcontroller: conf.microcontroller,
+    fastenMicrocontroller: conf.fastenMicrocontroller,
+    verticalClearance: conf.verticalClearance,
+    rounded: conf.rounded,
+    shell: conf.shell,
+    wristRestEnable: !!conf.wristRest,
+    wristRestProps: conf.wristRest || {
+      angle: 10,
+      slope: 5,
+      maxWidth: 100,
+      tenting: 6,
+    },
+    wristRestPosition: encodeTuple([100, -1000, 0]),
+    clusters: [
+      ...toCosmosClusters(conf.keys, 'right', globalProfile, globalPartType, globalCurvature, wrOriginInv),
+      // ...toCosmosClusters(mirror(conf.keys).slice(conf.keys.length), 'left', globalProfile, globalPartType, globalCurvature, wrOriginInv),
+    ],
+  }
   return keyboard
 }
 
@@ -240,7 +249,7 @@ function dominantCurvature(keys: CuttleKey[]) {
   }
 }
 
-export function fromCosmosConfig(c: CosmosKeyboard): FullCuttleform {
+function sideFromCosmosConfig(c: CosmosKeyboard, side: 'left' | 'right'): Cuttleform {
   const wrPos = decodeTuple(c.wristRestPosition)
   const conf: Cuttleform = {
     wallThickness: c.wallThickness,
@@ -265,7 +274,7 @@ export function fromCosmosConfig(c: CosmosKeyboard): FullCuttleform {
     wristRestOrigin: new ETrsf().translate(wrPos[0] / 10, wrPos[1] / 10, wrPos[2] / 10),
     shell: c.shell,
   }
-  for (const clusterA of c.clusters) {
+  for (const clusterA of c.clusters.filter(c => c.side == side)) {
     for (const clusterB of clusterA.clusters) {
       for (const key of clusterB.keys) {
         const cuttleKey: CuttleKey = {
@@ -289,9 +298,13 @@ export function fromCosmosConfig(c: CosmosKeyboard): FullCuttleform {
       }
     }
   }
+  return conf.keys.length ? conf : undefined
+}
+
+export function fromCosmosConfig(c: CosmosKeyboard): FullCuttleform {
   return {
-    left: conf,
-    right: conf,
+    left: sideFromCosmosConfig(c, 'left'),
+    right: sideFromCosmosConfig(c, 'right'),
   }
 }
 
@@ -320,6 +333,8 @@ export function cosmosKeyPosition(key: CosmosKey, column: CosmosCluster, cluster
   }
   if (columnTrsf) trsf.transformBy(columnTrsf)
   if (clusterTrsf) trsf.transformBy(clusterTrsf)
+
+  if (cluster.side == 'left') trsf.mirror([1, 0, 0])
   return trsf
 }
 
@@ -366,7 +381,7 @@ function dominantStagger(keys: CuttleKey[]) {
   return max
 }
 
-function dominantClusterType(keys: CuttleKey[]) {
+function dominantClusterType(keys: CuttleKey[], side: 'right' | 'left') {
   const clusterNames = new TallyMap<ClusterName>()
   const clusterTypes = new TallyMap<ClusterType>()
   for (const key of keys) {
@@ -374,7 +389,7 @@ function dominantClusterType(keys: CuttleKey[]) {
     if (key.position.history.find(h => h.name == 'placeOnMatrix')) clusterTypes.incr('matrix')
     if (key.position.history.find(h => h.name == 'placeOnSphere')) clusterTypes.incr('sphere')
   }
-  return encodeClusterFlags({ type: clusterTypes.max() ?? 'matrix', name: clusterNames.max() ?? 'fingers', side: 'right' })
+  return encodeClusterFlags({ type: clusterTypes.max() ?? 'matrix', name: clusterNames.max() ?? 'fingers', side })
 }
 
 function collectByTransformBy(keys: CuttleKey[]) {
@@ -519,4 +534,23 @@ export function isNthLastColumn(conf: CosmosKeyboard, n: number) {
 export function isNthFirstColumn(conf: CosmosKeyboard, n: number) {
   const { column, cluster } = nthKey(conf, n)
   return cluster.clusters.every(c => column.column! <= c.column!)
+}
+
+/** Find the index of the nth key after filtering all keys to a certain side */
+export function nthIndex(conf: CosmosKeyboard, side: 'right' | 'left' | 'unibody', n: number) {
+  if (side == 'unibody') return n
+  let i = 0
+  let j = 0
+  for (const cluster of conf.clusters) {
+    for (const column of cluster.clusters) {
+      for (const key of column.keys) {
+        if (cluster.side == side) {
+          if (j == n) return i
+          j++
+        }
+        i++
+      }
+    }
+  }
+  return null
 }

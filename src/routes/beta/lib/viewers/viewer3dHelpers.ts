@@ -1,7 +1,27 @@
 import { UNIFORM } from '$lib/geometry/keycaps'
 import type { Geometry } from '$lib/worker/config'
 import { type CosmosCluster, type CosmosKey, type CosmosKeyboard, cosmosKeyPosition, nthKey } from '$lib/worker/config.cosmos'
+import type { ShapeMesh } from 'replicad'
 import type { Homing, Profile } from 'target/cosmosStructs'
+import type { Matrix4 } from 'three'
+
+export type KeyboardMeshes = {
+  wristBuf?: ShapeMesh
+  plateTopBuf?: ShapeMesh
+  plateBotBuf?: ShapeMesh
+  webBuf?: ShapeMesh
+  keyBufs?: { mesh: ShapeMesh; flip: boolean; matrix: Matrix4; mass: number }[]
+  wallBuf?: ShapeMesh
+  screwBaseBuf?: ShapeMesh
+  screwPlateBuf?: ShapeMesh
+  holderBuf?: ShapeMesh
+  supportGeometries?: ShapeMesh[]
+}
+
+type Full<T> = { left?: T; right?: T; unibody?: T }
+
+export type FullKeyboardMeshes = Full<KeyboardMeshes>
+export type FullGeometry = Full<Geometry>
 
 /** Returns the midpoint of the range of some numbers. */
 function mid(x: (number | undefined)[]) {
@@ -180,4 +200,9 @@ export function sortProfiles(a: Profile, b: Profile) {
 export function formatHoming(key: CosmosKey) {
   if (!key.profile.home) return ''
   return key.profile.home[0].toUpperCase() + key.profile.home.substring(1)
+}
+
+export function kbdOffset(kbd: 'left' | 'right' | 'unibody') {
+  if (kbd == 'left') return 0 // -180
+  return 0
 }

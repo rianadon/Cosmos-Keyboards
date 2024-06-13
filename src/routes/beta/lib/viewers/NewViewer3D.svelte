@@ -44,7 +44,7 @@
   import * as mdi from '@mdi/js'
   import Icon from '$lib/presentation/Icon.svelte'
   import KeyboardMesh from '$lib/3d/KeyboardMesh.svelte'
-  import { diff, notNull } from '$lib/worker/util'
+  import { diff, notNull, objEntriesNotNull } from '$lib/worker/util'
   import { readHands, type HandData } from '$lib/handhelpers'
   import { simpleSocketGeos } from '$lib/loaders/simpleparts'
   import GroupMatrix from '$lib/3d/GroupMatrix.svelte'
@@ -66,6 +66,7 @@
     nthCurvature,
     isNthFirstColumn,
     isNthLastColumn,
+    type CosmosKeyboard,
   } from '$lib/worker/config.cosmos'
   import { PART, PROFILE } from '../../../../../target/cosmosStructs'
   import {
@@ -78,6 +79,8 @@
     transformationCenter,
     profileName,
     sortProfiles,
+    type FullGeometry,
+    kbdOffset,
   } from './viewer3dHelpers'
   import Field from '$lib/presentation/Field.svelte'
   import DecimalInput from '../editor/DecimalInput.svelte'
@@ -102,7 +105,7 @@
   export let flip = true
   export let showHand = true
   export let showFit: boolean
-  export let geometry: Geometry | null
+  export let geometry: FullGeometry
   export let progress = 1
 
   export let conf: Cuttleform | undefined
@@ -215,6 +218,11 @@
     else if (event.key == 'o') $selectMode = 'cluster'
   }
 
+  function shouldFlipClicked(config: CosmosKeyboard, n: number | null) {
+    if (n == null) return false
+    return nthKey(config, n).cluster.side == 'left'
+  }
+
   let popoutShown = false
   let pressedLetter: string | null = null
   let reachabilityArr = undefined
@@ -255,7 +263,7 @@
   $: if ($clickedKey != null)
     lrotationStore.update(nthKey($tempConfig, $clickedKey).cluster.rotation || 0n)
 
-  $: floorZ = geometry?.floorZ ?? 0
+  $: floorZ = geometry.right?.floorZ ?? 0
   $: keyIsClicked = $clickedKey == null ? null : nthKey($protoConfig, $clickedKey).key
   $: columnIsClicked = $clickedKey == null ? null : nthKey($protoConfig, $clickedKey).column
   $: clusterIsClicked = $clickedKey == null ? null : nthKey($protoConfig, $clickedKey).cluster
@@ -1081,23 +1089,28 @@
     position={[flip ? center[0] : -center[0], -center[1], -center[2]]}
     scale={[flip ? -1 : 1, 1, 1]}
   >
-    <Keyboard
-      {geometry}
-      {transparency}
-      {flip}
-      {pressedLetter}
-      translation={zPos}
-      reachability={reachabilityArr}
-    />
+    {#each objEntriesNotNull(geometry) as [kbd, geo]}
+      <T.Group position.x={kbdOffset(kbd)} scale.x={kbd == 'left' ? -1 : 1}>
+        <Keyboard
+          geometry={geo}
+          {transparency}
+          flip={kbd == 'left'}
+          {pressedLetter}
+          translation={zPos}
+          reachability={reachabilityArr}
+          side={kbd}
+        />
+      </T.Group>
+    {/each}
 
-    {#if flags.intersection && conf && geometry}
-      {#each componentBoxes(conf, geometry) as box}
+    {#if flags.intersection && conf && geometry.right}
+      {#each componentBoxes(conf, geometry.right) as box}
         <T.Mesh geometry={componentGeometry(box)} material={new KeyMaterial(1, 1, 'red')} />
       {/each}
     {/if}
-    {#if $showKeyInts && geometry && conf}
+    {#if $showKeyInts && geometry.right && conf}
       {#each conf.keys as k, i}
-        <GroupMatrix matrix={geometry.keyHolesTrsfs[i].Matrix4()}>
+        <GroupMatrix matrix={geometry.right.keyHolesTrsfs[i].Matrix4()}>
           {#each simpleSocketGeos(k.type) as g}
             <KeyboardMesh geometry={g} status="error" kind="key" />
           {/each}
@@ -1134,24 +1147,27 @@
       <!-- <AxesHelper size={100} matrix={debug} /> -->
     {/if}
     <slot />
-    {#if $transformMode == 'select' && !showSupports}
-      {#each adjacentPositions(geometry, $clickedKey, $protoConfig, $selectMode) as adj}
-        <GroupMatrix matrix={adj.pos}>
-          <AddButton {darkMode} on:click={() => addKey(adj.dx, adj.dy)} />
-        </GroupMatrix>
-      {/each}
-    {/if}
-    <TransformControls
-      visible={!showSupports}
-      on:move={(e) => onMove(e.detail, false)}
-      on:change={(e) => onMove(e.detail, true)}
-    />
+    <T.Group scale.x={shouldFlipClicked($protoConfig, $clickedKey) ? -1 : 1}>
+      {#if $transformMode == 'select' && !showSupports}
+        {#each adjacentPositions(geometry.right, $clickedKey, $protoConfig, $selectMode) as adj}
+          <GroupMatrix matrix={adj.pos}>
+            <AddButton {darkMode} on:click={() => addKey(adj.dx, adj.dy)} />
+          </GroupMatrix>
+        {/each}
+      {/if}
+      <TransformControls
+        visible={!showSupports}
+        on:move={(e) => onMove(e.detail, false)}
+        on:change={(e) => onMove(e.detail, true)}
+      />
+    </T.Group>
   </T.Group>
   {#if $debugViewport}
     <Gizmo verticalPlacement="top" horizontalPlacement="left" paddingX={50} paddingY={50} />
   {/if}
   <T.GridHelper
     args={[150, 10, 0x888888]}
+    position.x={-100}
     position.z={floorZ - center[2]}
     rotation={[-Math.PI / 2, 0, 0]}
   />

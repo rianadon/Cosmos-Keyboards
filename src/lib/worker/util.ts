@@ -101,3 +101,16 @@ export function diff<T>(n: T, parent: T) {
   if (n == parent) return undefined
   return n
 }
+
+export function objKeys<T extends object>(obj: T) {
+  return Object.keys(obj) as (keyof T)[]
+}
+
+export function objEntries<T extends object>(obj: T) {
+  return Object.entries(obj) as [keyof T, T[keyof T]][]
+}
+
+export function objEntriesNotNull<T extends object>(obj: T) {
+  const entries = objEntries(obj)
+  return entries.filter(([k, v]) => v != null && typeof v != 'undefined') as [keyof T, Exclude<T[keyof T], null | undefined>][]
+}

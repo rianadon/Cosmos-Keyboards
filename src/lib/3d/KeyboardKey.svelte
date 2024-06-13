@@ -9,16 +9,18 @@
   import { nthKey, type CosmosKeyboard } from '$lib/worker/config.cosmos'
 
   export let geometry: BufferGeometry | undefined
-  export let index: number
+  export let index: number | null
 
   export let opacity = 1
   export let brightness = 1
   export let status: KeyStatus = undefined
   export let letter: string | undefined = undefined
+  export let flip = false
 
   const context: InteractivityContext = getContext('interactivity')
 
   function isActive(c: CosmosKeyboard, mode: 'key' | 'column' | 'cluster', n: number | null) {
+    if (index == null) return false
     if (n == null) {
       return false
     } else if (mode == 'key') {
@@ -51,6 +53,7 @@
       {opacity}
       {status}
       {letter}
+      {flip}
       brightness={selected ? 0.3 : hovered ? 0.5 : brightness}
     />
   </T.Mesh>

@@ -2,7 +2,7 @@
   import { T } from '@threlte/core'
   import { COLORCONFIG, FRAGMENT_SHADER, VERTEX_SHADER, letterTexture } from './materials'
   import { statusColor, type KeyStatus } from './keyboardKey'
-  import { flip, theme } from '$lib/store'
+  import { flip as globalFlip, theme } from '$lib/store'
   import { Vector3 } from 'three'
 
   export let opacity = 1
@@ -10,6 +10,7 @@
   export let kind: 'key' | 'case'
   export let status: KeyStatus = undefined
   export let letter: string | undefined = undefined
+  export let flip = false
 
   const saturation = new Vector3()
   const color = new Vector3()
@@ -17,7 +18,7 @@
   $: colorScheme = status ? statusColor(status) : $theme
   $: color.copy(COLORCONFIG[colorScheme][(kind + 'Color') as 'keyColor'])
   $: saturation.copy(COLORCONFIG[colorScheme][(kind + 'Saturation') as 'keySaturation'])
-  $: letterTex = letter ? letterTexture(letter, $flip) : null
+  $: letterTex = letter ? letterTexture(letter, flip || $globalFlip) : null
 </script>
 
 <T.ShaderMaterial
