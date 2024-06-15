@@ -1,13 +1,14 @@
 import { fromGeometry } from '$lib/loaders/geometry'
 import type { Cuttleform, CuttleKey } from '$lib/worker/config'
 import { KEY_URLS } from '$lib/worker/socketsLoader'
+import { objKeys } from '$lib/worker/util'
 import { readFile, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { getOC } from 'replicad'
 import { importSTEP, makeBaseBox } from 'replicad'
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
 import { fileURLToPath } from 'url'
-import { PART_NAMES } from '../lib/geometry/socketsParts'
+import { PART_NAMES, variantOptions, variantURL } from '../lib/geometry/socketsParts'
 import { exportGLTF } from './exportGLTF'
 import { serialize } from './modeling'
 import { setup } from './node-model'
@@ -27,16 +28,16 @@ async function genPart(name: string) {
   await exportGLTF(glbName, geometry)
 }
 
-async function loadSocket(name: string) {
+async function loadSocket(name: string, variantURL: string) {
   if (name == 'blank') return makeBaseBox(18.5, 18.5, 5).translateZ(-5)
   // @ts-ignore
-  const file = await readFile('.' + KEY_URLS[name])
+  const file = await readFile('.' + KEY_URLS[name].replace('.step', variantURL + '.step'))
   return await importSTEP(new Blob([file]))
 }
 
-async function genSocket(name: string) {
-  const glbName = join(targetDir, 'socket-' + name + '.glb')
-  const model = await loadSocket(name)
+async function genSocket(name: string, variantURL: string) {
+  const glbName = join(targetDir, 'socket-' + name + variantURL + '.glb')
+  const model = await loadSocket(name, variantURL)
   const mesh = model.mesh({ tolerance: 0.1, angularTolerance: 10 })
   const oc = getOC()
   const props = new oc.GProp_GProps_1()
@@ -121,22 +122,37 @@ async function main() {
   await genDisplayModel('oled-128x32-0.91in-dfrobot', dfDisplayProps, 0.5)
   await genDisplaySocket('oled-128x32-0.91in-dfrobot', dfDisplayProps)
   await genPart('switch-joystick-ps2-40x45')
-  await genSocket('joystick-ps2-40x45')
 
   const masses: Record<string, number> = {}
-  for (const socket of Object.keys(PART_NAMES)) {
-    try {
-      masses[socket] = await genSocket(socket)
-    } catch (e) {
-      if (e instanceof Error && 'code' in e && e.code === 'ENOENT') {
-        console.log(`Warning: could not generate ${socket} since its file was not present in the filesystem`)
-        console.log('This is OK as long as the models you generate do not include this part.')
-      } else throw e
+  for (const socket of objKeys(PART_NAMES)) {
+    for (const variantURL of variantURLs(socket)) {
+      try {
+        masses[socket + variantURL] = await genSocket(socket, variantURL)
+      } catch (e) {
+        if (e instanceof Error && 'code' in e && e.code === 'ENOENT') {
+          console.log(`Warning: could not generate ${socket} since its file was not present in the filesystem`)
+          console.log('This is OK as long as the models you generate do not include this part.')
+        } else throw e
+      }
     }
   }
 
   const filename = join(targetDir, `part-masses.json`)
   await writeFile(filename, JSON.stringify(masses))
+}
+
+/** [[a, [1,2]], [b, [3, 4]]] -> [{a: 1, b: 3}, {a: 1, b: 4}, {a: 2, b: 3}, {a: 3, b: 4}] */
+function permutations(xs: [string, string[]][]): Record<string, string>[] {
+  if (!xs.length) return [{}]
+  const [key, options] = xs[0]
+  return options.flatMap(opt => {
+    return permutations(xs.slice(1)).map(vs => ({ ...vs, [key]: opt }))
+  })
+}
+
+function variantURLs(socket: CuttleKey['type']) {
+  const options = variantOptions(socket)
+  return permutations(Object.entries(options)).map(p => variantURL({ type: socket, variant: p } as any))
 }
 
 main()

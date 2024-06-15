@@ -152,6 +152,7 @@ interface CuttleBaseKey {
   /** Aspect ratio of the key. Use 1.5 for 1.5u keys, etc. If the aspect is <1, the key will be placed vertically. */
   aspect: number
   cluster: string
+  variant?: Record<string, any>
 }
 
 export interface Keycap {
@@ -185,25 +186,26 @@ interface CuttleTrackballKey extends CuttleBaseKey {
   size: RoundSize
 }
 
-interface CuttleTrackpadKey extends CuttleBaseKey {
-  type: 'cirque-23mm' | 'cirque-35mm' | 'cirque-40mm'
+interface CuttleCirqueKey extends CuttleBaseKey {
+  type: 'trackpad-cirque'
+  variant: {
+    size: '23mm' | '35mm' | '40mm'
+  }
   size: { sides: number }
 }
 
-export type CuttleKey = CuttleKeycapKey | CuttleBasicKey | CuttleTrackballKey | CuttleTrackpadKey | CuttleBlankKey
+export type CuttleKey = CuttleKeycapKey | CuttleBasicKey | CuttleTrackballKey | CuttleCirqueKey | CuttleBlankKey
 
 export function keyRoundSize(key: CuttleKey): RoundSize | undefined {
   switch (key.type) {
     case 'trackball':
       // @ts-ignore: for backwards compatibility.
       return key.size ?? key.trackball
-    case 'cirque-23mm':
-    case 'cirque-35mm':
-    case 'cirque-40mm':
+    case 'trackpad-cirque':
       return {
         // @ts-ignore: for backwards compatibility.
-        sides: key.size?.sides ?? key.trackball.sides,
-        radius: cirqueRadius(key.type),
+        sides: key.size?.sides ?? key.trackball?.sides ?? 20,
+        radius: cirqueRadius(key.variant),
       }
     default:
       return undefined
@@ -1037,7 +1039,7 @@ export function decodeCustomKey(k: Cuttleform_CustomThumb_Key, keyType: KeyType,
       ...newKey,
       type: customType,
       size: { sides: k.trackballSides },
-    } as CuttleTrackpadKey
+    } as CuttleCirqueKey
   }
   if (k.trackballRadius && k.trackballSides) {
     return {
@@ -1484,11 +1486,11 @@ export function findKeyByAttr(config: Cuttleform, attr: 'home' | 'letter', value
   return config.keys.find(k => 'keycap' in k && k.keycap && k.keycap[attr] == value)
 }
 
-function cirqueRadius(type: string) {
-  if (type == 'cirque-23mm') return 12.4
-  if (type == 'cirque-35mm') return 18.4
-  if (type == 'cirque-40mm') return 20.9
-  throw new Error('Unknown trackpad type ' + type)
+function cirqueRadius(variant: CuttleCirqueKey['variant']) {
+  if (variant.size == '23mm') return 12.4
+  if (variant.size == '35mm') return 18.4
+  if (variant.size == '40mm') return 20.9
+  throw new Error('Unknown trackpad size ' + variant.size)
 }
 
 export type Geometry = BaseGeometry<Cuttleform>

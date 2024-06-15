@@ -1,5 +1,5 @@
 .PHONY : build keycaps keycaps-simple keycaps2 keycaps-simple2 keyholes switches venv optimize docs docs-ci keyboards ci ci-base ci-setup vite-build quickstart npm-install dev
-build: target/proto/manuform.ts target/proto/lightcycle.ts target/proto/cuttleform.ts target/proto/cosmos.ts target/editorDeclarations.d.ts
+build: target/proto/manuform.ts target/proto/lightcycle.ts target/proto/cuttleform.ts target/proto/cosmos.ts target/editorDeclarations.d.ts target/cosmosStructs.ts
 
 BUN := $(shell command -v bun 2> /dev/null)
 ifdef BUN
@@ -29,6 +29,9 @@ target/proto/cosmos.ts: src/proto/cosmos.proto
 
 target/editorDeclarations.d.ts: src/lib/worker/config.ts src/lib/worker/modeling/transformation-ext.ts
 	$(NODE) src/model_gen/genEditorTypes.ts
+
+target/cosmosStructs.ts: src/proto/cosmosStructs.ts
+	$(NODE) $<
 
 target/KeyV2:
 	git clone -b choc https://github.com/rianadon/KeyV2 target/KeyV2

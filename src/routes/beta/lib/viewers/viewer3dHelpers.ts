@@ -1,6 +1,7 @@
 import { UNIFORM } from '$lib/geometry/keycaps'
 import type { Geometry } from '$lib/worker/config'
 import { type CosmosCluster, type CosmosKey, type CosmosKeyboard, cosmosKeyPosition, nthKey } from '$lib/worker/config.cosmos'
+import { Vector } from '$lib/worker/modeling/transformation'
 import type { ShapeMesh } from 'replicad'
 import type { Homing, Profile } from 'target/cosmosStructs'
 import type { Matrix4 } from 'three'
@@ -91,7 +92,9 @@ export function adjacentPositions(
   mode: 'key' | 'column' | 'cluster',
 ) {
   if (n == null || !geo || mode == 'cluster') return []
-  const positions = geo.keyHolesTrsfs.map((t) => t.origin())
+  const side = nthKey(protoConfig, n).cluster.side
+  const mirror = new Vector(!protoConfig.unibody && side == 'left' ? -1 : 1, 1, 1)
+  const positions = geo.keyHolesTrsfs.map((t) => t.origin().multiply(mirror))
   return (
     mode == 'key'
       ? [
@@ -203,6 +206,8 @@ export function formatHoming(key: CosmosKey) {
 }
 
 export function kbdOffset(kbd: 'left' | 'right' | 'unibody') {
-  if (kbd == 'left') return 0 // -180
   return 0
+  // if (kbd == 'left') return -90
+  // if (kbd == 'right') return 90
+  // return 0
 }

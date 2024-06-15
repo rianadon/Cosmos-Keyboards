@@ -32,7 +32,7 @@
     <KMesh kind="case" scale={key.flip && $flip ? [-1, 1, 1] : [1, 1, 1]} geometry={key.mesh} />
   </GroupMatrix>
 {/each}
-{#if !$noWall && !hideWall}<KMesh kind="case" geometry={meshes.wallBuf} />{/if}
+{#if !$noWall && !hideWall}<KMesh kind="case" geometry={meshes.wallBuf} debug />{/if}
 <KMesh kind="case" geometry={meshes.webBuf} />
 {#if !$noBase}
   <KMesh kind="case" geometry={meshes.screwBaseBuf} />

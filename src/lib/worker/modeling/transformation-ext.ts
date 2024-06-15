@@ -26,7 +26,7 @@ function pointToString(p: number[]) {
   return '[' + p.join(', ') + ']'
 }
 
-interface MatrixOptions {
+export interface MatrixOptions {
   column: number
   row: number
   curvatureOfColumn: number
@@ -36,7 +36,7 @@ interface MatrixOptions {
   arc?: number
 }
 
-interface SphereOptions {
+export interface SphereOptions {
   angle: number
   row: number
   curvature: number

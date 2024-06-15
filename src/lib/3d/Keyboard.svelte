@@ -24,22 +24,19 @@
   function keyStatus(reachability: boolean[] | undefined, error: ConfError | undefined, i: number) {
     let status: KeyStatus = undefined
     if (reachability && !reachability[i]) status = 'warning'
-    if (error && error.type == 'intersection' && (error.i == i || error.j == i))
+    if (!error || error.side != side) return status
+    if (error.type == 'intersection' && (error.i == i || error.j == i))
       status = isWarning(error) ? 'warning' : 'error'
-    if (error && error.type == 'wallBounds' && error.i == i) status = 'warning'
+    if (error.type == 'wallBounds' && error.i == i) status = 'warning'
     return status
   }
 
   function partStatus(error: ConfError | undefined, i: number) {
     let status: KeyStatus = undefined
-    if (
-      error &&
-      error.type == 'intersection' &&
-      error.what == 'socket' &&
-      (error.i == i || error.j == i)
-    )
+    if (!error || error.side != side) return status
+    if (error.type == 'intersection' && error.what == 'socket' && (error.i == i || error.j == i))
       status = isWarning(error) ? 'warning' : 'error'
-    if (error && error.type == 'wallBounds' && error.i == i) status = 'warning'
+    if (error.type == 'wallBounds' && error.i == i) status = 'warning'
     return status
   }
 </script>
@@ -64,7 +61,7 @@
         </GroupMatrix>
       {/if}
     {/await}
-    {#await partGeometry(geometry.c.keys[i].type) then geo}
+    {#await partGeometry(geometry.c.keys[i].type, geometry.c.keys[i].variant) then geo}
       {#if geo}
         <GroupMatrix matrix={trsf.Matrix4()}>
           <KeyboardKey

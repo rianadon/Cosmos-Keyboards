@@ -343,7 +343,7 @@ export async function volume() {
   return props.Mass()
 }
 
-export async function intersections(conf: Cuttleform): Promise<ConfError | undefined> {
+export async function intersections(conf: Cuttleform, side: 'left' | 'right' | 'unibody'): Promise<ConfError | undefined> {
   try {
     const geometry = newGeometry(conf)
     const trsfs3d = geometry.keyHolesTrsfs
@@ -359,19 +359,19 @@ export async function intersections(conf: Cuttleform): Promise<ConfError | undef
         )
       )
     const tris = [...toTriangles(topReinf), ...toTriangles(botReinf)]
-    for (const intersection of keycapIntersections(conf, trsfs3d, tris)) {
+    for (const intersection of keycapIntersections(conf, trsfs3d, tris, side)) {
       return intersection
     }
-    for (const intersection of partIntersections(conf, trsfs3d)) {
+    for (const intersection of partIntersections(conf, trsfs3d, side)) {
       return intersection
     }
     // if (geometry.reinforcedTriangles.topReinf.error) return geometry.reinforcedTriangles.topReinf.error
 
-    for (const intersection of socketIntersections(conf, trsfs3d, geometry.allKeyCriticalPoints, tris)) {
+    for (const intersection of socketIntersections(conf, trsfs3d, geometry.allKeyCriticalPoints, tris, side)) {
       return intersection
     }
   } catch (e) {
     console.error(e)
-    return { type: 'exception', when: 'laying out the walls', error: e as Error }
+    return { type: 'exception', when: 'laying out the walls', error: e as Error, side }
   }
 }

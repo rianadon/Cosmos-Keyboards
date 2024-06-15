@@ -950,6 +950,10 @@
     <Checkbox bind:value={$protoConfig.wristRestEnable} />
   </Field>
 
+  <Field name="Unibody" icon="unibody">
+    <Checkbox bind:value={$protoConfig.unibody} />
+  </Field>
+
   {#if !basic}
     <Field name="Wrist Position (XYZ)">
       <div class="ml-1.5" />

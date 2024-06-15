@@ -2,7 +2,7 @@
  * Like socketsLoader in the worker/ direcotry, but returns meshes instead of parts.
  */
 
-import { ASYMMETRIC_PARTS, socketSize } from '$lib/geometry/socketsParts'
+import { ASYMMETRIC_PARTS, socketSize, variantURL } from '$lib/geometry/socketsParts'
 import masses from '$target/part-masses.json'
 import { BoxGeometry, BufferAttribute, BufferGeometry, InterleavedBufferAttribute } from 'three'
 import type { Cuttleform, CuttleKey } from '../worker/config'
@@ -73,13 +73,13 @@ const keyCacher = makeAsyncCacher(async (key: CuttleKey) => {
     }
   }
   return {
-    mesh: await loadGLTF('/target/socket-' + key.type + '.glb'),
+    mesh: await loadGLTF('/target/socket-' + key.type + variantURL(key) + '.glb'),
     mass: masses[key.type] || 0,
   }
 })
 
 const extendedKeyCacher = makeAsyncCacher(async (key: CuttleKey) => {
-  let cacheKey = key.type
+  let cacheKey = key.type + variantURL(key)
   if (key.type == 'blank') cacheKey += `-${key.size?.width}x${key.size?.height}`
   return extendPlate(await keyCacher(cacheKey, key), key)
 })
@@ -113,7 +113,7 @@ function extendPlate(plate: Mesh, key: CuttleKey) {
 }
 
 async function keyHole(key: CuttleKey, trsf: Trsf) {
-  let cacheKey = key.type + ':' + key.aspect
+  let cacheKey = key.type + ':' + key.aspect + variantURL(key)
   if (key.type == 'blank') cacheKey += `-${key.size?.width}x${key.size?.height}`
   const model = await extendedKeyCacher(cacheKey, key)
   return {

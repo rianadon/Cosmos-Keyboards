@@ -31,6 +31,10 @@
   let camera: THREE.PerspectiveCamera
   function updateCameraPos() {
     cameraPosition = camera.position.clone().toArray()
+    console.log(
+      'CAM IDK',
+      new THREE.Vector3(85, 160, -90).applyMatrix4(camera.projectionMatrixInverse)
+    )
     // console.log('new camera pos', camera.position.clone().normalize().toArray())
     // console.log(camera)
   }

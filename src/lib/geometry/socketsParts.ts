@@ -21,9 +21,7 @@ export const BOM_PART_NAMES: Record<CuttleKey['type'], string> = {
   'blank': 'Ignore this',
   'oled-128x32-0.91in-adafruit': 'Adafruit 128x32 1" Diagonal OLEDs',
   'oled-128x32-0.91in-dfrobot': 'DFRobot 128x32 0.91" Diagonal OLEDs (DFR0647)',
-  'cirque-23mm': 'Cirque 23 mm Flat Circle Trackpads',
-  'cirque-35mm': 'Cirque 35 mm Flat Circle Trackpads',
-  'cirque-40mm': 'Cirque 40 mm Flat Circle Trackpads',
+  'trackpad-cirque': 'Cirque Flat Circle Trackpads',
   'joystick-ps2-40x45': 'PS2 style joystick modules',
 }
 
@@ -47,10 +45,32 @@ export const PART_NAMES: Record<CuttleKey['type'], string> = {
   'blank': 'Blank',
   'oled-128x32-0.91in-adafruit': 'Adafruit 128x32 1" OLED',
   'oled-128x32-0.91in-dfrobot': 'DFRobot 128x32 0.91" OLED',
-  'cirque-23mm': 'Cirque 23 mm Flat Circle Trackpad',
-  'cirque-35mm': 'Cirque 35 mm Flat Circle Trackpad',
-  'cirque-40mm': 'Cirque 40 mm Flat Circle Trackpad',
+  'trackpad-cirque': 'Cirque Flat Circle Trackpad',
   'joystick-ps2-40x45': 'PS2 style joystick module',
+}
+
+export const PART_CATEGORIES: Record<CuttleKey['type'], string> = {
+  'mx-better': 'Sockets',
+  'mx-pcb': 'Sockets',
+  'mx-hotswap': 'Sockets',
+  'mx-pcb-twist': 'Sockets',
+  'alps': 'Sockets',
+  'choc': 'Sockets',
+  'ec11': 'Encoders',
+  'joystick-joycon-adafruit': 'Joysticks',
+  'evqwgd001': 'Encoders',
+  'trackball': 'Trackballs & Trackpads',
+  'blank': 'Sockets',
+  'oled-128x32-0.91in-adafruit': 'Displays',
+  'oled-128x32-0.91in-dfrobot': 'Displays',
+  'trackpad-cirque': 'Trackballs & Trackpads',
+  'joystick-ps2-40x45': 'Joysticks',
+  'old-mx': 'Backwards-Compatible',
+  'old-mx-snap-in': 'Backwards-Compatible',
+  'old-mx-hotswap': 'Backwards-Compatible',
+  'old-mx-snap-in-hotswap': 'Backwards-Compatible',
+  'old-box': 'Backwards-Compatible',
+  'choc-hotswap': 'Backwards-Compatible',
 }
 
 export const SWITCHES: CuttleKey['type'][] = [
@@ -126,4 +146,20 @@ export function partBottom(sw: CuttleKey['type'] | undefined): [number, number, 
 
 function box(width: number, length: number, depth: number): [number, number, number][] {
   return [[-width / 2, -length / 2, -depth], [width / 2, -length / 2, -depth], [width / 2, length / 2, -depth], [-width / 2, length / 2, -depth]]
+}
+
+export function variantOptions(type: CuttleKey['type']): Record<string, string[]> {
+  if (type == 'trackpad-cirque') {
+    return {
+      size: ['23mm', '35mm', '40mm'],
+    }
+  }
+  return {}
+}
+
+export function variantURL(key: CuttleKey) {
+  if (key.type == 'trackpad-cirque') {
+    return '-' + key.variant.size
+  }
+  return ''
 }

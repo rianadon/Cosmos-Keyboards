@@ -69,7 +69,8 @@ enumeration('MICROCONTROLLER_NAME', [
 
 struct('PartVariant', {
   part: 'PART,7',
-  variant: 'int,7',
+  aspect: 'int,8',
+  variant: 'int,6',
 })
 
 struct('Keycap', {
@@ -103,7 +104,7 @@ struct('Microcontroller', {
 })
 
 struct('RoundedFlags', { side: 'bool,1', top: 'bool,1' })
-struct('WristRestFlags', { enable: 'bool,1' })
+struct('KeyboardFlags', { wrEnable: 'bool,1', unibody: 'bool,1' })
 struct('BasicShellFlags', { lip: 'bool,1' })
 
 // ----------------------------------------------------------------------------

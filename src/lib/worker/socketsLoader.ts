@@ -1,4 +1,4 @@
-import { socketSize } from '$lib/geometry/socketsParts'
+import { socketSize, variantURL } from '$lib/geometry/socketsParts'
 import { drawRoundedRectangle, importSTEP, makeBaseBox, type Solid } from 'replicad'
 import type { CuttleKey } from './config'
 import { makeAsyncCacher } from './modeling/cacher'
@@ -30,16 +30,14 @@ export const KEY_URLS: Record<CuttleKey['type'], string> = {
   'evqwgd001': '/src/assets/key-evqwgd001.step',
   'oled-128x32-0.91in-adafruit': '/src/assets/key-oled-128x32-0.91in-adafruit.step',
   'oled-128x32-0.91in-dfrobot': '/target/key-oled-128x32-0.91in-dfrobot.step',
-  'cirque-23mm': '/src/assets/key-cirque-23mm.step',
-  'cirque-35mm': '/src/assets/key-cirque-35mm.step',
-  'cirque-40mm': '/src/assets/key-cirque-40mm.step',
+  'trackpad-cirque': '/src/assets/key-cirque.step',
   'joystick-ps2-40x45': '/src/assets/key-joystick-ps2-40x45.step',
   'blank': '',
 }
 
 const keyCacher = makeAsyncCacher(async (key: CuttleKey) => {
   if (key.type == 'blank') return makeBaseBox(key.size?.width ?? 18.5, key.size?.height ?? 18.5, 5).translateZ(-5)
-  const url = KEY_URLS[key.type]
+  const url = KEY_URLS[key.type] + variantURL(key)
   if (!url) throw new Error(`No model for key ${key.type}`)
   const urls = keyUrls || JSON.parse(process.env.SOCKET_URLS!)
   if (!urls[url]) throw new Error(`Model for url ${url} does not exist`)
@@ -51,7 +49,7 @@ const keyCacher = makeAsyncCacher(async (key: CuttleKey) => {
 })
 
 const extendedKeyCacher = makeAsyncCacher(async (key: CuttleKey) => {
-  let cacheKey = key.type
+  let cacheKey = key.type + variantURL(key)
   if (key.type == 'blank') cacheKey += `-${key.size?.width}x${key.size?.height}`
   return extendPlate(await keyCacher(cacheKey, null, key), key)
 })

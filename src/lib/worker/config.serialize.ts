@@ -8,21 +8,21 @@ import {
   decodeBasicShellFlags,
   decodeClusterFlags,
   decodeConnector,
+  decodeKeyboardFlags,
   decodeKeycap,
   decodeMicrocontroller,
   decodePartVariant,
   decodeRoundedFlags,
   decodeScrewFlags,
-  decodeWristRestFlags,
   encodeBasicShellFlags,
   encodeClusterFlags,
   encodeConnector,
+  encodeKeyboardFlags,
   encodeKeycap,
   encodeMicrocontroller,
   encodePartVariant,
   encodeRoundedFlags,
   encodeScrewFlags,
-  encodeWristRestFlags,
 } from '../../../target/cosmosStructs'
 import { Cluster, Curvature, Key, Keyboard, KeyboardExtra } from '../../../target/proto/cosmos'
 import { type Cuttleform, type CuttleKey, type CuttleKeycapKey, encodeTuple, type Keycap, tupleToRot, tupleToXYZ } from './config'
@@ -34,46 +34,23 @@ function lookupId<E>(items: readonly E[], id: number, msg: string) {
   return items[id]
 }
 
-/**
- * List of parts that are used with physical keys.
- * All of these have configurable key aspect ratios.
- */
-const PARTS_WITH_KEYCAPS = [
-  'mx-better',
-  'mx-pcb',
-  'mx-hotswap',
-  'alps',
-  'choc',
-  'choc-hotswap',
-  'old-mx',
-  'old-box',
-  'old-mx-hotswap',
-  'old-mx-hotswap',
-  'old-mx-snap-in-hotswap',
-  'blank',
-]
-
 export function encodePartType(key: PartType) {
-  let variant = 0
+  let aspect = 0
   if (typeof key.aspect !== 'undefined') {
     if (key.aspect == 0) throw new Error('Key aspect must be nonzero')
-    if (key.aspect >= 0) variant = Math.round(key.aspect * 32)
-    else variant = 0x40 | Math.round(-key.aspect * 32)
+    if (key.aspect >= 0) aspect = Math.round(key.aspect * 32)
+    else aspect = 0x80 | Math.round(-key.aspect * 32)
   }
-  return encodePartVariant({ part: key.type ?? null, variant })
+  const variant = typeof key.variant == 'undefined' ? 0 : key.variant + 1
+  return encodePartVariant({ part: key.type ?? null, aspect, variant })
 }
 
 export function decodePartType(type: number): PartType {
-  const { part, variant } = decodePartVariant(type)
-  if (part && PARTS_WITH_KEYCAPS.includes(part)) {
-    return {
-      type: part ?? undefined,
-      aspect: ((variant & 0x40) ? -(variant & 0x3F) / 32 : variant / 32) || undefined,
-    }
-  }
+  const { part, aspect, variant } = decodePartVariant(type)
   return {
     type: part ?? undefined,
-    aspect: undefined,
+    aspect: ((aspect & 0x80) ? -(aspect & 0x7F) / 32 : aspect / 32) || undefined,
+    variant: variant == 0 ? undefined : variant - 1,
   }
 }
 
@@ -130,7 +107,7 @@ const KEYBOARD_DEFAULTS: Keyboard = {
   screwFlags: encodeScrewFlags({ screwSize: 'M3', screwType: 'screw insert', screwCountersink: true, clearScrews: true }),
   microcontroller: encodeMicrocontroller({ microcontroller: 'kb2040-adafruit', fastenMicrocontroller: true }),
   roundedFlags: encodeRoundedFlags({ side: false, top: false }),
-  wristRestFlags: encodeWristRestFlags({ enable: true }),
+  keyboardFlags: encodeKeyboardFlags({ wrEnable: true, unibody: false }),
   wristRestPosition: encodeTuple([100, -1000, 0]),
   cluster: [],
   shell: {
@@ -286,7 +263,8 @@ export function decodeConfigIdk(b64: string): CosmosKeyboard {
     ...decodeConnector(keeb.connector),
     ...decodeMicrocontroller(keeb.microcontroller),
     shell: decodeShell(keeb.shell),
-    wristRestEnable: decodeWristRestFlags(keeb.wristRestFlags).enable,
+    wristRestEnable: decodeKeyboardFlags(keeb.keyboardFlags).wrEnable,
+    unibody: decodeKeyboardFlags(keeb.keyboardFlags).unibody,
     wristRestProps: {
       angle: keebExtra.wristRestAngle / 45,
       maxWidth: keebExtra.wristRestMaxWidth / 10,
@@ -503,7 +481,7 @@ export function encodeCosmosConfig(conf: CosmosKeyboard): Keyboard {
     screwFlags: encodeScrewFlags(conf),
     microcontroller: encodeMicrocontroller(conf),
     roundedFlags: encodeRoundedFlags({ side: !!conf.rounded.side, top: !!conf.rounded.top }),
-    wristRestFlags: encodeWristRestFlags({ enable: conf.wristRestEnable }),
+    keyboardFlags: encodeKeyboardFlags({ wrEnable: conf.wristRestEnable, unibody: conf.unibody }),
     wristRestPosition: conf.wristRestPosition,
     cluster: clusters,
     shell: {

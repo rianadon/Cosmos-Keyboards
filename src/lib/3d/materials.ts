@@ -8,6 +8,7 @@ export class TransparentNormalMaterial extends MeshNormalMaterial {
   }
 }
 
+// https://threejs.org/docs/#api/en/renderers/webgl/WebGLProgram
 export const VERTEX_SHADER = `
 varying vec2 vUv;
 varying vec3 vNormal;
@@ -17,9 +18,9 @@ varying vec4 vLightPosition;
 void main() {
     vNormal = normalize( normalMatrix * vec3(normal) );
     vUv = uv;
-    vPosition = modelViewMatrix * vec4( position, 1.0 );
-    vLightPosition = modelViewMatrix * vec4(100, -80, 200, 1);
-    gl_Position = projectionMatrix * vPosition;
+    vPosition = modelMatrix * vec4( position, 1.0 );
+    vLightPosition = vec4(100, 100, 300, 1);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
 }
 `
 
@@ -51,7 +52,7 @@ void main() {
     vec4 l = r / length(r.xyz);
     vec4 n = vec4(vNormal, 0);
 
-    float light = min(1.0, 50000.0 / dot(r, r));
+    float light = min(1.0, 90000.0 / dot(r, r));
 
     vec3 cnorm = vNormal.xyz * 0.5 + 0.5;
     float value = light * min(1.0, max(0.0, dot(n, l)) + uAmbient);

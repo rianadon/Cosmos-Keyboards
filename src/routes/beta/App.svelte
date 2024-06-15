@@ -189,18 +189,18 @@
   }
 
   function areDifferent2(c1: FullCuttleform, c2: FullCuttleform) {
-    const diffLeft = areDifferent(c1.left, c2.left)
-    if (diffLeft.length) return diffLeft
-    const diffRight = areDifferent(c1.right, c2.right)
-    if (diffRight.length) return diffRight
-    const diffUnibody = areDifferent(c1.unibody, c2.unibody)
-    if (diffUnibody.length) return diffUnibody
-    return []
+    return [
+      ...new Set([
+        ...areDifferent(c1.left, c2.left),
+        ...areDifferent(c1.right, c2.right),
+        ...areDifferent(c1.unibody, c2.unibody),
+      ]),
+    ]
   }
 
-  const calcOtherPromises = (conf: Cuttleform) => ({
+  const calcOtherPromises = (conf: Cuttleform, side: 'left' | 'right' | 'unibody') => ({
     intersectionsPromise: pool.execute(
-      (w) => w.intersections(conf) as Promise<ConfError | undefined>,
+      (w) => w.intersections(conf, side) as Promise<ConfError | undefined>,
       'Intersections'
     ),
     cutPromise: pool.execute((w) => w.cutWall(conf), 'Cut wall'),
@@ -213,7 +213,7 @@
   let oldTempConfig: FullCuttleform | null = null
   let oldConfig: FullCuttleform | null = null
   async function process(conf: FullCuttleform, full: boolean) {
-    if (!meshes.right) meshes.right = {}
+    const kbdNames = objKeys(conf).filter((k) => !!conf[k])
     if (oldConfig && geometry && full) {
       console.log('PROCESSING')
       const differences = areDifferent2(oldConfig, conf)
@@ -229,11 +229,12 @@
           ocError = undefined
           generatorProgress = 0.5
           // center = estimatedCenter(geometry, config.wristRest)
-          const wristMesh = await pool.executeNow(
-            (w) => w.generateWristRest(conf.right),
-            'Wrist Rest'
+          const wristMeshes = await Promise.all(
+            kbdNames.map((k) => pool.executeNow((w) => w.generateWristRest(conf[k]!), 'Wrist Rest'))
           )
-          meshes.right.wristBuf = wristMesh.mesh
+          wristMeshes.forEach((wristMesh, i) => {
+            meshes[kbdNames[i]]!.wristBuf = wristMesh.mesh ?? undefined
+          })
           generatorProgress = 1
           ocError = undefined
         } catch (e) {
@@ -256,7 +257,12 @@
     console.log('GENERATING')
     const newGeo = newFullGeometry(conf)
     geometry = newGeo
-    const err = checkConfig(conf.right!, newGeo.right)
+    console.log('conf incoming', conf)
+    let err: ConfError | undefined
+    for (const kbd of kbdNames) {
+      err = checkConfig(conf[kbd]!, newGeo[kbd]!, true, kbd)
+      if (err) break
+    }
     confError.set(err)
     if (err) return
 
@@ -267,16 +273,18 @@
 
     const pl = full ? pool : tempPool
     if (full) pool.reset()
-    const kbdNames = objKeys(conf).filter((k) => !!conf[k])
-    console.log('NAMES', kbdNames)
     try {
       const quickPromises = kbdNames.map((k) =>
         pl.execute((w) => w.generateQuick(conf[k]!), 'Preview')
       )
       const otherPromises =
-        !flags.fast && full ? kbdNames.map((k) => calcOtherPromises(conf[k]!)) : []
+        !flags.fast && full ? kbdNames.map((k) => calcOtherPromises(conf[k]!, k)) : []
 
-      if (full) center = estimatedCenter(newGeo.right, !!config.right.wristRest)
+      if (full)
+        center = estimatedCenter(
+          newGeo.right ?? newGeo.unibody!,
+          !!(config.right ?? config.unibody!).wristRest
+        )
       const quickResults = await Promise.all(quickPromises)
       quickResults.forEach((prom, i) => {
         meshes[kbdNames[i]] = {
@@ -295,6 +303,11 @@
         }
         // size = boundingSize([...keyBufs!, webBuf!])
       })
+      if (kbdNames.includes('right')) delete meshes.unibody
+      else {
+        delete meshes.left
+        delete meshes.right
+      }
 
       if (!flags.fast && full) {
         const queue = otherPromises.flatMap((p, i) =>
@@ -530,7 +543,7 @@
           {darkMode}
           {geometry}
           transparency={cTransparency}
-          conf={isRenderable($confError) ? config?.right : undefined}
+          conf={isRenderable($confError) ? config?.right ?? config?.unibody : undefined}
           isExpert={mode == 'advanced'}
           {showSupports}
           {center}
@@ -604,17 +617,32 @@
           {/if}
         </Thick3D>
       {:else if viewer == 'top'}
-        <ViewerLayout {geometry} {darkMode} conf={config?.right} confError={$confError} />
+        <ViewerLayout
+          {geometry}
+          {darkMode}
+          conf={config?.right ?? config?.unibody}
+          confError={$confError}
+        />
       {:else if viewer == 'programming'}
-        <ViewerMatrix {geometry} {darkMode} conf={config?.right} confError={$confError} />
+        <ViewerMatrix
+          {geometry}
+          {darkMode}
+          conf={config?.right ?? config?.unibody}
+          confError={$confError}
+        />
       {:else if viewer == 'board'}
-        <ViewerBottom {geometry} {darkMode} conf={config?.right} confError={$confError} />
+        <ViewerBottom
+          {geometry}
+          {darkMode}
+          conf={config?.right ?? config?.unibody}
+          confError={$confError}
+        />
       {:else if viewer == 'timing'}
         <ViewerTiming {pool} {darkMode} />
       {:else if viewer == 'dev'}
         <ViewerDev />
       {/if}
-      {#if filament && config?.right.shell?.type == 'basic'}
+      {#if filament && (config?.right ?? config?.unibody).shell?.type == 'basic'}
         <div
           class="absolute bottom-0 right-0 text-right mb-2 bg-white/50 dark:bg-gray-800/50 rounded px-2 py-0.5 z-10"
         >
@@ -729,7 +757,7 @@
                 {:else if $confError.what == 'part'}
                   <p class="mb-2">
                     Two of the parts
-                    {#if config && (config?.right.keys[$confError.i].type == 'mx-pcb' || config?.right.keys[$confError.j].type == 'mx-pcb')}
+                    {#if config && ((config?.right ?? config?.unibody).keys[$confError.i].type == 'mx-pcb' || (config?.right ?? config?.unibody).keys[$confError.j].type == 'mx-pcb')}
                       (switches or PCBs)
                     {:else}
                       (switches)
@@ -808,7 +836,7 @@
             >
           </p>
         </div>
-      {:else if config?.right?.shell?.type == 'stilts'}
+      {:else if (config?.right ?? config?.unibody)?.shell?.type == 'stilts'}
         {#if $stiltsMsg}
           <div
             class="absolute text-white m-4 left-0 right-0 rounded p-4 top-[5%] bg-yellow-700 flex"
@@ -935,7 +963,7 @@
           Bill of Materials will not be available until you fix the errors in your configuration.
         </div>
       {:else}
-        {#if config?.right.shell.type != 'basic'}
+        {#if (config?.right ?? config?.unibody).shell.type != 'basic'}
           <div class="bg-yellow-200 m-4 rounded p-4 dark:bg-yellow-700">
             Screw information is not yet finished non-standard cases. Make sure to check the model
             for any additional screws needed.
@@ -950,7 +978,7 @@
   <Dialog big on:close={() => (kleView = false)}>
     <span slot="title">KLE Export</span>
     <div slot="content">
-      <KleView conf={config?.right} />
+      <KleView conf={config?.right ?? config?.unibody} />
     </div>
   </Dialog>
 {/if}
@@ -964,7 +992,7 @@
 {/if}
 {#if downloading}
   <DownloadDialog
-    config={config?.right}
+    config={config?.right ?? config?.unibody}
     {pool}
     on:close={() => (downloading = false)}
     on:gopro={() => {

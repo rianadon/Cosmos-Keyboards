@@ -28,7 +28,7 @@
   import AddButton from '$lib/3d/AddButton.svelte'
   import * as flags from '$lib/flags'
   import TransformControls from '$lib/3d/TransformControls.svelte'
-  import { TransformControls as TTransformControls } from '@threlte/extras'
+  import { ContactShadows, TransformControls as TTransformControls } from '@threlte/extras'
   import { keyPosition, keyPositionTop } from '$lib/worker/modeling/transformation-ext'
   import { keyInfo } from '$lib/geometry/keycaps'
   import { switchInfo } from '$lib/geometry/switches'
@@ -67,6 +67,9 @@
     isNthFirstColumn,
     isNthLastColumn,
     type CosmosKeyboard,
+    decodeVariant,
+    nthPartVariant,
+    encodeVariant,
   } from '$lib/worker/config.cosmos'
   import { PART, PROFILE } from '../../../../../target/cosmosStructs'
   import {
@@ -88,7 +91,7 @@
   import { TupleStore } from '../editor/tuple'
   import DecimalInputInherit from '../editor/DecimalInputInherit.svelte'
   import SelectInherit from '$lib/presentation/SelectInherit.svelte'
-  import { PART_NAMES } from '$lib/geometry/socketsParts'
+  import { PART_CATEGORIES, PART_NAMES, variantOptions } from '$lib/geometry/socketsParts'
   import AngleInput from '../editor/AngleInput.svelte'
   import AngleInputInherit from '../editor/AngleInputInherit.svelte'
 
@@ -143,8 +146,15 @@
   function changeKey(e: Event) {
     protoConfig.update((proto) => {
       const newType: any = (e.target as HTMLInputElement).value
-      if ($selectMode == 'key') nthKey(proto, $clickedKey!).key.partType.type = newType
-      if ($selectMode == 'column') nthKey(proto, $clickedKey!).column.partType.type = newType
+      const { key, column } = nthKey(proto, $clickedKey!)
+      if ($selectMode == 'key') {
+        key.partType.type = newType
+        key.partType.variant = undefined
+      }
+      if ($selectMode == 'column') {
+        column.partType.type = newType
+        column.partType.variant = undefined
+      }
       return proto
     })
   }
@@ -167,6 +177,17 @@
         column.partType.aspect = newColumn
         column.column! += colOffset
       }
+      return proto
+    })
+  }
+  function changeKeyVariant(e: Event, elem: string) {
+    const newValue = (e.target as HTMLInputElement).value
+    protoConfig.update((proto) => {
+      const oldVariant = nthPartVariant(proto, $clickedKey)
+      const type = nthPartType(proto, $clickedKey, 'key')
+      oldVariant[elem] = newValue
+      const { key } = nthKey(proto, $clickedKey!)
+      key.partType.variant = encodeVariant(type, oldVariant)
       return proto
     })
   }
@@ -218,9 +239,17 @@
     else if (event.key == 'o') $selectMode = 'cluster'
   }
 
-  function shouldFlipClicked(config: CosmosKeyboard, n: number | null) {
+  function getClickedSide(config: CosmosKeyboard, n: number | null) {
+    if (config?.unibody) return 'unibody'
+    if (n == null) return 'right'
+    return nthKey(config, n).cluster.side
+  }
+
+  $: clickedSide = getClickedSide($protoConfig, $clickedKey)
+
+  function kbdOffsetClicked(config: CosmosKeyboard, n: number | null) {
     if (n == null) return false
-    return nthKey(config, n).cluster.side == 'left'
+    return kbdOffset(config.unibody ? 'unibody' : nthKey(config, n).cluster.side)
   }
 
   let popoutShown = false
@@ -493,7 +522,7 @@
   }
 
   const onFlip = (f) => {
-    if (conf && jointsJSON) updateHandMatrix(handMatrix)
+    if (fitConf && jointsJSON) updateHandMatrix(handMatrix)
   }
   $: onFlip(flip)
 
@@ -555,8 +584,12 @@
             on:change={changeKey}
             value={nthPartType($protoConfig, $clickedKey, $selectMode)}
           >
-            {#each Object.values(PART).filter((v) => v != null) as part}
-              <option value={part}>{PART_NAMES[part]}</option>
+            {#each [...new Set(Object.values(PART_CATEGORIES))] as cat}
+              <optgroup label={cat}>
+                {#each Object.values(PART).filter((v) => v != null && PART_CATEGORIES[v] == cat) as part}
+                  <option value={part}>{PART_NAMES[part]}</option>
+                {/each}
+              </optgroup>
             {/each}
           </select>
           <div
@@ -565,7 +598,7 @@
             <Icon path={mdi.mdiChevronDown} size="20px" />
           </div>
         </div>
-        {#if $selectMode != 'cluster'}
+        {#if ($selectMode == 'key' && PARTS_WITH_KEYCAPS.includes(nthPartType($protoConfig, $clickedKey, 'key'))) || $selectMode == 'column'}
           <div class="relative bg-purple-200 dark:bg-pink-900/80">
             <select
               class="appearance-none bg-transparent w-22 h-8 px-2"
@@ -582,6 +615,28 @@
               <Icon path={mdi.mdiChevronDown} size="20px" />
             </div>
           </div>
+        {/if}
+        {#if $selectMode == 'key'}
+          {#each Object.entries(variantOptions(nthPartType($protoConfig, $clickedKey, 'key'))) as [key, opt]}
+            <div class="relative bg-purple-200 dark:bg-pink-900/80">
+              <select
+                class="appearance-none bg-transparent w-24 h-8 px-2"
+                value={nthPartVariant($protoConfig, $clickedKey)[key]}
+                on:change={(ev) => changeKeyVariant(ev, key)}
+              >
+                {#each opt as part}
+                  <option value={part}>{part}</option>
+                {/each}
+              </select>
+              <div
+                class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-700 dark:text-gray-100"
+              >
+                <Icon path={mdi.mdiChevronDown} size="20px" />
+              </div>
+            </div>
+          {/each}
+        {/if}
+        {#if $selectMode != 'cluster'}
           <button class="sidebutton" title="Remove" on:click|stopPropagation={removeKey}>
             <Icon size="20px" path={mdi.mdiDelete} />
           </button>
@@ -1147,9 +1202,9 @@
       <!-- <AxesHelper size={100} matrix={debug} /> -->
     {/if}
     <slot />
-    <T.Group scale.x={shouldFlipClicked($protoConfig, $clickedKey) ? -1 : 1}>
+    <T.Group position.x={kbdOffsetClicked($protoConfig, $clickedKey)}>
       {#if $transformMode == 'select' && !showSupports}
-        {#each adjacentPositions(geometry.right, $clickedKey, $protoConfig, $selectMode) as adj}
+        {#each adjacentPositions(geometry[clickedSide], $clickedKey, $protoConfig, $selectMode) as adj}
           <GroupMatrix matrix={adj.pos}>
             <AddButton {darkMode} on:click={() => addKey(adj.dx, adj.dy)} />
           </GroupMatrix>
@@ -1165,12 +1220,11 @@
   {#if $debugViewport}
     <Gizmo verticalPlacement="top" horizontalPlacement="left" paddingX={50} paddingY={50} />
   {/if}
-  <T.GridHelper
+  <!-- <T.GridHelper
     args={[150, 10, 0x888888]}
-    position.x={-100}
     position.z={floorZ - center[2]}
     rotation={[-Math.PI / 2, 0, 0]}
-  />
+  /> -->
 </NewViewer>
 {#if $debugViewport}
   <div
