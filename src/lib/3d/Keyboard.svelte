@@ -10,6 +10,8 @@
   import { confError, protoConfig, showKeyInts } from '$lib/store'
   import { partGeometry } from '$lib/loaders/parts'
   import { nthIndex } from '$lib/worker/config.cosmos'
+  import { switchInfo } from '$lib/geometry/switches'
+  import { T } from '@threlte/core'
 
   export let geometry: Geometry | null
   export let transparency: number
@@ -43,36 +45,39 @@
 
 {#if transparency != 0 && !$showKeyInts && geometry && !flags.intersection}
   {#each geometry.keyHolesTrsfs as trsf, i}
-    {#await keyGeometry(trsf, geometry.c.keys[i]) then k}
-      {#if k}
-        <GroupMatrix matrix={k.matrix}>
-          {@const letter = 'keycap' in k.key ? k.key.keycap.letter : undefined}
-          <KeyboardKey
-            index={nthIndex($protoConfig, side, i)}
-            opacity={transparency / 100}
-            brightness={1}
-            letter={flip ? flippedKey(letter) : letter}
-            status={keyStatus(reachability, $confError, i)}
-            geometry={k.geometry}
-            position={[0, 0, pressedLetter && letter === pressedLetter ? translation : 0]}
-            renderOrder={5}
-            {flip}
-          />
-        </GroupMatrix>
-      {/if}
-    {/await}
-    {#await partGeometry(geometry.c.keys[i].type, geometry.c.keys[i].variant) then geo}
-      {#if geo}
-        <GroupMatrix matrix={trsf.Matrix4()}>
-          <KeyboardKey
-            index={nthIndex($protoConfig, side, i)}
-            opacity={transparency / 100}
-            brightness={0.7}
-            status={partStatus($confError, i)}
-            geometry={geo}
-          />
-        </GroupMatrix>
-      {/if}
-    {/await}
+    {@const key = geometry.c.keys[i]}
+    <GroupMatrix matrix={trsf.pretranslated(0, 0, switchInfo(key.type).height).Matrix4()}>
+      {@const letter = 'keycap' in key && key.keycap ? key.keycap.letter : undefined}
+      <KeyboardKey
+        index={nthIndex($protoConfig, side, i)}
+        opacity={transparency / 100}
+        brightness={1}
+        letter={flip ? flippedKey(letter) : letter}
+        status={keyStatus(reachability, $confError, i)}
+        position={[0, 0, pressedLetter && letter === pressedLetter ? translation : 0]}
+        renderOrder={5}
+        {flip}
+      >
+        {#await keyGeometry(key) then k}
+          <T is={k} />
+        {/await}
+      </KeyboardKey>
+    </GroupMatrix>
+    <GroupMatrix matrix={trsf.Matrix4()}>
+      <KeyboardKey
+        index={nthIndex($protoConfig, side, i)}
+        opacity={key.type == 'blank' ? Math.max(0, (transparency - 50) / 200) : transparency / 100}
+        brightness={0.7}
+        status={partStatus($confError, i)}
+      >
+        {#if key.type == 'blank'}
+          <T.BoxGeometry args={[key.size.width ?? 18.5, key.size.height ?? 18.5, 1]} />
+        {:else}
+          {#await partGeometry(key.type, key.variant) then geo}
+            <T is={geo} />
+          {/await}
+        {/if}
+      </KeyboardKey>
+    </GroupMatrix>
   {/each}
 {/if}

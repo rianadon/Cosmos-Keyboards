@@ -32,6 +32,7 @@
   import {
     newFullGeometry,
     newGeometry,
+    setBottomZ,
     type Cuttleform,
     type CuttleformProto,
     type FullCuttleform,
@@ -41,7 +42,7 @@
   import VisualEditor from './lib/editor/VisualEditor.svelte'
   import VisualEditor2 from './lib/editor/VisualEditor2.svelte'
   import { Vector3, BufferGeometry, Matrix4 } from 'three'
-  import { estimatedCenter } from '$lib/worker/geometry'
+  import { additionalHeight, estimatedCenter } from '$lib/worker/geometry'
   import {
     codeError,
     flip,
@@ -161,6 +162,7 @@
   //$: config = cuttleConf(state.options)
   let config: FullCuttleform
   let geometry: FullGeometry = {}
+  let microcontrollerGeometry: FullGeometry = {}
   $: if (config && browser) {
     process(config, true).catch((e) => console.error(e))
   }
@@ -183,6 +185,7 @@
     const differences = []
 
     for (const prop of new Set([...Object.keys(c1), ...Object.keys(c2)])) {
+      if (prop == 'addHeight') continue
       if (JSON.stringify(c1[prop]) != JSON.stringify(c2[prop])) differences.push(prop)
     }
     return differences
@@ -254,13 +257,14 @@
       oldTempConfig = conf
     }
 
-    console.log('GENERATING')
+    setBottomZ(conf)
     const newGeo = newFullGeometry(conf)
     geometry = newGeo
-    console.log('conf incoming', conf)
+    microcontrollerGeometry = newGeo
+    console.log('GENERATING. conf incoming', conf)
     let err: ConfError | undefined
     for (const kbd of kbdNames) {
-      err = checkConfig(conf[kbd]!, newGeo[kbd]!, true, kbd)
+      err = checkConfig(conf[kbd]!, newGeo[kbd]!, full, kbd)
       if (err) break
     }
     confError.set(err)
@@ -280,11 +284,13 @@
       const otherPromises =
         !flags.fast && full ? kbdNames.map((k) => calcOtherPromises(conf[k]!, k)) : []
 
-      if (full)
+      if (full) {
         center = estimatedCenter(
           newGeo.right ?? newGeo.unibody!,
           !!(config.right ?? config.unibody!).wristRest
         )
+        generatorProgress = 0.1
+      }
       const quickResults = await Promise.all(quickPromises)
       quickResults.forEach((prom, i) => {
         meshes[kbdNames[i]] = {
@@ -541,13 +547,12 @@
       {#if viewer == '3d'}
         <Viewer3D
           {darkMode}
-          {geometry}
+          geometry={microcontrollerGeometry}
           transparency={cTransparency}
           conf={isRenderable($confError) ? config?.right ?? config?.unibody : undefined}
           isExpert={mode == 'advanced'}
           {showSupports}
           {center}
-          {size}
           bind:showFit
           enableZoom={true}
           flip={$flip}
@@ -564,6 +569,7 @@
                 {transparency}
                 {showSupports}
                 geometry={geometry[objKeys(meshes)[i]]}
+                microcontrollerGeometry={microcontrollerGeometry[objKeys(meshes)[i]]}
                 meshes={mesh}
               />
             </T.Group>
@@ -571,68 +577,47 @@
         </Viewer3D>
       {:else if viewer == 'thick'}
         <Thick3D
-          {geometry}
-          conf={isRenderable($confError) ? config : undefined}
+          geometry={isRenderable($confError) ? geometry.right : undefined}
           is3D
           {center}
-          {size}
           enableZoom={true}
           flip={$flip}
           {darkMode}
         >
-          {#if !$noBase}<Microcontroller {config} {geometry} {showSupports} />{/if}
-          {#each keyBufs || [] as key}
-            <GroupMatrix matrix={key.matrix}>
-              <KMesh
-                kind="case"
-                scale={key.flip && $flip ? [-1, 1, 1] : [1, 1, 1]}
-                geometry={key.mesh}
+          {#each notNull(Object.values(meshes)) as mesh, i}
+            <T.Group
+              position.x={kbdOffset(objKeys(meshes)[i])}
+              scale.x={objKeys(meshes)[i] == 'left' ? -1 : 1}
+            >
+              <KeyboardModel
+                noWeb
+                {hideWall}
+                {transparency}
+                {showSupports}
+                geometry={geometry[objKeys(meshes)[i]]}
+                microcontrollerGeometry={microcontrollerGeometry[objKeys(meshes)[i]]}
+                meshes={mesh}
               />
-            </GroupMatrix>
+            </T.Group>
           {/each}
-          {#if !$noWall && !hideWall}<KMesh kind="case" geometry={wallBuf} />{/if}
-          {#if !$noBase}
-            <KMesh kind="case" geometry={screwBaseBuf} />
-            <KMesh kind="key" geometry={plateTopBuf} opacity={plateTopOpacity} renderOrder="10" />
-            <KMesh
-              kind="key"
-              geometry={plateBotBuf}
-              opacity={Math.pow((cTransparency - 50) / 50, 3)}
-              renderOrder="10"
-            />
-            <KMesh kind="key" geometry={screwPlateBuf} opacity={plateScrewOpacity} />
-            <KMesh kind="key" geometry={wristBuf} opacity={cTransparency / 100} />
-            <KMesh
-              kind="case"
-              geometry={holderBuf}
-              brightness={0.5}
-              opacity={0.9}
-              visible={!showSupports}
-            />
-          {/if}
-          {#if showSupports}
-            {#each supportGeometries as geo}
-              <KMesh kind="case" geometry={geo} brightness={0.5} opacity={0.8} />
-            {/each}
-          {/if}
         </Thick3D>
       {:else if viewer == 'top'}
         <ViewerLayout
-          {geometry}
+          geometry={geometry.right}
           {darkMode}
           conf={config?.right ?? config?.unibody}
           confError={$confError}
         />
       {:else if viewer == 'programming'}
         <ViewerMatrix
-          {geometry}
+          geometry={geometry.right}
           {darkMode}
           conf={config?.right ?? config?.unibody}
           confError={$confError}
         />
       {:else if viewer == 'board'}
         <ViewerBottom
-          {geometry}
+          geometry={geometry.right}
           {darkMode}
           conf={config?.right ?? config?.unibody}
           confError={$confError}

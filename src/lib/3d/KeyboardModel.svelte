@@ -6,9 +6,12 @@
   import KMesh from '$lib/3d/KeyboardMeshBetter.svelte'
   import type { KeyboardMeshes } from 'src/routes/beta/lib/viewers/viewer3dHelpers'
 
-  export let geometry: Geometry
+  export let geometry: Geometry | undefined
+  export let microcontrollerGeometry: Geometry | undefined
   export let meshes: KeyboardMeshes
   export let transparency: number
+
+  export let noWeb = false
 
   export let hideWall: boolean
   export let showSupports: boolean
@@ -26,14 +29,14 @@
   )
 </script>
 
-{#if !$noBase}<Microcontroller {geometry} {showSupports} />{/if}
+{#if !$noBase}<Microcontroller geometry={microcontrollerGeometry} {showSupports} />{/if}
 {#each meshes.keyBufs || [] as key}
   <GroupMatrix matrix={key.matrix}>
     <KMesh kind="case" scale={key.flip && $flip ? [-1, 1, 1] : [1, 1, 1]} geometry={key.mesh} />
   </GroupMatrix>
 {/each}
 {#if !$noWall && !hideWall}<KMesh kind="case" geometry={meshes.wallBuf} debug />{/if}
-<KMesh kind="case" geometry={meshes.webBuf} />
+{#if !noWeb}<KMesh kind="case" geometry={meshes.webBuf} />{/if}
 {#if !$noBase}
   <KMesh kind="case" geometry={meshes.screwBaseBuf} />
   <KMesh kind="key" geometry={meshes.plateTopBuf} opacity={plateTopOpacity} renderOrder="10" />

@@ -17,6 +17,7 @@
       case 'numeric': return mdi.mdiNumeric
       case 'usb-port': return mdi.mdiUsbPort
       case 'hand': return mdi.mdiHandBackRightOutline
+      case 'hand-left': return mdi.mdiHandBackLeftOutline
       case 'screw': return mdi.mdiScrewMachineFlatTop
       case 'knob': return mdi.mdiBlurRadial
       case 'add-extra': return mdi.mdiShapePlusOutline

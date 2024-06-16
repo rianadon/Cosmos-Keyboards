@@ -94,7 +94,7 @@ struct('ScrewFlags', {
 
 struct('ClusterFlags', {
   side: 'CLUSTER_SIDE,1',
-  name: 'CLUSTER_NAME,1',
+  name: 'CLUSTER_NAME,2',
   type: 'CLUSTER_TYPE,2',
 })
 

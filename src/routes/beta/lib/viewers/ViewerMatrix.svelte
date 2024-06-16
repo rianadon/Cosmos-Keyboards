@@ -1,7 +1,7 @@
 <script lang="ts">
   import * as THREE from 'three'
 
-  import Viewer from './Viewer.svelte'
+  import Viewer from './NewViewer.svelte'
   import { estimatedCenter } from '$lib/worker/geometry'
   import { rectangle, drawLinedWall, drawWall, drawPath } from './viewerHelpers'
   import { boundingSize } from '$lib/loaders/geometry'

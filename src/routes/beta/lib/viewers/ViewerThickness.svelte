@@ -1,25 +1,12 @@
 <script lang="ts">
-  import {
-    BufferAttribute,
-    BufferGeometry,
-    DoubleSide,
-    Group,
-    Mesh,
-    MeshBasicMaterial,
-    Vector3,
-    Color,
-    MeshNormalMaterial,
-    MeshStandardMaterial,
-  } from 'three'
-  import type { Cuttleform, Geometry } from '$lib/worker/config'
+  import { BufferAttribute, BufferGeometry, Mesh, MeshBasicMaterial, Vector3, Color } from 'three'
+  import type { Geometry } from '$lib/worker/config'
   import Viewer from './NewViewer.svelte'
-  import { allKeyCriticalPoints, webThickness } from '$lib/worker/geometry'
-  import { thickness } from '$lib/worker/thickness'
   import { T } from '@threlte/core'
 
   export let style: string = ''
   export let center: [number, number, number]
-  export let size: THREE.Vector3
+  export let size: Vector3
   export let cameraPosition: [number, number, number] = [40, -240, 100]
   export let enableRotate = true
   export let enableZoom = false
@@ -27,10 +14,7 @@
   export let flip = true
   export let darkMode: boolean
 
-  export let conf: Cuttleform | undefined
-  export let geometry: Geometry | null
-
-  let pressedLetter: string | null = null
+  export let geometry: Geometry | undefined
 
   const hue = (t: number) => Math.min(Math.max(0, t - 1) / 4, 1) * 240
 
@@ -42,8 +26,8 @@
     return ind
   }
 
-  function webMesh(c: Cuttleform | undefined, geo: Geometry | null, darkMode: boolean) {
-    if (!c || !geo) return { topMesh: null, minThickness: 0, maxThickness: 0, thicknessRange: 0 }
+  function webMesh(geo: Geometry | null, darkMode: boolean) {
+    if (!geo) return { topMesh: null, minThickness: 0, maxThickness: 0, thicknessRange: 0 }
 
     const { topReinf, botReinf } = geo.reinforcedTriangles
 
@@ -123,7 +107,7 @@
     return { topMesh, botMesh, minThickness, maxThickness, thicknessRange }
   }
 
-  $: meshResult = webMesh(conf, geometry, darkMode)
+  $: meshResult = webMesh(geometry, darkMode)
 
   $: mmin = meshResult.minThickness
   $: mmax = meshResult.maxThickness

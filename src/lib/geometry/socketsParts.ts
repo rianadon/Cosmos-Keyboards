@@ -17,7 +17,7 @@ export const BOM_PART_NAMES: Record<CuttleKey['type'], string> = {
   'ec11': 'EC11 Encoders',
   'joystick-joycon-adafruit': 'Adafruit Mini Thumbsticks (Joycon style, #5628)',
   'evqwgd001': 'EVQWGD001 Encoders',
-  'trackball': '34 mm (1.34") Trackballs',
+  'trackball': 'Trackballs',
   'blank': 'Ignore this',
   'oled-128x32-0.91in-adafruit': 'Adafruit 128x32 1" Diagonal OLEDs',
   'oled-128x32-0.91in-dfrobot': 'DFRobot 128x32 0.91" Diagonal OLEDs (DFR0647)',
@@ -41,7 +41,7 @@ export const PART_NAMES: Record<CuttleKey['type'], string> = {
   'ec11': 'EC11 Encoder',
   'joystick-joycon-adafruit': 'Adafruit Mini Thumbstick',
   'evqwgd001': 'EVQWGD001 Encoder',
-  'trackball': '34 mm (1.34") Trackball',
+  'trackball': 'Trackball',
   'blank': 'Blank',
   'oled-128x32-0.91in-adafruit': 'Adafruit 128x32 1" OLED',
   'oled-128x32-0.91in-dfrobot': 'DFRobot 128x32 0.91" OLED',
@@ -102,7 +102,8 @@ export function socketSize(key: CuttleKey): Vector {
   if (key.type == 'oled-128x32-0.91in-dfrobot') return new Vector(11.6, 41.18, 2.84)
   if (key.type == 'alps') return new Vector(18.6, 17, 5)
   if (key.type == 'joystick-ps2-40x45') return new Vector(40, 45, 4)
-  if (key.type.startsWith('cirque')) return new Vector(0, 0, 3)
+  if (key.type == 'trackball') return new Vector(0, 0, 4)
+  if (key.type == 'trackpad-cirque') return new Vector(0, 0, 3)
   return new Vector(18, 18, 5)
 }
 
@@ -153,6 +154,12 @@ export function variantOptions(type: CuttleKey['type']): Record<string, string[]
     return {
       size: ['23mm', '35mm', '40mm'],
     }
+  } else if (type == 'trackball') {
+    return {
+      size: ['25mm', '34mm'],
+      bearings: ['Roller', 'Ball'],
+      sensor: ['Joe'],
+    }
   }
   return {}
 }
@@ -160,6 +167,8 @@ export function variantOptions(type: CuttleKey['type']): Record<string, string[]
 export function variantURL(key: CuttleKey) {
   if (key.type == 'trackpad-cirque') {
     return '-' + key.variant.size
+  } else if (key.type == 'trackball') {
+    return ('-' + key.variant.size + '-' + key.variant.bearings + '-' + key.variant.sensor).toLowerCase()
   }
   return ''
 }

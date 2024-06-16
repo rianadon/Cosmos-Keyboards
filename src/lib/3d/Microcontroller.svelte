@@ -5,7 +5,7 @@
   import KeyboardMaterial from './KeyboardMaterial.svelte'
   import GroupMatrix from './GroupMatrix.svelte'
 
-  export let geometry: Geometry | null
+  export let geometry: Geometry | undefined
   export let showSupports: boolean
 
   $: boardGeos = geometry?.c.microcontroller

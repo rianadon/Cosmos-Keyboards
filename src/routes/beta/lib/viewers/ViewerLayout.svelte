@@ -1,7 +1,7 @@
 <script lang="ts">
   import * as THREE from 'three'
 
-  import Viewer from './Viewer.svelte'
+  import Viewer from './NewViewer.svelte'
   import { estimatedCenter, reinforceTriangles, flipAllTriangles } from '$lib/worker/geometry'
   import { rectangle, drawLinedWall, drawWall } from './viewerHelpers'
   import { boundingSize } from '$lib/loaders/geometry'
@@ -11,7 +11,7 @@
   import { flip } from '$lib/store'
 
   export let conf: Cuttleform
-  export let geometry: Geometry | null
+  export let geometry: Geometry | undefined
   export let style: string = ''
   export let confError: ConfError | undefined
   export let darkMode: boolean

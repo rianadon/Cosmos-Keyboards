@@ -4,7 +4,7 @@ import Trsf from '$lib/worker/modeling/transformation'
 import { writeFileSync } from 'fs'
 import loadMF from 'manifold-3d'
 import type { CrossSection, Manifold, ManifoldToplevel } from 'manifold-3d'
-import { draw, drawCircle, Drawing, drawRectangle, Face, getOC, makeCylinder, makeFace, makePolygon, makeSolid, type Point, revolution, Sketch, Solid, Transformation } from 'replicad'
+import { type AnyShape, draw, drawCircle, Drawing, drawRectangle, Face, getOC, makeCylinder, makeFace, makePolygon, makeSolid, type Point, revolution, Sketch, Solid, Transformation } from 'replicad'
 import { Matrix4, Triangle, Vector3 } from 'three'
 
 let mf: ManifoldToplevel
@@ -242,7 +242,7 @@ export function compute(op: Operation): Solid {
   }
 }
 
-export function serialize(filename: string, model: Solid) {
+export function serialize(filename: string, model: AnyShape) {
   const oc = getOC()
 
   const writer = new oc.STEPControl_Writer_1()

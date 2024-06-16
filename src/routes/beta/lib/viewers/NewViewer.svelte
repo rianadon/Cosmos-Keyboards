@@ -1,67 +1,58 @@
 <script lang="ts">
-  import * as THREE from 'three'
-  import { T, Canvas } from '@threlte/core'
+  import { T, Canvas, type ThrelteContext } from '@threlte/core'
   import WebGL from 'three/examples/jsm/capabilities/WebGL'
   import { OrbitControls } from '@threlte/extras'
   import { onMount } from 'svelte'
   import Interactivity from './Interactivity.svelte'
+  import type { Material, PerspectiveCamera, ShapeGeometry, Vector3 } from 'three'
 
   interface Geo {
-    geometry: THREE.ShapeGeometry
-    material: THREE.Material
+    geometry: ShapeGeometry
+    material: Material
   }
   export let geometries: Geo[]
   export let style: string = ''
   export let center: [number, number, number]
-  export let size: THREE.Vector3
+  export let size: Vector3 | undefined = undefined
   export let cameraPosition: [number, number, number] = [0, 0.8, 1]
   export let enableRotate = true
   export let enableZoom = false
   export let enablePan = false
-  export let is3D = false
-  export let flip = false
   let canvas: HTMLElement
+  let ctx: ThrelteContext
 
   const cameraFOV = 45
 
   onMount(() => {
     console.log('MOUNT VIEWER')
+    resize()
   })
 
-  let camera: THREE.PerspectiveCamera
   function updateCameraPos() {
-    cameraPosition = camera.position.clone().toArray()
-    console.log(
-      'CAM IDK',
-      new THREE.Vector3(85, 160, -90).applyMatrix4(camera.projectionMatrixInverse)
-    )
-    // console.log('new camera pos', camera.position.clone().normalize().toArray())
-    // console.log(camera)
+    cameraPosition = ctx.camera.current.position.clone().toArray()
   }
 
-  // function resize() {
-  //   // https://wejn.org/2020/12/cracking-the-threejs-object-fitting-nut/
-  //   let aspect = canvas ? canvas.clientWidth / canvas.clientHeight : 1
-  //   if (aspect == 0 || aspect == Infinity) aspect = 1
-  //   const fov = cameraFOV * (Math.PI / 180)
-  //   const fovh = 2 * Math.atan(Math.tan(fov / 2) * aspect)
-  //   let dx = size.z / 2 + Math.abs(size.x / 2 / Math.tan(fovh / 2))
-  //   let dy = size.z / 2 + Math.abs(size.y / 2 / Math.tan(fov / 2))
-  //   if ($camera) {
-  //     $camera.position.normalize()
-  //     $camera.position.multiplyScalar(Math.max(dx, dy) * 1.2)
-  //     $camera.updateProjectionMatrix()
-  //     root.invalidate()
-  //   }
-  // }
-  console.log('position', cameraPosition)
+  function resize() {
+    // https://wejn.org/2020/12/cracking-the-threejs-object-fitting-nut/
+    if (!size) return
+    let aspect = canvas ? canvas.clientWidth / canvas.clientHeight : 1
+    if (aspect == 0 || aspect == Infinity) aspect = 1
+    const fov = cameraFOV * (Math.PI / 180)
+    const fovh = 2 * Math.atan(Math.tan(fov / 2) * aspect)
+    let dx = size.z / 2 + Math.abs(size.x / 2 / Math.tan(fovh / 2))
+    let dy = size.z / 2 + Math.abs(size.y / 2 / Math.tan(fov / 2))
+    const camera = ctx.camera.current as PerspectiveCamera
+    camera.position.normalize()
+    camera.position.multiplyScalar(Math.max(dx, dy) * 1.2)
+    updateCameraPos()
+  }
 </script>
 
-<!-- <svelte:window on:resize={resize} /> -->
+<svelte:window on:resize={resize} />
 
 {#if WebGL.isWebGLAvailable()}
   <div class="container" bind:this={canvas} {style}>
-    <Canvas toneMapping={0}>
+    <Canvas toneMapping={0} bind:ctx>
       <Interactivity>
         <T.Group position={[-center[0], -center[1], -center[2]]}>
           {#each geometries as geometry}
@@ -70,13 +61,7 @@
         </T.Group>
         <slot />
 
-        <T.PerspectiveCamera
-          makeDefault
-          fov={cameraFOV}
-          position={cameraPosition}
-          bind:ref={camera}
-          up={[0, 0, 1]}
-        >
+        <T.PerspectiveCamera makeDefault fov={cameraFOV} position={cameraPosition} up={[0, 0, 1]}>
           <OrbitControls
             enableDamping
             {enableZoom}

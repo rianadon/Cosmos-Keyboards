@@ -2,7 +2,7 @@ import { variantURL } from '$lib/geometry/socketsParts'
 import type { CuttleKey } from '$lib/worker/config'
 import type Trsf from '$lib/worker/modeling/transformation'
 import { notNull } from '$lib/worker/util'
-import { SphereGeometry } from 'three'
+import { BoxGeometry, CylinderGeometry, SphereGeometry, TetrahedronGeometry } from 'three'
 import { makeAsyncCacher } from './cacher'
 import loadGLTF from './gltfLoader'
 
@@ -42,7 +42,8 @@ const cacher = makeAsyncCacher(async (sw: Switch, variant: string) => {
 })
 
 export async function partGeometry(type: Switch, variant?: Record<string, any>) {
-  if (type == 'trackball') return new SphereGeometry(17.5, 64, 32).translate(0, 0, -4)
+  if (type == 'trackball' && variant?.size == '34mm') return new SphereGeometry(17, 64, 32).translate(0, 0, -4)
+  if (type == 'trackball' && variant?.size == '25mm') return new SphereGeometry(12.5, 64, 32).translate(0, 0, -4)
   if (!(type in PART_URLS) || !PART_URLS[type]) return undefined
   const varurl = variantURL({ type, variant } as any)
   let part = await cacher(type + varurl, type, varurl)

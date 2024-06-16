@@ -83,9 +83,6 @@ export function checkConfig(conf: Cuttleform, geometry: Geometry, check3d = true
       if (!key.hasOwnProperty(property)) {
         return { type: 'missing', key, item: property, side }
       }
-      if (key.type == 'trackball' && !key.size) {
-        return { type: 'missing', key, item: 'size', side }
-      }
     }
     if (!(key.position instanceof ETrsf)) {
       return { type: 'wrong', key, item: 'position', value: key.position, side }

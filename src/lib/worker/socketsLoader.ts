@@ -24,7 +24,7 @@ export const KEY_URLS: Record<CuttleKey['type'], string> = {
   'mx-pcb': '/src/assets/key-mx-pcb.step',
   'mx-pcb-twist': '/src/assets/key-mx-pcb-twist.step',
   'choc-hotswap': '/target/key-choc-hotswap.step',
-  'trackball': '/src/assets/trackball_holder.step',
+  'trackball': '/target/key-trackball.step',
   'ec11': '/src/assets/key-ec11.step',
   'joystick-joycon-adafruit': '/src/assets/key-joystick-joycon-adafruit.step',
   'evqwgd001': '/src/assets/key-evqwgd001.step',

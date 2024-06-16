@@ -322,6 +322,15 @@ export function decodeVariant(type: CuttleKey['type'], variant: number): Record<
     return {
       size: ['23mm', '35mm', '40mm'][variant] || '23mm',
     }
+  } else if (type == 'trackball') {
+    const size = variant & 0x7
+    const bearings = (variant >> 3) & 0x3
+    const sensor = (variant >> 5) & 0x3
+    return {
+      size: ['34mm', '25mm'][size] || '34mm',
+      bearings: ['Roller', 'Ball'][bearings] || 'Roller',
+      sensor: ['Joe'][sensor] || 'Joe',
+    }
   }
   return undefined
 }
@@ -329,6 +338,11 @@ export function decodeVariant(type: CuttleKey['type'], variant: number): Record<
 export function encodeVariant(type: CuttleKey['type'], variant: Record<string, any>) {
   if (type == 'trackpad-cirque') {
     return ['23mm', '35mm', '40mm'].indexOf(variant.size)
+  } else if (type == 'trackball') {
+    const size = ['34mm', '25mm'].indexOf(variant.size)
+    const bearings = ['Roller', 'Ball'].indexOf(variant.bearings)
+    const sensor = ['Joe'].indexOf(variant.sensor)
+    return size + (bearings << 3) + (sensor << 5)
   }
   return undefined
 }

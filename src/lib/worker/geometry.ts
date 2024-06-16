@@ -797,12 +797,12 @@ export function bottomByNormal(c: Cuttleform, normal: Vector, t: Trsf) {
   return j
 }
 
-export function additionalHeight(c: Cuttleform, t: Trsf) {
+export function additionalHeight(c: Cuttleform, t?: Trsf) {
   // Use both the bottom of the switch part
   // and the bottom of the web to calculate the lowest point on the model
   let z = Math.min(...c.keys.flatMap(k => {
-    const swTop = keyHoleTrsf(c, k, t.cleared())
-    const swBottom = keyHoleTrsf(c, k, t.cleared()).pretranslated(0, 0, -webThickness(c, k))
+    const swTop = keyHoleTrsf(c, k, new Trsf())
+    const swBottom = keyHoleTrsf(c, k, new Trsf()).pretranslated(0, 0, -webThickness(c, k))
     const pts = partBottom(k.type).flat()
     return pts.map(p => swTop.pretranslated(p).origin().z)
       // The c.wallThickness/2 is added as an additional offset because when keys are rotated vertically,
@@ -811,13 +811,13 @@ export function additionalHeight(c: Cuttleform, t: Trsf) {
       .concat(keyCriticalPoints(c, k, swBottom, c.wallThickness / 2).map(p => p.origin().z))
   }))
 
-  const pts2D = allKeyCriticalPoints(c, keyHolesTrsfs2D(c, t))
-  const keyholes = c.keys.map(k => keyHoleTrsf(c, k, t.cleared()))
+  const pts2D = allKeyCriticalPoints(c, keyHolesTrsfs2D(c, new Trsf()))
+  const keyholes = c.keys.map(k => keyHoleTrsf(c, k, new Trsf()))
   const pts3D = allKeyCriticalPoints(c, keyholes)
   const pts3Df = flattenKeyCriticalPoints(c, pts3D, [])
   const { boundary } = solveTriangularization(c, pts2D, pts3D, keyholes, 0, new Vector(0, 0, 1), {
     noBadWalls: false,
-    constrainKeys: false,
+    constrainKeys: true,
     noKeyTriangles: false,
   })
 

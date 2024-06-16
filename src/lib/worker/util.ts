@@ -34,6 +34,26 @@ export function for2<A, B, R>(a: A[], b: B[], ...cond: ((a: A, b: B) => boolean)
   }
 }
 
+export function for3<A, B, C>(a: A[], b: B[], c: C[], ...cond: ((a: A, b: B, c: C) => boolean)[]): (f: (a: A, b: B, c: C) => void) => void
+export function for3<A, B, C, R>(a: A[], b: B[], c: C[], ...cond: ((a: A, b: B, c: C) => boolean)[]): (f: (a: A, b: B, c: C) => R) => R[][][]
+export function for3<A, B, C, R>(a: A[], b: B[], c: C[], ...cond: ((a: A, b: B, c: C) => boolean)[]): (f: (a: A, b: B, c: C) => R) => R[][][] {
+  return (f) => {
+    const results: R[][][] = []
+    for (const i of a) {
+      const inner: R[][] = []
+      for (const j of b) {
+        const innerinner: R[] = []
+        for (const k of c) {
+          if (cond.every(c => c(i, j, k))) innerinner.push(f(i, j, k))
+        }
+        inner.push(innerinner)
+      }
+      results.push(inner)
+    }
+    return results
+  }
+}
+
 export function mapObj<K extends string, V, R>(obj: Record<K, V>, f: (a: V, k: K) => R): Record<K, R> {
   const newObj: any = {}
   for (const key of Object.keys(obj) as K[]) {

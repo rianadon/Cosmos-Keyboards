@@ -1,19 +1,9 @@
 <script lang="ts">
-  import { CuttleformSchema } from './schema'
   import {
     cuttleConf,
-    thumbOrigin,
     type CuttleformProto,
-    thumbs,
-    matrixToConfig,
-    MAP_SCREW_SIZE,
-    MAP_SCREW_TYPE,
-    screwHeight,
-    type Cuttleform,
     type Geometry,
-    MAP_MICROCONTROLLER,
     cScrewHeight,
-    fingers,
     cosmosFingers,
     approximateCosmosThumbOrigin,
     decodeTuple,
@@ -22,16 +12,12 @@
   } from '$lib/worker/config'
   import {
     MICROCONTROLLER_NAME,
-    PART,
     PROFILE,
     SCREW_SIZE,
-    type Connector,
     type ConnectorType,
-    type Microcontroller,
     type MicrocontrollerName,
     type Profile,
   } from '../../../../../target/cosmosStructs'
-  import { checkConfig, isRenderable } from '$lib/worker/check'
   import Section from './Section.svelte'
   import DecimalInput from './DecimalInput.svelte'
   import AngleInput from './AngleInput.svelte'
@@ -41,21 +27,16 @@
   import { TupleStore } from './tuple'
 
   import { createEventDispatcher } from 'svelte'
-  import { clickedKey, hoveredKey, protoConfig, tempConfig } from '$lib/store'
-  import Trsf, { Vector } from '$lib/worker/modeling/transformation'
-  import { writable } from 'svelte/store'
-  import defaults from '$assets/cuttleform.json'
+  import { protoConfig, tempConfig } from '$lib/store'
   import { hasPro } from '@pro'
   import {
     BOARD_PROPERTIES,
     MICROCONTROLLER_SIZES,
     sortMicrocontrollers,
   } from '$lib/geometry/microcontrollers'
-  import type { Keyboard } from 'target/proto/cosmos'
   import {
     fromCosmosConfig,
     toCosmosConfig,
-    type CosmosKey,
     type CosmosKeyboard,
     type PartType,
   } from '$lib/worker/config.cosmos'
@@ -72,6 +53,9 @@
     Cuttleform_DefaultThumb_KEY_COUNT,
     ENCODER,
   } from '../../../../../target/proto/cuttleform'
+  import { getSize, setClusterSize } from './visualEditorHelpers'
+  import { mdiPencil } from '@mdi/js'
+  import Icon from '$lib/presentation/Icon.svelte'
 
   export let cosmosConf: CosmosKeyboard
   export let conf: FullCuttleform
@@ -87,65 +71,42 @@
     dispatch('goAdvanced')
   }
 
-  let lastWristRest: Cuttleform['wristRest'] = {
-    length: 50,
-    angle: 45,
-    xOffset: 10,
-    zOffset: 0,
-    maxWidth: 100,
-    tenting: 0,
-  }
   let lastMicrocontroller: MicrocontrollerName = 'kb2040-adafruit'
   let lastConnector: ConnectorType = 'trrs'
   let lastScrews: number[] = [-1, -1, -1, -1, -1, -1]
 
   function setSize(rows: number, cols: number) {
-    protoConfig.update((proto) => {
-      const originalSize = getSize(proto)
-      const originalThumb = approximateCosmosThumbOrigin(originalSize.rows, originalSize.cols)
-      const fingers = proto.clusters.find((c) => c.name == 'fingers')!
-      const tup = decodeTuple(fingers.position || 0n)
-      const originalPosition = new Vector(tup[0] / 10, tup[1] / 10, tup[2] / 10)
-
-      const newThumb = approximateCosmosThumbOrigin(rows, cols)
-      const newPosition = originalPosition.add(originalThumb).sub(newThumb)
-      const newTup = encodeTuple(newPosition.toArray().map((x) => Math.round(10 * x)))
-      fingers.clusters = cosmosFingers(rows, cols)
-      fingers.position = newTup
-
-      if (originalSize.rows == 0) {
-        $protoConfig.wristRest = lastWristRest
-        $protoConfig.microcontroller = lastMicrocontroller
-        $protoConfig.connector = lastConnector
-        $protoConfig.screwIndices = lastScrews
-      } else {
-        lastWristRest = $protoConfig.wristRest
-        lastMicrocontroller = $protoConfig.microcontroller
-        lastConnector = $protoConfig.connector
-        lastScrews = $protoConfig.screwIndices
-      }
-      if (rows == 0) {
-        $protoConfig.wristRest = undefined
-        $protoConfig.microcontroller = null
-        $protoConfig.connector = null
-        $protoConfig.screwIndices = []
-      }
-      return proto
+    const originalSize = getSize($protoConfig, 'right')!
+    protoConfig.update((k) => {
+      setClusterSize(k, 'left', rows, cols)
+      setClusterSize(k, 'right', rows, cols)
+      return k
     })
-  }
-
-  function getSize(c: CosmosKeyboard) {
-    const fingers = c.clusters.find((c) => c.name == 'fingers')
-    if (!fingers) return { rows: 0, cols: 0 }
-    return {
-      cols: fingers.clusters.length,
-      rows: Math.max(0, ...fingers.clusters.map((c) => c.keys.length)),
+    if (originalSize.rows == 0) {
+      $protoConfig.wristRestEnable = true
+      $protoConfig.microcontroller = lastMicrocontroller
+      $protoConfig.connector = lastConnector
+      $protoConfig.screwIndices = lastScrews
+    } else {
+      lastMicrocontroller = $protoConfig.microcontroller
+      lastConnector = $protoConfig.connector
+      lastScrews = $protoConfig.screwIndices
+    }
+    if (rows == 0) {
+      $protoConfig.wristRestEnable = false
+      $protoConfig.microcontroller = null
+      $protoConfig.connector = null
+      $protoConfig.screwIndices = []
     }
   }
 
   function isSize(c: CosmosKeyboard, rows: number, cols: number) {
-    const { rows: ro, cols: co } = getSize(c)
-    return ro == rows && co == cols
+    const leftSize = getSize(c, 'left')
+    const rightSize = getSize(c, 'right')
+    return (
+      (!leftSize || (leftSize.rows == rows && leftSize.cols == cols)) &&
+      (!rightSize || (rightSize.rows == rows && rightSize.cols == cols))
+    )
   }
 
   function setShell(type: string) {
@@ -205,122 +166,6 @@
       $protoConfig.keyBasis = $protoConfig.profile
     }
   }
-  /*
-
-  function setThumb(type: string) {
-    clickedKey.set(null)
-    hoveredKey.set(null)
-    if (type == 'default')
-      cosmosConf.thumbCluster = {
-        oneofKind: 'defaultThumb',
-        defaultThumb: {
-          thumbCount: Cuttleform_DefaultThumb_KEY_COUNT.SIX,
-          encoder: false,
-        },
-      }
-    else if (type == 'curved')
-      cosmosConf.thumbCluster = {
-        oneofKind: 'curvedThumb',
-        curvedThumb: {
-          thumbCount: Cuttleform_CurvedThumb_KEY_COUNT.FIVE,
-          rowCurve: 0,
-          columnCurve: 0,
-          horizontalSpacing: 200,
-          verticalSpacing: 200,
-          encoder: false,
-        },
-      }
-    else if (type == 'orbyl')
-      cosmosConf.thumbCluster = {
-        oneofKind: 'orbylThumb',
-        orbylThumb: {
-          curvature: 0,
-        },
-      }
-    else if (type == 'carbonfet')
-      cosmosConf.thumbCluster = {
-        oneofKind: 'carbonfetThumb',
-        carbonfetThumb: {
-          rowCurve: -225,
-          columnCurve: -450,
-          horizontalSpacing: 200,
-          verticalSpacing: 205,
-        },
-      }
-    else if (type === 'custom') {
-      const previousOffset = thumbOrigin(cosmosConf).evaluate({ flat: false }, new Trsf())
-      // @ts-ignore I'm doing bad things
-      const baseOffset = thumbOrigin(cosmosConf, true).evaluate({ flat: false }, new Trsf())
-
-      const relativeTransform = previousOffset
-        .Matrix4()
-        .clone()
-        .premultiply(baseOffset.Matrix4().invert())
-
-      const prevOffsetInverse = previousOffset.Matrix4().invert()
-
-      cosmosConf.thumbCluster = {
-        oneofKind: 'customThumb',
-        customThumb: {
-          plane: matrixToConfig(relativeTransform),
-          key: thumbs(cosmosConf).map((t) => {
-            const relativeTransform = t.position
-              .evaluate({ flat: false }, new Trsf())
-              .Matrix4()
-              .premultiply(prevOffsetInverse)
-            return matrixToConfig(relativeTransform, t)
-          }),
-        },
-      }
-    } else {
-      throw new Error('unknown thumb type')
-    }
-  }
-
-  function setShell(type: string) {
-    if (type == 'basic')
-      cosmosConf.shell = {
-        oneofKind: 'basicShell',
-        basicShell: {
-          lip: false,
-        },
-      }
-    else if (type == 'tilt')
-      cosmosConf.shell = {
-        oneofKind: 'tiltShell',
-        tiltShell: {
-          tilt: cosmosConf.curvature.tenting / 2,
-          raiseBy: 100,
-          pattern: true,
-          patternWidth: 100,
-          patternGap: 50,
-        },
-      }
-    else if (type == 'stilts')
-      cosmosConf.shell = {
-        oneofKind: 'stiltsShell',
-        stiltsShell: {
-          inside: false,
-        },
-      }
-    else throw new Error('unknown shell type')
-  }
-
-  const schema = Object.fromEntries(CuttleformSchema.map((s) => [s.var, s]))
-  $: whichThumb = cosmosConf.thumbCluster.oneofKind!
-  $: whichShell = cosmosConf.shell.oneofKind!
-
-  $: cols = cosmosConf.upperKeys.columns
-  $: staggerEnabled = [true, cols > 1, cols > 2, cols > 3, cols > 4]
-  $: staggerStyle = staggerEnabled.map((x) => (x ? '' : 'opacity-30'))
-
-  const nScrewInserts = writable(cosmosConf.wall.screwIndices.length)
-  $: nScrewInserts.set(cosmosConf.wall.screwIndices.length)
-
-  nScrewInserts.subscribe((n) => {
-    cosmosConf.wall.screwIndices = Array.from({ length: n }, (_, i) => 0)
-  })
-*/
 
   function updateRotation(t: bigint) {
     if (!$protoConfig) return
@@ -341,6 +186,20 @@
     })
   }
 
+  function editJointlySeparately(cluster: 'fingers' | 'thumb') {
+    protoConfig.update((proto) => {
+      const secondCluster = proto.clusters.find((c) => c.side == 'left' && c.name == cluster)
+      if (secondCluster) {
+        if (confirm('This will overwrite the left side of the keyboard with the right. Continue?'))
+          proto.clusters.splice(proto.clusters.indexOf(secondCluster), 1)
+      } else {
+        proto.clusters.push(
+          mirrorCluster(proto.clusters.find((c) => c.side == 'right' && c.name == cluster))
+        )
+      }
+    })
+  }
+
   function totalScrewInserts(c: CosmosKeyboard, multiplier: number) {
     return c.screwIndices.length * multiplier
   }
@@ -351,7 +210,7 @@
     else $protoConfig.screwIndices = []
   }
 
-  function isThumb() {
+  function isThumb(name: string) {
     return false
   }
 
@@ -409,38 +268,6 @@
     })
   }
 
-  /*
-  const thumbStore = new TupleStore(cosmosConf.stagger.staggerThumb)
-  const [staggerThumbX, staggerThumbY, staggerThumbZ, staggerThumbO] = thumbStore.components()
-  thumbStore.tuple.subscribe((t) => (cosmosConf.stagger.staggerThumb = t))
-  $: thumbStore.update($protoConfig.stagger.staggerThumb)
-
-  const innerIndexStore = new TupleStore(cosmosConf.stagger.staggerInnerIndex)
-  const [staggerInnerIndexX, staggerInnerIndexY, staggerInnerIndexZ, staggerInnerIndexO] =
-    innerIndexStore.components()
-  innerIndexStore.tuple.subscribe((t) => (cosmosConf.stagger.staggerInnerIndex = t))
-  $: innerIndexStore.update($protoConfig.stagger.staggerInnerIndex)
-
-  const indexStore = new TupleStore(cosmosConf.stagger.staggerIndex)
-  const [staggerIndexX, staggerIndexY, staggerIndexZ, staggerIndexO] = indexStore.components()
-  indexStore.tuple.subscribe((t) => (cosmosConf.stagger.staggerIndex = t))
-  $: indexStore.update($protoConfig.stagger.staggerIndex)
-
-  const middleStore = new TupleStore(cosmosConf.stagger.staggerMiddle)
-  const [staggerMiddleX, staggerMiddleY, staggerMiddleZ, staggerMiddleO] = middleStore.components()
-  middleStore.tuple.subscribe((t) => (cosmosConf.stagger.staggerMiddle = t))
-  $: middleStore.update($protoConfig.stagger.staggerMiddle)
-
-  const ringStore = new TupleStore(cosmosConf.stagger.staggerRing)
-  const [staggerRingX, staggerRingY, staggerRingZ, staggerRingO] = ringStore.components()
-  ringStore.tuple.subscribe((t) => (cosmosConf.stagger.staggerRing = t))
-  $: ringStore.update($protoConfig.stagger.staggerRing)
-
-  const pinkyStore = new TupleStore(cosmosConf.stagger.staggerPinky)
-  const [staggerPinkyX, staggerPinkyY, staggerPinkyZ, staggerPinkyO] = pinkyStore.components()
-  pinkyStore.tuple.subscribe((t) => (cosmosConf.stagger.staggerPinky = t))
-  $: pinkyStore.update($protoConfig.stagger.staggerPinky)
-*/
   function rearPins(conf: CosmosKeyboard): number {
     if (conf.microcontroller == null) return 0
     return BOARD_PROPERTIES[conf.microcontroller].rearPins || 0
@@ -450,8 +277,10 @@
     return BOARD_PROPERTIES[conf.microcontroller].castellated || false
   }
 
-  $: thumbCluster = $protoConfig.clusters.find((c) => c.name == 'thumbs')!
-  $: fingersCluster = $protoConfig.clusters.find((c) => c.name == 'fingers')!
+  $: rightThumbCluster = $protoConfig.clusters.find((c) => c.name == 'thumbs' && c.side == 'right')!
+  $: leftThumbCluster = $protoConfig.clusters.find((c) => c.name == 'thumbs' && c.side == 'left')
+  $: rightFingersCl = $protoConfig.clusters.find((c) => c.name == 'fingers' && c.side == 'right')!
+  $: leftFingersCl = $protoConfig.clusters.find((c) => c.name == 'fingers' && c.side == 'left')
   $: tempFingersCluster = $tempConfig.clusters.find((c) => c.name == 'fingers')!
 
   const rotationStore = new TupleStore(-1n, 45, true)
@@ -466,6 +295,9 @@
 </script>
 
 <Section name="Upper Keys">
+  <button class="absolute top-0 right-2 button" on:click={() => editJointlySeparately('fingers')}
+    ><Icon path={mdiPencil} />{#if leftFingersCl}Edit Jointly{:else}Edit Separately{/if}</button
+  >
   <Preset on:click={() => setSize(3, 4)} selected={isSize($protoConfig, 3, 4)}>3 × 4</Preset>
   <Preset on:click={() => setSize(4, 5)} selected={isSize($protoConfig, 4, 5)}>4 × 5</Preset>
   <Preset on:click={() => setSize(4, 6)} selected={isSize($protoConfig, 4, 6)}>4 × 6</Preset>
@@ -474,7 +306,6 @@
   <Preset on:click={() => setSize(0, 0)} selected={isSize($protoConfig, 0, 0)}
     ><span class="relative top-[-0.1em]">&empty;</span></Preset
   >
-  <Preset gray on:click={() => goAdvanced()}>+</Preset>
   <Field name="Keycaps" icon="keycap">
     <Select bind:value={$protoConfig.profile} on:change={updateKeycaps}>
       {#each notNull(PROFILE).sort(sortProfiles) as prof}
@@ -571,22 +402,22 @@
   <Preset name="Orbyl" on:click={() => setThumb('orbyl')} selected={isThumb('orbyl')} />
   <Preset name="Curved" on:click={() => setThumb('curved')} selected={isThumb('curved')} />
   <Field name="Row's Curvature" plusminus icon="row-curve">
-    <AngleInput bind:value={thumbCluster.curvature.curvatureA} />
+    <AngleInput bind:value={rightThumbCluster.curvature.curvatureA} />
   </Field>
   <Field name="Column's Curvature" plusminus icon="column-curve">
-    <AngleInput bind:value={thumbCluster.curvature.curvatureB} />
+    <AngleInput bind:value={rightThumbCluster.curvature.curvatureB} />
   </Field>
   {#if !basic}
     <Field name="Horizontal (X) Spacing" icon="expand-horizontal">
       <DecimalInputInherit
-        bind:value={thumbCluster.curvature.horizontalSpacing}
+        bind:value={rightThumbCluster.curvature.horizontalSpacing}
         inherit={$protoConfig.curvature.horizontalSpacing}
         units="mm"
       />
     </Field>
     <Field name="Vertical (Y) Spacing" icon="expand-vertical">
       <DecimalInputInherit
-        bind:value={thumbCluster.curvature.verticalSpacing}
+        bind:value={rightThumbCluster.curvature.verticalSpacing}
         inherit={$protoConfig.curvature.horizontalSpacing}
         units="mm"
       />
@@ -1002,6 +833,13 @@
 
   .preset {
     --at-apply: 'bg-[#99F0DC] dark:bg-gray-900 hover:bg-teal-500 dark:hover:bg-teal-700 dark:text-white py-1 px-4 rounded focus:outline-none border border-transparent focus:border-teal-500 mb-2';
+  }
+
+  .button {
+    --at-apply: 'appearance-none bg-gray-200 dark:bg-gray-900 px-2 py-1 m-1 rounded text-gray-800 dark:text-gray-200 flex items-center  gap-2';
+  }
+  .button:not(:disabled) {
+    --at-apply: 'hover:bg-gray-400 dark:hover:bg-gray-700';
   }
 
   :global(.iconpreset) {

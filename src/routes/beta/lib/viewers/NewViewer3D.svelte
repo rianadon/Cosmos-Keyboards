@@ -33,14 +33,7 @@
   import { keyInfo } from '$lib/geometry/keycaps'
   import { switchInfo } from '$lib/geometry/switches'
   import { KeyMaterial } from '$lib/3d/materials'
-  import {
-    allKeyCriticalPoints,
-    applyKeyAdjustment,
-    keyHolesTrsfs,
-    componentBoxes,
-    componentGeometry,
-    wristRestGeometry,
-  } from '$lib/worker/geometry'
+  import { componentBoxes, componentGeometry } from '$lib/worker/geometry'
   import * as mdi from '@mdi/js'
   import Icon from '$lib/presentation/Icon.svelte'
   import KeyboardMesh from '$lib/3d/KeyboardMesh.svelte'
@@ -67,7 +60,6 @@
     isNthFirstColumn,
     isNthLastColumn,
     type CosmosKeyboard,
-    decodeVariant,
     nthPartVariant,
     encodeVariant,
   } from '$lib/worker/config.cosmos'
@@ -292,7 +284,7 @@
   $: if ($clickedKey != null)
     lrotationStore.update(nthKey($tempConfig, $clickedKey).cluster.rotation || 0n)
 
-  $: floorZ = geometry.right?.floorZ ?? 0
+  // $: floorZ = geometry.right?.floorZ ?? 0
   $: keyIsClicked = $clickedKey == null ? null : nthKey($protoConfig, $clickedKey).key
   $: columnIsClicked = $clickedKey == null ? null : nthKey($protoConfig, $clickedKey).column
   $: clusterIsClicked = $clickedKey == null ? null : nthKey($protoConfig, $clickedKey).cluster
@@ -699,7 +691,7 @@
       </button>
     </div>
     <div
-      class="mhelp absolute right-10 top-0 text-right flex flex-col py-0.5 px-1 gap-0.5 text-purple-950/60 text-sm"
+      class="mhelp absolute right-10 top-0 text-right flex flex-col py-0.5 px-1 gap-0.5 text-purple-950/60 dark:text-pink-300/80 text-sm z-1"
       class:hidden!={popoutShown}
     >
       <div class="line-height-[20px] my-1.5 whitespace-nowrap">Select / Add (q)</div>
@@ -769,33 +761,64 @@
                   >
                 {:else}<span class="fallback">-</span>{/if}
               </Field>
-              <Field small name="Homing">
-                {#if keyIsClicked}<Select
-                    small
-                    bind:value={keyIsClicked.profile.home}
-                    on:change={updateProto}
-                  >
-                    <option value={null}>None</option>
-                    <option value="thumb">Thumb</option>
-                    <option value="index">Index</option>
-                    <option value="middle">Middle</option>
-                    <option value="ring">Ring</option>
-                    <option value="pinky">Pinky</option>
-                  </Select>
-                {:else if keyIsHovered}<span class="fallback">{formatHoming(keyIsHovered)}</span>
-                {:else}<span class="fallback">-</span>{/if}
-              </Field>
-              <Field small name="Letter" icon="letter">
-                {#if keyIsClicked}<input
-                    class="s-input w-[5.4rem] mx-0 px-2"
-                    bind:value={keyIsClicked.profile.letter}
-                    on:change={updateProto}
-                  />
-                {:else if keyIsHovered}<span class="fallback"
-                    >{keyIsHovered.profile.letter || ''}</span
-                  >
-                {:else}<span class="fallback">-</span>{/if}
-              </Field>
+              {#if $clickedKey != null ? nthPartType($protoConfig, $clickedKey, 'key') != 'blank' : $hoveredKey == null || nthPartType($protoConfig, $hoveredKey, 'key') != 'blank'}
+                <Field small name="Homing">
+                  {#if keyIsClicked}<Select
+                      small
+                      bind:value={keyIsClicked.profile.home}
+                      on:change={updateProto}
+                    >
+                      <option value={null}>None</option>
+                      <option value="thumb">Thumb</option>
+                      <option value="index">Index</option>
+                      <option value="middle">Middle</option>
+                      <option value="ring">Ring</option>
+                      <option value="pinky">Pinky</option>
+                    </Select>
+                  {:else if keyIsHovered}<span class="fallback">{formatHoming(keyIsHovered)}</span>
+                  {:else}<span class="fallback">-</span>{/if}
+                </Field>
+                <Field small name="Letter" icon="letter">
+                  {#if keyIsClicked}<input
+                      class="s-input w-[5.4rem] mx-0 px-2"
+                      bind:value={keyIsClicked.profile.letter}
+                      on:change={updateProto}
+                    />
+                  {:else if keyIsHovered}<span class="fallback"
+                      >{keyIsHovered.profile.letter || ''}</span
+                    >
+                  {:else}<span class="fallback">-</span>{/if}
+                </Field>
+              {:else}
+                <Field small name="Width">
+                  {#if keyIsClicked}<DecimalInputInherit
+                      small
+                      inherit={18.5}
+                      bind:value={keyIsClicked.sizeA}
+                      on:change={updateProto}
+                    />
+                  {:else if keyIsHovered}<span
+                      class="fallback"
+                      class:inherit={typeof keyIsHovered.sizeA == 'undefined'}
+                      >{keyIsHovered.sizeA || '18.5'}</span
+                    >
+                  {:else}<span class="fallback">-</span>{/if}
+                </Field>
+                <Field small name="Height">
+                  {#if keyIsClicked}<DecimalInputInherit
+                      small
+                      inherit={18.5}
+                      bind:value={keyIsClicked.sizeB}
+                      on:change={updateProto}
+                    />
+                  {:else if keyIsHovered}<span
+                      class="fallback"
+                      class:inherit={typeof keyIsHovered.sizeB == 'undefined'}
+                      >{keyIsHovered.sizeB || '18.5'}</span
+                    >
+                  {:else}<span class="fallback">-</span>{/if}
+                </Field>
+              {/if}
             </div>
           </div>
           <div class="tab">

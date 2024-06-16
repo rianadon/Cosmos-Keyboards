@@ -19,38 +19,39 @@ async function fetchKeyBy(profile: string, aspect: number, row: number, rotate: 
   return cacher(cacheKey, url, rotate)
 }
 
-export async function keyGeometry(trsf: Trsf, k: CuttleKey) {
-  let key: BufferGeometry
+export async function keyGeometry(k: CuttleKey) {
   if (k.type == 'trackball') {
     return null
   } else if (k.type == 'ec11' || k.type == 'blank' || k.type === 'joystick-joycon-adafruit') {
     return null
   } else if ('keycap' in k && k.keycap) {
     const aspect = closestAspect(k.aspect)
-    key = await fetchKeyBy(k.keycap.profile, aspect, k.keycap.row, k.aspect < 1)
-  } else {
-    return null
+    return await fetchKeyBy(k.keycap.profile, aspect, k.keycap.row, k.aspect < 1)
   }
-  const switchHeight = switchInfo(k.type).height
-  return {
-    geometry: key,
-    key: k,
-    matrix: trsf.pretranslated(0, 0, k.type == 'trackball' ? -2.5 : switchHeight).Matrix4(),
-  }
+  return null
 }
 
-export function keyGeometries(trsfs: Trsf[], keys: CuttleKey[]) {
-  return notNull(trsfs.map((t, i) => keyGeometry(t, keys[i])))
+export async function keyGeometries(trsfs: Trsf[], keys: CuttleKey[]) {
+  const geos = await Promise.all(keys.map(keyGeometry))
+  return notNull(trsfs.map((t, i) =>
+    geos[i]
+      ? {
+        geometry: geos[i]!,
+        key: keys[i],
+        matrix: t.pretranslated(0, 0, switchInfo(keys[i].type).height).Matrix4(),
+      }
+      : null
+  ))
 }
 
-function makeUv(geometry: THREE.BufferGeometry) {
+function makeUv(geometry: BufferGeometry) {
   geometry.computeBoundingBox()
 
   // Find the minimum length of the key
   const bbm = geometry.boundingBox!.max
   const size = Math.min(bbm.x, bbm.y) * 2
 
-  const position = geometry.getAttribute('position') as THREE.BufferAttribute
+  const position = geometry.getAttribute('position') as BufferAttribute
 
   // Project the 3D coordinates onto the Z plane.
   // Scale these values and use them as the UV.

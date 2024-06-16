@@ -95,6 +95,8 @@ export interface SpecificCuttleform<S> {
   fastenMicrocontroller: boolean
   /** Additional height to add to the model. */
   verticalClearance: number
+  /* (Internal use only) Coordinate of the keyboard's bottom. */
+  bottomZ?: number
   clearScrews: boolean
   rounded: {
     side?: {
@@ -183,6 +185,11 @@ interface CuttleBlankKey extends CuttleBaseKey {
 type RoundSize = { radius: number; sides: number }
 interface CuttleTrackballKey extends CuttleBaseKey {
   type: 'trackball'
+  variant: {
+    size: '25mm' | '34mm'
+    bearings: 'Roller' | 'Ball'
+    sensor: 'Joe'
+  }
   size: RoundSize
 }
 
@@ -200,7 +207,10 @@ export function keyRoundSize(key: CuttleKey): RoundSize | undefined {
   switch (key.type) {
     case 'trackball':
       // @ts-ignore: for backwards compatibility.
-      return key.size ?? key.trackball
+      return {
+        sides: key.size?.sides ?? key.trackball?.sides ?? 20,
+        radius: trackballRadius(key.variant),
+      }
     case 'trackpad-cirque':
       return {
         // @ts-ignore: for backwards compatibility.
@@ -598,7 +608,7 @@ export function tupleToXYZ(tuple: bigint) {
   return [decoded[0] / 10, decoded[1] / 10, decoded[2] / 10] as Point
 }
 
-export function cosmosFingers(nRows: number, nCols: number): CosmosCluster[] {
+export function cosmosFingers(nRows: number, nCols: number, side: 'left' | 'right'): CosmosCluster[] {
   let columns = range(0, nCols)
   if (nCols <= 4) columns = range(1, nCols + 1)
   const rows = range(0, nRows)
@@ -623,6 +633,7 @@ export function cosmosFingers(nRows: number, nCols: number): CosmosCluster[] {
   }, 3)
 
   const row2Row = (r: number) => 6 - nRows + r
+  const multiplier = side == 'left' ? -1 : 1
 
   const cosmosCols: CosmosCluster[] = columns.map(column => ({
     name: 'fingers',
@@ -632,7 +643,7 @@ export function cosmosFingers(nRows: number, nCols: number): CosmosCluster[] {
     profile: undefined,
     partType: usesWidePinky(column) ? { aspect: pinkySize } : {},
     clusters: [],
-    column: column - centerCol + (usesWidePinky(column) ? (pinkySize - 1) / 2 : 0),
+    column: multiplier * (column - centerCol + (usesWidePinky(column) ? (pinkySize - 1) / 2 : 0)),
     keys: rows.filter(row => row != lastRow || [2, 3].includes(column)).map(row => ({
       partType: {},
       profile: {
@@ -1493,6 +1504,12 @@ function cirqueRadius(variant: CuttleCirqueKey['variant']) {
   throw new Error('Unknown trackpad size ' + variant.size)
 }
 
+function trackballRadius(variant: CuttleTrackballKey['variant']) {
+  if (variant.size == '25mm') return 16.4
+  if (variant.size == '34mm') return 20.9
+  throw new Error('Unknown trackpad size ' + variant.size)
+}
+
 export type Geometry = BaseGeometry<Cuttleform>
 
 export function newGeometry(c: Cuttleform): Geometry {
@@ -1514,4 +1531,12 @@ export function newFullGeometry(c: FullCuttleform): FullGeometry {
   if (c.right) geo.right = newGeometry(c.right)
   if (c.unibody) geo.unibody = newGeometry(c.unibody)
   return geo
+}
+
+export function setBottomZ(conf: FullCuttleform) {
+  if (conf.left && conf.right) {
+    const botLeft = newGeometry(conf.left).bottomZ
+    const botRight = newGeometry(conf.right).bottomZ
+    conf.left.bottomZ = conf.right.bottomZ = Math.min(botLeft, botRight)
+  }
 }
