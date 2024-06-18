@@ -1,5 +1,5 @@
 import adapter from '@sveltejs/adapter-static'
-import { vitePreprocess } from '@sveltejs/kit/vite'
+import { vitePreprocess } from '@sveltejs/vite-plugin-svelte'
 import { preprocessor as documentPreprocessor } from '@sveltekit-addons/document'
 import seqPreprocessor from 'svelte-sequential-preprocessor'
 
