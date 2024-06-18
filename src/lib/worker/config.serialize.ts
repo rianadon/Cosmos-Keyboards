@@ -55,8 +55,29 @@ export function decodePartType(type: number): PartType {
 }
 
 // ----------  PROFILES ----------
-const LETTERS = ['F6', '6', 'y', 'h', 'n', '{', 'F7', '7', 'u', 'j', 'm', '}', 'F8', '8', 'i', 'k', ',', '[', 'F9', '9', 'o', 'l', '.', ']', 'F10', '0', 'p', ';', '/', '\\']
-const INFERRED_HOMING = { [LETTERS.indexOf('j')]: 'index', [LETTERS.indexOf('k')]: 'middle', [LETTERS.indexOf('l')]: 'ring', [LETTERS.indexOf(';')]: 'pinky' } as const
+// dprint-ignore
+const LETTERS = [
+  'F1', '1', 'q', 'a', 'z', '+',
+  'F2', '2', 'w', 's', 'x', '-',
+  'F3', '3', 'e', 'd', 'c', '=',
+  'F4', '4', 'r', 'f', 'v', ',',
+  'F5', '5', 't', 'g', 'b', '.',
+  'F6', '6', 'y', 'h', 'n', '{',
+  'F7', '7', 'u', 'j', 'm', '}',
+  'F8', '8', 'i', 'k', ',', '[',
+  'F9', '9', 'o', 'l', '.', ']',
+  'F10', '0', 'p', ';', '/', '\\'
+]
+const INFERRED_HOMING = {
+  [LETTERS.indexOf('f')]: 'index',
+  [LETTERS.indexOf('d')]: 'middle',
+  [LETTERS.indexOf('s')]: 'ring',
+  [LETTERS.indexOf('a')]: 'pinky',
+  [LETTERS.indexOf('j')]: 'index',
+  [LETTERS.indexOf('k')]: 'middle',
+  [LETTERS.indexOf('l')]: 'ring',
+  [LETTERS.indexOf(';')]: 'pinky',
+} as const
 
 export function encodeProfile(p: Partial<Profile>) {
   let row = p.row ?? 1
@@ -108,7 +129,7 @@ const KEYBOARD_DEFAULTS: Keyboard = {
   microcontroller: encodeMicrocontroller({ microcontroller: 'kb2040-adafruit', fastenMicrocontroller: true }),
   roundedFlags: encodeRoundedFlags({ side: false, top: false }),
   keyboardFlags: encodeKeyboardFlags({ wrEnable: true, unibody: false }),
-  wristRestPosition: encodeTuple([100, -1000, 0]),
+  wristRestPosition: encodeTuple([1000, -1000, 0]),
   cluster: [],
   shell: {
     oneofKind: 'basicShell',
@@ -128,6 +149,7 @@ const KEYBOARD_EXTRA_DEFAULTS: KeyboardExtra = {
   wristRestMaxWidth: 1000,
   wristRestTenting: 270,
   wristRestSlope: 225,
+  connectorIndex: -10,
 }
 
 export function decodeShell(shell: Keyboard['shell']): Cuttleform['shell'] {
@@ -272,6 +294,7 @@ export function decodeConfigIdk(b64: string): CosmosKeyboard {
       slope: keebExtra.wristRestSlope / 45,
     },
     wristRestPosition: keeb.wristRestPosition,
+    connectorIndex: keebExtra.connectorIndex / 10,
     clusters: keeb.cluster.map(clusterA => {
       return {
         ...decodeClusterFlags(clusterA.idType ?? 0),
@@ -496,6 +519,7 @@ export function encodeCosmosConfig(conf: CosmosKeyboard): Keyboard {
       wristRestTenting: Math.round(conf.wristRestProps.tenting * 45),
       wristRestMaxWidth: Math.round(conf.wristRestProps.maxWidth * 10),
       wristRestSlope: Math.round(conf.wristRestProps.slope * 45),
+      connectorIndex: Math.round(conf.connectorIndex * 10),
     },
   }
 }

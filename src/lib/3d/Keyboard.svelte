@@ -3,7 +3,7 @@
   import { isWarning, type ConfError } from '$lib/worker/check'
   import KeyboardKey from './KeyboardKey.svelte'
   import GroupMatrix from './GroupMatrix.svelte'
-  import type { Geometry } from '$lib/worker/config'
+  import type { CuttleKey, Geometry } from '$lib/worker/config'
   import * as flags from '$lib/flags'
   import type { KeyStatus } from './keyboardKey'
   import { keyGeometry } from '$lib/loaders/keycaps'
@@ -44,40 +44,51 @@
 </script>
 
 {#if transparency != 0 && !$showKeyInts && geometry && !flags.intersection}
-  {#each geometry.keyHolesTrsfs as trsf, i}
+  {#each geometry.keyHolesTrsfs as trsf, i (i + ' ' + geometry.c.keys[i].keycap?.letter)}
     {@const key = geometry.c.keys[i]}
     <GroupMatrix matrix={trsf.pretranslated(0, 0, switchInfo(key.type).height).Matrix4()}>
       {@const letter = 'keycap' in key && key.keycap ? key.keycap.letter : undefined}
-      <KeyboardKey
-        index={nthIndex($protoConfig, side, i)}
-        opacity={transparency / 100}
-        brightness={1}
-        letter={flip ? flippedKey(letter) : letter}
-        status={keyStatus(reachability, $confError, i)}
+      <T.Group
         position={[0, 0, pressedLetter && letter === pressedLetter ? translation : 0]}
-        renderOrder={5}
-        {flip}
+        scale.x={flip ? -1 : 1}
       >
-        {#await keyGeometry(key) then k}
-          <T is={k} />
-        {/await}
-      </KeyboardKey>
+        <KeyboardKey
+          index={nthIndex($protoConfig, side, i)}
+          opacity={transparency / 100}
+          brightness={1}
+          {letter}
+          status={keyStatus(reachability, $confError, i)}
+          renderOrder={5}
+        >
+          {#await keyGeometry(key) then k}
+            {#if k}
+              <T is={k} />
+            {/if}
+          {/await}
+        </KeyboardKey>
+      </T.Group>
     </GroupMatrix>
     <GroupMatrix matrix={trsf.Matrix4()}>
-      <KeyboardKey
-        index={nthIndex($protoConfig, side, i)}
-        opacity={key.type == 'blank' ? Math.max(0, (transparency - 50) / 200) : transparency / 100}
-        brightness={0.7}
-        status={partStatus($confError, i)}
-      >
-        {#if key.type == 'blank'}
-          <T.BoxGeometry args={[key.size.width ?? 18.5, key.size.height ?? 18.5, 1]} />
-        {:else}
-          {#await partGeometry(key.type, key.variant) then geo}
-            <T is={geo} />
-          {/await}
-        {/if}
-      </KeyboardKey>
+      <T.Group scale.x={flip ? -1 : 1}>
+        <KeyboardKey
+          index={nthIndex($protoConfig, side, i)}
+          opacity={key.type == 'blank'
+            ? Math.max(0, (transparency - 50) / 200)
+            : transparency / 100}
+          brightness={0.7}
+          status={partStatus($confError, i)}
+        >
+          {#if key.type == 'blank'}
+            <T.BoxGeometry args={[key.size.width ?? 18.5, key.size.height ?? 18.5, 1]} />
+          {:else}
+            {#await partGeometry(key.type, key.variant) then geo}
+              {#if geo}
+                <T is={geo} />
+              {/if}
+            {/await}
+          {/if}
+        </KeyboardKey>
+      </T.Group>
     </GroupMatrix>
   {/each}
 {/if}

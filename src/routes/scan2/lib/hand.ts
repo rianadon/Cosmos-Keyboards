@@ -50,6 +50,7 @@
  * Copyright (C) 2023 rianadon. See the LICENSE file for the license.
  */
 
+import { sum } from '$lib/worker/util'
 import type { LandmarkList, NormalizedLandmarkList } from '@mediapipe/hands'
 import { SVD } from 'svd-js'
 import { Euler, Matrix4, Quaternion, Vector3, type Vector3Tuple } from 'three'
@@ -389,6 +390,13 @@ export class SolvedHand {
       pos.z = 0
       return pos.angleTo(new Vector3(1, 0, 0))
     })
+  }
+
+  approximateCurl() {
+    const nonThumbs = FINGERS.filter(f => f != 'thumb')
+    const fingerCurls = nonThumbs.map(f => sum(this.deg1Angles(f)))
+    const averageCurl = sum(fingerCurls) / nonThumbs.length
+    return averageCurl * 180 / Math.PI
   }
 
   decomposeAngles(finger: Finger) {

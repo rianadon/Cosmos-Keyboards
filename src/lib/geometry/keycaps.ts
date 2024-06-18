@@ -85,7 +85,13 @@ export function keyInfo(k: CuttleKey) {
   return KEY_INFO[k.keycap.profile][k.keycap.row]
 }
 
-const FLIPPED_KEY = { 0: 1, 9: 2, 8: 3, 7: 4, 6: 5, p: 'q', o: 'w', i: 'e', u: 'r', y: 't', ';': 'a', l: 's', k: 'd', j: 'f', h: 'g', '/': 'z', '.': 'x', ',': 'c', 'm': 'v', n: 'b' }
+// dprint-ignore
+const FLIPPED_KEY: Record<string, string> = {
+  0: '1', 9: '2', 8: '3', 7: '4', 6: '5',
+  p: 'q', o: 'w', i: 'e', u: 'r', y: 't',
+  ';': 'a', l: 's', k: 'd', j: 'f', h: 'g',
+  '/': 'z', '.': 'x', ',': 'c', 'm': 'v', n: 'b',
+}
 for (const k of Object.keys(FLIPPED_KEY)) FLIPPED_KEY[FLIPPED_KEY[k]] = k
 
 export function flippedKey(letter: string | undefined) {

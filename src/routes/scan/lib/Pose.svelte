@@ -9,7 +9,7 @@
     BufferGeometry,
     Vector4,
   } from 'three'
-  import { mergeBufferGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils'
+  import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils'
   import PoseCanvas from './PoseCanvas.svelte'
   import { recording } from './state'
 
@@ -48,7 +48,7 @@
 
         const geometry = pointCloudGeo(solvedJ.worldPositions(finger)[4])
         const prevCloud = pointCloud[finger]
-        pointCloud[finger] = prevCloud ? mergeBufferGeometries([prevCloud, geometry]) : geometry
+        pointCloud[finger] = prevCloud ? mergeGeometries([prevCloud, geometry]) : geometry
 
         solvedJ.fromLimbs(finger, hand.limbs[finger], true)
         averageRotations[finger].add(new Vector4(...solvedJ.deg1Angles(finger)))

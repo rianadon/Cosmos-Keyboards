@@ -6,17 +6,18 @@
   export let supersmall = false
   export let units = ''
   export let divisor = 10
+  export let multiplier = 1
   let clazz = ''
 
   export { clazz as class }
   const dispatch = createEventDispatcher()
 
   $: rounding = divisor == 100 ? 100 : 10
-  $: rounded = Math.round(value * rounding) / rounding
+  $: rounded = (Math.round(value * rounding) / rounding) * multiplier
 
   function onChange(e: Event) {
-    value = Math.round(divisor * (e.target! as any).value) / divisor
-    dispatch('change')
+    value = Math.round((divisor * (e.target! as any).value) / multiplier) / divisor
+    dispatch('change', value)
   }
 </script>
 

@@ -12,7 +12,8 @@ export function getSize(c: CosmosKeyboard, side: 'left' | 'right') {
 }
 
 export function setClusterSize(keyboard: CosmosKeyboard, side: 'left' | 'right', rows: number, cols: number) {
-  const originalSize = getSize(keyboard, side)!
+  const originalSize = getSize(keyboard, side)
+  if (!originalSize) return
   const originalThumb = approximateCosmosThumbOrigin(originalSize.rows, originalSize.cols)
   if (side == 'left') originalThumb.x *= -1
   const fingers = keyboard.clusters.find((c) => c.name == 'fingers' && c.side == side)

@@ -6,6 +6,7 @@
   export let units = ''
   export let divisor = 10
   export let inherit: number | undefined
+  export let noColor = false
   let clazz = ''
 
   export { clazz as class }
@@ -25,7 +26,7 @@
   <div class="relative">
     <input
       class="input {clazz ? clazz : small ? 'w-[5.4rem]' : 'w-44'}"
-      class:text-yellow!={typeof value === 'undefined'}
+      class:text-yellow!={!noColor && typeof value === 'undefined'}
       type="number"
       value={rounded}
       step="0.1"
@@ -36,7 +37,7 @@
 {:else}
   <input
     class="input {clazz ? clazz : small ? 'w-[5.4rem]' : 'w-44'}"
-    class:text-yellow!={typeof value === 'undefined'}
+    class:text-yellow!={!noColor && typeof value === 'undefined'}
     type="number"
     value={rounded}
     step="0.1"

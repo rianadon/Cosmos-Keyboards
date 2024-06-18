@@ -1,38 +1,50 @@
 <script lang="ts">
   import type { SolvedHand } from './hand'
-  import { Three } from '@threlte/core'
-  import { useGltf } from '@threlte/extras'
-  import handModel from '../hand.glb?url'
-  import { Euler, Matrix4, MeshStandardMaterial, type Vector3Tuple } from 'three'
+  import { type GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
+  import handModel from '$assets/hand.glb?url'
+  import { Euler, Matrix4, Mesh, MeshNormalMaterial, Object3D, type Vector3Tuple } from 'three'
+  import { T } from '@threlte/core'
 
   export let scale = 6.67
   export let reverse = false
   export let position: Vector3Tuple = [0, 0, 0]
+  export let rotation: Vector3Tuple = [0, 0, 0]
 
   export let hand: SolvedHand
+  let handNodes: Record<string, Object3D>
 
-  const handMesh = useGltf(handModel).gltf
+  const loader = new GLTFLoader()
+  loader.loadAsync(handModel).then((m) => (handNodes = buildSceneGraph(m)))
 
-  $: if ($handMesh) {
+  function buildSceneGraph(g: GLTF) {
+    const nodes: Record<string, Object3D> = {}
+    g.scene.traverse((obj) => (nodes[obj.name] = obj))
+    return nodes
+  }
+
+  $: if (handNodes) {
+    // console.log(handMesh.nodes.Hand.material)
+    // handMesh.nodes.Hand.material = new KeyMaterial(1, 1, 'frost')
+    // handMesh.nodes.Hand.material = new KeyMaterial(1, 1, 'frost')
+    ;(handNodes.Hand as Mesh).material = new MeshNormalMaterial({ transparent: true, opacity: 0.9 })
     const baseMatrix = new Matrix4().makeRotationFromEuler(new Euler(-Math.PI / 2, 0, -Math.PI / 2))
     if (reverse) baseMatrix.premultiply(new Matrix4().makeScale(1, 1, -1))
 
-    Object.entries(hand.localTransforms(baseMatrix, 100 / scale)).forEach(
+    Object.entries(hand.localTransforms(baseMatrix, 1000 / scale)).forEach(
       ([finger, transforms]) => {
         transforms.forEach((matrix, i) => {
-          const node = $handMesh!.nodes[finger + i]
+          const node = handNodes[finger + i]
           matrix.decompose(node.position, node.quaternion, node.scale)
         })
       }
     )
   }
-  $: if ($handMesh) $handMesh!.nodes.Hand.material = new MeshStandardMaterial({ color: 0x1e293b })
+
+  $: if (handNodes) {
+    handNodes.Hand_Armature.rotation.set(rotation[0] || 0, rotation[1] || 0, rotation[2] || 0)
+  }
 </script>
 
-{#if $handMesh}
-  <Three
-    type={$handMesh.nodes['Hand_Armature']}
-    scale={[scale, scale, reverse ? -scale : scale]}
-    {position}
-  />
+{#if handNodes}
+  <T is={handNodes['Hand_Armature']} scale={[scale, scale, reverse ? -scale : scale]} {position} />
 {/if}

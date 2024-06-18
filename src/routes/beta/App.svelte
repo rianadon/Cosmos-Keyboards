@@ -30,6 +30,7 @@
   import { serialize, deserialize } from './lib/serialize'
   import { WorkerPool, type TaskError } from './lib/workerPool'
   import {
+    fullEstimatedCenter,
     newFullGeometry,
     newGeometry,
     setBottomZ,
@@ -45,7 +46,6 @@
   import { additionalHeight, estimatedCenter } from '$lib/worker/geometry'
   import {
     codeError,
-    flip,
     protoConfig,
     user,
     theme,
@@ -57,38 +57,42 @@
     noBase,
     tempConfig,
     confError,
+    view,
   } from '$lib/store'
   import { onDestroy } from 'svelte'
   import { browser } from '$app/environment'
   import { hasPro } from '@pro'
   import ViewerDev from './lib/viewers/ViewerDev.svelte'
   import DownloadDialog from './lib/dialogs/DownloadDialog.svelte'
-  import { decodeConfigIdk } from '$lib/worker/config.serialize'
   import { fromCosmosConfig } from '$lib/worker/config.cosmos'
-  import KMesh from '$lib/3d/KeyboardMeshBetter.svelte'
   import KeyboardModel from '$lib/3d/KeyboardModel.svelte'
-  import type { ShapeMesh } from 'replicad'
-  import Keyboard from '$lib/3d/Keyboard.svelte'
-  import Microcontroller from '$lib/3d/Microcontroller.svelte'
   import {
     kbdOffset,
     type FullGeometry,
     type FullKeyboardMeshes,
   } from './lib/viewers/viewer3dHelpers'
-  import { notNull, objKeys } from '$lib/worker/util'
+  import { objEntriesNotNull, objKeys } from '$lib/worker/util'
   import { T } from '@threlte/core'
-  import type { ProcessPool } from 'src/model_gen/processPool'
+  import Checkbox from '$lib/presentation/Checkbox.svelte'
 
-  let center = [-35.510501861572266, -17.58449935913086, 35.66889877319336] as [
+  const DEF_CENTER = [-35.510501861572266, -17.58449935913086, 35.66889877319336] as [
     number,
     number,
     number
   ]
+  let centers = {
+    left: DEF_CENTER,
+    both: [0, DEF_CENTER[1], DEF_CENTER[2]] as [number, number, number],
+    right: DEF_CENTER,
+  }
+  $: center = centers[$view]
   let size = new Vector3(140, 120, 100)
   let filament: FilamentEstimate | undefined
   let referenceElement
   let referenceElementTools: HTMLButtonElement
+  let referenceElementPrefs: HTMLButtonElement
   let darkMode: boolean
+  let prefsOpen: boolean
 
   let proOpen = false
   let editorContent: string
@@ -213,10 +217,17 @@
     cutPlatePromise: pool.execute((w) => w.generatePlate(conf, true), 'Full Plate'),
   })
 
+  function updateCenters(config: FullCuttleform, geo: FullGeometry) {
+    centers = fullEstimatedCenter(geo)
+    center = centers[$view]
+  }
+
   let oldTempConfig: FullCuttleform | null = null
   let oldConfig: FullCuttleform | null = null
   async function process(conf: FullCuttleform, full: boolean) {
-    const kbdNames = objKeys(conf).filter((k) => !!conf[k])
+    const kbdNames = objKeys(conf)
+      .filter((k) => !!conf[k])
+      .sort((a, b) => b.localeCompare(a)) // Make sure right keyboard comes first
     if (oldConfig && geometry && full) {
       console.log('PROCESSING')
       const differences = areDifferent2(oldConfig, conf)
@@ -231,7 +242,7 @@
         try {
           ocError = undefined
           generatorProgress = 0.5
-          // center = estimatedCenter(geometry, config.wristRest)
+          updateCenters(config, geometry)
           const wristMeshes = await Promise.all(
             kbdNames.map((k) => pool.executeNow((w) => w.generateWristRest(conf[k]!), 'Wrist Rest'))
           )
@@ -262,13 +273,13 @@
     geometry = newGeo
     microcontrollerGeometry = newGeo
     console.log('GENERATING. conf incoming', conf)
-    let err: ConfError | undefined
+    let originalErr: ConfError | undefined
     for (const kbd of kbdNames) {
-      err = checkConfig(conf[kbd]!, newGeo[kbd]!, full, kbd)
-      if (err) break
+      originalErr = checkConfig(conf[kbd]!, newGeo[kbd]!, full, kbd)
+      if (originalErr) break
     }
-    confError.set(err)
-    if (err) return
+    confError.set(originalErr)
+    if (originalErr) return
 
     // Reset the state
     ocError = undefined
@@ -285,10 +296,7 @@
         !flags.fast && full ? kbdNames.map((k) => calcOtherPromises(conf[k]!, k)) : []
 
       if (full) {
-        center = estimatedCenter(
-          newGeo.right ?? newGeo.unibody!,
-          !!(config.right ?? config.unibody!).wristRest
-        )
+        updateCenters(config, newGeo)
         generatorProgress = 0.1
       }
       const quickResults = await Promise.all(quickPromises)
@@ -339,7 +347,8 @@
             continue
           }
           if (finished.prom == otherPromises[finished.i].intersectionsPromise) {
-            confError.set(result)
+            if (!originalErr) confError.set(result)
+            originalErr = result
           } else if (finished.prom == otherPromises[finished.i].holderPromise) {
             if (conf[finished.kbd]!.microcontroller) meshes[finished.kbd]!.holderBuf = result.mesh
           } else if (finished.prom == otherPromises[finished.i].screwPromise) {
@@ -392,6 +401,10 @@
     }
     mode = newMode
   }
+
+  $: keyboardEntries = objEntriesNotNull(meshes).filter(
+    ([s, v]) => s == 'unibody' || $view == 'both' || $view == s
+  )
 </script>
 
 <svelte:window on:popstate={onHashChange} />
@@ -499,13 +512,59 @@
             on:click={() => ($showHand = !$showHand)}
             selected={$showHand}><Icon path={mdi.mdiHandBackRightOutline} /></Preset
           >{/if}
-        <Preset purple square class="relative z-10 !px-2" on:click={() => ($flip = !$flip)}
-          ><Icon path={mdi.mdiFlipHorizontal} /></Preset
+        <Preset
+          purple
+          square
+          class="relative z-10 !px-2"
+          bind:button={referenceElementPrefs}
+          on:click={() => (prefsOpen = !prefsOpen)}
+          selected={prefsOpen}><Icon path={mdi.mdiCogOutline} /></Preset
         >
+      </div>
+      <div style="--z-index: 50">
+        <Popover
+          referenceElement={referenceElementPrefs}
+          placement="bottom-end"
+          spaceAway={4}
+          bind:isOpen={prefsOpen}
+        >
+          <div
+            class="bg-gray-100/80 dark:bg-gray-900/80 backdrop-blur-md px-2 py-1 mr-[-.5rem] rounded-2 text-small"
+            in:fade={{ duration: 50 }}
+            out:fade={{ duration: 150 }}
+          >
+            <div>
+              <button
+                title="View Left Side Only"
+                class="basicbutton px-2 rounded-l"
+                on:click={() => ($view = 'left')}
+                class:selected={$view == 'left'}><Icon name="kb-left" /></button
+              >
+              <button
+                title="View Both Sides"
+                class="basicbutton px-2"
+                on:click={() => ($view = 'both')}
+                class:selected={$view == 'both'}><Icon name="kbs" /></button
+              >
+              <button
+                title="View Right Side Only"
+                class="basicbutton px-2 rounded-r"
+                on:click={() => ($view = 'right')}
+                class:selected={$view == 'right'}><Icon name="kb-right" /></button
+              >
+            </div>
+            <label class="flex items-center my-2">
+              <Checkbox small purple basic bind:value={$noWall} /> Hide Wall
+            </label>
+            <label class="flex items-center my-2">
+              <Checkbox small purple basic bind:value={$noBase} /> Hide Base
+            </label>
+          </div>
+        </Popover>
       </div>
       <div class="xl:hidden" style="--z-index: 50">
         <Popover
-          triggerEvents={['click', 'focus']}
+          triggerEvents={['click']}
           referenceElement={referenceElementTools}
           placement="bottom-end"
           spaceAway={4}
@@ -555,21 +614,18 @@
           {center}
           bind:showFit
           enableZoom={true}
-          flip={$flip}
           showHand={$showHand}
           progress={generatorProgress}
         >
-          {#each notNull(Object.values(meshes)) as mesh, i}
-            <T.Group
-              position.x={kbdOffset(objKeys(meshes)[i])}
-              scale.x={objKeys(meshes)[i] == 'left' ? -1 : 1}
-            >
+          {#each keyboardEntries as [kbd, mesh]}
+            <T.Group position.x={kbdOffset(kbd)} scale.x={kbd == 'left' ? -1 : 1}>
               <KeyboardModel
+                side={kbd}
                 {hideWall}
                 {transparency}
                 {showSupports}
-                geometry={geometry[objKeys(meshes)[i]]}
-                microcontrollerGeometry={microcontrollerGeometry[objKeys(meshes)[i]]}
+                geometry={geometry[kbd]}
+                microcontrollerGeometry={microcontrollerGeometry[kbd]}
                 meshes={mesh}
               />
             </T.Group>
@@ -577,51 +633,32 @@
         </Viewer3D>
       {:else if viewer == 'thick'}
         <Thick3D
-          geometry={isRenderable($confError) ? geometry.right : undefined}
-          is3D
+          geometry={isRenderable($confError) ? geometry : undefined}
           {center}
           enableZoom={true}
-          flip={$flip}
           {darkMode}
         >
-          {#each notNull(Object.values(meshes)) as mesh, i}
-            <T.Group
-              position.x={kbdOffset(objKeys(meshes)[i])}
-              scale.x={objKeys(meshes)[i] == 'left' ? -1 : 1}
-            >
+          {#each keyboardEntries as [kbd, mesh]}
+            <T.Group position.x={kbdOffset(kbd)} scale.x={kbd == 'left' ? -1 : 1}>
               <KeyboardModel
+                side={kbd}
                 noWeb
                 {hideWall}
                 {transparency}
                 {showSupports}
-                geometry={geometry[objKeys(meshes)[i]]}
-                microcontrollerGeometry={microcontrollerGeometry[objKeys(meshes)[i]]}
+                geometry={geometry[kbd]}
+                microcontrollerGeometry={microcontrollerGeometry[kbd]}
                 meshes={mesh}
               />
             </T.Group>
           {/each}
         </Thick3D>
       {:else if viewer == 'top'}
-        <ViewerLayout
-          geometry={geometry.right}
-          {darkMode}
-          conf={config?.right ?? config?.unibody}
-          confError={$confError}
-        />
+        <ViewerLayout {geometry} {darkMode} conf={config} confError={$confError} />
       {:else if viewer == 'programming'}
-        <ViewerMatrix
-          geometry={geometry.right}
-          {darkMode}
-          conf={config?.right ?? config?.unibody}
-          confError={$confError}
-        />
+        <ViewerMatrix {geometry} {darkMode} conf={config} confError={$confError} />
       {:else if viewer == 'board'}
-        <ViewerBottom
-          geometry={geometry.right}
-          {darkMode}
-          conf={config?.right ?? config?.unibody}
-          confError={$confError}
-        />
+        <ViewerBottom {geometry} {darkMode} confError={$confError} />
       {:else if viewer == 'timing'}
         <ViewerTiming {pool} {darkMode} />
       {:else if viewer == 'dev'}
@@ -1011,6 +1048,13 @@
     --at-apply: 'bg-purple-100 dark:bg-gray-900/50 hover:bg-purple-200 dark:hover:bg-pink-900/70 rounded px-4 py-1 focus:outline-none border border-transparent focus:border-pink-500';
   }
 
+  .basicbutton {
+    --at-apply: 'bg-purple-100 dark:bg-gray-900/50 hover:bg-purple-200 dark:hover:bg-pink-900/70 py-1 focus:outline-none border border-transparent focus:border-pink-500';
+  }
+  .basicbutton.selected {
+    --at-apply: 'bg-purple-400 dark:bg-pink-700';
+  }
+
   .errorMsg {
     --at-apply: 'absolute text-white m-4 right-[80px] rounded p-4 top-[5%] flex z-40';
   }
@@ -1022,5 +1066,42 @@
   }
   .errorMsg.expand.custom {
     --at-apply: 'top-[20%] left-0';
+  }
+
+  input[type='range'] {
+    --at-apply: 'appearance-none bg-transparent';
+  }
+
+  input[type='range']::-moz-range-track {
+    --at-apply: 'appearance-none bg-[#EFE8FF] dark:bg-slate-900 h-2 rounded';
+  }
+
+  input[type='range']::-webkit-slider-runnable-track {
+    --at-apply: 'appearance-none bg-[#EFE8FF] dark:bg-slate-900 h-2 rounded';
+  }
+
+  input[type='range']::-moz-range-thumb {
+    --at-apply: 'appearance-none w-6 h-6 bg-purple-300 dark:bg-pink-600 rounded-full border-transparent';
+    --at-apply: "bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSIxLjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTMuOSA4LjIgMyAxOC40QzMgMTguOCAzIDE5LjIgMy4yIDE5LjVMMy40IDE5LjlBMiAyIDAgMDA1LjIgMjFIMTguOEEyIDIgMCAwMDIwLjYgMTkuOUwyMC44IDE5LjVDMjAuOSAxOS4yIDIxIDE4LjggMjEgMTguNEwyMC4xIDguMkE0IDQgMCAwMDE5LjMgNi4xTDE3IDNTMTQgMy41IDEyIDMuNSA3IDMgNyAzTDQuNyA2LjFBNCA0IDAgMDAzLjkgOC4yWk03IDNzMyAuNSA1IC41IDUtLjUgNS0uNWwxIDlzLTMgMS02IDEtNi0xLTYtMWwxLTl6TTYgMTJsLTIuNSA4TTE4IDEybDIuNSA4Ii8+PC9zdmc+')]";
+    --at-apply: "dark:bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTMuOSA4LjIgMyAxOC40QzMgMTguOCAzIDE5LjIgMy4yIDE5LjVMMy40IDE5LjlBMiAyIDAgMDA1LjIgMjFIMTguOEEyIDIgMCAwMDIwLjYgMTkuOUwyMC44IDE5LjVDMjAuOSAxOS4yIDIxIDE4LjggMjEgMTguNEwyMC4xIDguMkE0IDQgMCAwMDE5LjMgNi4xTDE3IDNTMTQgMy41IDEyIDMuNSA3IDMgNyAzTDQuNyA2LjFBNCA0IDAgMDAzLjkgOC4yWk03IDNzMyAuNSA1IC41IDUtLjUgNS0uNWwxIDlzLTMgMS02IDEtNi0xLTYtMWwxLTl6TTYgMTJsLTIuNSA4TTE4IDEybDIuNSA4Ii8+PC9zdmc+')]";
+    background-size: 1.3rem 1.3rem;
+    background-position: center 40%;
+    background-repeat: no-repeat;
+  }
+
+  input[type='range']::-webkit-slider-thumb {
+    --at-apply: 'appearance-none w-6 h-6 bg-purple-300 dark:bg-pink-600 rounded-full border-transparent mt--2';
+    --at-apply: "bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSIxLjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTMuOSA4LjIgMyAxOC40QzMgMTguOCAzIDE5LjIgMy4yIDE5LjVMMy40IDE5LjlBMiAyIDAgMDA1LjIgMjFIMTguOEEyIDIgMCAwMDIwLjYgMTkuOUwyMC44IDE5LjVDMjAuOSAxOS4yIDIxIDE4LjggMjEgMTguNEwyMC4xIDguMkE0IDQgMCAwMDE5LjMgNi4xTDE3IDNTMTQgMy41IDEyIDMuNSA3IDMgNyAzTDQuNyA2LjFBNCA0IDAgMDAzLjkgOC4yWk03IDNzMyAuNSA1IC41IDUtLjUgNS0uNWwxIDlzLTMgMS02IDEtNi0xLTYtMWwxLTl6TTYgMTJsLTIuNSA4TTE4IDEybDIuNSA4Ii8+PC9zdmc+')]";
+    --at-apply: "dark:bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTMuOSA4LjIgMyAxOC40QzMgMTguOCAzIDE5LjIgMy4yIDE5LjVMMy40IDE5LjlBMiAyIDAgMDA1LjIgMjFIMTguOEEyIDIgMCAwMDIwLjYgMTkuOUwyMC44IDE5LjVDMjAuOSAxOS4yIDIxIDE4LjggMjEgMTguNEwyMC4xIDguMkE0IDQgMCAwMDE5LjMgNi4xTDE3IDNTMTQgMy41IDEyIDMuNSA3IDMgNyAzTDQuNyA2LjFBNCA0IDAgMDAzLjkgOC4yWk03IDNzMyAuNSA1IC41IDUtLjUgNS0uNWwxIDlzLTMgMS02IDEtNi0xLTYtMWwxLTl6TTYgMTJsLTIuNSA4TTE4IDEybDIuNSA4Ii8+PC9zdmc+')]";
+    background-size: 1.2rem 1.2rem;
+    background-position: center 40%;
+    background-repeat: no-repeat;
+  }
+
+  input[type='range']::-moz-range-thumb:hover {
+    --at-apply: 'bg-purple-400 dark:bg-pink-800';
+  }
+  input[type='range']::-webkit-slider-thumb:hover {
+    --at-apply: 'bg-purple-400 dark:bg-pink-800';
   }
 </style>

@@ -36,6 +36,7 @@
   } from '$lib/geometry/microcontrollers'
   import {
     fromCosmosConfig,
+    mirrorCluster,
     toCosmosConfig,
     type CosmosKeyboard,
     type PartType,
@@ -73,7 +74,7 @@
 
   let lastMicrocontroller: MicrocontrollerName = 'kb2040-adafruit'
   let lastConnector: ConnectorType = 'trrs'
-  let lastScrews: number[] = [-1, -1, -1, -1, -1, -1]
+  let lastScrews: number[] = [-1, -1, -1, -1, -1, -1, -1]
 
   function setSize(rows: number, cols: number) {
     const originalSize = getSize($protoConfig, 'right')!
@@ -186,17 +187,20 @@
     })
   }
 
-  function editJointlySeparately(cluster: 'fingers' | 'thumb') {
+  function editJointlySeparately(cluster: 'fingers' | 'thumbs') {
     protoConfig.update((proto) => {
       const secondCluster = proto.clusters.find((c) => c.side == 'left' && c.name == cluster)
       if (secondCluster) {
         if (confirm('This will overwrite the left side of the keyboard with the right. Continue?'))
           proto.clusters.splice(proto.clusters.indexOf(secondCluster), 1)
       } else {
-        proto.clusters.push(
-          mirrorCluster(proto.clusters.find((c) => c.side == 'right' && c.name == cluster))
+        proto.clusters.splice(
+          cluster == 'fingers' ? 2 : 3,
+          0,
+          mirrorCluster(proto.clusters.find((c) => c.side == 'right' && c.name == cluster)!)
         )
       }
+      return proto
     })
   }
 
@@ -208,6 +212,11 @@
   function setScrewsEnabled(e: Event) {
     if ((e.target as HTMLInputElement).checked) $protoConfig.screwIndices = new Array(7).fill(-1)
     else $protoConfig.screwIndices = []
+  }
+
+  function setNScrews(e: CustomEvent) {
+    const n = Number(e.detail)
+    $protoConfig.screwIndices = new Array(n).fill(-1)
   }
 
   function isThumb(name: string) {
@@ -397,6 +406,9 @@
 </Section>
 
 <Section name="Thumb Cluster">
+  <button class="absolute top-0 right-2 button" on:click={() => editJointlySeparately('thumbs')}
+    ><Icon path={mdiPencil} />{#if leftThumbCluster}Edit Jointly{:else}Edit Separately{/if}</button
+  >
   <Preset name="Manuform" on:click={() => setThumb('default')} selected={isThumb('default')} />
   <Preset name="Carbonfet" on:click={() => setThumb('carbonfet')} selected={isThumb('carbonfet')} />
   <Preset name="Orbyl" on:click={() => setThumb('orbyl')} selected={isThumb('orbyl')} />
@@ -622,30 +634,30 @@
   </svelte:fragment>
 </Section> -->
 <Section name="Case">
-  <Preset on:click={() => setShell('basic')} selected={$protoConfig.shell.type == 'basic'}
-    >Default</Preset
-  >
-  {#if hasPro}<Preset
-      name="Stilts"
-      on:click={() => setShell('stilts')}
-      selected={$protoConfig.shell.type == 'stilts'}
-      >Stilts <span
-        class="{$protoConfig.shell.type == 'stilts'
-          ? 'text-teal-100'
-          : 'text-teal-500'} dark:text-teal-400 font-bold ml-2">PRO</span
-      ></Preset
-    >{/if}
-  <Preset on:click={() => setShell('tilt')} selected={$protoConfig.shell.type == 'tilt'}
-    >Tilting Base</Preset
-  >
+  <div class="mb-2">
+    <Preset on:click={() => setShell('basic')} selected={$protoConfig.shell.type == 'basic'}
+      >Default</Preset
+    >
+    {#if hasPro}<Preset
+        name="Stilts"
+        on:click={() => setShell('stilts')}
+        selected={$protoConfig.shell.type == 'stilts'}
+        >Stilts <span
+          class="{$protoConfig.shell.type == 'stilts'
+            ? 'text-teal-100'
+            : 'text-teal-500'} dark:text-teal-400 font-bold ml-2">PRO</span
+        ></Preset
+      >{/if}
+    <Preset on:click={() => setShell('tilt')} selected={$protoConfig.shell.type == 'tilt'}
+      >Tilting Base</Preset
+    >
+  </div>
   {#if $protoConfig.shell.type == 'tilt'}
-    <div class="mt-2">
-      <InfoBox>
-        The Tilting Base helps you achieve high tenting angles without needing to print as much
-        support. Make sure to print the plate in two parts so that the bottom can be removed for
-        access.
-      </InfoBox>
-    </div>
+    <InfoBox>
+      The Tilting Base helps you achieve high tenting angles without needing to print as much
+      support. Make sure to print the plate in two parts so that the bottom can be removed for
+      access.
+    </InfoBox>
   {/if}
   {#if !basic}
     <Field name="Connectivity" icon="usb-port">
@@ -662,6 +674,18 @@
         <option value="big">Big (fits everything)</option>
       </Select>
     </Field>
+    <Field
+      name="Connector Index"
+      help="Position of the microcontroller and connector, expressed as a wall index. See expert mode documentation for details."
+    >
+      <DecimalInput bind:value={$protoConfig.connectorIndex} />
+    </Field>
+  {/if}
+  {#if $protoConfig.connectorIndex != -1}
+    <InfoBox>
+      The microcontroller and connector are manually placed in this model. Set Advanced &rarr;
+      Connector Index to -1 to automatically place them.
+    </InfoBox>
   {/if}
   <Field name="Microcontroller" icon="microcontroller">
     <Select bind:value={$protoConfig.microcontroller} on:change={updateMicrocontroller}>
@@ -706,7 +730,7 @@
   </Field>
   {#if $protoConfig.screwIndices.length > 0}
     {#if !basic}<Field name="Number of Screws">
-        <DecimalInput divisor={1} value={$protoConfig.screwIndices.length} />
+        <DecimalInput divisor={1} value={$protoConfig.screwIndices.length} on:change={setNScrews} />
       </Field>{/if}
     <Field name="Size of Screws">
       <Select bind:value={$protoConfig.screwSize}>
@@ -732,9 +756,35 @@
   <Field name="Rounded Top Edge" icon="round-top" pro>
     <CheckboxOpt bind:value={$protoConfig.rounded.top} def={{ horizontal: 0.25, vertical: 0.67 }} />
   </Field>
+  {#if !basic && $protoConfig.rounded.top}
+    <Field name="Horizontal Tangent" pro>
+      <DecimalInput
+        divisor={100}
+        multiplier={100}
+        units="%"
+        bind:value={$protoConfig.rounded.top.horizontal}
+      />
+    </Field>
+    <Field name="Vertical Tangent" pro>
+      <DecimalInput
+        divisor={100}
+        multiplier={100}
+        units="%"
+        bind:value={$protoConfig.rounded.top.vertical}
+      />
+    </Field>
+  {/if}
   <Field name="Rounded Side" icon="round-side" pro>
     <CheckboxOpt bind:value={$protoConfig.rounded.side} def={{ divisor: 3, concavity: 1.5 }} />
   </Field>
+  {#if !basic && $protoConfig.rounded.side}
+    <Field name="Rounded Divisor" pro help="Smaller numbers produce more rounded sides">
+      <DecimalInput bind:value={$protoConfig.rounded.side.divisor} />
+    </Field>
+    <Field name="Concavity" pro help="The amount by which the sides of the keyboard are bowed out">
+      <DecimalInput bind:value={$protoConfig.rounded.side.concavity} />
+    </Field>
+  {/if}
   {#if !basic}
     <Field
       name="Wall Shrouding"
@@ -745,6 +795,17 @@
     </Field>
     <Field name="Wall Thickness" help="Thickness of the sides the keyboard">
       <DecimalInput bind:value={$protoConfig.wallThickness} units="mm" />
+    </Field>
+    <Field
+      name="Minimum Web Thickness"
+      help="Compensation for thin web walls. Specifically, the targeted thickness of the web as a percentage of socket thickness."
+    >
+      <DecimalInput
+        bind:value={$protoConfig.webMinThicknessFactor}
+        units="%"
+        divisor={100}
+        multiplier={100}
+      />
     </Field>
     <Field
       name="Vertical Part Clearance"

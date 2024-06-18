@@ -2,28 +2,45 @@
   import * as THREE from 'three'
 
   import Viewer from './NewViewer.svelte'
-  import { estimatedCenter } from '$lib/worker/geometry'
-  import { rectangle, drawLinedWall, drawWall, drawPath } from './viewerHelpers'
-  import { boundingSize } from '$lib/loaders/geometry'
+  import { rectangle, drawLinedWall, drawWall, drawPath, fullSizes } from './viewerHelpers'
 
-  import type { Cuttleform, CuttleKey, Geometry } from '$lib/worker/config'
+  import {
+    fullEstimatedCenter,
+    type Cuttleform,
+    type CuttleKey,
+    type FullCuttleform,
+    type Geometry,
+  } from '$lib/worker/config'
   import { isRenderable, type ConfError } from '$lib/worker/check'
   import Trsf from '$lib/worker/modeling/transformation'
   import { keyPosition } from '$lib/worker/modeling/transformation-ext'
-  import { flip } from '$lib/store'
   import { keyLine } from '../matrixLayout'
+  import { view } from '$lib/store'
+  import type { FullGeometry } from './viewer3dHelpers'
+  import { mapObj, objEntries } from '$lib/worker/util'
+  import { T } from '@threlte/core'
 
-  export let conf: Cuttleform
-  export let geometry: Geometry | null
+  export let conf: FullCuttleform
+  export let geometry: FullGeometry
   export let style: string = ''
   export let confError: ConfError | undefined
   export let darkMode: boolean
 
-  let center: [number, number, number] = [0, 0, 0]
+  $: centers = fullEstimatedCenter(geometry, false)
+  $: center = centers[$view]
 
-  $: geometries =
-    isRenderable(confError) && geometry ? drawState(conf, darkMode, confError, geometry) : []
-  $: size = boundingSize(geometries.map((g) => g.geometry))
+  $: allGeometries =
+    isRenderable(confError) && geometry
+      ? drawStates(darkMode, confError, geometry)
+      : ({} as ReturnType<typeof drawStates>)
+  $: sizes = fullSizes(allGeometries)
+  $: size = sizes[$view]
+
+  function drawStates(darkMode: boolean, confError: ConfError | undefined, geometry: FullGeometry) {
+    return mapObj(geometry as Required<typeof geometry>, (g, kbd) =>
+      drawState(g!.c, darkMode, confError?.side == kbd ? confError : undefined, g!)
+    )
+  }
 
   function multiply(Q, b) {
     let sum = 0
@@ -279,7 +296,6 @@
     const config = conf
 
     const keys = geo.keyHolesTrsfs2D
-    center = estimatedCenter(geo)
 
     const positions = keys.flat().map((k) => k.xyz().slice(0, 2))
     geos.push(
@@ -355,15 +371,21 @@
   }
 </script>
 
-<Viewer
-  {geometries}
-  {center}
-  {size}
-  {style}
-  cameraPosition={[0, 0, 1]}
-  enableRotate={false}
-  flip={!$flip}
-/>
+<Viewer geometries={[]} {center} {size} {style} cameraPosition={[0, 0, 1]} enableRotate={false}>
+  <T.Group scale.x={-1}>
+    <T.Group position={[-center[0], -center[1], -center[2]]}>
+      {#each objEntries(allGeometries) as [kbd, geos]}
+        {#if kbd == 'unibody' || $view == 'both' || $view == kbd}
+          {#each geos as geometry}
+            <T.Group scale.x={kbd == 'left' ? -1 : 1}>
+              <T.Mesh geometry={geometry.geometry} material={geometry.material} />
+            </T.Group>
+          {/each}
+        {/if}
+      {/each}
+    </T.Group>
+  </T.Group>
+</Viewer>
 <div class="absolute inset-1/2">
   <div
     class="rounded text-center flex items-center justify-center w-48 h-16 absolute ml-[-6rem] mt-[-4rem] bg-white dark:bg-gray-800"

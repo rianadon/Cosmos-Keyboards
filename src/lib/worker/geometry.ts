@@ -1003,7 +1003,7 @@ export function estimatedCenter(geometry: Geometry, wristRest = false): [number,
   let cy = (Math.min(...y) + Math.max(...y)) / 2
   if (wristRest) cy -= 20
   const cz = Math.max(...z) / 2 + geometry.floorZ / 2
-  return [0, cy, cz]
+  return [cx, cy, cz]
 }
 
 function findClosestWall(

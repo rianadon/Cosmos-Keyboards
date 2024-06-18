@@ -13,7 +13,6 @@
   import type { Cuttleform } from '$lib/worker/config'
   import type { ConfError } from '$lib/worker/check'
   import type { Geometry } from '$lib/worker/cachedGeometry'
-  import { flip } from '$lib/store'
 
   export let conf: Cuttleform
   export let geometry: Geometry
@@ -135,15 +134,7 @@
   }
 </script>
 
-<Viewer
-  {geometries}
-  {center}
-  {size}
-  {style}
-  cameraPosition={[0, 0, 1]}
-  enableRotate={false}
-  flip={$flip}
-/>
+<Viewer {geometries} {center} {size} {style} cameraPosition={[0, 0, 1]} enableRotate={false} />
 {#if !conf}
   <div class="bg-red-200 m-4 rounded p-4 dark:bg-red-700">
     Key layout will not be available until the configuration is evaluated.

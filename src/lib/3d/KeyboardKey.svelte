@@ -17,7 +17,12 @@
 
   const context: InteractivityContext = getContext('interactivity')
 
-  function isActive(c: CosmosKeyboard, mode: 'key' | 'column' | 'cluster', n: number | null) {
+  function isActive(
+    index: number | null,
+    c: CosmosKeyboard,
+    mode: 'key' | 'column' | 'cluster',
+    n: number | null
+  ) {
     if (index == null) return false
     if (n == null) {
       return false
@@ -30,8 +35,9 @@
     }
   }
 
-  $: selected = isActive($protoConfig, $selectMode, $clickedKey)
-  $: hovered = isActive($protoConfig, $selectMode, $hoveredKey)
+  $: selected = isActive(index, $protoConfig, $selectMode, $clickedKey)
+  $: hovered = isActive(index, $protoConfig, $selectMode, $hoveredKey)
+  $: console.log('letter', letter)
 </script>
 
 <T.Mesh

@@ -24,6 +24,8 @@
       case 'pcb': return mdi.mdiPuzzleOutline
       case 'diode': return mdi.mdiRectangleOutline
       case 'unibody': return mdi.mdiTableMergeCells
+      case 'kb': return mdi.mdiKeyboardOutline
+      case 'kb-left': return 'M9 5A2 2 0 007 7V17A2 2 0 009 19H17V17H9V7H17V5H9M10 8V10H12V8H10M13 8V10H15V8H13M16 8V10H17V8H16M10 11V13H12V11H10M13 11V13H15V11H13M16 11V13H17V11H16V13 11M13 14V16H17V14H13Z'
       case 'angle-rotate': return 'M5 20V4.09L19.57 14.18 18.43 15.82 11.87 11.28C11.04 12.89 9.38 14 7.46 14 7.3 14 7.15 14 7 13.97V20H5M7 7.91V11.96C7.15 12 7.3 12 7.46 12 8.72 12 9.78 11.24 10.22 10.14L7 7.91Z' ;
       case 'row': return 'M22,14A2,2 0 0,1 20,16H4A2,2 0 0,1 2,14V10A2,2 0 0,1 4,8H20A2,2 0 0,1 22,10V14M4,14H8V10H4V14M10,14H14V10H10V14M16,14H20V10H16V14Z'
       case 'column': return 'M14 2A2 2 0 0116 4L16 20A2 2 0 0114 22L10 22A2 2 0 018 20L8 4A2 2 0 0110 2L14 2M14 20 14 16 10 16 10 20 14 20M14 14 14 10 10 10 10 14 14 14M14 8 14 4 10 4 10 8 14 8Z'
@@ -123,6 +125,23 @@
       fill="currentColor"
     /></svg
   >
+{:else if name == 'hands'}
+  <svg viewBox="0 0 48 24" width={Number(size) * 2} height={size} class={clazz} aria-label={alt}>
+    {#if alt} <title>{alt}</title>{/if}
+    <path d={mdi.mdiHandBackLeftOutline} fill="currentColor" />
+    <path d={mdi.mdiHandBackRightOutline} fill="currentColor" transform="translate(24)" />
+  </svg>
+{:else if name == 'kbs'}
+  <svg viewBox="0 0 36 24" width={Number(size) * 1.5} height={size} class={clazz} aria-label={alt}>
+    {#if alt} <title>{alt}</title>{/if}
+    <path d={pathFromName('kb-left')} fill="currentColor" transform="translate(-1 0)" />
+    <path d={pathFromName('kb-left')} fill="currentColor" transform="translate(37 0) scale(-1 1)" />
+  </svg>
+{:else if name == 'kb-right'}
+  <svg viewBox="-24 0 24 24" width={size} height={size} class={clazz} aria-label={alt}>
+    {#if alt} <title>{alt}</title>{/if}
+    <path d={pathFromName('kb-left')} fill="currentColor" transform="scale(-1 1)" />
+  </svg>
 {:else if name}
   <svg viewBox="0 0 24 24" width={size} height={size} class={clazz} aria-label={alt}>
     {#if alt} <title>{alt}</title>{/if}

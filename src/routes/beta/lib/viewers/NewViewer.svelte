@@ -34,7 +34,7 @@
 
   function resize() {
     // https://wejn.org/2020/12/cracking-the-threejs-object-fitting-nut/
-    if (!size) return
+    if (!size || !ctx) return
     let aspect = canvas ? canvas.clientWidth / canvas.clientHeight : 1
     if (aspect == 0 || aspect == Infinity) aspect = 1
     const fov = cameraFOV * (Math.PI / 180)
@@ -46,6 +46,8 @@
     camera.position.multiplyScalar(Math.max(dx, dy) * 1.2)
     updateCameraPos()
   }
+
+  $: if (size) resize()
 </script>
 
 <svelte:window on:resize={resize} />

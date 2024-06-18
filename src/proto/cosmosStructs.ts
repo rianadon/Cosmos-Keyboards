@@ -76,7 +76,7 @@ struct('PartVariant', {
 struct('Keycap', {
   profile: 'PROFILE,4',
   row: 'int,3',
-  letter: 'int,7',
+  letter: 'int,8',
   home: 'HOMING,3',
 })
 

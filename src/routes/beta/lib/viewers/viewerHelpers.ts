@@ -1,3 +1,4 @@
+import { boundingBox, boundingSize } from '$lib/loaders/geometry'
 import type { Cuttleform } from '$lib/worker/config'
 import type { WallCriticalPoints } from '$lib/worker/geometry'
 import type { Vector } from '$lib/worker/modeling/transformation'
@@ -132,4 +133,22 @@ export function drawLinedRectangleOutside(x: number, y: number, w: number, h: nu
 
 export function makeBox(cx: number, cy: number, cz: number, w: number, h: number, d: number) {
   return new THREE.BoxGeometry(w, h, d).translate(cx, cy, cz)
+}
+
+type Full<T> = { left?: T; right?: T; unibody?: T }
+
+export function fullSizes(geo: Full<{ geometry: THREE.BufferGeometry }[]>) {
+  if (geo.unibody) {
+    const size = boundingSize(geo.unibody.map((g) => g.geometry))
+    return { left: size, both: size, right: size }
+  } else {
+    const leftBox = boundingBox(
+      geo.left!.map((x) => ({ mesh: x.geometry, matrix: new THREE.Matrix4().makeScale(-1, 1, 1) })),
+    )
+    const rightBox = boundingBox(geo.right!.map((g) => g.geometry))
+    const leftSize = leftBox.getSize(new THREE.Vector3())
+    const rightSize = rightBox.getSize(new THREE.Vector3())
+    const bothSize = leftBox.union(rightBox).getSize(new THREE.Vector3())
+    return { left: leftSize, both: bothSize, right: rightSize }
+  }
 }

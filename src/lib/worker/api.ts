@@ -8,7 +8,6 @@ import wasmUrl from '$assets/replicad_single.wasm?url'
 // import wasmUrl from 'replicad-opencascadejs/src/replicad_single.wasm?url';
 // import loadOC from 'opencascade/dist/opencascade.full';
 // import wasmUrl from 'opencascade/dist/opencascade.full.wasm?url';
-import { ASYMMETRIC_PARTS } from '$lib/geometry/socketsParts'
 import { combinedKeyHoleMesh, keyHoleMeshes } from '$lib/loaders/sockets'
 import { wristRest } from '@pro/wristRest'
 import type { BufferAttribute, BufferGeometry } from 'three'
@@ -167,7 +166,7 @@ export async function generate(config: Cuttleform, geo: Geometry, stitchWalls: b
   }
   console.timeEnd('Making web')
   console.time('Creating holes')
-  const flipper = (key: CuttleKey) => (flip && ASYMMETRIC_PARTS.includes(key.type)) ? new Trsf().scaleIsDangerous(-1, 1, 1) : new Trsf()
+  const flipper = (key: CuttleKey) => flip ? new Trsf().scaleIsDangerous(-1, 1, 1) : new Trsf()
   const holes = await keyHoles(config, transforms.map((t, i) => t.multiply(flipper(config.keys[i]))))
   console.timeEnd('Creating holes')
   console.time('Creating connector')

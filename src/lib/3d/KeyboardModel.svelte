@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { flip, noBase, noWall } from '$lib/store'
+  import { view, noBase, noWall } from '$lib/store'
   import type { Geometry } from '$lib/worker/config'
   import GroupMatrix from './GroupMatrix.svelte'
   import Microcontroller from './Microcontroller.svelte'
@@ -10,6 +10,7 @@
   export let microcontrollerGeometry: Geometry | undefined
   export let meshes: KeyboardMeshes
   export let transparency: number
+  export let side: 'left' | 'right' | 'unibody'
 
   export let noWeb = false
 
@@ -32,7 +33,11 @@
 {#if !$noBase}<Microcontroller geometry={microcontrollerGeometry} {showSupports} />{/if}
 {#each meshes.keyBufs || [] as key}
   <GroupMatrix matrix={key.matrix}>
-    <KMesh kind="case" scale={key.flip && $flip ? [-1, 1, 1] : [1, 1, 1]} geometry={key.mesh} />
+    <KMesh
+      kind="case"
+      scale={key.flip && (side == 'left' || $view == 'left') ? [-1, 1, 1] : [1, 1, 1]}
+      geometry={key.mesh}
+    />
   </GroupMatrix>
 {/each}
 {#if !$noWall && !hideWall}<KMesh kind="case" geometry={meshes.wallBuf} debug />{/if}

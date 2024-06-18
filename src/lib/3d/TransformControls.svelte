@@ -1,10 +1,15 @@
 <script lang="ts">
   import { TransformControls } from '@threlte/extras'
-  import { Quaternion, Vector3, type Vector4Tuple } from 'three'
+  import { Matrix4, Quaternion, Vector3, type Vector4Tuple } from 'three'
   import { createEventDispatcher } from 'svelte'
-  import { clickedKey, protoConfig, selectMode, transformMode } from '$lib/store'
+  import { clickedKey, protoConfig, selectMode, transformMode, view } from '$lib/store'
   import { T } from '@threlte/core'
-  import { transformationCenter } from '../../routes/beta/lib/viewers/viewer3dHelpers'
+  import {
+    flipMatrixX,
+    shouldFlipKey,
+    transformationCenter,
+  } from '../../routes/beta/lib/viewers/viewer3dHelpers'
+  import type { CosmosKeyboard } from '$lib/worker/config.cosmos'
 
   export let visible = true
 
@@ -16,10 +21,24 @@
   let position = pos.toArray()
   let quaternion = quat.toArray() as Vector4Tuple
 
+  function conditionalFlip(
+    mat: Matrix4,
+    view: 'left' | 'right' | 'both',
+    n: number | null,
+    kbd: CosmosKeyboard
+  ) {
+    return shouldFlipKey(view, n, kbd) ? flipMatrixX(mat) : mat
+  }
+
   $: if ($clickedKey != null) {
-    const transformation = transformationCenter($clickedKey, $protoConfig, $selectMode)
-      .evaluate({ flat: false })
-      .Matrix4()
+    const transformation = conditionalFlip(
+      transformationCenter($clickedKey, $protoConfig, $selectMode)
+        .evaluate({ flat: false })
+        .Matrix4(),
+      $view,
+      $clickedKey,
+      $protoConfig
+    )
     transformation.decompose(pos, quat, sca)
     console.log(pos, quat)
     position = pos.toArray()
@@ -36,11 +55,11 @@
       mode={$transformMode}
       on:objectChange={() => {
         ref.updateMatrix()
-        dispatch('move', ref.matrix)
+        dispatch('move', conditionalFlip(ref.matrix, $view, $clickedKey, $protoConfig))
       }}
       on:mouseUp={(e) => {
         ref.updateMatrix()
-        dispatch('change', ref.matrix)
+        dispatch('change', conditionalFlip(ref.matrix, $view, $clickedKey, $protoConfig))
       }}
     />
   </T.Object3D>

@@ -181,9 +181,8 @@ export class KeyMaterial extends KeyboardMaterial {
 }
 
 export function letterTexture(letter: string, flip: boolean) {
-  const canvas = document.createElement('canvas')
-  canvas.width = 512
-  canvas.height = 512
+  console.log('gen letter texture', letter)
+  const canvas = new OffscreenCanvas(512, 512)
   const ctx = canvas.getContext('2d')!
   if (flip) ctx.scale(-1, 1)
   ctx.font = '168px "Segoe UI", Candara, "Bitstream Vera Sans", "DejaVu Sans", "Bitstream Vera Sans", "Trebuchet MS", Verdana, "Verdana Ref", sans-serif'

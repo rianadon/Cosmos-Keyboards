@@ -2,7 +2,7 @@
  * Like socketsLoader in the worker/ direcotry, but returns meshes instead of parts.
  */
 
-import { ASYMMETRIC_PARTS, socketSize, variantURL } from '$lib/geometry/socketsParts'
+import { socketSize, variantURL } from '$lib/geometry/socketsParts'
 import masses from '$target/part-masses.json'
 import { BoxGeometry, BufferAttribute, BufferGeometry, InterleavedBufferAttribute } from 'three'
 import type { Cuttleform, CuttleKey } from '../worker/config'
@@ -117,7 +117,7 @@ async function keyHole(key: CuttleKey, trsf: Trsf) {
   if (key.type == 'blank') cacheKey += `-${key.size?.width}x${key.size?.height}`
   const model = await extendedKeyCacher(cacheKey, key)
   return {
-    flip: ASYMMETRIC_PARTS.includes(key.type),
+    flip: true,
     mesh: mergeBufferGeometries([model.mesh]),
     matrix: trsf.Matrix4(),
     mass: model.mass,

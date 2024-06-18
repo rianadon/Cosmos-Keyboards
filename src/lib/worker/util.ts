@@ -71,7 +71,7 @@ export function filterObj<V>(obj: Record<string, V>, f: (k: string, v: V) => boo
 }
 
 export function sum(n: number[]) {
-  return n.reduce((a, b) => a + b)
+  return n.reduce((a, b) => a + b, 0)
 }
 
 export function reverseMap<A extends string | number, B extends string | number>(m: Record<A, B>): Record<B, A> {

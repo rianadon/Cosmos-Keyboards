@@ -4,7 +4,7 @@ import { type CosmosCluster, type CosmosKey, type CosmosKeyboard, cosmosKeyPosit
 import { Vector } from '$lib/worker/modeling/transformation'
 import type { ShapeMesh } from 'replicad'
 import type { Homing, Profile } from 'target/cosmosStructs'
-import type { Matrix4 } from 'three'
+import { Matrix4 } from 'three'
 
 export type KeyboardMeshes = {
   wristBuf?: ShapeMesh
@@ -210,4 +210,15 @@ export function kbdOffset(kbd: 'left' | 'right' | 'unibody') {
   // if (kbd == 'left') return -90
   // if (kbd == 'right') return 90
   // return 0
+}
+
+export function flipMatrixX(mat: Matrix4) {
+  const [a, e, i, m, b, f, j, n, c, g, k, o, d, h, l, p] = mat.elements
+  return new Matrix4(a, -b, -c, -d, -e, f, g, h, -i, j, k, l, -m, n, o, p)
+}
+
+export function shouldFlipKey(side: 'left' | 'right' | 'both', clickedKey: number | null, keyboard: CosmosKeyboard) {
+  if (clickedKey == null) return false
+  const { cluster } = nthKey(keyboard, clickedKey)
+  return side == 'left' && cluster.side == 'right'
 }

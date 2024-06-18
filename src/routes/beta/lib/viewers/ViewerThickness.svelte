@@ -3,6 +3,9 @@
   import type { Geometry } from '$lib/worker/config'
   import Viewer from './NewViewer.svelte'
   import { T } from '@threlte/core'
+  import type { FullGeometry } from './viewer3dHelpers'
+  import { objEntries } from '$lib/worker/util'
+  import { view } from '$lib/store'
 
   export let style: string = ''
   export let center: [number, number, number]
@@ -10,11 +13,9 @@
   export let cameraPosition: [number, number, number] = [40, -240, 100]
   export let enableRotate = true
   export let enableZoom = false
-  export let is3D = false
-  export let flip = true
   export let darkMode: boolean
 
-  export let geometry: Geometry | undefined
+  export let geometry: FullGeometry | undefined
 
   const hue = (t: number) => Math.min(Math.max(0, t - 1) / 4, 1) * 240
 
@@ -26,7 +27,7 @@
     return ind
   }
 
-  function webMesh(geo: Geometry | null, darkMode: boolean) {
+  function webMesh(geo: Geometry | undefined, darkMode: boolean) {
     if (!geo) return { topMesh: null, minThickness: 0, maxThickness: 0, thicknessRange: 0 }
 
     const { topReinf, botReinf } = geo.reinforcedTriangles
@@ -107,7 +108,22 @@
     return { topMesh, botMesh, minThickness, maxThickness, thicknessRange }
   }
 
-  $: meshResult = webMesh(geometry, darkMode)
+  function webMeshAll(geometry: FullGeometry | undefined, darkMode: boolean) {
+    if (!geometry) return { meshes: {}, minThickness: 0, maxThickness: 0, thicknessRange: 0 }
+    if (geometry.unibody) {
+      const result = webMesh(geometry.unibody, darkMode)
+      return { meshes: { unibody: result }, ...result }
+    } else {
+      const left = webMesh(geometry.left, darkMode)
+      const right = webMesh(geometry.right, darkMode)
+      const minThickness = Math.min(left.minThickness, right.minThickness)
+      const maxThickness = Math.max(left.maxThickness, right.maxThickness)
+      const thicknessRange = maxThickness - minThickness
+      return { meshes: { left, right }, minThickness, maxThickness, thicknessRange }
+    }
+  }
+
+  $: meshResult = webMeshAll(geometry, darkMode)
 
   $: mmin = meshResult.minThickness
   $: mmax = meshResult.maxThickness
@@ -139,20 +155,19 @@
   {center}
   {size}
   {cameraPosition}
-  {flip}
   {enableRotate}
   {enableZoom}
   enablePan={true}
-  {is3D}
 >
-  <T.Group
-    position={[flip ? center[0] : -center[0], -center[1], -center[2]]}
-    scale={[flip ? -1 : 1, 1, 1]}
-  >
-    {#if meshResult.topMesh}
-      <T is={meshResult.topMesh} />
-      <T is={meshResult.botMesh} />
-    {/if}
+  <T.Group position={[-center[0], -center[1], -center[2]]}>
+    {#each objEntries(meshResult.meshes) as [kbd, result]}
+      {#if result && result.topMesh && (kbd == 'unibody' || $view == 'both' || $view == kbd)}
+        <T.Group scale.x={kbd == 'left' ? -1 : 1}>
+          <T is={result.topMesh} />
+          <T is={result.botMesh} />
+        </T.Group>
+      {/if}
+    {/each}
     <slot />
   </T.Group>
 </Viewer>

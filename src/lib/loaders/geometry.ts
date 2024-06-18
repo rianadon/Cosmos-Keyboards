@@ -25,8 +25,7 @@ type TransformedGeometry = {
   matrix: THREE.Matrix4
 }
 
-export function boundingSize(geometry: (THREE.BufferGeometry | TransformedGeometry)[]) {
-  const size = new Vector3()
+export function boundingBox(geometry: (THREE.BufferGeometry | TransformedGeometry)[]) {
   const boundingBox = new Box3(new Vector3(-0.1, -0.1, -0.1), new Vector3(0.1, 0.1, 0.1))
   for (const g of geometry) {
     if ('matrix' in g) {
@@ -38,6 +37,10 @@ export function boundingSize(geometry: (THREE.BufferGeometry | TransformedGeomet
       boundingBox.union(g.boundingBox!)
     }
   }
-  boundingBox.getSize(size)
-  return size
+  return boundingBox
+}
+
+export function boundingSize(geometry: (THREE.BufferGeometry | TransformedGeometry)[]) {
+  const size = new Vector3()
+  return boundingBox(geometry).getSize(size)
 }

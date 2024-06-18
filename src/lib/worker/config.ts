@@ -27,6 +27,7 @@ import {
 } from '../../../target/proto/cuttleform'
 import { BaseGeometry, BlockGeometry, TiltGeometry } from './cachedGeometry'
 import type { CosmosCluster, CosmosKey, CosmosKeyboard } from './config.cosmos'
+import { estimatedCenter } from './geometry'
 import { DEFAULT_MWT_FACTOR } from './geometry.thickWebs'
 import Trsf from './modeling/transformation'
 import ETrsf, { Constant, keyPosition, mirror } from './modeling/transformation-ext'
@@ -1538,5 +1539,21 @@ export function setBottomZ(conf: FullCuttleform) {
     const botLeft = newGeometry(conf.left).bottomZ
     const botRight = newGeometry(conf.right).bottomZ
     conf.left.bottomZ = conf.right.bottomZ = Math.min(botLeft, botRight)
+  }
+}
+
+export function fullEstimatedCenter(geo: FullGeometry | undefined, withWristRest = true) {
+  if (!geo) return { left: [0, 0, 0] as Point, both: [0, 0, 0] as Point, right: [0, 0, 0] as Point }
+  if (geo.unibody) {
+    const center = estimatedCenter(geo.unibody, withWristRest && !!geo.unibody!.c.wristRest)
+    return { left: center, both: center, right: center }
+  } else {
+    const leftCenter = estimatedCenter(geo.left!, withWristRest && !!geo.left!.c.wristRest)
+    const rightCenter = estimatedCenter(geo.right!, withWristRest && !!geo.right!.c.wristRest)
+    return {
+      left: [-leftCenter[0], leftCenter[1], leftCenter[2]] as Point,
+      both: [0, rightCenter[1], rightCenter[2]] as Point,
+      right: rightCenter,
+    }
   }
 }

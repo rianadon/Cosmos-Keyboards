@@ -215,7 +215,9 @@
     <!-- </div> -->
     <div class="pointer-events-none">
       <div class="fixed top-0 bottom-0 left-0 right-0 flex items-center justify-center">
-        <!-- <SVGHand side={desiredHand} /> -->
+        {#if nLeft < 5}
+          <SVGHand side={desiredHand} />
+        {/if}
       </div>
       <BigHand {detector} {handPts} {size} {camera2AR} arTag={arTag1} tslu={timeSinceLastUpdate} />
     </div>
