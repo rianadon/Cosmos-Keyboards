@@ -2,11 +2,7 @@
   import * as THREE from 'three'
 
   import Viewer from './Viewer.svelte'
-  import {
-    allKeyCriticalPoints,
-    estimatedCenter,
-    solveTriangularization,
-  } from '$lib/worker/geometry'
+  import { allKeyCriticalPoints, estimatedCenter, solveTriangularization } from '$lib/worker/geometry'
   import { rectangle, drawLinedWall, drawWall } from './viewerHelpers'
   import { boundingSize } from '$lib/loaders/geometry'
 

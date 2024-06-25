@@ -1,7 +1,6 @@
 <script lang="ts">
   import KeyboardMesh from '$lib/3d/KeyboardMesh.svelte'
   import { keyGeometries } from '$lib/loaders/keycaps'
-  import { Group, Mesh, OrbitControls, OrthographicCamera } from 'svelte-cubed'
   import { KEY_NAMES, UNIFORM, keyInfo } from '$lib/geometry/keycaps'
   import { browser } from '$app/environment'
   import { drawLinedWall } from '../beta/lib/viewers/viewerHelpers'
@@ -10,6 +9,8 @@
   import type { CuttleKey } from '$lib/worker/config'
   import Trsf from '$lib/worker/modeling/transformation'
   import { simpleKeyGeo } from '$lib/loaders/simplekeys'
+  import { T } from '@threlte/core'
+  import { OrbitControls } from '@threlte/extras'
 
   export let row: number
   export let part: string
@@ -60,29 +61,30 @@
   <div class="flex">
     <div class="aspect-1 relative w-full">
       <CoopScene>
-        <Group rotation={[0, 0, Math.PI / 2]} position={[0, 0, -8]}>
+        <T.Group rotation={[0, 0, Math.PI / 2]} position={[0, 0, -8]}>
           {#await partPromise then partMesh}
             <KeyboardMesh geometry={partMesh} kind="key" />
           {/await}
           {#if dev}
-            <Mesh
+            <T.Mesh
               geometry={drawLinedWall(depthDrawing, 0.2)}
               material={new MeshBasicMaterial({ color: 0x14b8a6 })}
               rotation={[0, -Math.PI / 2, -Math.PI / 2]}
               position={[-10, 0, 0]}
             />
           {/if}
-        </Group>
-        <OrthographicCamera position={[0, -100, 0]} zoom={0.08} />
-        <OrbitControls enableZoom={false} enablePan={false} />
+        </T.Group>
+        <T.OrthographicCamera makeDefault position={[0, -100, 0]} zoom={0.08}>
+          <OrbitControls enableDamping enableZoom={false} enablePan={false} dampingFactor={0.1} />
+        </T.OrthographicCamera>
       </CoopScene>
     </div>
     {#if dev}
       <div class="aspect-1 relative w-full">
         <CoopScene>
-          <Group rotation={[0, 0, Math.PI / 2]} position={[0, 0, -8]}>
+          <T.Group rotation={[0, 0, Math.PI / 2]} position={[0, 0, -8]}>
             {#if simpleGeo}
-              <Mesh
+              <T.Mesh
                 geometry={simpleGeo}
                 material={new MeshBasicMaterial({ color: 0xdc2626 })}
                 scale={[0.8, 1, 1]}
@@ -91,9 +93,10 @@
             {#await partPromise then partMesh}
               <KeyboardMesh geometry={partMesh} kind="key" />
             {/await}
-          </Group>
-          <OrthographicCamera position={[0, -100, 0]} zoom={0.08} />
-          <OrbitControls enableZoom={false} enablePan={false} />
+          </T.Group>
+          <T.OrthographicCamera makeDefault position={[0, -100, 0]} zoom={0.08}>
+            <OrbitControls enableDamping enableZoom={false} enablePan={false} dampingFactor={0.1} />
+          </T.OrthographicCamera>
         </CoopScene>
       </div>
     {/if}

@@ -41,7 +41,7 @@ const cacher = makeAsyncCacher(async (sw: Switch, variant: string) => {
   return await loadGLTF(url.replace('.glb', variant + '.glb'))
 })
 
-export async function partGeometry(type: Switch, variant?: Record<string, any>) {
+export async function partGeometry(type: Switch, variant: Record<string, any> = {}) {
   if (type == 'trackball' && variant?.size == '34mm') return new SphereGeometry(17, 64, 32).translate(0, 0, -4)
   if (type == 'trackball' && variant?.size == '25mm') return new SphereGeometry(12.5, 64, 32).translate(0, 0, -4)
   if (!(type in PART_URLS) || !PART_URLS[type]) return undefined

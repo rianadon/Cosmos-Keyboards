@@ -20,6 +20,7 @@ import { Assembly } from './modeling/assembly'
 import { blobSTL, combine } from './modeling/index'
 import { meshVolume, supportMesh } from './modeling/supports'
 import Trsf, { Vector } from './modeling/transformation'
+import ETrsf from './modeling/transformation-ext'
 
 let oc: OpenCascadeInstance
 let model: Solid
@@ -254,6 +255,16 @@ export async function generateWristRest(config: Cuttleform) {
   return result
 }
 
+export async function generateMirroredWristRest(config: Cuttleform) {
+  await ensureOC()
+  if (!config.wristRest) return NULL
+  config.keys.forEach(k => k.position = new ETrsf(k.position.history).mirror([1, 0, 0]))
+  const rest = wristRest(config, newGeometry(config)).mirror('YZ', [0, 0, 0])
+  const result = meshWithVolume(rest)
+  rest.delete()
+  return result
+}
+
 export async function cutWall(config: Cuttleform) {
   await ensureOC()
   const geo = newGeometry(config)
@@ -292,8 +303,13 @@ async function getModel(conf: Cuttleform, name: string, stitchWalls: boolean, fl
   }
 }
 
-export async function getSTL(conf: Cuttleform, name: string, flip: boolean) {
+export async function getSTL(conf: Cuttleform, name: string, side: 'left' | 'right' | 'unibody') {
+  const flip = side == 'left'
   let model = await getModel(conf, name, true, flip)
+  if (name == 'wristrest' && side == 'unibody' && conf.wristRest && model) {
+    conf.keys.forEach(k => k.position = new ETrsf(k.position.history).mirror([1, 0, 0]))
+    model = (model as Solid).fuse(wristRest(conf, newGeometry(conf)).mirror('YZ', [0, 0, 0]))
+  }
   if (!model) throw new Error(`Model ${name} is empty`)
   if (flip) model = model.mirror('YZ', [0, 0, 0])
   return blobSTL(model, { tolerance: 1e-2, angularTolerance: 1 })

@@ -32,12 +32,7 @@
         <div class="s-help ml-1" bind:this={referenceElement}>
           <Icon path={mdi.mdiHelpCircle} size="20px" />
         </div>
-        <Popover
-          triggerEvents={['hover', 'focus']}
-          {referenceElement}
-          placement="top"
-          spaceAway={4}
-        >
+        <Popover triggerEvents={['hover', 'focus']} {referenceElement} placement="top" spaceAway={4}>
           <div
             class="rounded bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 px-2 py-1 mx-2"
             in:fade={{ duration: 100 }}

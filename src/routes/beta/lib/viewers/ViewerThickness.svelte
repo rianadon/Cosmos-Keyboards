@@ -1,16 +1,15 @@
 <script lang="ts">
-  import { BufferAttribute, BufferGeometry, Mesh, MeshBasicMaterial, Vector3, Color } from 'three'
-  import type { Geometry } from '$lib/worker/config'
-  import Viewer from './NewViewer.svelte'
+  import { BufferAttribute, BufferGeometry, Mesh, MeshBasicMaterial, Color } from 'three'
+  import type { Center, Geometry } from '$lib/worker/config'
+  import Viewer from './Viewer.svelte'
   import { T } from '@threlte/core'
   import type { FullGeometry } from './viewer3dHelpers'
   import { objEntries } from '$lib/worker/util'
-  import { view } from '$lib/store'
 
   export let style: string = ''
-  export let center: [number, number, number]
-  export let size: Vector3
-  export let cameraPosition: [number, number, number] = [40, -240, 100]
+  export let center: Center
+  export let size: [number, number, number]
+  export let cameraPosition: [number, number, number] = [0.16, -0.96, 0.56]
   export let enableRotate = true
   export let enableZoom = false
   export let darkMode: boolean
@@ -80,7 +79,7 @@
     thicknesses.forEach((t, i) => {
       let color: number[]
       if (t < 0) {
-        color = darkMode ? [31 / 255, 41 / 255, 55 / 255] : [226 / 255, 232 / 255, 240 / 255]
+        color = (darkMode ? new Color('#1F2937') : new Color('#E2E8F0')).convertSRGBToLinear().toArray()
       } else {
         color = new Color()
           .setHSL(hue(t) / 360, 1, 0.5)
@@ -149,20 +148,12 @@
     </div>
   </div>
 </div>
-<Viewer
-  geometries={[]}
-  {style}
-  {center}
-  {size}
-  {cameraPosition}
-  {enableRotate}
-  {enableZoom}
-  enablePan={true}
->
-  <T.Group position={[-center[0], -center[1], -center[2]]}>
-    {#each objEntries(meshResult.meshes) as [kbd, result]}
-      {#if result && result.topMesh && (kbd == 'unibody' || $view == 'both' || $view == kbd)}
-        <T.Group scale.x={kbd == 'left' ? -1 : 1}>
+<Viewer {style} suggestedSize={size} {cameraPosition} {enableRotate} {enableZoom} enablePan={true}>
+  <T.Group>
+    {#each objEntries(meshResult.meshes) as [kbd, result] (kbd)}
+      {@const cent = center[kbd]}
+      {#if result && result.topMesh && cent}
+        <T.Group position={[-cent[0], -cent[1], -cent[2]]} scale.x={kbd == 'left' ? -1 : 1}>
           <T is={result.topMesh} />
           <T is={result.botMesh} />
         </T.Group>

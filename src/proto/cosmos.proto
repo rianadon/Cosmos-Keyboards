@@ -47,7 +47,7 @@ message TiltShell {
 message KeyboardExtra {
   optional float web_min_thickness_factor = 1;
   optional int32 connector_index = 2;
-  optional int32 screw_indices = 3; // Both this and n_screws do similar things
+  repeated uint32 screw_indices = 3; // Both this and n_screws do similar things
 
   optional int32 vertical_clearance = 4;
   optional int32 rounded_side_divisor = 5;
@@ -55,10 +55,10 @@ message KeyboardExtra {
   optional int32 rounded_top_horizontal = 7;
   optional int32 rounded_top_vertical = 8;
 
-  // optional int32 wrist_rest_length = 9;
-  optional sint32 wrist_rest_angle = 10;
+  optional int32 wrist_rest_extension = 9;
+  optional sint32 wrist_rest_taper = 10;
   optional int32 wrist_rest_max_width= 11;
-  // optional sint32 wrist_rest_x_offset = 12;
+  optional sint32 wrist_rest_angle = 12;
   optional sint32 wrist_rest_slope = 13;
   optional sint32 wrist_rest_tenting = 14;
 }

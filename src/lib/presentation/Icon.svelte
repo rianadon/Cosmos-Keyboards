@@ -63,12 +63,7 @@
 {:else if name == 'shrouding'}
   <!-- From IconPark -->
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 48 48"
-    ><g
-      fill="none"
-      stroke="currentColor"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      stroke-width="4"
+    ><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"
       ><path d="M37 19V37M11 37V44H37V37M11 37H4V12L9 7L16 4H32L39 7L44 12V37H37M11 37V19" /><path
         d="M24 21V44"
       /><path d="M9 7L24 21" /><path d="M16 4L24 21" /><path d="M32 4L24 21" /><path

@@ -78,7 +78,7 @@ export function reverseMap<A extends string | number, B extends string | number>
   return Object.fromEntries(Object.entries(m).map(([a, b]) => [b, a]))
 }
 
-export function notNull<E>(a: readonly E[]): Exclude<E, undefined | null>[] {
+export function notNull<E>(a: readonly E[]): Exclude<E, undefined | null | false>[] {
   return a.filter(e => !!e) as Exclude<E, undefined | null>[]
 }
 
@@ -133,4 +133,15 @@ export function objEntries<T extends object>(obj: T) {
 export function objEntriesNotNull<T extends object>(obj: T) {
   const entries = objEntries(obj)
   return entries.filter(([k, v]) => v != null && typeof v != 'undefined') as [keyof T, Exclude<T[keyof T], null | undefined>][]
+}
+
+export function capitalize(str: string) {
+  return str[0].toUpperCase() + str.substring(1)
+}
+
+export function trimUndefined<T extends object>(a: T) {
+  for (const key of Object.keys(a) as (keyof T)[]) {
+    if (typeof a[key] === 'undefined') delete a[key]
+  }
+  return a
 }

@@ -1,5 +1,8 @@
-import { curvature, cuttleConf, type Cuttleform, type CuttleformProto, fingers, newGeometry, thumbCurvature, thumbOrigin, thumbs, upperKeysPlane } from '$lib/worker/config'
+import { curvature, cuttleConf, type Cuttleform, type CuttleformProto, fingers, newFullGeometry, newGeometry, thumbCurvature, thumbOrigin, thumbs, upperKeysPlane } from '$lib/worker/config'
+import { type CosmosKey, type CosmosKeyboard, fromCosmosConfig, mirrorCluster, sortClusters, toCosmosConfig } from '$lib/worker/config.cosmos'
 import ETrsf, { stringifyObj } from '$lib/worker/modeling/transformation-ext'
+import { capitalize, objEntries } from '$lib/worker/util'
+import type { ClusterName, ClusterSide } from 'target/cosmosStructs'
 
 const INDENT = 2
 
@@ -33,69 +36,100 @@ export function jsonToCode(o: object, level = 0): string {
   return JSON.stringify(o)
 }
 
-export function toCode(proto: CuttleformProto) {
-  const c = cuttleConf(proto)
+// If not in unibody mode, flip all the left clusters so when they get flipped, the two flips cancel out
+// It's a mess, right?
+function assembleFlippedConfig(conf: CosmosKeyboard) {
+  if (conf.unibody) return conf
+  const newConf = { ...conf, clusters: conf.clusters.map(c => c.side == 'left' ? mirrorCluster(c, false) : c) }
+  for (const name of ['fingers', 'thumbs'] as ClusterName[]) {
+    if (!newConf.clusters.find(c => c.side == 'left' && c.name == name)) {
+      newConf.clusters.push({
+        ...newConf.clusters.find(c => c.side == 'right' && c.name == name)!,
+        side: 'left',
+      })
+    }
+  }
+  sortClusters(newConf.clusters)
+  return newConf
+}
 
-  const keysPlane = upperKeysPlane(proto)
-  const thumbOffset = thumbOrigin(proto)
+export function toCode(proto: CosmosKeyboard) {
+  const cosmosConf = fromCosmosConfig(assembleFlippedConfig(proto), false)
+  const geo = newFullGeometry(cosmosConf)
 
-  const geo = newGeometry(c)
-  const screwIdx = geo.justScrewIndices
-  const connectorIdx = proto.wall.microcontroller ? geo.autoConnectorIndex : -1
+  const baseConfig: Partial<Cuttleform> = { ...cosmosConf.right! ?? cosmosConf.unibody }
+  delete baseConfig.keys
 
-  const cm: Partial<Cuttleform> = { ...c }
-  delete cm.keys
-  delete cm.wristRestOrigin
+  const fingerDefinitions: string[] = []
+  const fingerReferences: string[] = []
+  for (const [name, kbd] of objEntries(cosmosConf)) {
+    fingerDefinitions.push(
+      'const fingers' + capitalize(name) + ': Key[] = ' + jsonToCode(kbd!.keys),
+    )
+    fingerReferences.push(
+      `  ${name}: {`,
+      '    ...options,',
+      name == 'left'
+        ? `    keys: flipKeyLabels(fingers${capitalize(name)}),`
+        : `    keys: fingers${capitalize(name)},`,
+      '  },',
+    )
+  }
 
-  const fingy = fingers(proto)
-  const thumb = thumbs(proto)
+  // const keysPlane = upperKeysPlane(proto)
+  // const thumbOffset = thumbOrigin(proto)
+
+  // const screwIdx = geo.justScrewIndices
+  // const connectorIdx = c.microcontroller ? geo.autoConnectorIndex : -1
+
+  // const wrOrigin = baseConfig.wristRestOrigin
+  // delete baseConfig.wristRestOrigin
+
+  // const fingy = fingers(proto)
+  // const thumb = thumbs(proto)
 
   return [
-    'const options: Options = ' + jsonToCode(cm),
+    'const options: Options = ' + jsonToCode(baseConfig),
     '// NOTE: Screws / the connector with',
     '// negative indices are placed automatically.',
     '// In the basic/advanced tab, these values were:',
-    `// screwIndices: ${jsonToCode(screwIdx)}`,
-    `// connectorIndex: ${connectorIdx}`,
+    // `// screwIndices: ${jsonToCode(screwIdx)}`,
+    // `// connectorIndex: ${connectorIdx}`,
     '',
-    `const curvature = ${stringifyObj(curvature(false, proto).merged, 0)}`,
+    // `const curvature = ${stringifyObj(curvature(false, proto).merged, 0)}`,
     '',
     '/**',
     ' * Useful for setting a different curvature',
     ' * for the pinky keys.',
     ' */',
-    `const pinkyCurvature = ${stringifyObj(curvature(true, proto), 0)}`,
+    // `const pinkyCurvature = ${stringifyObj(curvature(true, proto), 0)}`,
     '',
     '/**',
     ` * The plane used to position the upper keys.`,
     ` * It's rotated by the tenting and x rotation`,
     ` * then translated by the z offset.`,
     ` */ `,
-    `const ${keysPlane.name} = ${keysPlane.toString(2)}`,
+    // `const ${keysPlane.name} = ${keysPlane.toString(2)}`,
     '',
     `/** Definitions for the upper keys. */`,
-    'const fingers: Key[] = ' + jsonToCode(fingy),
+    ...fingerDefinitions,
     '',
     `/**`,
     ` * The plane used to position the thumbs.`,
     ` * It's defined using a nearby key position,`,
     ` * then offset by some amount.`,
     ` */`,
-    `const ${thumbOffset.name} = ${thumbOffset.toString(2)}`,
+    // `const ${thumbOffset.name} = ${thumbOffset.toString(2)}`,
     '',
     '/** The curvature of the thumb cluster. */',
-    `const thumbCurvature = ${stringifyObj(thumbCurvature(proto.thumbCluster), 0)}`,
+    // `const thumbCurvature = ${stringifyObj(thumbCurvature(proto.thumbCluster), 0)}`,
     '',
-    'const thumbs: Key[] = ' + jsonToCode(thumb),
+    // 'const thumbs: Key[] = ' + jsonToCode(thumb),
     '',
-    `const wristRestOrigin = ${thumbOrigin(proto, true).toString(2)}`,
+    // `const wristRestOrigin = ${jsonToCode(wrOrigin!)}`,
     '',
     'export default {',
-    '  ...options,',
-    '  wristRestOrigin,',
-    proto.wall.unibody
-      ? `  keys: mirror([...fingers, ...thumbs], ${proto.wall.unibodyGap / 10}, ${proto.wall.unibodyAngle / 45}),`
-      : '  keys: [...fingers, ...thumbs],',
+    ...fingerReferences,
     '}',
   ].join('\n')
 }

@@ -53,6 +53,7 @@
   />
   <KMesh kind="key" geometry={meshes.screwPlateBuf} opacity={plateScrewOpacity} />
   <KMesh kind="key" geometry={meshes.wristBuf} opacity={cTransparency / 100} />
+  <KMesh kind="key" geometry={meshes.secondWristBuf} opacity={cTransparency / 100} />
   <KMesh
     kind="case"
     geometry={meshes.holderBuf}

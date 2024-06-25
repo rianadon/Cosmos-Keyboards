@@ -76,18 +76,18 @@
   <img src="{base}/hand.svg" class="<sm:mx-auto sm:float-right w-72 ml-6 mb-6 mt--6" alt="" />
   <h2 class="heading">Scan Your Hand, Build a Keyboard</h2>
   <p class="font-system">
-    Cosmos is the easiest way to design a keyboard around your one-of-a-kind hands. Scan your hand
-    using just your phone camera, then fit a keyboard to the scan. The key positions align to your
-    fingers' lengths and movement.
+    Cosmos is the easiest way to design a keyboard around your one-of-a-kind hands. Scan your hand using
+    just your phone camera, then fit a keyboard to the scan. The key positions align to your fingers'
+    lengths and movement.
   </p>
 </section>
 <section class="section">
   <img src="{base}/all.svg" class="<sm:mx-auto sm:float-left w-72 ml-4 mr-6 mb-6 mt--6" alt="" />
   <h2 class="heading">Add All The Things</h2>
   <p class="font-system">
-    Add a trackball, trackpad, encoder, or OLED display. There's support for MX, Choc, and Alps
-    switches, and almost every type of keycap. Plus with 7 different microcontrollers, you can mix
-    and match all you like.
+    Add a trackball, trackpad, encoder, or OLED display. There's support for MX, Choc, and Alps switches,
+    and almost every type of keycap. Plus with 7 different microcontrollers, you can mix and match all
+    you like.
   </p>
   <a
     href="{base}/parts"
@@ -100,9 +100,7 @@
 <section class="max-w-240 mx-auto bg-gradient-rc-far from-[#f57aec]/15 to-transparent">
   <div class="lightbox lightbox-gradient">
     <h2 class="lightheading">Generate Stunning Keyboards</h2>
-    <p class="font-system">
-      Choose from 3 types of cases, split or unibody, and many customizations.
-    </p>
+    <p class="font-system">Choose from 3 types of cases, split or unibody, and many customizations.</p>
     <img src="{base}/cases.png" alt="Keyboards generated with Cosmos" />
   </div>
   <div class="sm:flex">
@@ -124,8 +122,8 @@
     <div class="lightbox">
       <h2 class="lightheading">Mix and Match Keycaps</h2>
       <p class="font-system">
-        Your artisans are now ergonomic. Whatever batch of keycaps you decide to use, Cosmos will
-        arrange them to fit your desired curvature.
+        Your artisans are now ergonomic. Whatever batch of keycaps you decide to use, Cosmos will arrange
+        them to fit your desired curvature.
       </p>
       <img
         src="{base}/adaptive.png"
@@ -136,9 +134,9 @@
     <div class="lightbox lightbox-gradient">
       <h2 class="lightheading">RGB and Hotswap Ready</h2>
       <p class="font-system">
-        Cosmos has first-class support for Amoeba King PCBs, which let you easily integrate per-key
-        RGB and hotswap sockets. It also has high-quality built-in-hotswap and PCB-less options if
-        you're on a budget.
+        Cosmos has first-class support for Amoeba King PCBs, which let you easily integrate per-key RGB
+        and hotswap sockets. It also has high-quality built-in-hotswap and PCB-less options if you're on
+        a budget.
       </p>
       <img src="{base}/hotswapsockets.png" alt="Hotswap sockets in Cosmos" />
     </div>
@@ -155,9 +153,9 @@
   />
   <h2 class="heading">Give it to your CAD friend</h2>
   <p class="font-system">
-    Every model can export to STLs, which are meant to be sent to your 3D printer or an online
-    printing service, or to STEP models, which can be modified in CAD programs. If you don't like
-    the way your model looks, ask your closest CAD guru to make adjustments.
+    Every model can export to STLs, which are meant to be sent to your 3D printer or an online printing
+    service, or to STEP models, which can be modified in CAD programs. If you don't like the way your
+    model looks, ask your closest CAD guru to make adjustments.
   </p>
   <a
     href="{base}/docs/cad/"
@@ -175,15 +173,11 @@
 
   <div class="max-w-[75ch] mx-auto">
     <p class="font-system mb-2">
-      Cosmos is <a class="s-link" href="{base}/blog/category/technical/">made in the open</a>, and
-      95% of
-      <a class="s-link" href="https://github.com/rianadon/Cosmos-Keyboards">the code</a> is open-source.
-      It's our firm belief everyone should have free access to technology to relieve and prevent typing
-      pain.
+      Cosmos is <a class="s-link" href="{base}/blog/category/technical/">made in the open</a>, and 95% of
+      <a class="s-link" href="https://github.com/rianadon/Cosmos-Keyboards">the code</a> is open-source. It's
+      our firm belief everyone should have free access to technology to relieve and prevent typing pain.
     </p>
-    <p class="font-system">
-      Come see the unique keyboards we all are making on the Discord server.
-    </p>
+    <p class="font-system">Come see the unique keyboards we all are making on the Discord server.</p>
     <div class="bg-gray-800 inline-flex my-6 py-2 px-4 rounded items-center gap-4">
       <img src="{base}/cosmos-icon.png" class="w-12 h-12 rounded-4" />
       <div class="text-left mr-8">
@@ -224,8 +218,8 @@
     <Icon path={mdiChevronRight} size="100%" class="w-[28px] sm:w-[32px]" />
   </a>
   <p class="mt-6 max-w-prose mx-auto px-6 text-gray-200">
-    Psst! Come here from my Dactyl generator? You should give Cosmos a try. It's changing a&nbsp;lot
-    but it will give you a much better Dactyl-like case and microcontroller holder.
+    Psst! Come here from my Dactyl generator? You should give Cosmos a try. It's changing a&nbsp;lot but
+    it will give you a much better Dactyl-like case and microcontroller holder.
   </p>
 </section>
 
@@ -238,8 +232,8 @@
     <span slot="title" class="font-urbanist">Before you leave…</span>
     <div slot="content" class="text-center text-white font-urbanist">
       <p class="font-system">
-        Don't miss out on updates! The generator is in constant flux during the beta, and joining
-        the Discord server will keep you up to date with the changes.
+        Don't miss out on updates! The generator is in constant flux during the beta, and joining the
+        Discord server will keep you up to date with the changes.
       </p>
       <div class="bg-gray-700 inline-flex my-6 py-2 px-4 rounded items-center gap-4">
         <img src="{base}/cosmos-icon.png" class="w-12 h-12 rounded-4" />
@@ -260,8 +254,7 @@
         Don't have an account? I send a few recaps per year to <a
           class="s-link"
           href="https://newsletter.ryanis.cool/subscribe/"
-          on:click={subbed}
-          >my newsletter <Icon class="inline relative top--0.3" path={mdiEmail} /></a
+          on:click={subbed}>my newsletter <Icon class="inline relative top--0.3" path={mdiEmail} /></a
         >.
       </p>
       <a
@@ -301,12 +294,7 @@
   }
   .lightbox-gradient img {
     margin-top: 2rem;
-    mask-image: linear-gradient(
-      to top,
-      rgba(0, 0, 0, 0),
-      rgba(0, 0, 0, 0.55) 12%,
-      rgba(0, 0, 0, 1) 30%
-    );
+    mask-image: linear-gradient(to top, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.55) 12%, rgba(0, 0, 0, 1) 30%);
   }
   .lightheading {
     --at-apply: 'uppercase text-xl sm:text-3xl text-[#68e4a9] font-medium mb-4';

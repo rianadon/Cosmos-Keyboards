@@ -98,3 +98,24 @@ export function flippedKey(letter: string | undefined) {
   if (!letter) return letter
   return FLIPPED_KEY[letter] ?? letter
 }
+
+const KEY_MATRIX = [
+  '1234567890',
+  'qwertyuiop',
+  'asdfghjkl;',
+  'zxcvbnm,./',
+]
+
+export function adjacentKeycapLetter(letter: string | undefined, dx: number, dy: number) {
+  if (!letter) return undefined
+  if (letter.length > 1) return undefined
+  const row = KEY_MATRIX.findIndex(r => r.includes(letter))
+  if (row == -1) return undefined
+  const column = KEY_MATRIX[row].indexOf(letter)
+  const newRow = row + dy
+  if (newRow < 0 || newRow >= KEY_MATRIX.length) return undefined
+  const newColumn = column + dx
+  if (newColumn < 0 || newColumn >= KEY_MATRIX[newRow].length) return undefined
+  if ((column < 5) != (newColumn < 5)) return undefined
+  return KEY_MATRIX[newRow][newColumn]
+}

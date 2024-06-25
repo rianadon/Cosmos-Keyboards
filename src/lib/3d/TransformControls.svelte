@@ -32,15 +32,12 @@
 
   $: if ($clickedKey != null) {
     const transformation = conditionalFlip(
-      transformationCenter($clickedKey, $protoConfig, $selectMode)
-        .evaluate({ flat: false })
-        .Matrix4(),
+      transformationCenter($clickedKey, $protoConfig, $selectMode).evaluate({ flat: false }).Matrix4(),
       $view,
       $clickedKey,
       $protoConfig
     )
     transformation.decompose(pos, quat, sca)
-    console.log(pos, quat)
     position = pos.toArray()
     quaternion = quat.toArray() as Vector4Tuple
   }

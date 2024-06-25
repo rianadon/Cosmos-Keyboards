@@ -127,9 +127,7 @@
     {/each}
     {#each info as inf}
       <HTML position={inf.position} rotation={{ y: DEG2RAD * 90 }} transform>
-        <div
-          style="height: 1em; font-size: 1.8em; text-align: center; text-shadow: 1px 0 1px black"
-        >
+        <div style="height: 1em; font-size: 1.8em; text-align: center; text-shadow: 1px 0 1px black">
           {inf.text}
         </div>
       </HTML>

@@ -19,11 +19,7 @@
     type ColorRepresentation,
     type Intersection,
   } from 'three'
-  import type {
-    GizmoEvents,
-    GizmoProps,
-    GizmoSlots,
-  } from '@threlte/extras/dist/components/Gizmo/Gizmo'
+  import type { GizmoEvents, GizmoProps, GizmoSlots } from '@threlte/extras/dist/components/Gizmo/Gizmo'
 
   type $$Props = GizmoProps
   type $$Events = GizmoEvents
@@ -68,13 +64,9 @@
       renderer.toneMapping = toneMapped ? renderer.toneMapping : 0
 
       const x =
-        horizontalPlacement === 'left'
-          ? paddingX
-          : renderer.domElement.offsetWidth - size - paddingX
+        horizontalPlacement === 'left' ? paddingX : renderer.domElement.offsetWidth - size - paddingX
       const y =
-        verticalPlacement === 'bottom'
-          ? paddingY
-          : renderer.domElement.offsetHeight - size - paddingY
+        verticalPlacement === 'bottom' ? paddingY : renderer.domElement.offsetHeight - size - paddingY
 
       renderer.setViewport(x, y, size, size)
       renderer.render(root, orthoCam)
@@ -148,8 +140,7 @@
    * @param threshold - Threshold to use for comparison
    */
   const quaternionsAreEqual = (a: Quaternion, b: Quaternion, threshold: number) => {
-    const delta =
-      Math.abs(a.x - b.x) + Math.abs(a.y - b.y) + Math.abs(a.z - b.z) + Math.abs(a.w - b.w)
+    const delta = Math.abs(a.x - b.x) + Math.abs(a.y - b.y) + Math.abs(a.z - b.z) + Math.abs(a.w - b.w)
     return delta < threshold
   }
 
@@ -334,10 +325,7 @@
       userData.targetPosition={[1, 0, 0]}
       userData.targetEuler={[0, Math.PI * 0.5, 0]}
     >
-      <T.SpriteMaterial
-        map={getSpriteTexture(textureSize, xColor, 'X')}
-        opacity={p[0] >= 0 ? 1 : 0.5}
-      />
+      <T.SpriteMaterial map={getSpriteTexture(textureSize, xColor, 'X')} opacity={p[0] >= 0 ? 1 : 0.5} />
     </T.Sprite>
 
     <T.Mesh position.x={0.39} renderOrder={frontMostAxisIndex === 0 ? -1 : 0}>
@@ -370,17 +358,10 @@
       userData.targetPosition={[0, 1, 0]}
       userData.targetEuler={[-Math.PI * 0.5, 0, 0]}
     >
-      <T.SpriteMaterial
-        map={getSpriteTexture(textureSize, yColor, 'Y')}
-        opacity={p[1] >= 0 ? 1 : 0.5}
-      />
+      <T.SpriteMaterial map={getSpriteTexture(textureSize, yColor, 'Y')} opacity={p[1] >= 0 ? 1 : 0.5} />
     </T.Sprite>
 
-    <T.Mesh
-      position.y={0.39}
-      rotation.z={Math.PI / 2}
-      renderOrder={frontMostAxisIndex === 1 ? -1 : 0}
-    >
+    <T.Mesh position.y={0.39} rotation.z={Math.PI / 2} renderOrder={frontMostAxisIndex === 1 ? -1 : 0}>
       <T is={stemGeometry} />
       <T.MeshBasicMaterial
         transparent
@@ -410,17 +391,10 @@
       userData.targetPosition={[0, 0, 1]}
       userData.targetEuler={[0, 0, 0]}
     >
-      <T.SpriteMaterial
-        map={getSpriteTexture(textureSize, zColor, 'Z')}
-        opacity={p[2] >= 0 ? 1 : 0.5}
-      />
+      <T.SpriteMaterial map={getSpriteTexture(textureSize, zColor, 'Z')} opacity={p[2] >= 0 ? 1 : 0.5} />
     </T.Sprite>
 
-    <T.Mesh
-      position.z={0.39}
-      rotation.y={-Math.PI / 2}
-      renderOrder={frontMostAxisIndex === 2 ? -1 : 0}
-    >
+    <T.Mesh position.z={0.39} rotation.y={-Math.PI / 2} renderOrder={frontMostAxisIndex === 2 ? -1 : 0}>
       <T is={stemGeometry} />
       <T.MeshBasicMaterial
         transparent

@@ -213,8 +213,7 @@
   }
 
   function curvatureChange(key: string) {
-    if (basic && key == 'alpha')
-      cuttleformConf.curvature.pinkyAlpha = cuttleformConf.curvature.alpha
+    if (basic && key == 'alpha') cuttleformConf.curvature.pinkyAlpha = cuttleformConf.curvature.alpha
   }
 
   function caseChange(key: string) {
@@ -329,9 +328,8 @@
       <InfoBox>
         <p class="mb-1">
           This variant requires the Amoeba King PCB. The board should fit snug within the guides.
-          Friction holds the sockets onto the switch, but you can reinforce using glue/epoxy, two
-          3/16 in #0-80 screws or two 4–5 mm M1.6 screws for each key ({conf.keys.length * 4} screws
-          total).
+          Friction holds the sockets onto the switch, but you can reinforce using glue/epoxy, two 3/16 in
+          #0-80 screws or two 4–5 mm M1.6 screws for each key ({conf.keys.length * 4} screws total).
         </p>
         <p>
           To fasten, screw down forcefully so the screws carve threads into the plastic. For hard
@@ -341,11 +339,11 @@
     {:else if cuttleformConf.upperKeys.switchType == SWITCH.MX_HOTSWAP}
       <InfoBox>
         <p>
-          This variant requires Kailh MX hotswap sockets and a well-tuned 3D printer. Alternatives
-          are <a class="text-pink-600 underline" href="https://www.printables.com/model/158559"
-            >these printable hotswap sockets</a
-          >, together with the MX-Compatible (no hotswap) setting, but they don't grip as well as
-          the Kailh MX sockets.
+          This variant requires Kailh MX hotswap sockets and a well-tuned 3D printer. Alternatives are <a
+            class="text-pink-600 underline"
+            href="https://www.printables.com/model/158559">these printable hotswap sockets</a
+          >, together with the MX-Compatible (no hotswap) setting, but they don't grip as well as the
+          Kailh MX sockets.
         </p>
       </InfoBox>
     {/if}
@@ -473,9 +471,8 @@
 {/if}
 <Section name="Case">
   <svelte:fragment slot="preset">
-    <Preset
-      on:click={() => setShell('basic')}
-      selected={cuttleformConf.shell.oneofKind == 'basicShell'}>Default</Preset
+    <Preset on:click={() => setShell('basic')} selected={cuttleformConf.shell.oneofKind == 'basicShell'}
+      >Default</Preset
     >
     {#if hasPro}<Preset
         name="Stilts"
@@ -487,9 +484,8 @@
             : 'text-teal-500'} dark:text-teal-400 font-bold ml-2">PRO</span
         ></Preset
       >{/if}
-    <Preset
-      on:click={() => setShell('tilt')}
-      selected={cuttleformConf.shell.oneofKind == 'tiltShell'}>Tilting Base</Preset
+    <Preset on:click={() => setShell('tilt')} selected={cuttleformConf.shell.oneofKind == 'tiltShell'}
+      >Tilting Base</Preset
     >
   </svelte:fragment>
   <svelte:fragment slot="content">
@@ -521,15 +517,15 @@
           />
           {#if key.var == 'microcontroller' && rearPins(cuttleformConf)}
             <InfoBox>
-              Don't solder to the rear row of {rearPins(cuttleformConf)} pins on the microcontroller,
-              or be very careful if you do! Any protrusions in this area under the microcontroller will
-              prevent it from sliding into its holder.
+              Don't solder to the rear row of {rearPins(cuttleformConf)} pins on the microcontroller, or be
+              very careful if you do! Any protrusions in this area under the microcontroller will prevent
+              it from sliding into its holder.
             </InfoBox>
           {/if}
           {#if key.var == 'microcontroller' && castellated(cuttleformConf)}
             <InfoBox>
-              Only solder to the inner holes on the microcontroller. Soldering to the castellated
-              edges will prevent it from fitting into the holder.
+              Only solder to the inner holes on the microcontroller. Soldering to the castellated edges
+              will prevent it from fitting into the holder.
             </InfoBox>
           {/if}
         {/if}
@@ -542,8 +538,8 @@
           {MAP_SCREW_SIZE[cuttleformConf.wall.screwSize]} x {screwHeight(cuttleformConf)} screws {#if cuttleformConf.wall.countersinkScrews}with
             countersunk heads
           {/if}and {tScrewInserts}
-          {MAP_SCREW_TYPE[cuttleformConf.wall.screwType]}s in order to fasten the base plate to the
-          case. Check the
+          {MAP_SCREW_TYPE[cuttleformConf.wall.screwType]}s in order to fasten the base plate to the case.
+          Check the
           <a class="text-pink-600 underline" href="https://ryanis.cool/cosmos/docs/screws"
             >Screws Documentation</a
           > to make sure you have the correctly sized parts.

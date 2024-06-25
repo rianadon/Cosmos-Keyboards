@@ -112,8 +112,8 @@
         </p>
         {#if !isSTEP}
           <p class="mx-auto max-w-prose text-red-600 text-sm">
-            Either the URL was too long to fit in the file or it was created from an earlier version
-            of Cosmos. Try using the STL file for the case.
+            Either the URL was too long to fit in the file or it was created from an earlier version of
+            Cosmos. Try using the STL file for the case.
           </p>
         {/if}
       {/if}

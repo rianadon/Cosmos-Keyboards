@@ -6,7 +6,7 @@ import { switchInfo } from '$lib/geometry/switches'
 import { wallBezier, wallCurveRounded, wallSurfacesInnerRoundedTop, wallSurfacesOuterRoundedTop } from '@pro/rounded'
 import cdt2d from 'cdt2d'
 import findBoundary from 'simplicial-complex-boundary'
-import { ExtrudeGeometry, Matrix3, Shape, Triangle } from 'three'
+import { ExtrudeGeometry, Matrix3, Shape, Triangle, type Vector3Tuple } from 'three'
 import { Vector2 } from 'three/src/math/Vector2.js'
 import concaveman from './concaveman'
 import { type Cuttleform, type CuttleKey, type Geometry, keyRoundSize } from './config'
@@ -817,7 +817,7 @@ export function additionalHeight(c: Cuttleform, t?: Trsf) {
   const pts3Df = flattenKeyCriticalPoints(c, pts3D, [])
   const { boundary } = solveTriangularization(c, pts2D, pts3D, keyholes, 0, new Vector(0, 0, 1), {
     noBadWalls: false,
-    constrainKeys: true,
+    constrainKeys: false,
     noKeyTriangles: false,
   })
 
@@ -993,17 +993,17 @@ export function solveTriangularization(c: Cuttleform, pts2D: CriticalPoints[], p
   }
 }
 
-export function estimatedCenter(geometry: Geometry, wristRest = false): [number, number, number] {
-  const pts = geometry.keyHolesTrsfs.map(t => t.xyz())
+export function estimatedBB(geometry: Geometry, wristRest = false, calcBottomZ = true): [number, number, number, number, number, number] {
+  const pts = geometry.allKeyCriticalPoints.flat().map(t => t.xyz())
   const x = pts.map(p => p[0])
   const y = pts.map(p => p[1])
   const z = pts.map(p => p[2])
+  return [Math.min(...x), Math.max(...x), Math.min(...y) + (wristRest ? -40 : 0), Math.max(...y), calcBottomZ ? geometry.floorZ : 0, Math.max(...z)]
+}
 
-  const cx = (Math.min(...x) + Math.max(...x)) / 2
-  let cy = (Math.min(...y) + Math.max(...y)) / 2
-  if (wristRest) cy -= 20
-  const cz = Math.max(...z) / 2 + geometry.floorZ / 2
-  return [cx, cy, cz]
+export function estimatedCenter(geometry: Geometry, wristRest = false): [number, number, number] {
+  const [x1, x2, y1, y2, z1, z2] = estimatedBB(geometry, wristRest)
+  return [(x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2]
 }
 
 function findClosestWall(
@@ -1422,13 +1422,28 @@ export function boardPositions(c: Cuttleform, connOrigin: Trsf, walls: WallCriti
   return positionsImplMap(c, walls, z, boardIndices(c, connOrigin, walls, z, bottomZ, select) as any)
 }
 
+function rotateCriticalPoint(pt: WallCriticalPoints, angle: number, position: Vector3Tuple, direction: Vector3Tuple): WallCriticalPoints {
+  return {
+    ...pt,
+    ti: pt.ti.rotated(angle, position, direction),
+    to: pt.to.rotated(angle, position, direction),
+    mi: pt.mi.rotated(angle, position, direction),
+    ki: pt.ki.rotated(angle, position, direction),
+    mo: pt.mo.rotated(angle, position, direction),
+    bi: pt.bi.rotated(angle, position, direction),
+    bo: pt.bo.rotated(angle, position, direction),
+    si: pt.si?.rotated(angle, position, direction),
+    sm: pt.sm?.rotated(angle, position, direction),
+  }
+}
+
 export function wristRestGeometry(c: Cuttleform, geo: Geometry) {
   if (!c.wristRest) throw new Error('Wrist rest is not enabled')
 
-  // Move walls out by 0.5mm so there's some margin
-  const trsfs = geo.keyHolesTrsfs
-  const pts = geo.allKeyCriticalPoints
-  const walls = geo.allWallCriticalPoints()
+  // Form the wrist rest by considering all walls roated by the wrist rest angle
+  // At the end of the function, everything is rotated back.
+  const origin = new ETrsf(c.wristRestOrigin.history).evaluate({ flat: false }).xyz()
+  const walls = geo.allWallCriticalPoints().map(p => rotateCriticalPoint(p, -c.wristRest!.angle, origin, [0, 0, 1]))
 
   const xMin = new Set<number>()
   const xMax = new Set<number>()
@@ -1436,7 +1451,7 @@ export function wristRestGeometry(c: Cuttleform, geo: Geometry) {
     const w = wall.bo.xyz()
     const wNext = walls[(i + 1) % walls.length].bo.xyz()
 
-    const isHorizontal = Math.abs(w[0] - wNext[0]) > Math.abs(w[1] - wNext[1])
+    const isHorizontal = Math.abs(w[0] - wNext[0]) * 2 > Math.abs(w[1] - wNext[1])
     if (w[0] > wNext[0] && isHorizontal) {
       xMax.add(Math.min(w[0], wall.to.xyz()[0] - 0.1))
       xMin.add(Math.max(wNext[0], walls[(i + 1) % walls.length].to.xyz()[0] + 0.1))
@@ -1445,11 +1460,8 @@ export function wristRestGeometry(c: Cuttleform, geo: Geometry) {
   })
   const midFrontWall = frontWalls[Math.floor(frontWalls.length / 2)]
 
-  const origin = new ETrsf(c.wristRestOrigin.history).evaluate({ flat: false }, pts[0][0].cleared()).xyz()
-  // origin[2] += additionalHeight(c, pts[0][0])
-  console.log('origin', origin)
-  const left = Math.max(origin[0] + /*c.wristRest.xOffset*/ -c.wristRest.maxWidth / 2, Math.min(...xMin))
-  const right = Math.min(origin[0] + /*c.wristRest.xOffset*/ +c.wristRest.maxWidth / 2, Math.max(...xMax))
+  const left = Math.max(origin[0] - c.wristRest.maxWidth / 2, Math.min(...xMin))
+  const right = Math.min(origin[0] + c.wristRest.maxWidth / 2, Math.max(...xMax))
   if (left > right) throw new Error('Wrist rest is not wide enough')
 
   const leftWallY = wallXToY(walls, left, walls.indexOf(midFrontWall), 1, -1, 'to')
@@ -1459,9 +1471,9 @@ export function wristRestGeometry(c: Cuttleform, geo: Geometry) {
 
   if (!leftWallY || !rightWallY || !leftWallY2 || !rightWallY2) throw new Error('Could not locate walls for wrist rest')
 
-  const sinAngle = Math.sin(c.wristRest.angle * Math.PI / 180)
-  const cosAngle = Math.cos(c.wristRest.angle * Math.PI / 180)
-  const tanAngle = Math.tan(c.wristRest.angle * Math.PI / 180)
+  const sinAngle = Math.sin(c.wristRest.taper * Math.PI / 180)
+  const cosAngle = Math.cos(c.wristRest.taper * Math.PI / 180)
+  const tanAngle = Math.tan(c.wristRest.taper * Math.PI / 180)
 
   const leftStart = new Vector(left, Math.max(leftWallY.y, leftWallY2.y), 0)
   const rightStart = new Vector(right, Math.max(rightWallY.y, rightWallY2.y), 0)
@@ -1479,7 +1491,7 @@ export function wristRestGeometry(c: Cuttleform, geo: Geometry) {
   }
 
   const minY = Math.min(leftStart.y, rightStart.y)
-  const length = minY - origin[1] + 8
+  const length = minY - origin[1] + c.wristRest.extension
   const leftLength = (length + leftStart.y - minY) / cosAngle
   const rightLength = (length + rightStart.y - minY) / cosAngle
 
@@ -1492,15 +1504,15 @@ export function wristRestGeometry(c: Cuttleform, geo: Geometry) {
     rightEnd.x = middle + 10
     // throw new Error('Wrist rest width is not big enough to support taper angle')
   }
+  const rotateBack = new Trsf().rotate(c.wristRest!.angle, origin, [0, 0, 1])
   return {
-    leftStart,
-    leftEnd,
-    rightStart,
-    rightEnd,
-    intermediatePoints,
+    leftStart: rotateBack.apply(leftStart),
+    leftEnd: rotateBack.apply(leftEnd),
+    rightStart: rotateBack.apply(rightStart),
+    rightEnd: rotateBack.apply(rightEnd),
+    intermediatePoints: intermediatePoints.map(p => rotateBack.apply(p)),
     // zOffset: origin[2] - 30 + c.wristRest.zOffset + additionalHeight(c, pts[0][0]),
     origin,
-    minY,
     length,
   }
 }

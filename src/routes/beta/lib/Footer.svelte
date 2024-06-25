@@ -9,8 +9,7 @@
     class="inline"
     size="20px"
   /> and <Icon path={mdiHeartOutline} class="inline" size="20px" /> by
-  <a class="hover:text-teal-500 dark:hover:text-teal-300" href="https://github.com/rianadon"
-    >@rianadon</a
+  <a class="hover:text-teal-500 dark:hover:text-teal-300" href="https://github.com/rianadon">@rianadon</a
   >.
 </p>
 <p class="mb-2 text-gray-500 dark:text-gray-400">
@@ -20,8 +19,7 @@
   >.
 </p>
 <p class="mb-2 text-gray-500 dark:text-gray-400">
-  You can find this website's source on <a href="https://github.com/rianadon/Cosmos-Keyboards/"
-    >GitHub</a
+  You can find this website's source on <a href="https://github.com/rianadon/Cosmos-Keyboards/">GitHub</a
   >. It's licensed under the
   <a href="https://github.com/rianadon/Cosmos-Keyboards/blob/main/LICENSE">AGPL</a>.
 </p>

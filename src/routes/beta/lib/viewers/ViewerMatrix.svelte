@@ -1,7 +1,7 @@
 <script lang="ts">
   import * as THREE from 'three'
 
-  import Viewer from './NewViewer.svelte'
+  import Viewer from './Viewer.svelte'
   import { rectangle, drawLinedWall, drawWall, drawPath, fullSizes } from './viewerHelpers'
 
   import {
@@ -20,7 +20,6 @@
   import { mapObj, objEntries } from '$lib/worker/util'
   import { T } from '@threlte/core'
 
-  export let conf: FullCuttleform
   export let geometry: FullGeometry
   export let style: string = ''
   export let confError: ConfError | undefined
@@ -143,11 +142,11 @@
     console.log(D, A, l, u, best)
 
     let results = [
-      0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
-      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-      0.0, 0.0, 0.0, 0.0, 1.0,
+      0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+      0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      1.0,
     ]
     // results = best
 
@@ -371,19 +370,18 @@
   }
 </script>
 
-<Viewer geometries={[]} {center} {size} {style} cameraPosition={[0, 0, 1]} enableRotate={false}>
+<Viewer {size} {style} cameraPosition={[0, 0, 1]} enableRotate={false}>
   <T.Group scale.x={-1}>
-    <T.Group position={[-center[0], -center[1], -center[2]]}>
-      {#each objEntries(allGeometries) as [kbd, geos]}
-        {#if kbd == 'unibody' || $view == 'both' || $view == kbd}
-          {#each geos as geometry}
-            <T.Group scale.x={kbd == 'left' ? -1 : 1}>
-              <T.Mesh geometry={geometry.geometry} material={geometry.material} />
-            </T.Group>
-          {/each}
-        {/if}
-      {/each}
-    </T.Group>
+    {#each objEntries(allGeometries) as [kbd, geos]}
+      {@const cent = center[kbd]}
+      {#if cent}
+        {#each geos as geometry}
+          <T.Group position={[-cent[0], -cent[1], -cent[2]]} scale.x={kbd == 'left' ? -1 : 1}>
+            <T.Mesh geometry={geometry.geometry} material={geometry.material} />
+          </T.Group>
+        {/each}
+      {/if}
+    {/each}
   </T.Group>
 </Viewer>
 <div class="absolute inset-1/2">

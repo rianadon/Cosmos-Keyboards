@@ -5,10 +5,12 @@ import type { User } from '../routes/beta/lib/login'
 import type { ColorScheme } from './3d/materials'
 import type { ConfError } from './worker/check'
 
+export type TempConfig = CosmosKeyboard & { fromProto: boolean }
+
 export const protoConfig = writable<CosmosKeyboard>(undefined)
-export const tempConfig = writable<CosmosKeyboard>(undefined)
+export const tempConfig = writable<TempConfig>(undefined)
 export const confError = writable<ConfError | undefined>(undefined)
-protoConfig.subscribe(c => tempConfig.set(c))
+protoConfig.subscribe(c => tempConfig.set(c ? { ...c, fromProto: true } : c))
 export const transformMode = writable<'translate' | 'rotate' | 'select'>('select')
 export const selectMode = writable<'key' | 'column' | 'cluster'>('key')
 export const user = writable<User>({ success: false, sponsor: undefined })
@@ -16,6 +18,11 @@ export const codeError = writable<Error | null>(null)
 
 export const hoveredKey = writable<number | null>(null)
 export const clickedKey = writable<number | null>(null)
+
+export const noWall = writable(false)
+export const noBase = writable(false)
+export const noBlanks = writable(false)
+export const noLabels = writable(false)
 
 // Preferences
 export const theme = storable<ColorScheme>('theme', 'purple')
@@ -28,9 +35,8 @@ export const discordMsg = storable('discordMsg', true)
 
 export const developer = storable('developer', browser && location.origin.includes('localhost'))
 export const showTiming = andcondition(developer, storable('developer.timing', false))
-export const noWall = andcondition(developer, storable('developer.hideWall', false))
-export const noBase = andcondition(developer, storable('developer.hideBase', false))
 export const showKeyInts = andcondition(developer, storable('developer.showKeyInts', false))
+export const showGizmo = andcondition(developer, storable('developer.showGizmo', false))
 export const debugViewport = andcondition(developer, storable('developer.debugViewport', false))
 
 /** A Svelte store that writes and reads from localStorage. */

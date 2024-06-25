@@ -13,18 +13,34 @@ const cacher = makeAsyncCacher(async (key: string, rotate: boolean) => {
   return makeUv(geo)
 })
 
+export function keyUrl(k: CuttleKey) {
+  if (!('keycap' in k && k.keycap)) return null
+  const profile = k.keycap.profile
+  const row = k.keycap.row
+  const rotate = k.aspect < 1
+  const aspect = closestAspect(k.aspect)
+  const url = UNIFORM.includes(profile) ? `${profile}-${aspect}` : `${profile}-${row}-${aspect}`
+  return url + (rotate ? '-r' : '')
+}
+
 async function fetchKeyBy(profile: string, aspect: number, row: number, rotate: boolean) {
   const url = UNIFORM.includes(profile) ? `${profile}-${aspect}` : `${profile}-${row}-${aspect}`
   const cacheKey = url + (rotate ? '-r' : '')
   return cacher(cacheKey, url, rotate)
 }
 
-export async function keyGeometry(k: CuttleKey) {
+export function hasKeyGeometry(k: CuttleKey) {
   if (k.type == 'trackball') {
-    return null
+    return false
   } else if (k.type == 'ec11' || k.type == 'blank' || k.type === 'joystick-joycon-adafruit') {
-    return null
-  } else if ('keycap' in k && k.keycap) {
+    return false
+  }
+  return ('keycap' in k && !!k.keycap)
+}
+
+export async function keyGeometry(k: CuttleKey) {
+  if (!hasKeyGeometry(k)) return null
+  if ('keycap' in k && k.keycap) {
     const aspect = closestAspect(k.aspect)
     return await fetchKeyBy(k.keycap.profile, aspect, k.keycap.row, k.aspect < 1)
   }

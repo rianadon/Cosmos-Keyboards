@@ -1,7 +1,6 @@
 <script lang="ts">
   import KeyboardMesh from '$lib/3d/KeyboardMesh.svelte'
   import { partGeometry } from '$lib/loaders/parts'
-  import { Mesh, OrbitControls, OrthographicCamera } from 'svelte-cubed'
   import loadGLTF from '$lib/loaders/gltfLoader'
   import { mdiFileEyeOutline } from '@mdi/js'
   import Icon from '$lib/presentation/Icon.svelte'
@@ -11,18 +10,25 @@
   import { browser } from '$app/environment'
   import { drawLinedRectangleOutside, makeBox } from '../beta/lib/viewers/viewerHelpers'
   import { MeshBasicMaterial } from 'three'
-  import { partBottom, socketSize } from '$lib/geometry/socketsParts'
+  import { partBottom, socketSize, variantURL } from '$lib/geometry/socketsParts'
   import CoopScene from '$lib/3d/CoopScene.svelte'
+  import { T } from '@threlte/core'
+  import { OrbitControls } from '@threlte/extras'
+  import { decodeVariant } from '$lib/worker/config.cosmos'
+  import type { CuttleKey } from '$lib/worker/config'
 
   export let name: string
-  export let part: string
+  export let part: CuttleKey['type']
   export let dev = true
   let loading = true
   let ref: HTMLElement
 
+  const variant = decodeVariant(part, 0)
+  const key = { type: part, variant } as any
+
   const NULL = Promise.resolve(undefined)
-  const partPromise = browser ? partGeometry(part as any) : NULL
-  const socketPromise = browser ? loadGLTF('/target/socket-' + part + '.glb') : NULL
+  const partPromise = browser ? partGeometry(part as any, variant) : NULL
+  const socketPromise = browser ? loadGLTF('/target/socket-' + part + variantURL(key) + '.glb') : NULL
   const path = KEY_URLS[part]
   const source = path.startsWith('/src/assets')
     ? `https://github.com/rianadon/Cosmos-Keyboards/tree/main${path}`
@@ -70,25 +76,26 @@
           <KeyboardMesh geometry={socketMesh} kind="case" />
         {/await}
         {#if dev && part !== 'trackball' && !part.includes('cirque')}
-          <Mesh
+          <T.Mesh
             geometry={makeBox(size.x / 2 + 5, 0, -size.z / 2, 10, size.y, size.z)}
             material={new MeshBasicMaterial({ color: 0x14b8a6 })}
           />
-          <Mesh
+          <T.Mesh
             geometry={makeBox(-size.x / 2 - 5, 0, -size.z / 2, 10, size.y, size.z)}
             material={new MeshBasicMaterial({ color: 0x14b8a6 })}
           />
         {/if}
         {#if dev}
           {#each bottom as b}
-            <Mesh
+            <T.Mesh
               geometry={makeBox(0, 0, b[0][2] + 1, 2 * Math.abs(b[0][0]), 2 * Math.abs(b[0][1]), 2)}
               material={new MeshBasicMaterial({ color: 0xdc2626, transparent: true, opacity: 0.5 })}
             />
           {/each}
         {/if}
-        <OrthographicCamera position={[0, -100, 0]} zoom={0.034} />
-        <OrbitControls enableZoom={false} enablePan={false} />
+        <T.OrthographicCamera makeDefault position={[0, -100, 0]} zoom={0.034}>
+          <OrbitControls enableZoom={false} enablePan={false} />
+        </T.OrthographicCamera>
       </CoopScene>
     </div>
     <div class="aspect-1 relative w-full">
@@ -97,13 +104,14 @@
           <KeyboardMesh geometry={socketMesh} kind="case" />
         {/await}
         {#if dev && part !== 'trackball' && !part.includes('cirque')}
-          <Mesh
+          <T.Mesh
             geometry={drawLinedRectangleOutside(-size.x / 2, -size.y / 2, size.x, size.y, 0.8)}
             material={new MeshBasicMaterial({ color: 0x14b8a6 })}
           />
         {/if}
-        <OrthographicCamera position={[0, 0, 100]} zoom={0.034} />
-        <OrbitControls enableZoom={false} enablePan={false} />
+        <T.OrthographicCamera makeDefault position={[0, 0, 100]} zoom={0.034}>
+          <OrbitControls enableZoom={false} enablePan={false} />
+        </T.OrthographicCamera>
       </CoopScene>
     </div>
   </div>

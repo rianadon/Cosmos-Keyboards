@@ -1,7 +1,7 @@
 <script lang="ts">
   import { fade } from 'svelte/transition'
   import Login from './lib/Login.svelte'
-  import Viewer3D from './lib/viewers/NewViewer3D.svelte'
+  import Viewer3D from './lib/viewers/Viewer3D.svelte'
   import Thick3D from './lib/viewers/ViewerThickness.svelte'
   import ViewerLayout from './lib/viewers/ViewerLayout.svelte'
   import ViewerMatrix from './lib/viewers/ViewerMatrix.svelte'
@@ -20,22 +20,23 @@
   import BomView from './lib/dialogs/BomView.svelte'
   import KleView from './lib/dialogs/KleView.svelte'
   import HandFitView from './lib/dialogs/HandFitView.svelte'
-  import cuttleform from '$assets/cuttleform.json'
   import Dialog from '$lib/presentation/Dialog.svelte'
   import Footer from './lib/Footer.svelte'
   import Editor from './lib/editor/CodeEditor.svelte'
   import Preset from '$lib/presentation/Preset.svelte'
   import FilamentChart from './lib/FilamentChart.svelte'
   import DarkTheme from './lib/DarkTheme.svelte'
-  import { serialize, deserialize } from './lib/serialize'
+  import { serialize, deserialize, type State } from './lib/serialize'
   import { WorkerPool, type TaskError } from './lib/workerPool'
   import {
     fullEstimatedCenter,
+    fullEstimatedSize,
     newFullGeometry,
     newGeometry,
     setBottomZ,
     type Cuttleform,
     type CuttleformProto,
+    type FullCenter,
     type FullCuttleform,
     type Geometry,
   } from '$lib/worker/config'
@@ -58,35 +59,40 @@
     tempConfig,
     confError,
     view,
+    noBlanks,
+    noLabels,
   } from '$lib/store'
   import { onDestroy } from 'svelte'
   import { browser } from '$app/environment'
   import { hasPro } from '@pro'
   import ViewerDev from './lib/viewers/ViewerDev.svelte'
   import DownloadDialog from './lib/dialogs/DownloadDialog.svelte'
-  import { fromCosmosConfig } from '$lib/worker/config.cosmos'
+  import { fromCosmosConfig, toCosmosConfig, toFullCosmosConfig } from '$lib/worker/config.cosmos'
   import KeyboardModel from '$lib/3d/KeyboardModel.svelte'
-  import {
-    kbdOffset,
-    type FullGeometry,
-    type FullKeyboardMeshes,
-  } from './lib/viewers/viewer3dHelpers'
-  import { objEntriesNotNull, objKeys } from '$lib/worker/util'
+  import { kbdOffset, type FullGeometry, type FullKeyboardMeshes } from './lib/viewers/viewer3dHelpers'
+  import { notNull, objEntriesNotNull, objKeys } from '$lib/worker/util'
   import { T } from '@threlte/core'
   import Checkbox from '$lib/presentation/Checkbox.svelte'
+
+  $: console.log('protoconfig', $protoConfig)
 
   const DEF_CENTER = [-35.510501861572266, -17.58449935913086, 35.66889877319336] as [
     number,
     number,
     number
   ]
-  let centers = {
-    left: DEF_CENTER,
-    both: [0, DEF_CENTER[1], DEF_CENTER[2]] as [number, number, number],
-    right: DEF_CENTER,
+  let centers: FullCenter = {
+    left: { left: DEF_CENTER, unibody: DEF_CENTER },
+    both: {
+      left: [0, DEF_CENTER[1], DEF_CENTER[2]],
+      right: [0, DEF_CENTER[1], DEF_CENTER[2]],
+      unibody: [0, DEF_CENTER[1], DEF_CENTER[2]],
+    },
+    right: { right: DEF_CENTER, unibody: DEF_CENTER },
   }
   $: center = centers[$view]
-  let size = new Vector3(140, 120, 100)
+  let sizes = fullEstimatedSize(undefined)
+  $: size = sizes[$view]
   let filament: FilamentEstimate | undefined
   let referenceElement
   let referenceElementTools: HTMLButtonElement
@@ -97,12 +103,13 @@
   let proOpen = false
   let editorContent: string
   let hideWall = false
+  let lastRenderNumber = 0
 
   // @ts-ignore
-  let state: { keyboard: string; options: Keyboard } = deserialize(
-    browser ? location.hash.substring(1) : '',
+  let state: State = deserialize(browser ? location.hash.substring(1) : '', () =>
     deserialize('cm', null)
   )
+  console.log('state', state)
   let initialEditorContent = state.content
 
   function onHashChange() {
@@ -124,6 +131,7 @@
   let bomView = false
   let kleView = false
   let showFit = false
+  let showUpgraded = true
 
   $: cTransparency = showSupports ? 0 : transparency
 
@@ -168,14 +176,32 @@
   let geometry: FullGeometry = {}
   let microcontrollerGeometry: FullGeometry = {}
   $: if (config && browser) {
-    process(config, true).catch((e) => console.error(e))
+    debounceprocess2(config)
+  }
+
+  // Try to process ASAP, but if render queue is full wait 1 second then render
+  // in that 1 second, new renders can steal the work, cancelling the previous render task
+  let processTimer = 0
+  async function debounceprocess2(config: FullCuttleform) {
+    console.log('FULL PROCESS', pool.someAvailable())
+    if (pool.someAvailable()) process(config, true).catch((e) => console.error(e))
+    else {
+      // Use the temp renderer to make a render
+      microcontrollerGeometry = geometry = newFullGeometry(config)
+      if (tempPool.someAvailable()) await process(config, false)
+
+      if (processTimer) clearTimeout(processTimer)
+      processTimer = window.setTimeout(() => process(config, true).catch((e) => console.error(e)), 500)
+    }
   }
 
   $: if ($tempConfig && browser) {
-    debounceprocess(fromCosmosConfig($tempConfig)).catch((e) => console.error(e))
+    debounceprocess(fromCosmosConfig($tempConfig), $tempConfig.fromProto).catch((e) => console.error(e))
   }
 
-  async function debounceprocess(config: FullCuttleform) {
+  async function debounceprocess(config: FullCuttleform, fromProto: boolean) {
+    if (fromProto) return
+    console.log('TEMP PROCESS', tempPool.someAvailable())
     if (tempPool.someAvailable()) await process(config, false)
     else geometry = newFullGeometry(config) // Otherwise still update geometry so keyboard changes
   }
@@ -189,7 +215,7 @@
     const differences = []
 
     for (const prop of new Set([...Object.keys(c1), ...Object.keys(c2)])) {
-      if (prop == 'addHeight') continue
+      if (prop == 'bottomZ') continue
       if (JSON.stringify(c1[prop]) != JSON.stringify(c2[prop])) differences.push(prop)
     }
     return differences
@@ -214,23 +240,29 @@
     holderPromise: pool.execute((w) => w.generateBoardHolder(conf), 'Holder'),
     screwPromise: pool.execute((w) => w.generateScrewInserts(conf), 'Inserts'),
     wristRestPromise: pool.execute((w) => w.generateWristRest(conf), 'Wrist Rest'),
+    secondWristRestPromise:
+      side == 'unibody' && pool.execute((w) => w.generateMirroredWristRest(conf), 'Wrist Rest 2'),
     cutPlatePromise: pool.execute((w) => w.generatePlate(conf, true), 'Full Plate'),
   })
 
   function updateCenters(config: FullCuttleform, geo: FullGeometry) {
     centers = fullEstimatedCenter(geo)
     center = centers[$view]
+    sizes = fullEstimatedSize(geo)
+    console.log('sizes are', sizes)
+    size = sizes[$view]
   }
 
   let oldTempConfig: FullCuttleform | null = null
   let oldConfig: FullCuttleform | null = null
   async function process(conf: FullCuttleform, full: boolean) {
+    const renderNumber = ++lastRenderNumber
     const kbdNames = objKeys(conf)
       .filter((k) => !!conf[k])
       .sort((a, b) => b.localeCompare(a)) // Make sure right keyboard comes first
     if (oldConfig && geometry && full) {
-      console.log('PROCESSING')
       const differences = areDifferent2(oldConfig, conf)
+      console.log('differences', differences)
       if (differences.length == 0) return
       oldConfig = conf
       oldTempConfig = conf
@@ -243,12 +275,27 @@
           ocError = undefined
           generatorProgress = 0.5
           updateCenters(config, geometry)
-          const wristMeshes = await Promise.all(
-            kbdNames.map((k) => pool.executeNow((w) => w.generateWristRest(conf[k]!), 'Wrist Rest'))
-          )
-          wristMeshes.forEach((wristMesh, i) => {
-            meshes[kbdNames[i]]!.wristBuf = wristMesh.mesh ?? undefined
-          })
+          if (conf.unibody) {
+            pool.reset(2)
+            const wristMeshes = await Promise.all([
+              pool.execute((w) => w.generateWristRest(conf.unibody!), 'Wrist Rest'),
+              pool.execute((w) => w.generateMirroredWristRest(conf.unibody!), 'Wrist Rest 2'),
+            ])
+            if (renderNumber >= lastRenderNumber) {
+              meshes.unibody!.wristBuf = wristMeshes[0].mesh ?? undefined
+              meshes.unibody!.secondWristBuf = wristMeshes[1].mesh ?? undefined
+            }
+          } else {
+            pool.reset(kbdNames.length)
+            const wristMeshes = await Promise.all(
+              kbdNames.map((k) => pool.execute((w) => w.generateWristRest(conf[k]!), 'Wrist Rest'))
+            )
+            if (renderNumber >= lastRenderNumber) {
+              wristMeshes.forEach((wristMesh, i) => {
+                meshes[kbdNames[i]]!.wristBuf = wristMesh.mesh ?? undefined
+              })
+            }
+          }
           generatorProgress = 1
           ocError = undefined
         } catch (e) {
@@ -268,12 +315,29 @@
       oldTempConfig = conf
     }
 
-    setBottomZ(conf)
+    let originalErr: ConfError | undefined
+    for (const kbd of kbdNames) {
+      originalErr = checkConfig(conf[kbd]!, undefined, false, kbd)
+      if (originalErr) break
+    }
+    confError.set(originalErr)
+    if (originalErr) return
+
+    try {
+      setBottomZ(conf)
+    } catch (e) {
+      confError.set({
+        type: 'exception',
+        error: e as Error,
+        side: 'right',
+        when: 'Setting keyboard bottom',
+      })
+      return
+    }
     const newGeo = newFullGeometry(conf)
     geometry = newGeo
     microcontrollerGeometry = newGeo
     console.log('GENERATING. conf incoming', conf)
-    let originalErr: ConfError | undefined
     for (const kbd of kbdNames) {
       originalErr = checkConfig(conf[kbd]!, newGeo[kbd]!, full, kbd)
       if (originalErr) break
@@ -289,47 +353,46 @@
     const pl = full ? pool : tempPool
     if (full) pool.reset()
     try {
-      const quickPromises = kbdNames.map((k) =>
-        pl.execute((w) => w.generateQuick(conf[k]!), 'Preview')
-      )
+      const quickPromises = kbdNames.map((k) => pl.execute((w) => w.generateQuick(conf[k]!), 'Preview'))
       const otherPromises =
         !flags.fast && full ? kbdNames.map((k) => calcOtherPromises(conf[k]!, k)) : []
 
       if (full) {
-        updateCenters(config, newGeo)
         generatorProgress = 0.1
+        updateCenters(config, newGeo)
       }
       const quickResults = await Promise.all(quickPromises)
-      quickResults.forEach((prom, i) => {
-        meshes[kbdNames[i]] = {
-          ...meshes[kbdNames[i]],
-          webBuf: prom.web.mesh,
-          keyBufs: prom.keys.keys.map((k) => ({
-            ...k,
-            matrix: new Matrix4().copy(k.matrix),
-          })),
-          wallBuf: prom.wall.mesh,
-          plateTopBuf: prom.plate.top.mesh,
-          plateBotBuf: prom.plate.bottom.mesh || undefined,
-          holderBuf: undefined,
-          screwBaseBuf: undefined,
-          screwPlateBuf: undefined,
+      if (renderNumber >= lastRenderNumber) {
+        quickResults.forEach((prom, i) => {
+          meshes[kbdNames[i]] = {
+            ...meshes[kbdNames[i]],
+            webBuf: prom.web.mesh,
+            keyBufs: prom.keys.keys.map((k) => ({
+              ...k,
+              matrix: new Matrix4().copy(k.matrix),
+            })),
+            wallBuf: prom.wall.mesh,
+            plateTopBuf: prom.plate.top.mesh,
+            plateBotBuf: prom.plate.bottom.mesh || undefined,
+            holderBuf: undefined,
+            screwBaseBuf: undefined,
+            screwPlateBuf: undefined,
+          }
+          // size = boundingSize([...keyBufs!, webBuf!])
+        })
+        if (kbdNames.includes('right')) delete meshes.unibody
+        else {
+          delete meshes.left
+          delete meshes.right
         }
-        // size = boundingSize([...keyBufs!, webBuf!])
-      })
-      if (kbdNames.includes('right')) delete meshes.unibody
-      else {
-        delete meshes.left
-        delete meshes.right
       }
 
       if (!flags.fast && full) {
         const queue = otherPromises.flatMap((p, i) =>
-          Object.values(p).map((q) => ({ i, kbd: kbdNames[i], prom: q }))
+          notNull(Object.values(p)).map((q) => ({ i, kbd: kbdNames[i], prom: q }))
         )
         const initialLength = queue.length
         const errors: Error[] = []
-        console.log('DIFFERENCES Set to 0.2', full)
         generatorProgress = 0.2
         while (queue.length) {
           const { result, finished, error } = await Promise.race(
@@ -341,7 +404,8 @@
             )
           )
           queue.splice(queue.indexOf(finished), 1)
-          generatorProgress = 0.2 + ((initialLength - queue.length) / initialLength) * 0.8
+          if (renderNumber >= lastRenderNumber)
+            generatorProgress = 0.2 + ((initialLength - queue.length) / initialLength) * 0.8
           if (error) {
             errors.push(error)
             continue
@@ -349,18 +413,22 @@
           if (finished.prom == otherPromises[finished.i].intersectionsPromise) {
             if (!originalErr) confError.set(result)
             originalErr = result
-          } else if (finished.prom == otherPromises[finished.i].holderPromise) {
-            if (conf[finished.kbd]!.microcontroller) meshes[finished.kbd]!.holderBuf = result.mesh
-          } else if (finished.prom == otherPromises[finished.i].screwPromise) {
-            meshes[finished.kbd]!.screwBaseBuf = result.plateInserts.mesh
-            meshes[finished.kbd]!.screwPlateBuf = result.baseInserts.mesh
-          } else if (finished.prom == otherPromises[finished.i].cutPromise) {
-            meshes[finished.kbd]!.wallBuf = result.mesh
-          } else if (finished.prom == otherPromises[finished.i].wristRestPromise) {
-            meshes[finished.kbd]!.wristBuf = result.mesh
-          } else if (finished.prom == otherPromises[finished.i].cutPlatePromise) {
-            meshes[finished.kbd]!.plateTopBuf = result.top.mesh
-            meshes[finished.kbd]!.plateBotBuf = result.bottom.mesh || undefined
+          } else if (renderNumber >= lastRenderNumber) {
+            if (finished.prom == otherPromises[finished.i].holderPromise) {
+              if (conf[finished.kbd]!.microcontroller) meshes[finished.kbd]!.holderBuf = result.mesh
+            } else if (finished.prom == otherPromises[finished.i].screwPromise) {
+              meshes[finished.kbd]!.screwBaseBuf = result.plateInserts.mesh
+              meshes[finished.kbd]!.screwPlateBuf = result.baseInserts.mesh
+            } else if (finished.prom == otherPromises[finished.i].cutPromise) {
+              meshes[finished.kbd]!.wallBuf = result.mesh
+            } else if (finished.prom == otherPromises[finished.i].wristRestPromise) {
+              meshes[finished.kbd]!.wristBuf = result.mesh
+            } else if (finished.prom == otherPromises[finished.i].secondWristRestPromise) {
+              meshes[finished.kbd]!.secondWristBuf = result.mesh
+            } else if (finished.prom == otherPromises[finished.i].cutPlatePromise) {
+              meshes[finished.kbd]!.plateTopBuf = result.top.mesh
+              meshes[finished.kbd]!.plateBotBuf = result.bottom.mesh || undefined
+            }
           }
         }
         if (errors.length) throw errors[0]
@@ -377,15 +445,17 @@
           quickResults[0].keys.supports.volume
         filament = estimateFilament(volume, supportVolume)
 
-        for (let i = 0; i < kbdNames.length; i++) {
-          meshes[kbdNames[i]]!.supportGeometries = [
-            (await otherPromises[i].cutPromise).supports,
-            quickResults[i].web.supports,
-            quickResults[i].keys.supports as any,
-          ]
+        if (renderNumber >= lastRenderNumber) {
+          for (let i = 0; i < kbdNames.length; i++) {
+            meshes[kbdNames[i]]!.supportGeometries = [
+              (await otherPromises[i].cutPromise).supports,
+              quickResults[i].web.supports,
+              quickResults[i].keys.supports as any,
+            ]
+          }
         }
       }
-      if (full) generatorProgress = 1
+      if (full && renderNumber >= lastRenderNumber) generatorProgress = 1
       ocError = undefined
     } catch (e) {
       console.error(e)
@@ -395,9 +465,14 @@
 
   function setMode(newMode: string) {
     if (mode === 'advanced' && newMode !== 'advanced') {
-      if (!confirm('Are you sure you wish to exit expert mode? Your work will not be saved.'))
-        return
-      initialEditorContent = undefined // So the editor resets
+      // if (!confirm('Are you sure you wish to exit expert mode? Your work will not be saved.')) return
+      try {
+        state.options = toFullCosmosConfig(config)
+        initialEditorContent = undefined // So the editor resets
+      } catch (e) {
+        console.error(e)
+        alert('Could not convert your expert mode config. Was there an error in it?')
+      }
     }
     mode = newMode
   }
@@ -438,10 +513,9 @@
   <div class="flex-1">
     {#if state.keyboard == 'lightcycle'}
       <div class="border-2 border-yellow-400 py-2 px-4 m-2 rounded bg-white dark:bg-gray-900">
-        Generating the Lightcycle case takes an extremeley long time, so it is disabled by default.
-        Turn on <span class="whitespace-nowrap bg-gray-200 dark:bg-gray-800 px-2 rounded"
-          >Include Case</span
-        > to generate it.
+        Generating the Lightcycle case takes an extremeley long time, so it is disabled by default. Turn
+        on <span class="whitespace-nowrap bg-gray-200 dark:bg-gray-800 px-2 rounded">Include Case</span> to
+        generate it.
       </div>
     {/if}
     <div class="viewer relative xs:sticky h-[100vh] top-0">
@@ -498,13 +572,7 @@
           selected={['board', 'thick', 'timing', 'dev'].includes(viewer)}
           bind:button={referenceElementTools}><Icon path={mdi.mdiToolboxOutline} /> ...</Preset
         >
-        <input
-          class="relative z-10 mx-2"
-          type="range"
-          min="0"
-          max="100"
-          bind:value={transparency}
-        />
+        <input class="relative z-10 mx-2" type="range" min="0" max="100" bind:value={transparency} />
         {#if flags.hand}<Preset
             purple
             square
@@ -529,7 +597,7 @@
           bind:isOpen={prefsOpen}
         >
           <div
-            class="bg-gray-100/80 dark:bg-gray-900/80 backdrop-blur-md px-2 py-1 mr-[-.5rem] rounded-2 text-small"
+            class="bg-[#f8f5ff]/80 dark:bg-gray-900/80 backdrop-blur-md px-2 py-1 mr-[-.5rem] rounded-2 text-small select-none"
             in:fade={{ duration: 50 }}
             out:fade={{ duration: 150 }}
           >
@@ -559,6 +627,12 @@
             <label class="flex items-center my-2">
               <Checkbox small purple basic bind:value={$noBase} /> Hide Base
             </label>
+            <label class="flex items-center my-2">
+              <Checkbox small purple basic bind:value={$noLabels} /> Hide Labels
+            </label>
+            <label class="flex items-center my-2">
+              <Checkbox small purple basic bind:value={$noBlanks} /> Hide Blank
+            </label>
           </div>
         </Popover>
       </div>
@@ -574,17 +648,11 @@
             in:fade={{ duration: 50 }}
             out:fade={{ duration: 150 }}
           >
-            <Preset
-              purple
-              class="!px-2"
-              on:click={() => (viewer = 'board')}
-              selected={viewer == 'board'}>Base</Preset
+            <Preset purple class="!px-2" on:click={() => (viewer = 'board')} selected={viewer == 'board'}
+              >Base</Preset
             >
-            <Preset
-              purple
-              class="!px-2"
-              on:click={() => (viewer = 'thick')}
-              selected={viewer == 'thick'}>Thickness</Preset
+            <Preset purple class="!px-2" on:click={() => (viewer = 'thick')} selected={viewer == 'thick'}
+              >Thickness</Preset
             >
             {#if $showTiming}<Preset
                 purple
@@ -616,19 +684,23 @@
           enableZoom={true}
           showHand={$showHand}
           progress={generatorProgress}
+          {size}
         >
-          {#each keyboardEntries as [kbd, mesh]}
-            <T.Group position.x={kbdOffset(kbd)} scale.x={kbd == 'left' ? -1 : 1}>
-              <KeyboardModel
-                side={kbd}
-                {hideWall}
-                {transparency}
-                {showSupports}
-                geometry={geometry[kbd]}
-                microcontrollerGeometry={microcontrollerGeometry[kbd]}
-                meshes={mesh}
-              />
-            </T.Group>
+          {#each keyboardEntries as [kbd, mesh] (kbd)}
+            {@const cent = center[kbd]}
+            {#if cent}
+              <T.Group position={[-cent[0], -cent[1], -cent[2]]} scale.x={kbd == 'left' ? -1 : 1}>
+                <KeyboardModel
+                  side={kbd}
+                  {hideWall}
+                  {transparency}
+                  {showSupports}
+                  geometry={geometry[kbd]}
+                  microcontrollerGeometry={microcontrollerGeometry[kbd]}
+                  meshes={mesh}
+                />
+              </T.Group>
+            {/if}
           {/each}
         </Viewer3D>
       {:else if viewer == 'thick'}
@@ -637,26 +709,30 @@
           {center}
           enableZoom={true}
           {darkMode}
+          {size}
         >
-          {#each keyboardEntries as [kbd, mesh]}
-            <T.Group position.x={kbdOffset(kbd)} scale.x={kbd == 'left' ? -1 : 1}>
-              <KeyboardModel
-                side={kbd}
-                noWeb
-                {hideWall}
-                {transparency}
-                {showSupports}
-                geometry={geometry[kbd]}
-                microcontrollerGeometry={microcontrollerGeometry[kbd]}
-                meshes={mesh}
-              />
-            </T.Group>
+          {#each keyboardEntries as [kbd, mesh] (kbd)}
+            {@const cent = center[kbd]}
+            {#if cent}
+              <T.Group position={[-cent[0], -cent[1], -cent[2]]} scale.x={kbd == 'left' ? -1 : 1}>
+                <KeyboardModel
+                  side={kbd}
+                  noWeb
+                  {hideWall}
+                  {transparency}
+                  {showSupports}
+                  geometry={geometry[kbd]}
+                  microcontrollerGeometry={microcontrollerGeometry[kbd]}
+                  meshes={mesh}
+                />
+              </T.Group>
+            {/if}
           {/each}
         </Thick3D>
       {:else if viewer == 'top'}
         <ViewerLayout {geometry} {darkMode} conf={config} confError={$confError} />
       {:else if viewer == 'programming'}
-        <ViewerMatrix {geometry} {darkMode} conf={config} confError={$confError} />
+        <ViewerMatrix {geometry} {darkMode} confError={$confError} />
       {:else if viewer == 'board'}
         <ViewerBottom {geometry} {darkMode} confError={$confError} />
       {:else if viewer == 'timing'}
@@ -721,33 +797,39 @@
         >
           {#if errorMsg}<h3 class="font-bold">There is a problem with the configuration.</h3>{/if}
           {#if $confError.type == 'invalid'}
-            <p class="mb-2">
-              In your configuration, the property <code>{$confError.item}</code> has the wrong data type.
-            </p>
-            <p class="mb-2">
-              Its value was found to be <code>{JSON.stringify($confError.value)}</code>, but it
-              should be one of: <code>{$confError.valid.join(', ')}</code>.
-            </p>
+            <div>
+              <p class="mb-2">
+                In your configuration, the property <code>{$confError.item}</code> has the wrong data type.
+              </p>
+              <p class="mb-2">
+                Its value was found to be <code>{JSON.stringify($confError.value)}</code>, but it should
+                be one of: <code>{$confError.valid.join(', ')}</code>.
+              </p>
+            </div>
           {:else if $confError.type == 'wrong'}
-            <p class="mb-2">
-              In your configuration, the property <code>{$confError.item}</code> has the wrong data type.
-            </p>
-            <p class="mb-2">
-              Its value was found to be <code>{JSON.stringify($confError.value)}</code>.
-            </p>
+            <div>
+              <p class="mb-2">
+                In your configuration, the property <code>{$confError.item}</code> has the wrong data type.
+              </p>
+              <p class="mb-2">
+                Its value was found to be <code>{JSON.stringify($confError.value)}</code>.
+              </p>
+            </div>
           {:else if $confError.type == 'oob'}
-            <p class="mb-2">
-              In your configuration, the element with value <code>{$confError.idx}</code> in
-              <code>{$confError.item}</code> is out of bounds.
-            </p>
-            <p class="mb-2">The value must be less than <code>{$confError.len}</code>.</p>
+            <div>
+              <p class="mb-2">
+                In your configuration, the element with value <code>{$confError.idx}</code> in
+                <code>{$confError.item}</code> is out of bounds.
+              </p>
+              <p class="mb-2">The value must be less than <code>{$confError.len}</code>.</p>
+            </div>
           {:else if $confError.type == 'exception'}
             <p class="mb-2">When {$confError.when}: <code>{$confError.error.message}</code>.</p>
           {:else if $confError.type == 'nan'}
             <p class="mb-2">
               One of the key positions has a value that's not a number. This often happens after an
-              update that adds new configuration options, so double check the Advanced tab and make
-              sure that every setting is set.
+              update that adds new configuration options, so double check the Advanced tab and make sure
+              that every setting is set.
             </p>
           {:else if $confError.type == 'nokeys'}
             <p class="mb-2">
@@ -755,25 +837,45 @@
               snowboard without snow.
             </p>
           {:else if $confError.type == 'missing'}
-            <p class="mb-2">
-              In your configuration, the property <code>{$confError.item}</code> is missing.
-            </p>
-            {#if $confError.key}
-              <p class="mb-2">Check the key with this configuration:</p>
-              <pre class="text-xs"><code>{JSON.stringify($confError.key, null, 2)}</code></pre>
-            {/if}
+            <div>
+              <p class="mb-2">
+                In your configuration, the property <code>{$confError.item}</code> is missing.
+              </p>
+              {#if $confError.key}
+                <p class="mb-2">Check the key with this configuration:</p>
+                <pre class="text-xs"><code>{JSON.stringify($confError.key, null, 2)}</code></pre>
+              {/if}
+            </div>
+          {:else if $confError.type == 'wrongformat'}
+            <div>
+              <p class="mb-2">The return type in Expert mode is incorrect.</p>
+              <p class="mb-2">Ensure the final lines of your code look like the following.</p>
+              <pre class="text-xs"><code
+                  >export default &lbrace;
+  right: &lbrace;
+    ...options,
+    keys: [...fingers, ...thumbs],
+    wristRestOrigin,
+  &rbrace;,
+  left: &lbrace;
+    ...options,
+    keys: flipKeyLabels([...fingers, ...thumbs]),
+    wristRestOrigin,
+  &rbrace;,
+&rbrace;</code
+                ></pre>
+            </div>
           {:else if errorMsg}
             <div>
               {#if $confError.type == 'intersection'}
                 {#if $confError.what == 'keycap' && ($confError.i < 0 || $confError.j < 0)}
                   <p class="mb-2">
-                    One of the keycaps intersects the walls{#if $confError.travel}&nbsp;when pressed
-                      down {$confError.travel[0]}mm{/if}.
+                    One of the keycaps intersects the walls{#if $confError.travel}&nbsp;when pressed down {$confError
+                        .travel[0]}mm{/if}.
                   </p>
                 {:else if $confError.what == 'keycap'}
                   <p class="mb-2">
-                    Two of the keycaps intersect, either in their current positions or when pressed
-                    down{#if $confError.travel}&nbsp;with
+                    Two of the keycaps intersect, either in their current positions or when pressed down{#if $confError.travel}&nbsp;with
                       {$confError.travel[0]}mm of travel{/if}.
                   </p>
                 {:else if $confError.what == 'part'}
@@ -792,26 +894,30 @@
                   </p>
                 {:else if $confError.what == 'socket'}
                   <p class="mb-2">
-                    Two of the key sockets intersect. This is ok, but the exported model will
-                    contain errors and might create problems when slicing.
+                    Two of the key sockets intersect. This is ok, but the exported model will contain
+                    errors and might create problems when slicing.
                   </p>
                 {/if}
                 <p class="mb-2">
                   If you're using Advanced mode, you can try adjusting the stagger, increasing the
                   spacing, or adding outwards arc to correct the issue.
-                  {#if $confError.what != 'socket'}You can also try decreasing webMinThicknessFactor
-                    in expert mode.{/if}
+                  {#if $confError.what != 'socket'}You can also try decreasing webMinThicknessFactor in
+                    expert mode.{/if}
                 </p>
                 <p class="mb-2">
-                  If the issue is within the thumb cluster, increase the vertical and horizontal
-                  spacings in Advanced mode or switch to custom thumbs mode.
+                  If the issue is within the thumb cluster, increase the vertical and horizontal spacings
+                  in Advanced mode or switch to custom thumbs mode.
                 </p>
               {:else if $confError.type == 'wallBounds'}
                 <p class="mb-2">
-                  One of the keys sticks out past the wall boundary. The keyboard will print, but
-                  you may see a small hole in this spot.
+                  One of the keys sticks out past the wall boundary. The keyboard will print, but you may
+                  see a small hole in this spot.
                 </p>
                 <p>To correct this issue, try adjusting the stagger or moving the keys around.</p>
+              {:else if $confError.type == 'samePosition'}
+                <p class="mb-2">
+                  Two of keys have the exact same position. You should move one of them.
+                </p>
               {/if}
             </div>
             <div class="flex-0 pl-2 absolute top-[1rem] right-[1.5rem]">
@@ -835,6 +941,8 @@
                 {/if}
               {:else if $confError.type == 'wallBounds'}
                 Key Sticks Past Walls
+              {:else if $confError.type == 'samePosition'}
+                Keys have Same Position
               {/if}
             </div>
             <div class="flex-0 pl-2">
@@ -860,21 +968,19 @@
         </div>
       {:else if (config?.right ?? config?.unibody)?.shell?.type == 'stilts'}
         {#if $stiltsMsg}
-          <div
-            class="absolute text-white m-4 left-0 right-0 rounded p-4 top-[5%] bg-yellow-700 flex"
-          >
+          <div class="absolute text-white m-4 left-0 right-0 rounded p-4 top-[5%] bg-yellow-700 flex">
             <div>
               <p>
-                Stilts mode is <b>very</b> tempermental. Not every model will work with it. Try to
-                keep very smooth curves between keys, and
+                Stilts mode is <b>very</b> tempermental. Not every model will work with it. Try to keep
+                very smooth curves between keys, and
                 <button class="underline" on:click={() => (hideWall = !hideWall)}
                   >{hideWall ? 'show' : 'hide'} the walls</button
                 > to check for bad geometry.
               </p>
               <p class="text-sm mt-2">
                 While I like hearing what kind of bugs you find, please don't tell be about bugs in
-                stilts mode. There are too many to keep track of and countless weeks to be spent
-                trying to fix them.
+                stilts mode. There are too many to keep track of and countless weeks to be spent trying
+                to fix them.
               </p>
             </div>
             <div class="flex-0 pl-2">
@@ -884,9 +990,7 @@
             </div>
           </div>
         {:else}
-          <div
-            class="absolute text-white m-4 right-[80px] rounded p-4 top-[10%] bg-yellow-700 flex"
-          >
+          <div class="absolute text-white m-4 right-[80px] rounded p-4 top-[10%] bg-yellow-700 flex">
             <div>
               <p>Stilts mode is <b>very</b> tempermental.</p>
             </div>
@@ -913,12 +1017,7 @@
     {:else}
       <div class="flex items-center justify-between mr-2">
         <div>
-          <Preset
-            purple
-            on:click={() => setMode('basic')}
-            name="Basic"
-            selected={mode == 'basic'}
-          />
+          <Preset purple on:click={() => setMode('basic')} name="Basic" selected={mode == 'basic'} />
           <Preset
             purple
             on:click={() => setMode('intermediate')}
@@ -937,9 +1036,7 @@
       <div class="flex justify-between pr-2 mt-1">
         <button class="infobutton" on:click={() => (urlView = true)}>What's in the URL?</button>
         <div>
-          <button class="infobutton" on:click={() => (bomView = true)}
-            >View Bill of Materials</button
-          >
+          <button class="infobutton" on:click={() => (bomView = true)}>View Bill of Materials</button>
         </div>
       </div>
 
@@ -948,7 +1045,6 @@
           basic={mode == 'basic'}
           cosmosConf={state.options}
           bind:conf={config}
-          bind:geometry={geometry.right}
           on:goAdvanced={() => (mode = 'intermediate')}
         />
       {:else}
@@ -956,7 +1052,7 @@
           bind:initialContent={initialEditorContent}
           bind:hashContent={editorContent}
           {darkMode}
-          manuformConf={state.options}
+          cosmosConf={state.options}
           bind:conf={config}
         />
       {/if}
@@ -987,8 +1083,8 @@
       {:else}
         {#if (config?.right ?? config?.unibody).shell.type != 'basic'}
           <div class="bg-yellow-200 m-4 rounded p-4 dark:bg-yellow-700">
-            Screw information is not yet finished non-standard cases. Make sure to check the model
-            for any additional screws needed.
+            Screw information is not yet finished non-standard cases. Make sure to check the model for
+            any additional screws needed.
           </div>
         {/if}
         <BomView geometry={geometry.right} conf={config} />
@@ -1014,7 +1110,7 @@
 {/if}
 {#if downloading}
   <DownloadDialog
-    config={config?.right ?? config?.unibody}
+    {config}
     {pool}
     on:close={() => (downloading = false)}
     on:gopro={() => {
@@ -1023,6 +1119,12 @@
     }}
   />
 {/if}
+<!-- {#if state.upgradedFrom == 'cf' && showUpgraded}
+  <Dialog big on:close={() => (showUpgraded = false)}>
+    <span slot="title">Your model has been upgraded!</span>
+    <div slot="content">Hey.</div>
+  </Dialog>
+{/if} -->
 
 <DarkTheme bind:darkMode />
 
@@ -1090,10 +1192,10 @@
   }
 
   input[type='range']::-webkit-slider-thumb {
-    --at-apply: 'appearance-none w-6 h-6 bg-purple-300 dark:bg-pink-600 rounded-full border-transparent mt--2';
+    --at-apply: 'appearance-none w-6.8 h-6.8 bg-purple-300 dark:bg-pink-600 rounded-full border-transparent mt--2.4';
     --at-apply: "bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSIxLjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTMuOSA4LjIgMyAxOC40QzMgMTguOCAzIDE5LjIgMy4yIDE5LjVMMy40IDE5LjlBMiAyIDAgMDA1LjIgMjFIMTguOEEyIDIgMCAwMDIwLjYgMTkuOUwyMC44IDE5LjVDMjAuOSAxOS4yIDIxIDE4LjggMjEgMTguNEwyMC4xIDguMkE0IDQgMCAwMDE5LjMgNi4xTDE3IDNTMTQgMy41IDEyIDMuNSA3IDMgNyAzTDQuNyA2LjFBNCA0IDAgMDAzLjkgOC4yWk03IDNzMyAuNSA1IC41IDUtLjUgNS0uNWwxIDlzLTMgMS02IDEtNi0xLTYtMWwxLTl6TTYgMTJsLTIuNSA4TTE4IDEybDIuNSA4Ii8+PC9zdmc+')]";
     --at-apply: "dark:bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTMuOSA4LjIgMyAxOC40QzMgMTguOCAzIDE5LjIgMy4yIDE5LjVMMy40IDE5LjlBMiAyIDAgMDA1LjIgMjFIMTguOEEyIDIgMCAwMDIwLjYgMTkuOUwyMC44IDE5LjVDMjAuOSAxOS4yIDIxIDE4LjggMjEgMTguNEwyMC4xIDguMkE0IDQgMCAwMDE5LjMgNi4xTDE3IDNTMTQgMy41IDEyIDMuNSA3IDMgNyAzTDQuNyA2LjFBNCA0IDAgMDAzLjkgOC4yWk03IDNzMyAuNSA1IC41IDUtLjUgNS0uNWwxIDlzLTMgMS02IDEtNi0xLTYtMWwxLTl6TTYgMTJsLTIuNSA4TTE4IDEybDIuNSA4Ii8+PC9zdmc+')]";
-    background-size: 1.2rem 1.2rem;
+    background-size: 1.3rem 1.3rem;
     background-position: center 40%;
     background-repeat: no-repeat;
   }

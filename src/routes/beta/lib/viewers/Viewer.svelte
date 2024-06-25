@@ -1,86 +1,97 @@
 <script lang="ts">
-  import type * as THREE from 'three'
-  import * as SC from 'svelte-cubed'
-  import PerspectiveCamera from '$lib/3d/PerspectiveCamera.svelte'
-  import Canvas from '$lib/3d/Canvas.svelte'
+  import { T, Canvas, type ThrelteContext } from '@threlte/core'
   import WebGL from 'three/examples/jsm/capabilities/WebGL'
-  import { setContext } from 'svelte'
-  import { writable } from 'svelte/store'
+  import { OrbitControls } from '@threlte/extras'
+  import { onMount } from 'svelte'
+  import Interactivity from './Interactivity.svelte'
+  import { Vector3, type PerspectiveCamera } from 'three'
 
-  interface Geo {
-    geometry: THREE.ShapeGeometry
-    material: THREE.Material
-  }
-  export let geometries: Geo[]
   export let style: string = ''
-  export let center: [number, number, number]
-  export let size: THREE.Vector3
+  export let size: Vector3 | undefined = undefined
+  export let suggestedSize: [number, number, number] | undefined = undefined
   export let cameraPosition: [number, number, number] = [0, 0.8, 1]
   export let enableRotate = true
   export let enableZoom = false
   export let enablePan = false
-  export let is3D = false
-  export let flip = false
   let canvas: HTMLElement
-  const camera = writable<THREE.PerspectiveCamera>()
-  let root: any
+  let ctx: ThrelteContext
 
-  setContext('camera', camera)
-  camera.subscribe(($camera) => {
-    if (!$camera) return
-    // Give the camera an initial position
-    $camera.position.set(...cameraPosition)
+  let cameraScale = 1
+  const cameraFOV = 45
+
+  onMount(() => {
+    console.log('MOUNT VIEWER')
     resize()
   })
 
   function updateCameraPos() {
-    cameraPosition = $camera.position.clone().normalize().toArray()
+    cameraPosition = ctx.camera.current.position.clone().toArray()
   }
-
-  const cameraFOV = 45
 
   function resize() {
     // https://wejn.org/2020/12/cracking-the-threejs-object-fitting-nut/
+    if (!size || !ctx) return
     let aspect = canvas ? canvas.clientWidth / canvas.clientHeight : 1
     if (aspect == 0 || aspect == Infinity) aspect = 1
     const fov = cameraFOV * (Math.PI / 180)
     const fovh = 2 * Math.atan(Math.tan(fov / 2) * aspect)
     let dx = size.z / 2 + Math.abs(size.x / 2 / Math.tan(fovh / 2))
     let dy = size.z / 2 + Math.abs(size.y / 2 / Math.tan(fov / 2))
-    if ($camera) {
-      $camera.position.normalize()
-      $camera.position.multiplyScalar(Math.max(dx, dy) * 1.2)
-      $camera.updateProjectionMatrix()
-      root.invalidate()
-    }
+    const camera = ctx.camera.current as PerspectiveCamera
+    camera.position.normalize()
+    camera.position.multiplyScalar(Math.max(dx, dy) * 1.2)
+    updateCameraPos()
   }
+
+  function updateSuggestedSize(size: [number, number, number]) {
+    let aspect = canvas ? canvas.clientWidth / canvas.clientHeight : 1
+    if (aspect == 0 || aspect == Infinity) aspect = 1
+    const fov = cameraFOV * (Math.PI / 180)
+    const fovh = 2 * Math.atan(Math.tan(fov / 2) * aspect)
+
+    // Rotate bounding box by 30 degrees about x axis
+    // This is more realistic as we typically view the keyboard ~30 degrees from the horizontal
+    const theta = (30 / 180) * Math.PI
+    const x = size[0]
+    const y = size[1] * Math.cos(theta) + size[2] * Math.sin(theta)
+    const z = size[1] * Math.sin(theta) + size[2] * Math.cos(theta)
+
+    // Project the front of the bounding box onto the XZ plane using the camera's perspective
+    const sizeXAtXZPlane = x + y * Math.tan(fovh / 2)
+    const sizeZAtXZPlane = z + y * Math.tan(fov / 2)
+
+    // Fit the bounding box at the XZ plane onto the canvas
+    const widthScale = aspect / sizeXAtXZPlane
+    const heightScale = 1 / aspect / sizeZAtXZPlane
+    cameraScale = Math.min(widthScale, heightScale)
+    console.log('scale', cameraScale)
+  }
+
+  $: if (size) resize()
+  $: if (suggestedSize) updateSuggestedSize(suggestedSize)
 </script>
 
 <svelte:window on:resize={resize} />
 
 {#if WebGL.isWebGLAvailable()}
   <div class="container" bind:this={canvas} {style}>
-    <Canvas antialias alpha={true}>
-      {#if $camera}
-        <SC.Group rotation={[is3D ? -Math.PI / 2 : 0, 0, 0]} scale={[flip ? -1 : 1, 1, 1]}>
-          <SC.Group position={[-center[0], -center[1], -center[2]]}>
-            {#each geometries as geometry}
-              <SC.Mesh geometry={geometry.geometry} material={geometry.material} />
-            {/each}
-          </SC.Group>
-          <slot name="geometry" />
-        </SC.Group>
-        <slot name="controls" />
-      {/if}
-      <PerspectiveCamera fov={cameraFOV} bind:self={$camera} bind:root />
-      <SC.OrbitControls
-        {enableZoom}
-        {enableRotate}
-        {enablePan}
-        on:start
-        on:end
-        on:change={updateCameraPos}
-      />
+    <Canvas toneMapping={0} bind:ctx>
+      <Interactivity>
+        <T.Group scale={cameraScale}>
+          <slot />
+        </T.Group>
+
+        <T.PerspectiveCamera makeDefault fov={cameraFOV} position={cameraPosition} up={[0, 0, 1]}>
+          <OrbitControls
+            enableDamping
+            {enableZoom}
+            {enableRotate}
+            {enablePan}
+            dampingFactor={0.1}
+            on:change={updateCameraPos}
+          />
+        </T.PerspectiveCamera>
+      </Interactivity>
     </Canvas>
   </div>
 {:else}

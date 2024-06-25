@@ -5,15 +5,16 @@ import { Manuform } from '../../../../target/proto/manuform'
 import cuttleform from '$assets/cuttleform.json' assert { type: 'json' }
 import lightcycle from '$assets/lightcycle.json' assert { type: 'json' }
 import manuform from '$assets/manuform.json' assert { type: 'json' }
-import { cuttleConf } from '$lib/worker/config'
+import { cuttleConf, type CuttleformProto } from '$lib/worker/config'
 import { toCosmosConfig } from '$lib/worker/config.cosmos'
 import { decodeConfigIdk, encodeCosmosConfig, serializeCosmosConfig } from '$lib/worker/config.serialize'
 import * as pako from 'pako'
 
-interface State {
+export interface State {
   keyboard: string
   options: object
   content?: string
+  upgradedFrom?: string
 }
 
 const SPLIT_CHAR = ':'
@@ -81,7 +82,7 @@ function clone(a: any) {
   return JSON.parse(JSON.stringify(a))
 }
 
-export function deserialize(str: string, fallback: State): State {
+export function deserialize(str: string, fallback: () => State): State {
   if (str === 'manuform') return clone(manuform)
   if (str === 'lightcycle') return clone(lightcycle)
   if (str == 'cm') {
@@ -90,18 +91,19 @@ export function deserialize(str: string, fallback: State): State {
       // options: decodeConfigIdk(
       //   'CnMKDxIFEIADICcSABIAEgA4MQoPEgUQgA8gJxIAEgASADgdChYSBRCAGyAnEgASABIAEgA4CUCA8LwCChESBRCAJyAnEgASABIAEgA4CgoVEgUQgDMgJxIAEgASADgeQICGisAHGABA6IWgrvBVSNzwoqABCpIBChcSExDAwAFAgICQAkjCmaCVkLwBUEM4CAoVEhAQQECAgBhI0JWA3ZD1A1ALUJ4CChYSEhBAQICA1AJIwpmglZC8AVCGAVA6ChQSEBBAQICA8AFI5pn0p5ALUFdQfwoVEhAQQECAgKwDSPCZzLXQMFB0UJUBGAIiCgjIARDIARgAIABAy4uEpNAxSK2R3I3BkwY=',
       // ),
-      options: toCosmosConfig(cuttleConf(cuttleform.options)),
+      options: toCosmosConfig(cuttleConf(cuttleform.options), 'right', true),
     }
   }
 
   const split = str.split(SPLIT_CHAR)
-  if (split.length != 2) return clone(fallback)
+  if (split.length != 2) return fallback()
 
   const [keyboard, b64] = split
   const data = Uint8Array.from(atob(b64), c => c.charCodeAt(0))
 
   let options: object | null = null
   let content: string | undefined = undefined
+  let upgradedFrom: string | undefined = undefined
   console.log('DECODE CM', keyboard)
   if (keyboard === 'manuform') {
     options = recreate2(Manuform.fromBinary(data), clone(manuform.options))
@@ -110,7 +112,8 @@ export function deserialize(str: string, fallback: State): State {
     options = recreate2(Lightcycle.fromBinary(data), clone(lightcycle.options))
   }
   if (keyboard === 'cf') {
-    options = recreate2(Cuttleform.fromBinary(data), clone(cuttleform.options))
+    options = toCosmosConfig(cuttleConf(recreate2(Cuttleform.fromBinary(data), clone(cuttleform.options)) as CuttleformProto), 'right', true)
+    upgradedFrom = 'cf'
   }
   if (keyboard == 'cm') {
     options = decodeConfigIdk(
@@ -118,12 +121,17 @@ export function deserialize(str: string, fallback: State): State {
     )
   }
   if (keyboard == 'expert') {
-    options = clone(fallback).options
+    options = fallback().options
     content = deserializeEditor(data)
   }
-  if (!options) return clone(fallback)
+  if (!options) return fallback()
 
-  return { keyboard, options, content }
+  return { keyboard, options, content, upgradedFrom }
+}
+
+export function toCuttleformProto(b64: string): CuttleformProto {
+  const data = Uint8Array.from(atob(b64), c => c.charCodeAt(0))
+  return recreate2(Cuttleform.fromBinary(data), clone(cuttleform.options)) as CuttleformProto
 }
 
 export function serializeEditor(content: string) {

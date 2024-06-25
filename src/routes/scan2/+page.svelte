@@ -38,28 +38,25 @@
     Cosmos Hand Scanning
   </h1>
 </header>
-<main
-  class="mx-4 my-4 text-center relative h-[calc(100vh-8.5rem)]"
-  class:overflow-hidden={$step > 0}
->
+<main class="mx-4 my-4 text-center relative h-[calc(100vh-8.5rem)]" class:overflow-hidden={$step > 0}>
   {#if $step == 0}
     <div class="max-w-prose mx-auto" transition:fade={{ duration: 300 }}>
       <p class="mb-10">
-        To build the best possible computer model for your hand, Cosmos measures both the lengths of
-        your limbs and the direction you naturally move your fingers.
+        To build the best possible computer model for your hand, Cosmos measures both the lengths of your
+        limbs and the direction you naturally move your fingers.
       </p>
       {#if fullScreenErr}
         <div
           class="absolute bg-red text-black mx-[-1rem] px-4 py-1 rounded max-w-prose shadow-lg shadow-slate-800 z-100"
         >
-          Please allow the page to go fullscreen. This enables accurate screen measurements and
-          helps improve scanning accuracy.
+          Please allow the page to go fullscreen. This enables accurate screen measurements and helps
+          improve scanning accuracy.
         </div>
       {/if}
       <img class="max-w-lg mx-auto rounded mb-10" src="{base}/cosmos-hand-landing.png" />
       <p class="mb-2">
-        This tool will use your smartphone camera and a large display (e.g. laptop or monitor) to
-        analyze your hand entirely on-device.
+        This tool will use your smartphone camera and a large display (e.g. laptop or monitor) to analyze
+        your hand entirely on-device.
       </p>
       <button
         class="mt-10 bg-gradient-to-br from-purple-400 to-amber-600 text-xl p-1 rounded-2 shadow-lg shadow-pink/40 transition-all hover:shadow-pink/60 hover:scale-105 hover:-translate-y-0.5"

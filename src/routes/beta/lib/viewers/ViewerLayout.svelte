@@ -1,10 +1,9 @@
 <script lang="ts">
   import * as THREE from 'three'
 
-  import Viewer from './NewViewer.svelte'
+  import Viewer from './Viewer.svelte'
   import { reinforceTriangles, flipAllTriangles } from '$lib/worker/geometry'
   import { rectangle, drawLinedWall, drawWall, fullSizes } from './viewerHelpers'
-  import { boundingBox, boundingSize } from '$lib/loaders/geometry'
 
   import {
     fullEstimatedCenter,
@@ -132,12 +131,13 @@
   }
 </script>
 
-<Viewer geometries={[]} {center} {size} {style} cameraPosition={[0, 0, 1]} enableRotate={false}>
-  <T.Group position={[-center[0], -center[1], -center[2]]}>
-    {#each objEntries(allGeometries) as [kbd, geos]}
-      {#if kbd == 'unibody' || $view == 'both' || $view == kbd}
+<Viewer {size} {style} cameraPosition={[0, 0, 1]} enableRotate={false}>
+  <T.Group>
+    {#each objEntries(allGeometries) as [kbd, geos] (kbd)}
+      {@const cent = center[kbd]}
+      {#if cent}
         {#each geos as geometry}
-          <T.Group scale.x={kbd == 'left' ? -1 : 1}>
+          <T.Group position={[-cent[0], -cent[1], -cent[2]]} scale.x={kbd == 'left' ? -1 : 1}>
             <T.Mesh geometry={geometry.geometry} material={geometry.material} />
           </T.Group>
         {/each}

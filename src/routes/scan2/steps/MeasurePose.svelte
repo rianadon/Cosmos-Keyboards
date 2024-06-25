@@ -69,9 +69,7 @@
       if (leftSuccess < SGOAL)
         leftQuality = curlPhase
           ? curlQuality(hands.Left, leftJoints)
-          : scoreQuality(
-              handOrientation(hands.Left).angleTo(leftReferences[phase] || new Quaternion())
-            )
+          : scoreQuality(handOrientation(hands.Left).angleTo(leftReferences[phase] || new Quaternion()))
       if (leftQuality == 1) leftSuccess++
     }
     if (pHands.Right) {
@@ -192,8 +190,8 @@
   <div slot="prose">
     {#if nLeft == 0 && nRight == 0 && phase == 0}
       <p class="mb-2">
-        Rest your phone on a vertical surface so that your hands are visible from the camera.
-        Leaning it on a laptop screen or wall works well.
+        Rest your phone on a vertical surface so that your hands are visible from the camera. Leaning it
+        on a laptop screen or wall works well.
       </p>
       <p>With the phone in a stable position, place both hands in view of the camera.</p>
     {:else if curlPhase}
@@ -202,18 +200,18 @@
       </p>
     {:else if phase == 0}
       <p class="mx--2 px-6 py-2 bg-pink-700 rounded text-lg">
-        [1/{PHASES}] Stretch out your hands, point your fingertips towards each other, and rotate
-        your palms downwards.
+        [1/{PHASES}] Stretch out your hands, point your fingertips towards each other, and rotate your
+        palms downwards.
       </p>
     {:else if phase == 1}
       <p class="mx--2 px-6 py-2 bg-pink-700 rounded text-lg">
-        [2/{PHASES}] Stretch out your hands and point your fingertips towards the camera, keeping
-        your palms downwards.
+        [2/{PHASES}] Stretch out your hands and point your fingertips towards the camera, keeping your
+        palms downwards.
       </p>
     {:else if phase == 2}
       <p class="mx--2 px-6 py-2 bg-pink-700 rounded text-lg">
-        [3/{PHASES}] Stretch out your hands and point your fingertips upwardsand your palms towards
-        the camera.
+        [3/{PHASES}] Stretch out your hands and point your fingertips upwardsand your palms towards the
+        camera.
       </p>
     {/if}
   </div>
@@ -244,8 +242,7 @@
             <div
               class="absolute inset-0 rounded-45%"
               style="background: linear-gradient(#BE185D {50 * leftQuality}%, transparent {50 *
-                leftQuality}%, transparent {100 - 50 * leftQuality}%, #BE185D {100 -
-                50 * leftQuality}%)"
+                leftQuality}%, transparent {100 - 50 * leftQuality}%, #BE185D {100 - 50 * leftQuality}%)"
             />
             <div
               class="absolute inset-4 rounded-40%"

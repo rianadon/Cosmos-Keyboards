@@ -16,7 +16,6 @@ export class TupleStore {
   constructor(initial: bigint, private divisor = 10, private zxy = false) {
     let [v0, v1, v2, v3] = decodeTuple(initial)
     if (this.zxy) [v0, v1, v2] = ZYXtoZXY(v0, v1, v2)
-    console.log('original', v0, v1, v2, ZXYtoZYX(...ZYXtoZXY(v0, v1, v2)))
     this.values = [v0, v1, v2, v3]
     this.t0 = writable<number>(v0)
     this.t1 = writable<number>(v1)
@@ -29,7 +28,6 @@ export class TupleStore {
       handler(v)
       let [x, y, z, a] = this.values.map(v => v * this.divisor)
       if (this.zxy) [x, y, z] = ZXYtoZYX(x, y, z)
-      console.log('onchange', x, y, z)
       if (!this.updating) tupleWriter.set(encodeTuple([x, y, z, a].map(v => Math.round(v))))
     }
 
@@ -46,7 +44,6 @@ export class TupleStore {
   public update(b: bigint) {
     let [v0, v1, v2, v3] = decodeTuple(b)
     if (this.zxy) [v0, v1, v2] = ZYXtoZXY(v0, v1, v2)
-    console.log('results', v0 / 45, v1 / 45, v2 / 45)
     this.updating = true
     this.t0.set(v0 / this.divisor)
     this.t1.set(v1 / this.divisor)

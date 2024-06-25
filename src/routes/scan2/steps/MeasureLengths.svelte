@@ -128,10 +128,7 @@
       if (hands.Left) drawKeypoints(canvas, context, hands.Left.keypoints, 'Left')
       if (hands.Right) drawKeypoints(canvas, context, hands.Right.keypoints, 'Right')
       if ($developer && (hands.Left || hands.Right))
-        $debugImgs = [
-          ...$debugImgs,
-          { img: context.canvas.toDataURL(), data: detector.debugData() },
-        ]
+        $debugImgs = [...$debugImgs, { img: context.canvas.toDataURL(), data: detector.debugData() }]
     }
 
     timeSinceLastUpdate = performance.now() - lastUpdate

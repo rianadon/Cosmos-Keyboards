@@ -3,15 +3,16 @@
   import { onMount } from 'svelte'
   import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
   import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker'
-  import { newGeometry, type Cuttleform, type CuttleformProto } from '$lib/worker/config'
+  import { type FullCuttleform, newFullGeometry, newGeometry } from '$lib/worker/config'
   import { toCode } from './toCode'
   import { serializeEditor } from '../serialize'
   import { WorkerPool } from '../workerPool'
   import ETrsf from '$lib/worker/modeling/transformation-ext'
-  import { codeError } from '$lib/store'
+  import { clickedKey, codeError, confError, hoveredKey, protoConfig } from '$lib/store'
   import libSource from '$target/editorDeclarations.d.ts?raw'
+  import type { CosmosKeyboard } from '$lib/worker/config.cosmos'
 
-  export let manuformConf: CuttleformProto
+  export let cosmosConf: CosmosKeyboard
   export let darkMode: boolean
 
   let element: HTMLElement | null = null
@@ -22,7 +23,7 @@
   export let initialContent: string | undefined
   let tooLong = false
 
-  export let conf: Cuttleform
+  export let conf: FullCuttleform
   $: if (content) run(content)
   $: Monaco && Monaco.editor.setTheme(darkMode ? 'cuttleform-dark' : 'vs')
 
@@ -38,13 +39,18 @@
     }
     codeError.set(null)
     if (JSON.stringify(newConf) != JSON.stringify(conf)) {
-      const geo = newGeometry(newConf!)
+      if (!newConf || (!newConf.unibody && (!newConf.left || !newConf.right))) {
+        confError.set({ type: 'wrongformat', side: 'right' })
+        return
+      }
       try {
-        // Check that we can do some simple stuff
-        for (const k of newConf!.keys) k.position = new ETrsf(k.position.history)
-        geo.keyHolesTrsfs
+        for (const conf of Object.values(newConf)) {
+          // Check that we can do some simple stuff
+          for (const k of conf.keys) k.position = new ETrsf(k.position.history)
+          newGeometry(conf).keyHolesTrsfs
+        }
       } catch (err) {
-        codeError.set(err)
+        codeError.set(err as Error)
         return
       }
       conf = newConf!
@@ -89,8 +95,11 @@
       },
     })
 
-    const initialCode = initialContent || toCode(manuformConf)
+    const initialCode = initialContent || toCode(cosmosConf)
     updateHash(initialCode)
+    protoConfig.set(undefined as any)
+    clickedKey.set(null)
+    hoveredKey.set(null)
     editor = Monaco.editor.create(element!, {
       value: initialCode,
       language: 'typescript',
@@ -135,10 +144,16 @@
   <p class="mb-4 mt-2">Your code will <b>NOT</b> be saved! It is too long to fit in the URL.</p>
 {/if}
 
-<p class="mb-4 mt-2 text-gray-500 dark:text-gray-300">
+<p class="mb-1 mt-2 text-gray-500 dark:text-gray-300">
   Expert mode allows you to fully configure any part of your keyboard. Read <a href="docs/expert/"
     >the documentation</a
   > to learn how to use this mode.
+</p>
+<p class="mb-4">
+  <b>NEW!</b>
+  <span class="text-gray-500 dark:text-gray-300"
+    >Switch to Basic/Advanced to continue editing this keyboard.</span
+  >
 </p>
 <div bind:this={element} class="h-[30rem] w-[32rem]" />
 

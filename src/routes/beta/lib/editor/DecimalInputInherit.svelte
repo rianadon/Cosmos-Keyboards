@@ -8,6 +8,7 @@
   export let inherit: number | undefined
   export let noColor = false
   let clazz = ''
+  $: tempValue = value
 
   export { clazz as class }
   const dispatch = createEventDispatcher()
@@ -18,7 +19,13 @@
   function onChange(e: Event) {
     value = Math.round(divisor * (e.target! as any).value) / divisor
     if (value == inherit) value = undefined
+    tempValue = value
     dispatch('change')
+  }
+
+  function onInput(e: Event) {
+    tempValue = Math.round(divisor * (e.target! as any).value) / divisor
+    if (tempValue == inherit) tempValue = undefined
   }
 </script>
 
@@ -26,22 +33,24 @@
   <div class="relative">
     <input
       class="input {clazz ? clazz : small ? 'w-[5.4rem]' : 'w-44'}"
-      class:text-yellow!={!noColor && typeof value === 'undefined'}
+      class:text-yellow!={!noColor && typeof tempValue === 'undefined'}
       type="number"
       value={rounded}
       step="0.1"
       on:change={onChange}
+      on:input={onInput}
     />
     <span class="text-right absolute top-0 bottom-0 right-9 w-8 input-units">{units}</span>
   </div>
 {:else}
   <input
     class="input {clazz ? clazz : small ? 'w-[5.4rem]' : 'w-44'}"
-    class:text-yellow!={!noColor && typeof value === 'undefined'}
+    class:text-yellow!={!noColor && typeof tempValue === 'undefined'}
     type="number"
     value={rounded}
     step="0.1"
     on:change={onChange}
+    on:input={onInput}
   />
 {/if}
 

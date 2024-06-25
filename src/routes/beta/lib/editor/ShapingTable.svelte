@@ -49,10 +49,7 @@
           ><FloatInput bind:value={states['thumb' + level + 'RightOffset' + component]} /></td
         >
         <td class={rightStyle}
-          ><AngleInput
-            small
-            bind:value={states['thumb' + level + 'RightTenting' + component]}
-          /></td
+          ><AngleInput small bind:value={states['thumb' + level + 'RightTenting' + component]} /></td
         >
       </tr>
     {/each}

@@ -25,11 +25,11 @@
     softwares allow you to easily reprogram keys without having to re-flash your keyboard.
   </p>
   <p class="mb-2">
-    To load the JSON file you download into KLE, in KLE click the "Raw Data" tab, then click the
-    green "Upload JSON" button at the bottom. Both Via and Vial expect you to <a
+    To load the JSON file you download into KLE, in KLE click the "Raw Data" tab, then click the green
+    "Upload JSON" button at the bottom. Both Via and Vial expect you to <a
       href="https://get.vial.today/docs/porting-to-via.html">rename the keys</a
-    > according to their position in the matrix you define in code, so make sure you rename every key
-    in KLE before using the data.
+    > according to their position in the matrix you define in code, so make sure you rename every key in KLE
+    before using the data.
   </p>
   <p class="mb-2">
     Because Via and Vial define encoders differently, the encoder will be exported as a normal key.

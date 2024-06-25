@@ -1,120 +1,115 @@
 <script lang="ts">
-  /**
-   * A scene that uses a SharedRenderer to render itself.
-   * This helps reduce the number of WebGL contexts.
-   */
+  import { browser } from '$app/environment'
+  import { SceneGraphObject, createThrelteContext, watch, type Size } from '@threlte/core'
+  import type { ThrelteInternalContext } from 'node_modules/@threlte/core/dist/lib/contexts'
+  import { getContext, onDestroy, onMount } from 'svelte'
+  import { writable } from 'svelte/store'
+  import { ACESFilmicToneMapping, OrthographicCamera, PCFSoftShadowMap, WebGLRenderer } from 'three'
 
-  import { set_root } from 'svelte-cubed/utils/context'
-  import { getContext, onMount } from 'svelte'
-  import * as THREE from 'three'
-  import type { Writable } from 'svelte/store'
-
-  /** Scene options https://threejs.org/docs/?q=scene#api/en/scenes/Scene */
-  export let background: THREE.Color | THREE.Texture | null = null
-  export let environment: THREE.Texture | null = null
-  export let fog: THREE.FogBase | null = null
-  export let overrideMaterial: THREE.Material | null = null
-
-  /** additional props */
-  export let width: number | undefined = undefined
-  export let height: number | undefined = undefined
-
-  let _width: number
-  let _height: number
+  export let size: Size | undefined = undefined
+  export let autoRender = true
 
   let container: HTMLElement
-  let frame: number | null = null
+  let canvas: HTMLCanvasElement
+  let initialized = writable(false)
+  const dpr = browser ? window.devicePixelRatio : 1
 
-  const pixelRatio = typeof devicePixelRatio !== 'undefined' ? devicePixelRatio : 1
-  const renderer: Writable<THREE.WebGLRenderer> = getContext('renderer')
+  // user size as a store
+  const userSize = writable<Size | undefined>(size)
+  $: userSize.set(size)
 
-  const invalidate = () => {
-    if (frame) return
+  // in case the user didn't define a fixed size, use the parent elements size
+  // const { parentSize, parentSizeAction } = useParentSize()
+  const parentSize = writable<Size>({ width: 100, height: 100 })
 
-    frame = requestAnimationFrame(() => {
-      frame = null
-      if (!root.renderer) return
+  const ctx = createThrelteContext({
+    colorManagementEnabled: true,
+    colorSpace: 'srgb',
+    dpr: browser ? window.devicePixelRatio : 1,
+    renderMode: 'on-demand',
+    parentSize,
+    autoRender,
+    shadows: PCFSoftShadowMap,
+    toneMapping: ACESFilmicToneMapping,
+    useLegacyLights: false,
+    userSize,
+  })
+  const internalCtx = getContext<ThrelteInternalContext>('threlte-internal-context')
+  const renderer = getContext<WebGLRenderer>('renderer')
 
-      root.renderer.setSize(_width, _height)
-      root.renderer.render(root.scene, root.camera.object)
-      if (!root.canvas) return
-      const ctx = root.canvas.getContext('2d')!
-      ctx.clearRect(0, 0, root.canvas.width, root.canvas.height)
-      ctx.drawImage(root.renderer.domElement, 0, 0)
-    })
-  }
-
-  const root = set_root({
-    canvas: null as any,
-    scene: null as any,
-    renderer: null as any,
-
-    camera: {
-      object: null as any,
-      callback: () => console.warn('no camera is set'),
-      set: (camera, callback) => {
-        root.camera.object = camera
-        root.camera.callback = callback
-        if (root.controls.callback) {
-          root.controls.callback(root.camera.object, root.canvas)
-        }
-        invalidate()
-      },
-    },
-
-    controls: {
-      object: null as any,
-      callback: null as any,
-      set: (callback) => {
-        root.controls.callback = callback
-        if (root.camera.object) {
-          root.controls.object = callback(root.camera.object, root.canvas)
-        }
-      },
-    },
-
-    before_render(_fn) {},
-    invalidate,
+  watch([initialized, ctx.autoRender], ([initialized, autoRender]) => {
+    if (initialized && autoRender) {
+      ctx.autoRenderTask.start()
+    } else {
+      ctx.autoRenderTask.stop()
+    }
+    return () => {
+      ctx.autoRenderTask.stop()
+    }
   })
 
-  $: root.renderer = $renderer
-
   onMount(() => {
-    root.scene = new THREE.Scene()
+    if (!browser) return
+    ctx.renderer = {
+      render(scene, camera) {
+        const size = $parentSize
+        renderer.setSize(size.width, size.height, false)
+        const ortho = camera as OrthographicCamera
+        if (ortho.isOrthographicCamera) {
+          ortho.left = -1
+          ortho.right = 1
+          ortho.bottom = -1
+          ortho.top = 1
+          ortho.updateProjectionMatrix()
+          ortho.updateMatrixWorld()
+        }
+
+        renderer.render(scene, camera)
+
+        if (!canvas) return
+        const ctx = canvas.getContext('2d')!
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+        ctx.drawImage(renderer.domElement, 0, 0)
+      },
+      setAnimationLoop(callback) {
+        renderer.setAnimationLoop(callback)
+      },
+      domElement: canvas,
+    } as WebGLRenderer
+
+    // Some hacks
+    const anyRenderer = renderer as any
+    anyRenderer.internalCtx.push(internalCtx)
+    anyRenderer.scheduler.push(ctx.scheduler)
+
+    initialized.set(true)
     resize()
   })
 
   const resize = () => {
-    if (width === undefined) {
-      _width = container.clientWidth
+    parentSize.set({ width: container.clientWidth, height: container.clientHeight })
+    if (canvas) {
+      canvas.width = container.clientWidth * dpr
+      canvas.height = container.clientHeight * dpr
     }
-
-    if (height === undefined) {
-      _height = container.clientHeight
-    }
-
-    root.camera.callback(_width, _height)
-    root.canvas.width = _width * pixelRatio
-    root.canvas.height = _height * pixelRatio
-    invalidate()
   }
 
-  $: if (root.scene) {
-    root.scene.background = background
-    root.scene.environment = environment
-    root.scene.fog = fog
-    root.scene.overrideMaterial = overrideMaterial
-  }
+  onDestroy(() => {
+    internalCtx.dispose(true)
+    ctx.scheduler.dispose()
+  })
 </script>
 
 <svelte:window on:resize={resize} />
 
 <div class="container" bind:this={container}>
-  <canvas bind:this={root.canvas} />
-
-  {#if root.scene}
-    <slot />
-  {/if}
+  <canvas bind:this={canvas}>
+    {#if $initialized}
+      <SceneGraphObject object={ctx.scene}>
+        <slot />
+      </SceneGraphObject>
+    {/if}
+  </canvas>
 </div>
 
 <style>

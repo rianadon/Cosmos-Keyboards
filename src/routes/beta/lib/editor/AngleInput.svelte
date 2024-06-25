@@ -3,20 +3,21 @@
 
   export let value: any
   export let small = false
+  export let divisor = 45
 
   const dispatch = createEventDispatcher()
 
   $: degrees = Math.round(value * 10) / 10
 
   function onChange(e: Event) {
-    value = Math.round(45 * (e.target as any).value) / 45
-    dispatch('change')
+    value = Math.round(divisor * (e.target as any).value) / divisor
+    dispatch('change', value)
   }
 </script>
 
 <div class="relative">
   <input
-    class="input {small ? 'w-[5.4rem]' : 'w-44 mx-2 px-2'}"
+    class="input {small ? 'w-[5.4rem]' : 'w-44'}"
     type="number"
     min="-179"
     max="180"

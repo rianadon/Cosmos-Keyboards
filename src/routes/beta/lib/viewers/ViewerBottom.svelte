@@ -1,19 +1,14 @@
 <script lang="ts">
   import * as THREE from 'three'
 
-  import Viewer from './NewViewer.svelte'
+  import Viewer from './Viewer.svelte'
   import { allScrewIndices, keyHolesTrsfs, screwOrigin } from '$lib/worker/geometry'
   import { rectangle, drawWall, drawLinedWall, drawBezierWall, fullSizes } from './viewerHelpers'
   import { localHolderBounds } from '$lib/geometry/microcontrollers'
 
   import { isRenderable, type ConfError } from '$lib/worker/check'
   import Trsf from '$lib/worker/modeling/transformation'
-  import {
-    fullEstimatedCenter,
-    type Cuttleform,
-    type FullCuttleform,
-    type Geometry,
-  } from '$lib/worker/config'
+  import { fullEstimatedCenter, type Cuttleform, type Geometry } from '$lib/worker/config'
   import { Vector } from '$lib/worker/modeling/transformation'
   import { CanvasTexture, Color, NearestFilter } from 'three'
   import { view } from '$lib/store'
@@ -36,9 +31,7 @@
 
   $: hasError = confError && !isRenderable(confError)
   $: allGeometries =
-    isRenderable(confError) && geometry
-      ? drawStates(geometry)
-      : ({} as ReturnType<typeof drawStates>)
+    isRenderable(confError) && geometry ? drawStates(geometry) : ({} as ReturnType<typeof drawStates>)
   $: sizes = fullSizes(allGeometries)
   $: size = sizes[$view]
 
@@ -238,10 +231,7 @@
 
 <div class="absolute top-12 left-8 right-8 flex justify-between z-10">
   <table>
-    <tr
-      ><td class="w-8"><div class="rounded-full bg-[#0000ff] w-4 h-4 mx-auto" /></td><td>Screw</td
-      ></tr
-    >
+    <tr><td class="w-8"><div class="rounded-full bg-[#0000ff] w-4 h-4 mx-auto" /></td><td>Screw</td></tr>
     <tr
       ><td class="w-8"><div class="rounded-full bg-[#33dd33] w-4 h-4 mx-auto" /></td><td
         >Board Holder Screw</td
@@ -272,17 +262,16 @@
       <div>Please fix the errors with your configuration first before using this viewer.</div>
     </div>
   {/if}
-  <Viewer geometries={[]} {center} {size} {style} cameraPosition={[0, 0, 1]} enableRotate={false}>
-    <T.Group position={[-center[0], -center[1], -center[2]]}>
-      {#each objEntries(allGeometries) as [kbd, geos]}
-        {#if kbd == 'unibody' || $view == 'both' || $view == kbd}
-          {#each geos as geometry}
-            <T.Group scale.x={kbd == 'left' ? -1 : 1}>
-              <T.Mesh geometry={geometry.geometry} material={geometry.material} />
-            </T.Group>
-          {/each}
-        {/if}
-      {/each}
-    </T.Group>
+  <Viewer {size} {style} cameraPosition={[0, 0, 1]} enableRotate={false}>
+    {#each objEntries(allGeometries) as [kbd, geos] (kbd)}
+      {@const cent = center[kbd]}
+      {#if cent}
+        {#each geos as geometry}
+          <T.Group position={[-cent[0], -cent[1], -cent[2]]} scale.x={kbd == 'left' ? -1 : 1}>
+            <T.Mesh geometry={geometry.geometry} material={geometry.material} />
+          </T.Group>
+        {/each}
+      {/if}
+    {/each}
   </Viewer>
 </div>

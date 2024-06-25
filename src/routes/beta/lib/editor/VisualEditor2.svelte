@@ -54,13 +54,23 @@
     Cuttleform_DefaultThumb_KEY_COUNT,
     ENCODER,
   } from '../../../../../target/proto/cuttleform'
-  import { getSize, setClusterSize } from './visualEditorHelpers'
-  import { mdiPencil } from '@mdi/js'
+  import {
+    clusterAngle,
+    clusterSeparation,
+    getSize,
+    getThumbN,
+    isThumb,
+    setClusterAngle,
+    setClusterSeparation,
+    setClusterSize,
+    setThumbCluster,
+  } from './visualEditorHelpers'
+  import { mdiCodeArray, mdiCodeJson, mdiPencil } from '@mdi/js'
   import Icon from '$lib/presentation/Icon.svelte'
+  import { decode } from 'punycode'
 
   export let cosmosConf: CosmosKeyboard
   export let conf: FullCuttleform
-  export let geometry: Geometry | null
   export let basic: boolean
 
   $: protoConfig.set(cosmosConf)
@@ -168,12 +178,18 @@
     }
   }
 
+  const flipRotTuple = (t: bigint) => encodeTuple(decodeTuple(t).map((x, i) => (i == 0 ? x : -x)))
   function updateRotation(t: bigint) {
     if (!$protoConfig) return
-    const fingers = $protoConfig.clusters.find((c) => c.name == 'fingers')!
-    if (t < 0 || t == (fingers.rotation || 0n)) return
+
+    const fr = (t: bigint | undefined) => flipRotTuple(t || 0n)
+
+    const fingers = $protoConfig.clusters.filter((c) => c.name == 'fingers')!
+    if (fingers.length == 2 && (fingers[0].rotation || 0n) != fr(fingers[1].rotation)) return
+    if (t < 0 || fingers.every((f) => t == (f.side == 'left' ? fr(f.rotation) : f.rotation || 0n)))
+      return
     protoConfig.update((proto) => {
-      fingers.rotation = t
+      fingers.forEach((f) => (f.rotation = f.side == 'left' ? fr(t) : t))
       return proto
     })
   }
@@ -215,64 +231,57 @@
   }
 
   function setNScrews(e: CustomEvent) {
-    const n = Number(e.detail)
-    $protoConfig.screwIndices = new Array(n).fill(-1)
+    const newN = Number(e.detail)
+    const oldN = $protoConfig.screwIndices.length
+    if (newN > oldN) {
+      $protoConfig.screwIndices = [...$protoConfig.screwIndices, ...new Array(newN - oldN).fill(-1)]
+    } else if (newN < oldN) {
+      $protoConfig.screwIndices = $protoConfig.screwIndices.slice(0, newN)
+    }
+  }
+  function enterScrewIndices() {
+    const ind = $protoConfig.screwIndices.join(',')
+    const newInd = prompt(
+      'Enter the indices of the screw holes separated by commas. For information on what these indices mean, refer to the expert mode documentation.',
+      ind
+    )
+    if (newInd) {
+      const splitInd = newInd.split(',').map(Number)
+      if (splitInd.some(isNaN)) return
+      $protoConfig.screwIndices = splitInd
+    }
   }
 
-  function isThumb(name: string) {
-    return false
+  function setThumb(
+    type: 'carbonfet' | 'manuform' | 'orbyl' | 'curved',
+    side: 'left' | 'right',
+    e?: Event
+  ) {
+    const n = e ? Number((e.target as HTMLInputElement).value) : undefined
+    protoConfig.update((p) => setThumbCluster(p, type, side, n))
   }
 
-  function setThumb(type: 'carbonfet' | 'manuform' | 'orbyl' | 'curved') {
-    // @ts-ignore
-    let cc: CuttleformProto = { ...cuttleform.options }
+  function setNoThumb(side: 'left' | 'right') {
+    protoConfig.update((p) => {
+      p.clusters.find((c) => c.side == side && c.name == 'thumbs')!.clusters = []
+      return p
+    })
+  }
 
-    if (type == 'manuform')
-      cc.thumbCluster = {
-        oneofKind: 'defaultThumb',
-        defaultThumb: {
-          thumbCount: Cuttleform_DefaultThumb_KEY_COUNT.SIX,
-          encoder: false,
-          encoderType: ENCODER.EC11,
-        },
-      }
-    else if (type == 'curved')
-      cc.thumbCluster = {
-        oneofKind: 'curvedThumb',
-        curvedThumb: {
-          thumbCount: Cuttleform_CurvedThumb_KEY_COUNT.FIVE,
-          rowCurve: 0,
-          columnCurve: 0,
-          horizontalSpacing: 200,
-          verticalSpacing: 200,
-          encoder: false,
-          encoderType: ENCODER.EC11,
-        },
-      }
-    else if (type == 'orbyl')
-      cc.thumbCluster = {
-        oneofKind: 'orbylThumb',
-        orbylThumb: {
-          curvature: 0,
-        },
-      }
-    else if (type == 'carbonfet')
-      cc.thumbCluster = {
-        oneofKind: 'carbonfetThumb',
-        carbonfetThumb: {
-          rowCurve: -225,
-          columnCurve: -450,
-          horizontalSpacing: 200,
-          verticalSpacing: 205,
-        },
-      }
-    const cosc = toCosmosConfig(cuttleConf(cc))
-    const coscthumb = cosc.clusters.find((c) => c.name == 'thumbs')!
+  function setUnibody(ev: Event) {
     protoConfig.update((proto) => {
-      const thumb = proto.clusters.find((c) => c.name == 'thumbs')!
-      thumb.clusters = coscthumb.clusters
-      thumb.rotation = coscthumb.rotation
-      thumb.position = coscthumb.position
+      proto.unibody = (ev.target as HTMLInputElement).checked
+      if (proto.unibody) {
+        setClusterSeparation(proto, 30)
+        // Double the number of screw indices
+        proto.screwIndices = proto.screwIndices.concat(new Array(proto.screwIndices.length).fill(-1))
+      } else {
+        // Move everything so wrist rest goes to position 10
+        const wristRestMovement = 10 - decodeTuple(proto.wristRestPosition)[0] / 10
+        setClusterSeparation(proto, clusterSeparation(proto) + wristRestMovement * 2)
+        // Halve the number of screw indices
+        proto.screwIndices = proto.screwIndices.slice(0, Math.ceil(proto.screwIndices.length / 2))
+      }
       return proto
     })
   }
@@ -292,15 +301,30 @@
   $: leftFingersCl = $protoConfig.clusters.find((c) => c.name == 'fingers' && c.side == 'left')
   $: tempFingersCluster = $tempConfig.clusters.find((c) => c.name == 'fingers')!
 
+  $: whichRight = getThumbN($protoConfig, 'right')
+  $: whichLeft = getThumbN($protoConfig, 'left')
+
   const rotationStore = new TupleStore(-1n, 45, true)
   const [rotationX, rotationY, rotationZ, _] = rotationStore.components()
   rotationStore.tuple.subscribe((t) => updateRotation(t))
   $: rotationStore.update(tempFingersCluster.rotation || 0n)
+  $: tempFingers = $tempConfig.clusters.filter((c) => c.name == 'fingers')
+  $: rotationsAreDifferent =
+    tempFingers.length == 2 &&
+    (tempFingers[0].rotation || 0n) != flipRotTuple(tempFingers[1].rotation || 0n)
 
   const wrPositionStore = new TupleStore(-1n, 10)
   const [wrPositionX, wrPositionY, wrPositionZ, _2] = wrPositionStore.components()
   wrPositionStore.tuple.subscribe((t) => updateWrPosition(t))
   $: wrPositionStore.update($protoConfig.wristRestPosition || 0n)
+
+  $: clusterSep = clusterSeparation($tempConfig)
+  const setClusterSep = (ev: CustomEvent) =>
+    protoConfig.update((proto) => setClusterSeparation(proto, ev.detail))
+
+  $: clusterAng = clusterAngle($tempConfig)
+  const setClusterAng = (ev: CustomEvent) =>
+    protoConfig.update((proto) => setClusterAngle(proto, ev.detail))
 </script>
 
 <Section name="Upper Keys">
@@ -397,22 +421,120 @@
   >
     <AngleInput bind:value={$protoConfig.curvature.arc} />
   </Field>
-  {#if !basic}<Field name="Rotation Around Row Axis" icon="angle-rotate">
+  {#if !basic && !rotationsAreDifferent}<Field name="Rotation Around Row Axis" icon="angle-rotate">
       <AngleInput bind:value={$rotationX} />
     </Field>{/if}
-  <Field name="Tenting Angle" icon="angle">
-    <AngleInput bind:value={$rotationY} />
-  </Field>
+  {#if rotationsAreDifferent}
+    <InfoBox>
+      The rotations of the two clusters have diverged, so tenting is no longer editable. Set their
+      rotations equal for the field to reappear.
+    </InfoBox>
+  {:else}
+    <Field name="Tenting Angle" icon="angle">
+      <AngleInput bind:value={$rotationY} />
+    </Field>
+  {/if}
 </Section>
 
-<Section name="Thumb Cluster">
-  <button class="absolute top-0 right-2 button" on:click={() => editJointlySeparately('thumbs')}
-    ><Icon path={mdiPencil} />{#if leftThumbCluster}Edit Jointly{:else}Edit Separately{/if}</button
+{#if leftThumbCluster}
+  <Section name={'Left Thumb Cluster'}>
+    <button class="absolute top-0 right-2 button" on:click={() => editJointlySeparately('thumbs')}
+      ><Icon path={mdiPencil} />{#if leftThumbCluster}Edit Jointly{:else}Edit Separately{/if}</button
+    >
+    <Preset
+      name="Manuform"
+      on:click={() => setThumb('manuform', 'left')}
+      selected={isThumb($protoConfig, 'manuform', 'left')}
+    />
+    <Preset
+      name="Carbonfet"
+      on:click={() => setThumb('carbonfet', 'left')}
+      selected={isThumb($protoConfig, 'carbonfet', 'left')}
+    />
+    <Preset
+      name="Orbyl"
+      on:click={() => setThumb('orbyl', 'left')}
+      selected={isThumb($protoConfig, 'orbyl', 'left')}
+    />
+    <Preset
+      name="Curved"
+      on:click={() => setThumb('curved', 'left')}
+      selected={isThumb($protoConfig, 'curved', 'left')}
+    />
+    <Preset on:click={() => setNoThumb('left')} selected={leftThumbCluster?.clusters.length == 0}
+      ><span class="relative top-[-0.1em]">&empty;</span></Preset
+    >
+    {#if whichLeft}
+      <Field name="Number of Keys" icon="numeric">
+        <Select value={whichLeft.n} on:change={(e) => setThumb(whichLeft.which, 'left', e)}>
+          {#each whichLeft.options.toReversed() as opt}
+            <option value={opt}>{opt}</option>
+          {/each}
+        </Select>
+      </Field>
+    {/if}
+    <Field name="Row's Curvature" plusminus icon="row-curve">
+      <AngleInput bind:value={leftThumbCluster.curvature.curvatureA} />
+    </Field>
+    <Field name="Column's Curvature" plusminus icon="column-curve">
+      <AngleInput bind:value={leftThumbCluster.curvature.curvatureB} />
+    </Field>
+    {#if !basic}
+      <Field name="Horizontal (X) Spacing" icon="expand-horizontal">
+        <DecimalInputInherit
+          bind:value={leftThumbCluster.curvature.horizontalSpacing}
+          inherit={$protoConfig.curvature.horizontalSpacing}
+          units="mm"
+        />
+      </Field>
+      <Field name="Vertical (Y) Spacing" icon="expand-vertical">
+        <DecimalInputInherit
+          bind:value={leftThumbCluster.curvature.verticalSpacing}
+          inherit={$protoConfig.curvature.horizontalSpacing}
+          units="mm"
+        />
+      </Field>
+    {/if}
+  </Section>
+{/if}
+<Section name={leftThumbCluster ? 'Right Thumb Cluster' : 'Thumb Cluster'}>
+  {#if !leftThumbCluster}
+    <button class="absolute top-0 right-2 button" on:click={() => editJointlySeparately('thumbs')}
+      ><Icon path={mdiPencil} />{#if leftThumbCluster}Edit Jointly{:else}Edit Separately{/if}</button
+    >
+  {/if}
+  <Preset
+    name="Manuform"
+    on:click={() => setThumb('manuform', 'right')}
+    selected={isThumb($protoConfig, 'manuform', 'right')}
+  />
+  <Preset
+    name="Carbonfet"
+    on:click={() => setThumb('carbonfet', 'right')}
+    selected={isThumb($protoConfig, 'carbonfet', 'right')}
+  />
+  <Preset
+    name="Orbyl"
+    on:click={() => setThumb('orbyl', 'right')}
+    selected={isThumb($protoConfig, 'orbyl', 'right')}
+  />
+  <Preset
+    name="Curved"
+    on:click={() => setThumb('curved', 'right')}
+    selected={isThumb($protoConfig, 'curved', 'right')}
+  />
+  <Preset on:click={() => setNoThumb('right')} selected={rightThumbCluster?.clusters.length == 0}
+    ><span class="relative top-[-0.1em]">&empty;</span></Preset
   >
-  <Preset name="Manuform" on:click={() => setThumb('default')} selected={isThumb('default')} />
-  <Preset name="Carbonfet" on:click={() => setThumb('carbonfet')} selected={isThumb('carbonfet')} />
-  <Preset name="Orbyl" on:click={() => setThumb('orbyl')} selected={isThumb('orbyl')} />
-  <Preset name="Curved" on:click={() => setThumb('curved')} selected={isThumb('curved')} />
+  {#if whichRight}
+    <Field name="Number of Keys" icon="numeric">
+      <Select value={whichRight.n} on:change={(e) => setThumb(whichRight.which, 'right', e)}>
+        {#each whichRight.options.toReversed() as opt}
+          <option value={opt}>{opt}</option>
+        {/each}
+      </Select>
+    </Field>
+  {/if}
   <Field name="Row's Curvature" plusminus icon="row-curve">
     <AngleInput bind:value={rightThumbCluster.curvature.curvatureA} />
   </Field>
@@ -654,9 +776,8 @@
   </div>
   {#if $protoConfig.shell.type == 'tilt'}
     <InfoBox>
-      The Tilting Base helps you achieve high tenting angles without needing to print as much
-      support. Make sure to print the plate in two parts so that the bottom can be removed for
-      access.
+      The Tilting Base helps you achieve high tenting angles without needing to print as much support.
+      Make sure to print the plate in two parts so that the bottom can be removed for access.
     </InfoBox>
   {/if}
   {#if !basic}
@@ -683,8 +804,8 @@
   {/if}
   {#if $protoConfig.connectorIndex != -1}
     <InfoBox>
-      The microcontroller and connector are manually placed in this model. Set Advanced &rarr;
-      Connector Index to -1 to automatically place them.
+      The microcontroller and connector are manually placed in this model. Set Advanced &rarr; Connector
+      Index to -1 to automatically place them.
     </InfoBox>
   {/if}
   <Field name="Microcontroller" icon="microcontroller">
@@ -708,9 +829,9 @@
   </Field>
   {#if rearPins($protoConfig)}
     <InfoBox>
-      Don't solder to the rear row of {rearPins($protoConfig)} pins on the microcontroller, or be very
-      careful if you do! Any protrusions in this area under the microcontroller will prevent it from
-      sliding into its holder.
+      Don't solder to the rear row of {rearPins($protoConfig)} pins on the microcontroller, or be very careful
+      if you do! Any protrusions in this area under the microcontroller will prevent it from sliding into
+      its holder.
     </InfoBox>
   {/if}
   {#if castellated($protoConfig)}
@@ -729,9 +850,20 @@
     <Checkbox value={$protoConfig.screwIndices.length > 0} on:change={setScrewsEnabled} />
   </Field>
   {#if $protoConfig.screwIndices.length > 0}
-    {#if !basic}<Field name="Number of Screws">
-        <DecimalInput divisor={1} value={$protoConfig.screwIndices.length} on:change={setNScrews} />
-      </Field>{/if}
+    {#if !basic}<div class="relative">
+        <div class="absolute right-48 top--1.5">
+          <button class="button" on:click={enterScrewIndices}><Icon path={mdiCodeJson} /></button>
+        </div>
+        <Field name="Number of Screws">
+          <DecimalInput divisor={1} value={$protoConfig.screwIndices.length} on:change={setNScrews} />
+        </Field>
+      </div>{/if}
+    {#if $protoConfig.screwIndices.some((s) => s >= 0)}
+      <InfoBox
+        >One or more screws are manually positioned. To edit these positions, click the code brackets
+        next to the Advanced &rarr; Number of Screws.</InfoBox
+      >
+    {/if}
     <Field name="Size of Screws">
       <Select bind:value={$protoConfig.screwSize}>
         {#each SCREW_SIZE as size}
@@ -843,8 +975,16 @@
   </Field>
 
   <Field name="Unibody" icon="unibody">
-    <Checkbox bind:value={$protoConfig.unibody} />
+    <Checkbox value={$protoConfig.unibody} on:change={setUnibody} />
   </Field>
+  {#if $protoConfig.unibody}
+    <Field name="Unibody Separation" help="Minimum distance between the left and right clusters">
+      <DecimalInput value={clusterSep} on:change={setClusterSep} units="mm" />
+    </Field>
+    <Field name="Unibody Angle">
+      <AngleInput value={clusterAng} on:change={setClusterAng} />
+    </Field>
+  {/if}
 
   {#if !basic}
     <Field name="Wrist Position (XYZ)">
@@ -858,8 +998,16 @@
       <DecimalInput bind:value={$protoConfig.wristRestProps.maxWidth} units="mm" />
     </Field>
 
-    <Field name="Wrist Rest Side Taper">
+    <Field name="Wrist Rest Extension">
+      <DecimalInput bind:value={$protoConfig.wristRestProps.extension} units="mm" />
+    </Field>
+
+    <Field name="Wrist Rest Attachment Angle">
       <AngleInput bind:value={$protoConfig.wristRestProps.angle} />
+    </Field>
+
+    <Field name="Wrist Rest Side Taper">
+      <AngleInput bind:value={$protoConfig.wristRestProps.taper} />
     </Field>
 
     <Field name="Wrist Rest Forwards Slope">

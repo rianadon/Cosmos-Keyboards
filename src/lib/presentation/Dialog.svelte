@@ -21,9 +21,7 @@
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <div class="fixed inset-0 bg-gray-900/80 z-20" on:click={close}>
-  <div
-    class="absolute left-0 right-0 {center ? 'top-[calc(50%-10rem)]' : 'top-4 md:top-24'} bottom-4"
-  >
+  <div class="absolute left-0 right-0 {center ? 'top-[calc(50%-10rem)]' : 'top-4 md:top-24'} bottom-4">
     <div
       class="mx-auto {big
         ? 'w-[50rem]'
@@ -33,9 +31,7 @@
       on:click|stopPropagation
     >
       <div class="relative">
-        <h3
-          class="text-2xl font-medium {forceDark ? 'text-white' : 'text-gray-900 dark:text-white'}"
-        >
+        <h3 class="text-2xl font-medium {forceDark ? 'text-white' : 'text-gray-900 dark:text-white'}">
           <slot name="title" />
         </h3>
         <button class="absolute right-0 top-1" on:click={close}>

@@ -14,6 +14,8 @@ import {
   decodePartVariant,
   decodeRoundedFlags,
   decodeScrewFlags,
+  decodeStiltsShellFlags,
+  decodeTiltShellFlags,
   encodeBasicShellFlags,
   encodeClusterFlags,
   encodeConnector,
@@ -23,11 +25,14 @@ import {
   encodePartVariant,
   encodeRoundedFlags,
   encodeScrewFlags,
+  encodeStiltsShellFlags,
+  encodeTiltShellFlags,
 } from '../../../target/cosmosStructs'
-import { Cluster, Curvature, Key, Keyboard, KeyboardExtra } from '../../../target/proto/cosmos'
-import { type Cuttleform, type CuttleKey, type CuttleKeycapKey, encodeTuple, type Keycap, tupleToRot, tupleToXYZ } from './config'
-import { type CosmosKey, type CosmosKeyboard, type PartType, type Profile, toCosmosConfig } from './config.cosmos'
+import { Cluster, Curvature, Key, Keyboard, KeyboardExtra, TiltShell } from '../../../target/proto/cosmos'
+import { type Cuttleform, type CuttleKey, type CuttleKeycapKey, decodeTuple, encodeTuple, type Keycap, tupleToRot, tupletoRotOnly, tupleToXYZ, tupleToXYZA } from './config'
+import { type CosmosCluster, type CosmosKey, type CosmosKeyboard, type PartType, type Profile, toCosmosConfig } from './config.cosmos'
 import { DEFAULT_MWT_FACTOR } from './geometry.thickWebs'
+import { objKeys } from './util'
 
 function lookupId<E>(items: readonly E[], id: number, msg: string) {
   if (id >= items.length || id < 0) throw new Error(`No ${msg} for id ${id}`)
@@ -129,7 +134,7 @@ const KEYBOARD_DEFAULTS: Keyboard = {
   microcontroller: encodeMicrocontroller({ microcontroller: 'kb2040-adafruit', fastenMicrocontroller: true }),
   roundedFlags: encodeRoundedFlags({ side: false, top: false }),
   keyboardFlags: encodeKeyboardFlags({ wrEnable: true, unibody: false }),
-  wristRestPosition: encodeTuple([1000, -1000, 0]),
+  wristRestPosition: encodeTuple([100, -1000, 0]),
   cluster: [],
   shell: {
     oneofKind: 'basicShell',
@@ -145,11 +150,20 @@ const KEYBOARD_EXTRA_DEFAULTS: KeyboardExtra = {
   roundedSideConcavity: 15,
   roundedTopHorizontal: 25,
   roundedTopVertical: 67,
-  wristRestAngle: 450,
+  wristRestAngle: 0,
+  wristRestTaper: 450,
   wristRestMaxWidth: 1000,
   wristRestTenting: 270,
   wristRestSlope: 225,
+  wristRestExtension: 80,
   connectorIndex: -10,
+}
+
+const TILT_DEFAULTS: TiltShell = {
+  flags: encodeTiltShellFlags({ usePattern: true }),
+  raiseBy: 100,
+  tilt: 270,
+  pattern: [10, 5],
 }
 
 export function decodeShell(shell: Keyboard['shell']): Cuttleform['shell'] {
@@ -157,6 +171,54 @@ export function decodeShell(shell: Keyboard['shell']): Cuttleform['shell'] {
     return {
       type: 'basic',
       ...decodeBasicShellFlags(shell.basicShell.flags!),
+    }
+  } else if (shell.oneofKind == 'stiltsShell') {
+    return {
+      type: 'stilts',
+      ...decodeStiltsShellFlags(shell.stiltsShell.flags!),
+    }
+  } else if (shell.oneofKind == 'tiltShell') {
+    const opts = { ...TILT_DEFAULTS, ...shell.tiltShell } as Required<TiltShell>
+    const flags = decodeTiltShellFlags(opts.flags)
+    return {
+      type: 'tilt',
+      raiseBy: opts.raiseBy / 10,
+      pattern: flags.usePattern ? opts.pattern.map(p => p / 10) : null,
+      tilt: opts.tiltVector ? tupletoRotOnly(opts.tiltVector) : opts.tilt / 45,
+    }
+  }
+  throw new Error('Shell type not supported')
+}
+
+export function encodeShell(shell: Cuttleform['shell']): Keyboard['shell'] {
+  if (shell.type == 'basic') {
+    return {
+      oneofKind: 'basicShell',
+      basicShell: {
+        flags: encodeBasicShellFlags({ lip: shell.lip }),
+      },
+    }
+  } else if (shell.type == 'stilts') {
+    return {
+      oneofKind: 'stiltsShell',
+      stiltsShell: {
+        flags: encodeStiltsShellFlags({ inside: shell.inside }),
+      },
+    }
+  } else if (shell.type == 'tilt') {
+    const opts: Keyboard['shell'] = {
+      oneofKind: 'tiltShell',
+      tiltShell: {
+        flags: encodeTiltShellFlags({ usePattern: !!shell.pattern }),
+        raiseBy: Math.round(shell.raiseBy * 10),
+        tilt: typeof shell.tilt == 'number' ? Math.round(shell.tilt * 45) : undefined,
+        tiltVector: typeof shell.tilt != 'number' ? encodeTuple(shell.tilt.map(p => Math.round(p * 45))) : undefined,
+        pattern: shell.pattern ? shell.pattern.map(p => Math.round(10 * p)) : [],
+      },
+    }
+    if (JSON.stringify(opts.tiltShell.pattern) == JSON.stringify(TILT_DEFAULTS.pattern)) opts.tiltShell.pattern = []
+    for (const key of objKeys(opts.tiltShell)) {
+      if (opts.tiltShell[key] == TILT_DEFAULTS[key]) delete opts.tiltShell[key]
     }
   }
   throw new Error('Shell type not supported')
@@ -260,12 +322,63 @@ export function deserializeCosmosConfig(b64: string): FullKeyboard {
 //   return conf
 // }
 
+export function decodeCosmosCluster(clusterA: Cluster): CosmosCluster {
+  let lastCluster: Cluster | null = null
+
+  return {
+    ...decodeClusterFlags(clusterA.idType ?? 0),
+    curvature: decodeCurvature(clusterA.curvature || {}),
+    profile: decodeProfile(clusterA.keyProfile || 0).profile,
+    partType: decodePartType(clusterA.partType || 0),
+    position: clusterA.position,
+    rotation: clusterA.rotation,
+    keys: [],
+    clusters: clusterA.cluster.map(clusterB => {
+      // if (typeof clusterB.column2 != 'undefined') clusterB.column = clusterB.column2 / 10
+      if (typeof clusterB.column == 'undefined' && typeof clusterB.column2 == 'undefined' && lastCluster) clusterB.column = (lastCluster.column || 0) + 10
+      lastCluster = clusterB
+
+      let lastKey: Key | null = null
+      return {
+        ...decodeClusterFlags(clusterB.idType ?? clusterA.idType ?? 0),
+        curvature: decodeCurvature(clusterB.curvature || {}),
+        profile: decodeProfile(clusterB.keyProfile || 0).profile,
+        partType: decodePartType(clusterB.partType || 0),
+        position: clusterB.position,
+        rotation: clusterB.rotation,
+        column: clusterB.column2 ? clusterB.column2 / 100 : (typeof clusterB.column != 'undefined' ? clusterB.column / 10 : undefined),
+        clusters: [],
+        keys: clusterB.key.map(key => {
+          if (typeof key.row == 'undefined' && typeof key.row2 == 'undefined' && lastKey) key.row = (lastKey.row || 0) + 10
+          if (key.column2) key.column = key.column2 / 10
+
+          if (!key.keyProfile && lastKey) {
+            let expectedDiff = decodeProfile(lastKey.keyProfile || 0).row! < 4 ? 0x110 : 0x100
+            if (!decodeProfile(lastKey.keyProfile || 0).letter) expectedDiff &= 0x7F
+            key.keyProfile = (lastKey.keyProfile || 0) + expectedDiff
+          }
+          lastKey = key
+          return {
+            partType: decodePartType(key.partType || 0),
+            profile: decodeProfile(key.keyProfile || 0),
+            row: typeof key.row2 !== 'undefined' ? key.row2 / 100 : (typeof key.row !== 'undefined' ? key.row / 10 : undefined),
+            column: typeof key.column2 !== 'undefined' ? key.column2 / 100 : (typeof key.column !== 'undefined' ? key.column / 10 : undefined),
+            position: key.position,
+            rotation: key.rotation,
+            sizeA: typeof key.sizeA !== 'undefined' ? key.sizeA / 10 : undefined,
+            sizeB: typeof key.sizeB !== 'undefined' ? key.sizeB / 10 : undefined,
+          }
+        }),
+      }
+    }),
+  }
+}
+
 export function decodeConfigIdk(b64: string): CosmosKeyboard {
   const keeb = deserializeCosmosConfig(b64)
   const keebExtra = keeb.extra
 
   const roundedFlags = decodeRoundedFlags(keeb.roundedFlags)
-  let lastCluster: Cluster | null = null
 
   const conf: CosmosKeyboard = {
     partType: decodePartType(keeb.partType || 0),
@@ -275,7 +388,7 @@ export function decodeConfigIdk(b64: string): CosmosKeyboard {
     verticalClearance: keebExtra.verticalClearance / 10,
     keyBasis: decodeProfile(keeb.keyBasis).profile!,
     profile: decodeProfile(keeb.keyProfile).profile!,
-    screwIndices: new Array(keeb.nScrews).fill(-1),
+    screwIndices: keeb.extra.screwIndices?.length ? keeb.extra.screwIndices.map(i => i / 10 - 1) : new Array(keeb.nScrews).fill(-1),
     ...decodeScrewFlags(keeb.screwFlags),
     rounded: {
       top: roundedFlags.top ? { horizontal: keebExtra.roundedTopHorizontal / 100, vertical: keebExtra.roundedTopVertical / 100 } : undefined,
@@ -289,61 +402,15 @@ export function decodeConfigIdk(b64: string): CosmosKeyboard {
     unibody: decodeKeyboardFlags(keeb.keyboardFlags).unibody,
     wristRestProps: {
       angle: keebExtra.wristRestAngle / 45,
+      taper: keebExtra.wristRestTaper / 45,
       maxWidth: keebExtra.wristRestMaxWidth / 10,
       tenting: keebExtra.wristRestTenting / 45,
       slope: keebExtra.wristRestSlope / 45,
+      extension: keebExtra.wristRestExtension / 10,
     },
     wristRestPosition: keeb.wristRestPosition,
     connectorIndex: keebExtra.connectorIndex / 10,
-    clusters: keeb.cluster.map(clusterA => {
-      return {
-        ...decodeClusterFlags(clusterA.idType ?? 0),
-        curvature: decodeCurvature(clusterA.curvature || {}),
-        profile: decodeProfile(clusterA.keyProfile || 0).profile,
-        partType: decodePartType(clusterA.partType || 0),
-        position: clusterA.position,
-        rotation: clusterA.rotation,
-        keys: [],
-        clusters: clusterA.cluster.map(clusterB => {
-          // if (typeof clusterB.column2 != 'undefined') clusterB.column = clusterB.column2 / 10
-          if (typeof clusterB.column == 'undefined' && typeof clusterB.column2 == 'undefined' && lastCluster) clusterB.column = (lastCluster.column || 0) + 10
-          lastCluster = clusterB
-
-          let lastKey: Key | null = null
-          return {
-            ...decodeClusterFlags(clusterB.idType ?? clusterA.idType ?? 0),
-            curvature: decodeCurvature(clusterB.curvature || {}),
-            profile: decodeProfile(clusterB.keyProfile || 0).profile,
-            partType: decodePartType(clusterB.partType || 0),
-            position: clusterB.position,
-            rotation: clusterB.rotation,
-            column: clusterB.column2 ? clusterB.column2 / 100 : (typeof clusterB.column != 'undefined' ? clusterB.column / 10 : undefined),
-            clusters: [],
-            keys: clusterB.key.map(key => {
-              if (typeof key.row == 'undefined' && typeof key.row2 == 'undefined' && lastKey) key.row = (lastKey.row || 0) + 10
-              if (key.column2) key.column = key.column2 / 10
-
-              if (!key.keyProfile && lastKey && lastKey.keyProfile) {
-                let expectedDiff = decodeProfile(lastKey.keyProfile).row! < 4 ? 0x110 : 0x100
-                if (!decodeProfile(lastKey.keyProfile).letter) expectedDiff &= 0x7F
-                key.keyProfile = lastKey.keyProfile + expectedDiff
-              }
-              lastKey = key
-              return {
-                partType: decodePartType(key.partType || 0),
-                profile: decodeProfile(key.keyProfile || 0),
-                row: typeof key.row2 !== 'undefined' ? key.row2 / 100 : (typeof key.row !== 'undefined' ? key.row / 10 : undefined),
-                // column: key.column ? key.column / 10 : undefined,
-                position: key.position,
-                rotation: key.rotation,
-                sizeA: typeof key.sizeA !== 'undefined' ? key.sizeA : undefined,
-                sizeB: typeof key.sizeB !== 'undefined' ? key.sizeB : undefined,
-              }
-            }),
-          }
-        }),
-      }
-    }),
+    clusters: keeb.cluster.map(decodeCosmosCluster),
   }
   return conf
 }
@@ -426,72 +493,79 @@ function decodeCurvature(c: Curvature): Curvature {
   return curv
 }
 
-export function encodeCosmosConfig(conf: CosmosKeyboard): Keyboard {
-  const clusters: Cluster[] = []
-  let lastCol = 0
-  for (const clusterA of conf.clusters) {
-    const cluster: Cluster = {
-      idType: encodeClusterFlags(clusterA),
-      cluster: [],
-      key: [],
-      partType: diff(encodePartType(clusterA.partType), 0),
-      curvature: encodeCurvature(clusterA.curvature),
-      keyProfile: diff(encodeProfile({ profile: clusterA.profile }), 0),
-      position: clusterA.position,
-      rotation: clusterA.rotation,
-    }
-    clusters.push(cluster)
-    for (const clusterB of clusterA.clusters) {
-      const col = clusterB.column
-      const column: Cluster = {
-        idType: diff(encodeClusterFlags(clusterB), cluster.idType),
-        cluster: [],
-        key: [],
-        partType: diff(encodePartType(clusterA.partType), 0),
-        // column: typeof col != 'undefined' && Math.round(col * 10) != lastCol + 10 ? Math.round(col * 10) : undefined,
-        column: typeof col != 'undefined' ? Math.round(col * 10) : undefined,
-        curvature: encodeCurvature(clusterB.curvature),
-        keyProfile: diff(encodeProfile({ profile: clusterB.profile }), 0),
-        position: clusterB.position,
-        rotation: clusterB.rotation,
-        // typeof keyRow !== 'undefined' && Math.round(keyRow * 10) != lastRow + 10 ? Math.round(keyRow * 10) : undefined,
-      }
-      if (typeof clusterB.column !== 'undefined' && Math.round(clusterB.column * 100) % 10 != 0) {
-        delete column.column
-        column.column2 = Math.round(clusterB.column * 100)
-      }
-      cluster.cluster.push(column)
-      if (typeof col !== 'undefined') lastCol = Math.round(col * 10)
-
-      let lastProfile = 0
-      let lastExpectedDiff = 0
-      let lastRow = 0
-      for (const key of clusterB.keys) {
-        const cKey: Key = {
-          partType: diff(encodePartType(key.partType), 0),
-          row: typeof key.row != 'undefined' && Math.round(key.row * 10) != lastRow + 10 ? Math.round(key.row * 10) : undefined,
-          rotation: key.rotation,
-          position: key.position,
-        }
-
-        let thisProfile: number | undefined = encodeProfile(key.profile)
-        if (thisProfile - lastProfile != lastExpectedDiff) {
-          cKey.keyProfile = thisProfile
-        }
-        lastProfile = thisProfile
-        lastExpectedDiff = key.profile.letter ? 0x110 : 0x10
-        if (!key.profile.row || key.profile.row >= 4) lastExpectedDiff = key.profile.letter ? 0x100 : 0
-
-        if (typeof key.row !== 'undefined' && Math.round(key.row * 100) % 10 != 0) {
-          delete cKey.row
-          cKey.row2 = Math.round(key.row * 100)
-        }
-        column.key.push(cKey)
-        if (typeof key.row !== 'undefined') lastRow = Math.round(key.row * 10)
-      }
-    }
+export function encodeCosmosCluster(clusterA: CosmosCluster): Cluster {
+  const cluster: Cluster = {
+    idType: encodeClusterFlags(clusterA),
+    cluster: [],
+    key: [],
+    partType: diff(encodePartType(clusterA.partType), 0),
+    curvature: encodeCurvature(clusterA.curvature),
+    keyProfile: diff(encodeProfile({ profile: clusterA.profile }), 0),
+    position: clusterA.position,
+    rotation: clusterA.rotation,
   }
 
+  let lastCol = 0
+  for (const clusterB of clusterA.clusters) {
+    const col = clusterB.column
+    const column: Cluster = {
+      idType: diff(encodeClusterFlags(clusterB), cluster.idType),
+      cluster: [],
+      key: [],
+      partType: diff(encodePartType(clusterB.partType), 0),
+      // column: typeof col != 'undefined' && Math.round(col * 10) != lastCol + 10 ? Math.round(col * 10) : undefined,
+      column: typeof col != 'undefined' ? Math.round(col * 10) : undefined,
+      curvature: encodeCurvature(clusterB.curvature),
+      keyProfile: diff(encodeProfile({ profile: clusterB.profile }), 0),
+      position: clusterB.position,
+      rotation: clusterB.rotation,
+      // typeof keyRow !== 'undefined' && Math.round(keyRow * 10) != lastRow + 10 ? Math.round(keyRow * 10) : undefined,
+    }
+    if (typeof clusterB.column !== 'undefined' && Math.round(clusterB.column * 100) % 10 != 0) {
+      delete column.column
+      column.column2 = Math.round(clusterB.column * 100)
+    }
+    cluster.cluster.push(column)
+    if (typeof col !== 'undefined') lastCol = Math.round(col * 10)
+
+    let lastProfile = 0
+    let lastExpectedDiff = 0
+    let lastRow = 0
+    for (const key of clusterB.keys) {
+      const cKey: Key = {
+        partType: diff(encodePartType(key.partType), 0),
+        row: typeof key.row != 'undefined' && Math.round(key.row * 10) != lastRow + 10 ? Math.round(key.row * 10) : undefined,
+        column: typeof key.column != 'undefined' ? Math.round(key.column * 10) : undefined,
+        rotation: key.rotation,
+        position: key.position,
+        sizeA: typeof key.sizeA != 'undefined' ? Math.round(key.sizeA * 10) : undefined,
+        sizeB: typeof key.sizeB != 'undefined' ? Math.round(key.sizeB * 10) : undefined,
+      }
+
+      let thisProfile: number | undefined = encodeProfile(key.profile)
+      if (thisProfile - lastProfile != lastExpectedDiff) {
+        cKey.keyProfile = thisProfile
+      }
+      lastProfile = thisProfile
+      lastExpectedDiff = key.profile.letter ? 0x110 : 0x10
+      if (!key.profile.row || key.profile.row >= 4) lastExpectedDiff = key.profile.letter ? 0x100 : 0
+
+      if (typeof key.column !== 'undefined' && Math.round(key.column * 100) % 10 != 0) {
+        delete cKey.column
+        cKey.column2 = Math.round(key.column * 100)
+      }
+      if (typeof key.row !== 'undefined' && Math.round(key.row * 100) % 10 != 0) {
+        delete cKey.row
+        cKey.row2 = Math.round(key.row * 100)
+      }
+      column.key.push(cKey)
+      if (typeof key.row !== 'undefined') lastRow = Math.round(key.row * 10)
+    }
+  }
+  return cluster
+}
+
+export function encodeCosmosConfig(conf: CosmosKeyboard): Keyboard {
   return {
     keyProfile: encodeProfile({ profile: conf.profile, row: 1 }),
     partType: encodePartType(conf.partType),
@@ -506,20 +580,18 @@ export function encodeCosmosConfig(conf: CosmosKeyboard): Keyboard {
     roundedFlags: encodeRoundedFlags({ side: !!conf.rounded.side, top: !!conf.rounded.top }),
     keyboardFlags: encodeKeyboardFlags({ wrEnable: conf.wristRestEnable, unibody: conf.unibody }),
     wristRestPosition: conf.wristRestPosition,
-    cluster: clusters,
-    shell: {
-      oneofKind: 'basicShell',
-      basicShell: {
-        flags: encodeBasicShellFlags({ lip: false }),
-      },
-    },
+    cluster: conf.clusters.map(encodeCosmosCluster),
+    shell: encodeShell(conf.shell),
     extra: {
       verticalClearance: Math.round(conf.verticalClearance * 10),
       wristRestAngle: Math.round(conf.wristRestProps.angle * 45),
+      wristRestTaper: Math.round(conf.wristRestProps.taper * 45),
       wristRestTenting: Math.round(conf.wristRestProps.tenting * 45),
       wristRestMaxWidth: Math.round(conf.wristRestProps.maxWidth * 10),
       wristRestSlope: Math.round(conf.wristRestProps.slope * 45),
+      wristRestExtension: Math.round(conf.wristRestProps.extension * 10),
       connectorIndex: Math.round(conf.connectorIndex * 10),
+      screwIndices: conf.screwIndices.some(c => c >= 0) ? conf.screwIndices.map(i => Math.round(i * 10) + 10) : [],
     },
   }
 }
@@ -540,10 +612,6 @@ export function serializeCosmosConfig(trimmed: Keyboard) {
   // console.log(trimmed, '')
   const data = Keyboard.toBinary(trimmed)
   return btoa(String.fromCharCode(...data))
-}
-
-export function encodeConfig(conf: Cuttleform) {
-  return serializeCosmosConfig(encodeCosmosConfig(toCosmosConfig(conf)))
 }
 
 // const test =

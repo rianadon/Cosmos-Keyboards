@@ -87,8 +87,8 @@
       >.
     </p>
     <p class="mb-2">
-      Refer to the <a href="https://ryanis.cool/cosmos/docs/hand-scans/">documentation</a> to learn the
-      format of this file and how you can use it.
+      Refer to the <a href="https://ryanis.cool/cosmos/docs/hand-scans/">documentation</a> to learn the format
+      of this file and how you can use it.
     </p>
   </div>
   <div slot="content">

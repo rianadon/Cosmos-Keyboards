@@ -8,9 +8,13 @@
   import { SolvedHand, FINGERS, type Joints } from '../hand'
   import { Matrix4, Vector3 } from 'three'
   import HandFitViewTable from './HandFitViewTable.svelte'
+  import { mirrorCluster, type CosmosCluster, type CosmosKeyboard } from '$lib/worker/config.cosmos'
+  import type { Homing } from 'target/cosmosStructs'
 
   let hands: HandData | undefined = undefined
   const dispatch = createEventDispatcher()
+
+  let applyError: Error | undefined = undefined
 
   type Finger = (typeof FINGERS)[number]
   function relativeStaggerFor(finger: Finger, joints: Joints, hand: SolvedHand) {
@@ -31,7 +35,8 @@
     return [x, y]
   }
 
-  function staggers(j: Joints): Partial<Record<Finger, Vector3>> {
+  type Staggers = Partial<Record<Finger, Vector3>>
+  function staggers(j: Joints): Partial<Staggers> {
     const hand = new SolvedHand(j, new Matrix4())
     const [indexX, indexY] = relativeStaggerFor('indexFinger', j, hand)
     const [middleX, middleY] = relativeStaggerFor('middleFinger', j, hand)
@@ -53,59 +58,73 @@
     hands = readHands()
   })
 
-  const encodeStagger = (stagger: Vector3, old: number[]) =>
+  const encodeStagger = (stagger: Vector3, flip = false) =>
     encodeTuple([
-      Math.round(stagger.x * 10),
+      Math.round(stagger.x * (flip ? -10 : 10)),
       Math.round(stagger.y * 10),
       Math.round(stagger.z * 10),
-      old[3],
     ])
 
-  function apply(side: 'left' | 'right') {
-    const stagger = staggers(hands![side])
+  function findColumnByHoming(cluster: CosmosCluster, home: Homing) {
+    return cluster.clusters.find((cluster) => cluster.keys.find((k) => k.profile.home == home))
+  }
 
-    protoConfig.update((c) => {
-      const originalIndex = decodeTuple(c.stagger.staggerIndex)
-      const originalMiddle = decodeTuple(c.stagger.staggerMiddle)
-      const originalRing = decodeTuple(c.stagger.staggerRing)
-      const originalPinky = decodeTuple(c.stagger.staggerPinky)
-      return {
-        ...c,
-        stagger: {
-          ...c.stagger,
-          staggerIndex: encodeStagger(stagger.indexFinger!, originalIndex),
-          staggerMiddle: encodeStagger(stagger.middleFinger!, originalMiddle),
-          staggerRing: encodeStagger(stagger.ringFinger!, originalRing),
-          staggerPinky: encodeStagger(stagger.pinky!, originalPinky),
-        },
-      }
-    })
-    dispatch('apply')
+  function setStaggersCluster(cluster: CosmosCluster, staggers: Staggers, flip = false) {
+    findColumnByHoming(cluster, 'index')!.position = encodeStagger(staggers.indexFinger!, flip)
+    findColumnByHoming(cluster, 'middle')!.position = encodeStagger(staggers.middleFinger!, flip)
+    findColumnByHoming(cluster, 'ring')!.position = encodeStagger(staggers.ringFinger!, flip)
+    findColumnByHoming(cluster, 'pinky')!.position = encodeStagger(staggers.pinky!, flip)
+  }
+
+  function apply(side?: 'left' | 'right') {
+    try {
+      protoConfig.update((c) => {
+        const rightSide = c.clusters.find((c) => c.name == 'fingers' && c.side == 'right')
+        const leftSide = c.clusters.find((c) => c.name == 'fingers' && c.side == 'left')
+        if (side == 'right' || side == 'left') {
+          const stagger = staggers(hands![side])
+          if (rightSide) setStaggersCluster(rightSide, stagger)
+          if (leftSide) setStaggersCluster(leftSide, stagger, true)
+        } else {
+          const staggerLeft = staggers(hands!.left)
+          const staggerRight = staggers(hands!.right)
+          setStaggersCluster(rightSide!, staggerRight)
+          if (leftSide) {
+            setStaggersCluster(leftSide, staggerLeft, true)
+          } else {
+            // Mirror the right cluster to the left, then set its size
+            const newLeftSide = mirrorCluster(rightSide!)
+            setStaggersCluster(newLeftSide, staggerLeft, true)
+            c.clusters.splice(2, 0, newLeftSide)
+          }
+        }
+        return c
+      })
+      dispatch('apply')
+    } catch (e) {
+      applyError = e as Error
+    }
   }
 </script>
 
 <div class="bg-amber-200 m-4 rounded px-4 py-2 dark:bg-yellow-700">
-  Hand Fitting is released as beta feature. Please consider tuning the parameters aftwards, using
-  the Hand 3d model as a guide.
+  Hand Fitting is released as beta feature. Please consider tuning the parameters aftwards, using the
+  Hand 3d model as a guide.
 </div>
 
 {#if hands}
   <div class="m-4">
     <div class="max-w-prose mx-auto">
-      The following parameters are recommended for your hand. The existing Thumb & &lt; Index
-      settings, plus all splay settings are kept.
+      The following parameters are recommended for your hand. Clicking Apply will reset all modifications
+      you've made to the upper keys.
     </div>
     <div class="flex justify-around my-6">
       <div>
-        <h3 class="text-xl text-teal-500 dark:text-teal-300 font-semibold mb-2 ml-7">
-          LEFT STAGGER
-        </h3>
+        <h3 class="text-xl text-teal-500 dark:text-teal-300 font-semibold mb-2 ml-7">LEFT STAGGER</h3>
         <HandFitViewTable stagger={staggers(hands.left)} />
       </div>
       <div>
-        <h3 class="text-xl text-teal-500 dark:text-teal-300 font-semibold mb-2 ml-7">
-          RIGHT STAGGER
-        </h3>
+        <h3 class="text-xl text-teal-500 dark:text-teal-300 font-semibold mb-2 ml-7">RIGHT STAGGER</h3>
         <HandFitViewTable stagger={staggers(hands.right)} />
       </div>
     </div>
@@ -121,14 +140,29 @@
   </div>
 
   <div class="text-center mt-6">
-    <p class="flex justify-center gap-4">
-      <button class="button flex items-center gap-2" on:click={() => apply('left')}>
-        <Icon path={mdiHandBackLeft} /> Apply Left
+    <p class="flex justify-center gap-4 items-center">
+      <button
+        class="button flex items-center gap-2 h-9 text-sm font-medium!"
+        on:click={() => apply('left')}
+      >
+        <Icon path={mdiHandBackLeft} /> Apply Left To Both
       </button>
-      <button class="button flex items-center gap-2" on:click={() => apply('right')}>
-        <Icon path={mdiHandBackRight} /> Apply Right
+      <button class="button flex items-center gap-2" on:click={() => apply()}>
+        <Icon path={mdiHandBackRight} /> Apply
+      </button>
+      <button
+        class="button flex items-center gap-2 h-9 text-sm font-medium!"
+        on:click={() => apply('right')}
+      >
+        <Icon path={mdiHandBackRight} /> Apply Right To Both
       </button>
     </p>
+  </div>
+{/if}
+
+{#if applyError}
+  <div class="bg-red-200 m-4 mb-2 rounded p-4 dark:bg-red-700 font-mono text-sm whitespace-pre-wrap">
+    Error applying the stagger: {applyError.message}
   </div>
 {/if}
 

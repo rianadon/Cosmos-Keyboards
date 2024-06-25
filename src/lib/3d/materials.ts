@@ -15,12 +15,23 @@ varying vec3 vNormal;
 varying vec4 vPosition;
 varying vec4 vLightPosition;
 
+#ifdef USE_INSTANCING
+attribute float instanceBrightness;
+attribute float instanceTexOffset;
+varying float vBrightness;
+#endif
+
 void main() {
     vNormal = normalize( normalMatrix * vec3(normal) );
     vUv = uv;
     vPosition = modelMatrix * vec4( position, 1.0 );
+    #ifdef USE_INSTANCING
+    vPosition = modelMatrix * instanceMatrix * vec4(position, 1.0);
+    vBrightness = instanceBrightness;
+    vUv.x = (vUv.x + instanceTexOffset) / 1000.0;
+    #endif
     vLightPosition = vec4(100, 100, 300, 1);
-    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+    gl_Position = projectionMatrix * viewMatrix * vPosition;
 }
 `
 
@@ -34,11 +45,16 @@ varying vec3 vNormal;
 varying vec4 vPosition;
 varying vec4 vLightPosition;
 uniform float uOpacity;
-uniform float uBrightness;
 uniform vec3 uSaturation;
 uniform float uAmbient;
 uniform vec3 uColor;
 uniform sampler2D tLetter;
+
+#ifdef USE_INSTANCING
+varying float vBrightness;
+#else
+uniform float uBrightness;
+#endif
 
 // http://lolengine.net/blog/2013/07/27/rgb-to-hsv-in-glsl
 vec3 hsv2rgb(vec3 c) {
@@ -57,10 +73,17 @@ void main() {
     vec3 cnorm = vNormal.xyz * 0.5 + 0.5;
     float value = light * min(1.0, max(0.0, dot(n, l)) + uAmbient);
     vec3 letter = texture2D( tLetter, vUv ).rgb;
+    #ifdef USE_INSTANCING
+    vec3 hsv = vec3(uColor.r, uColor.g, uColor.b * value * vBrightness - letter.g*0.5);
+    #else
     vec3 hsv = vec3(uColor.r, uColor.g, uColor.b * value * uBrightness - letter.g*0.5);
+    #endif
     gl_FragColor = vec4(hsv2rgb(hsv) + cnorm*uSaturation, uOpacity);
 }
 `
+
+export const VERTEX_SHADER_INSTANCED = '#define USE_INSTANCING\n' + VERTEX_SHADER
+export const FRAGMENT_SHADER_INSTANCED = '#define USE_INSTANCING\n' + FRAGMENT_SHADER
 
 export class KeyboardMaterial extends ShaderMaterial {
   constructor() {
@@ -180,14 +203,21 @@ export class KeyMaterial extends KeyboardMaterial {
   }
 }
 
-export function letterTexture(letter: string, flip: boolean) {
-  console.log('gen letter texture', letter)
-  const canvas = new OffscreenCanvas(512, 512)
+export function drawLetterToTex(letter: string | undefined, tex: THREE.CanvasTexture, flip: boolean) {
+  tex.needsUpdate = true
+  const canvas = tex.image as OffscreenCanvas
   const ctx = canvas.getContext('2d')!
+  ctx.clearRect(0, 0, canvas.width, canvas.height)
+  if (!letter) return
   if (flip) ctx.scale(-1, 1)
   ctx.font = '168px "Segoe UI", Candara, "Bitstream Vera Sans", "DejaVu Sans", "Bitstream Vera Sans", "Trebuchet MS", Verdana, "Verdana Ref", sans-serif'
   ctx.textAlign = 'center'
   ctx.fillStyle = 'white'
   ctx.fillText(letter, flip ? -256 : 256, 315)
-  return new THREE.CanvasTexture(canvas)
+}
+
+export function letterTexture(letter: string | undefined, flip: boolean) {
+  const tex = new THREE.CanvasTexture(new OffscreenCanvas(512, 512))
+  drawLetterToTex(letter, tex, flip)
+  return tex
 }

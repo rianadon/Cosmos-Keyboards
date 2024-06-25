@@ -27,7 +27,7 @@ import {
 } from '../../../target/proto/cuttleform'
 import { BaseGeometry, BlockGeometry, TiltGeometry } from './cachedGeometry'
 import type { CosmosCluster, CosmosKey, CosmosKeyboard } from './config.cosmos'
-import { estimatedCenter } from './geometry'
+import { estimatedBB, estimatedCenter } from './geometry'
 import { DEFAULT_MWT_FACTOR } from './geometry.thickWebs'
 import Trsf from './modeling/transformation'
 import ETrsf, { Constant, keyPosition, mirror } from './modeling/transformation-ext'
@@ -72,10 +72,18 @@ export interface SpecificCuttleform<S> {
   screwSize: 'M3' | 'M4' | '#4-40' | '#6-32'
   screwCountersink: boolean
   wristRest?: {
+    /** Angle at which the wrist rest is attached to the keyboard */
     angle: number
+    /** Angle at which the wrist rest sides are tapered inwards */
+    taper: number
+    /** Maximum width of the wrist rest */
     maxWidth: number
+    /** Angle at which the wrist rest is tented */
     tenting: number
+    /** Angle at which the wrist rests slopes down towards the wrist */
     slope: number
+    /** Amount by which the wrist rests sticks out past the wrist */
+    extension: number
     stilts?: boolean
   }
   wristRestOrigin: ETrsf
@@ -183,7 +191,6 @@ interface CuttleBlankKey extends CuttleBaseKey {
   size: { width: number; height: number }
 }
 
-type RoundSize = { radius: number; sides: number }
 interface CuttleTrackballKey extends CuttleBaseKey {
   type: 'trackball'
   variant: {
@@ -191,7 +198,7 @@ interface CuttleTrackballKey extends CuttleBaseKey {
     bearings: 'Roller' | 'Ball'
     sensor: 'Joe'
   }
-  size: RoundSize
+  size: { sides: number }
 }
 
 interface CuttleCirqueKey extends CuttleBaseKey {
@@ -204,11 +211,12 @@ interface CuttleCirqueKey extends CuttleBaseKey {
 
 export type CuttleKey = CuttleKeycapKey | CuttleBasicKey | CuttleTrackballKey | CuttleCirqueKey | CuttleBlankKey
 
+type RoundSize = { radius: number; sides: number }
 export function keyRoundSize(key: CuttleKey): RoundSize | undefined {
   switch (key.type) {
     case 'trackball':
-      // @ts-ignore: for backwards compatibility.
       return {
+        // @ts-ignore: for backwards compatibility.
         sides: key.size?.sides ?? key.trackball?.sides ?? 20,
         radius: trackballRadius(key.variant),
       }
@@ -373,9 +381,11 @@ export function cuttleConf(c: DeepRequired<CuttleformProto>): Cuttleform {
         maxWidth: c.wall.wristRestMaxWidth / 10,
         // xOffset: c.wall.wristRestXOffset / 10,
         // zOffset: c.wall.wristRestZOffset / 10,
-        angle: c.wall.wristRestAngle / 45,
+        angle: 0,
+        taper: c.wall.wristRestAngle / 45,
         tenting: c.curvature.tenting / 45 / 2 + c.wall.wristRestTenting / 45,
         slope: 5,
+        extension: 8,
       }
       : undefined,
     wristRestOrigin: thumbOrigin(c, true),
@@ -602,6 +612,11 @@ export function tupleToXYZA(tuple: bigint) {
 export function tupleToRot(tuple: bigint) {
   const decoded = decodeTuple(tuple)
   return { alpha: decoded[0] / 45, beta: decoded[1] / 45, gamma: decoded[2] / 45, extra: decoded[3] }
+}
+
+export function tupletoRotOnly(tuple: bigint) {
+  const decoded = decodeTuple(tuple)
+  return [decoded[0] / 45, decoded[1] / 45, decoded[2] / 45] as [number, number, number]
 }
 
 export function tupleToXYZ(tuple: bigint) {
@@ -1058,8 +1073,12 @@ export function decodeCustomKey(k: Cuttleform_CustomThumb_Key, keyType: KeyType,
       ...newKey,
       type: 'trackball',
       size: {
-        radius: k.trackballRadius / 10,
         sides: k.trackballSides,
+      },
+      variant: {
+        bearings: 'Roller',
+        sensor: 'Joe',
+        size: '34mm',
       },
     }
   } else if (customId > 0) return newKey as CuttleKey
@@ -1430,7 +1449,7 @@ export function orbylThumbs(keyType: KeyType, capType: CapType, opts: Cuttleform
     ...thumbBase,
     aspect: 1,
     position: new ETrsf().placeOnSphere(mergeCurvature(curvature, {
-      angle: 10,
+      angle: 80,
       row: 1.85,
     }, 'thumbCurvature')).transformBy(offset),
   }, {
@@ -1438,21 +1457,21 @@ export function orbylThumbs(keyType: KeyType, capType: CapType, opts: Cuttleform
     aspect: 1,
     keycap: { profile: capType, row: 5, home: 'thumb' },
     position: new ETrsf().placeOnSphere(mergeCurvature(curvature, {
-      angle: -40,
+      angle: 130,
       row: 2,
     }, 'thumbCurvature')).transformBy(offset),
   }, {
     ...thumbBase,
     aspect: 1,
     position: new ETrsf().placeOnSphere(mergeCurvature(curvature, {
-      angle: -90,
+      angle: 180,
       row: 2,
     }, 'thumbCurvature')).transformBy(offset),
   }, {
     ...thumbBase,
     aspect: 1,
     position: new ETrsf().placeOnSphere(mergeCurvature(curvature, {
-      angle: -140,
+      angle: 230,
       row: 2,
     }, 'thumbCurvature')).transformBy(offset),
   }, {
@@ -1460,8 +1479,12 @@ export function orbylThumbs(keyType: KeyType, capType: CapType, opts: Cuttleform
     aspect: 1,
     cluster: 'thumbs',
     size: {
-      radius: 20.9,
       sides: 20,
+    },
+    variant: {
+      bearings: 'Roller',
+      sensor: 'Joe',
+      size: '34mm',
     },
     position: new ETrsf()
       .rotate(30)
@@ -1542,18 +1565,64 @@ export function setBottomZ(conf: FullCuttleform) {
   }
 }
 
-export function fullEstimatedCenter(geo: FullGeometry | undefined, withWristRest = true) {
-  if (!geo) return { left: [0, 0, 0] as Point, both: [0, 0, 0] as Point, right: [0, 0, 0] as Point }
+export type Center = {
+  left?: Point
+  right?: Point
+  unibody?: Point
+}
+export type FullCenter = Full<Center>
+
+const VIEW_SEPARATION = 40
+
+export function fullEstimatedCenter(geo: FullGeometry | undefined, withWristRest = true): FullCenter {
+  const defaultCenter = { left: [0, 0, 0] as Point, unibody: [0, 0, 0] as Point, right: [0, 0, 0] as Point }
+  if (!geo) return { left: defaultCenter, both: defaultCenter, right: defaultCenter }
   if (geo.unibody) {
     const center = estimatedCenter(geo.unibody, withWristRest && !!geo.unibody!.c.wristRest)
-    return { left: center, both: center, right: center }
+    const modelCenters = { unibody: center }
+    return { left: modelCenters, both: modelCenters, right: modelCenters }
   } else {
-    const leftCenter = estimatedCenter(geo.left!, withWristRest && !!geo.left!.c.wristRest)
-    const rightCenter = estimatedCenter(geo.right!, withWristRest && !!geo.right!.c.wristRest)
+    const leftBB = estimatedBB(geo.left!, withWristRest && !!geo.left!.c.wristRest)
+    const rightBB = estimatedBB(geo.right!, withWristRest && !!geo.right!.c.wristRest)
+    const sepDiff = (VIEW_SEPARATION - (rightBB[0] + leftBB[0])) / 2
     return {
-      left: [-leftCenter[0], leftCenter[1], leftCenter[2]] as Point,
-      both: [0, rightCenter[1], rightCenter[2]] as Point,
-      right: rightCenter,
+      left: {
+        left: [-(leftBB[0] + leftBB[1]) / 2, (leftBB[2] + leftBB[3]) / 2, (leftBB[4] + leftBB[5]) / 2],
+      },
+      both: {
+        left: [
+          (rightBB[1] - leftBB[1]) / 2 + sepDiff,
+          (Math.min(leftBB[2], rightBB[2]) + Math.max(leftBB[3], rightBB[3])) / 2,
+          (Math.min(leftBB[4], rightBB[4]) + Math.max(leftBB[5], rightBB[5])) / 2,
+        ],
+        right: [
+          (rightBB[1] - leftBB[1]) / 2 - sepDiff,
+          (Math.min(leftBB[2], rightBB[2]) + Math.max(leftBB[3], rightBB[3])) / 2,
+          (Math.min(leftBB[4], rightBB[4]) + Math.max(leftBB[5], rightBB[5])) / 2,
+        ],
+      },
+      right: {
+        right: [(rightBB[0] + rightBB[1]) / 2, (rightBB[2] + rightBB[3]) / 2, (rightBB[4] + rightBB[5]) / 2],
+      },
+    }
+  }
+}
+
+type Full<T> = { left: T; both: T; right: T }
+export function fullEstimatedSize(geo: FullGeometry | undefined): Full<[number, number, number]> {
+  if (!geo) return { left: [100, 100, 100], both: [300, 100, 100], right: [100, 100, 100] }
+  if (geo.unibody) {
+    const [x1, x2, y1, y2, z1, z2] = estimatedBB(geo.unibody)
+    const size = [x2 - x1, y2 - y1, z2 - z1] as [number, number, number]
+    return { left: size, both: size, right: size }
+  } else {
+    const [lx1, lx2, ly1, ly2, lz1, lz2] = estimatedBB(geo.left!)
+    const [rx1, rx2, ry1, ry2, rz1, rz2] = estimatedBB(geo.right!)
+    const sep = VIEW_SEPARATION - (rx1 + lx1)
+    return {
+      left: [lx2 - lx1, ly2 - ly1, lz2 - lz1],
+      both: [sep + rx2 + lx2, Math.max(ly2, ry2) - Math.min(ly1, ry1), Math.max(lz2, rz2) - Math.min(lz1, rz1)],
+      right: [rx2 - rx1, ry2 - ry1, rz2 - rz1],
     }
   }
 }

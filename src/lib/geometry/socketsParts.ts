@@ -119,7 +119,7 @@ export function partBottom(sw: CuttleKey['type'] | undefined): [number, number, 
   }
   if (sw == 'trackball') {
     // box = pcb then chip
-    return [box(21.3, 28.5, 27), box(11, 16, 29.5)]
+    return [box(28.5, 21.3, 27), box(16, 11, 29.5)]
   }
   if (sw == 'ec11') {
     return [box(12, 12, 14.5)]

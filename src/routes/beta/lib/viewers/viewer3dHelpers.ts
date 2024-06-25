@@ -1,4 +1,4 @@
-import { UNIFORM } from '$lib/geometry/keycaps'
+import { adjacentKeycapLetter, UNIFORM } from '$lib/geometry/keycaps'
 import type { Geometry } from '$lib/worker/config'
 import { type CosmosCluster, type CosmosKey, type CosmosKeyboard, cosmosKeyPosition, nthKey } from '$lib/worker/config.cosmos'
 import { Vector } from '$lib/worker/modeling/transformation'
@@ -8,6 +8,7 @@ import { Matrix4 } from 'three'
 
 export type KeyboardMeshes = {
   wristBuf?: ShapeMesh
+  secondWristBuf?: ShapeMesh
   plateTopBuf?: ShapeMesh
   plateBotBuf?: ShapeMesh
   webBuf?: ShapeMesh
@@ -59,7 +60,6 @@ export function transformationCenter(
       column: 0,
     }
   }
-  console.log('computing center')
   return cosmosKeyPosition(key, column, cluster, kbd)
 }
 
@@ -68,10 +68,10 @@ function adjacentKey(kbd: CosmosKeyboard, n: number, dx: number, dy: number) {
   const { key, column, cluster } = nthKey(kbd, n)
   const k: CosmosKey = {
     ...key,
-    column: (key.column || cluster.column || column.column!) + dx,
+    column: (key.column ?? cluster.column ?? column.column!) + dx,
     row: key.row! + dy,
   }
-  const pos = cosmosKeyPosition(k, cluster, column, kbd).evaluate({ flat: false })
+  const pos = cosmosKeyPosition(k, column, cluster, kbd).evaluate({ flat: false })
   return { dx, dy, pos }
 }
 
@@ -84,6 +84,15 @@ function midColumnKey(kbd: CosmosKeyboard, n: number, dx: number) {
   return adjacentKey(kbd, startIndex, dx, dy)
 }
 
+/** Returns the minimum angle to separate two keys on a row on the sphere */
+function sphereAngle(column: CosmosCluster, cluster: CosmosCluster, kb: CosmosKeyboard, key: CosmosKey) {
+  if (!key.row) return 0
+  const spacing = column.curvature.verticalSpacing || cluster.curvature.verticalSpacing || kb.curvature.verticalSpacing
+  const angle = 2 * Math.atan(10 / (key.row * spacing - 10))
+  const deg = angle * 180 / Math.PI
+  return Math.ceil(deg)
+}
+
 /** Returns the adjacent positions to a key/column/cluster. */
 export function adjacentPositions(
   geo: Geometry | null,
@@ -92,15 +101,18 @@ export function adjacentPositions(
   mode: 'key' | 'column' | 'cluster',
 ) {
   if (n == null || !geo || mode == 'cluster') return []
-  const side = nthKey(protoConfig, n).cluster.side
+  const { cluster, column, key } = nthKey(protoConfig, n)
+  const side = cluster.side
   const mirror = new Vector(!protoConfig.unibody && side == 'left' ? -1 : 1, 1, 1)
   const positions = geo.keyHolesTrsfs.map((t) => t.origin().multiply(mirror))
+  const dx = column.type == 'matrix' ? 1 : sphereAngle(column, cluster, protoConfig, key)
+  console.log('dx', dx)
   return (
     mode == 'key'
       ? [
-        adjacentKey(protoConfig, n, 1, 0),
+        adjacentKey(protoConfig, n, dx, 0),
         adjacentKey(protoConfig, n, 0, 1),
-        adjacentKey(protoConfig, n, -1, 0),
+        adjacentKey(protoConfig, n, -dx, 0),
         adjacentKey(protoConfig, n, 0, -1),
       ]
       : [midColumnKey(protoConfig, n, 1), midColumnKey(protoConfig, n, -1)]
@@ -115,7 +127,10 @@ export function addKeyInPlace(keeb: CosmosKeyboard, n: number, dx: number, dy: n
   if (typeof col == 'undefined') return undefined
   const columnCluster = cluster.clusters.find((c) => c.column == col + dx)
   let newKey: CosmosKey = {
-    profile: {},
+    profile: {
+      letter: adjacentKeycapLetter(key.profile.letter, dx, dy),
+      home: null,
+    },
     partType: {},
     position: undefined,
     rotation: undefined,
@@ -134,7 +149,7 @@ export function addKeyInPlace(keeb: CosmosKeyboard, n: number, dx: number, dy: n
     columnCluster.keys.push(newKey)
   } else {
     cluster.clusters.push({
-      type: cluster.type,
+      type: column.type,
       name: cluster.name,
       side: cluster.side,
       partType: {},
@@ -154,7 +169,13 @@ export function addColumnInPlace(keeb: CosmosKeyboard, n: number, dx: number): C
   const { column, cluster } = nthKey(keeb, n)
   const col = column.column
   if (typeof col == 'undefined') return undefined
-  const newKeys = column.keys.map(k => JSON.parse(JSON.stringify(k)))
+  const newKeys = column.keys.map(k => ({
+    ...JSON.parse(JSON.stringify(k)),
+    profile: {
+      ...k.profile,
+      letter: adjacentKeycapLetter(k.profile.letter, dx, 0),
+    },
+  }))
   cluster.clusters.push({
     type: cluster.type,
     name: cluster.name,

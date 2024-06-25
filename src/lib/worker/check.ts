@@ -8,7 +8,7 @@ import { Octree } from 'three/examples/jsm/math/Octree'
 import { Vector2 } from 'three/src/math/Vector2'
 import { calcTravel, ITriangle, simpleKey, simpleKeyPosition } from '../loaders/simplekeys'
 import type { Cuttleform, CuttleKey, Geometry } from './config'
-import type { CriticalPoints } from './geometry'
+import { type CriticalPoints, keyHolesTrsfs2D } from './geometry'
 import { intersectPolyPoly } from './geometry.intersections'
 import Trsf, { Vector } from './modeling/transformation'
 import ETrsf from './modeling/transformation-ext'
@@ -55,6 +55,14 @@ interface NanError {
 interface NoKeysError {
   type: 'nokeys'
 }
+interface WrongFormatError {
+  type: 'wrongformat'
+}
+interface SamePositionError {
+  type: 'samePosition'
+  i: number
+  j: number
+}
 interface WallBoundsError {
   type: 'wallBounds'
   i: number
@@ -62,7 +70,7 @@ interface WallBoundsError {
 
 const PROPERTIES = ['aspect', 'type', 'position']
 
-export type ConfError = (IntersectionError | MissingError | WrongError | OobError | InvalidError | ExceptionError | NanError | NoKeysError | WallBoundsError) & {
+export type ConfError = (IntersectionError | MissingError | WrongError | OobError | InvalidError | ExceptionError | NanError | NoKeysError | WallBoundsError | WrongFormatError | SamePositionError) & {
   side: 'left' | 'right' | 'unibody'
 }
 
@@ -75,7 +83,8 @@ export function isWarning(e: ConfError) {
   return e.type == 'wallBounds' || (e.type == 'intersection' && e.what == 'socket')
 }
 
-export function checkConfig(conf: Cuttleform, geometry: Geometry, check3d = true, side: 'left' | 'right' | 'unibody'): ConfError | undefined {
+export function checkConfig(conf: Cuttleform, geometry: Geometry | undefined, check3d = true, side: 'left' | 'right' | 'unibody'): ConfError | undefined {
+  if (!conf.keys) return { type: 'wrongformat', side }
   if (!conf.keys.length) return { type: 'nokeys', side }
 
   for (const key of conf.keys) {
@@ -105,6 +114,16 @@ export function checkConfig(conf: Cuttleform, geometry: Geometry, check3d = true
   if (!['average', 'slim', 'big', undefined].includes(conf.connectorSizeUSB)) {
     return { type: 'invalid', item: 'connectorSizeUSB', value: conf.connectorSizeUSB, valid: ['average', 'slim', 'big'], side }
   }
+  if (!check3d || !geometry) return undefined
+
+  const positions = new Map<string, number>()
+  let i = 0
+  for (const pos of keyHolesTrsfs2D(conf, new Trsf())) {
+    const hash = pos.matrix().join(',')
+    if (positions.has(hash)) return { type: 'samePosition', side, i, j: positions.get(hash) }
+    positions.set(hash, i)
+    i++
+  }
 
   const cpts = geometry.allKeyCriticalPoints2D
   const pts = cpts.map(a => a.map(x => new Vector2(...x.xy())))
@@ -112,8 +131,6 @@ export function checkConfig(conf: Cuttleform, geometry: Geometry, check3d = true
   // for (const intersection of holeIntersections(pts)) {
   //   return intersection
   // }
-
-  if (!check3d) return undefined
 
   try {
     // const trsfs3d = geometry.keyHolesTrsfs
@@ -127,12 +144,17 @@ export function checkConfig(conf: Cuttleform, geometry: Geometry, check3d = true
     //   console.log(intersection)
     //   return intersection
     // }
-    const wallPts = geometry.allWallCriticalPointsBase()
-    for (const idx of conf.screwIndices) {
-      if (idx >= wallPts.length) return { type: 'oob', idx, item: 'screwIndices', len: wallPts.length, side }
+    if (conf.screwIndices.find(s => s >= 0)) {
+      const wallPts = geometry.allWallCriticalPointsBase()
+      for (const idx of conf.screwIndices) {
+        if (idx >= wallPts.length) return { type: 'oob', idx, item: 'screwIndices', len: wallPts.length, side }
+      }
     }
-    if (conf.connectorIndex >= wallPts.length) {
-      return { type: 'oob', idx: conf.connectorIndex, item: 'connectorIndex', len: wallPts.length, side }
+    if (conf.connectorIndex >= 0) {
+      const wallPts = geometry.allWallCriticalPointsBase()
+      if (conf.connectorIndex >= wallPts.length) {
+        return { type: 'oob', idx: conf.connectorIndex, item: 'connectorIndex', len: wallPts.length, side }
+      }
     }
   } catch (e) {
     console.error(e)
@@ -140,7 +162,7 @@ export function checkConfig(conf: Cuttleform, geometry: Geometry, check3d = true
   }
 
   try {
-    const boardInd = geometry.boardIndices
+    const connOrigin = geometry.connectorOrigin
   } catch (e) {
     console.error(e)
     return { type: 'exception', when: 'positioning the board', error: e as Error, side }

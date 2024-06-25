@@ -54,15 +54,15 @@
 
 {#if $developer}
   <div class="text-white mx-auto max-w-prose mt-6">
-    The <span class="text-teal">teal regions</span> represent the boundary around the socket (where
-    the adjacent walls will be located), and the
-    <span class="text-red">red regions</span> represent the boundaries of the mating part (which are
-    used to prevent the part from hitting the ground).
+    The <span class="text-teal">teal regions</span> represent the boundary around the socket (where the
+    adjacent walls will be located), and the
+    <span class="text-red">red regions</span> represent the boundaries of the mating part (which are used
+    to prevent the part from hitting the ground).
   </div>
 {/if}
 
 <main class="max-w-6xl mx-auto">
-  <SharedRenderer antialias alpha>
+  <SharedRenderer>
     <h2>Included Parts</h2>
     <section class="parts">
       {#each firstEntries as [part, name]}
