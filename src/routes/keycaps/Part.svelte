@@ -5,7 +5,7 @@
   import { browser } from '$app/environment'
   import { drawLinedWall } from '../beta/lib/viewers/viewerHelpers'
   import { MeshBasicMaterial } from 'three'
-  import CoopScene from '$lib/3d/CoopScene.svelte'
+  import CoopCanvas from '$lib/3d/CoopCanvas.svelte'
   import type { CuttleKey } from '$lib/worker/config'
   import Trsf from '$lib/worker/modeling/transformation'
   import { simpleKeyGeo } from '$lib/loaders/simplekeys'
@@ -60,7 +60,7 @@
   </div>
   <div class="flex">
     <div class="aspect-1 relative w-full">
-      <CoopScene>
+      <CoopCanvas>
         <T.Group rotation={[0, 0, Math.PI / 2]} position={[0, 0, -8]}>
           {#await partPromise then partMesh}
             <KeyboardMesh geometry={partMesh} kind="key" />
@@ -77,11 +77,11 @@
         <T.OrthographicCamera makeDefault position={[0, -100, 0]} zoom={0.08}>
           <OrbitControls enableDamping enableZoom={false} enablePan={false} dampingFactor={0.1} />
         </T.OrthographicCamera>
-      </CoopScene>
+      </CoopCanvas>
     </div>
     {#if dev}
       <div class="aspect-1 relative w-full">
-        <CoopScene>
+        <CoopCanvas>
           <T.Group rotation={[0, 0, Math.PI / 2]} position={[0, 0, -8]}>
             {#if simpleGeo}
               <T.Mesh
@@ -97,7 +97,7 @@
           <T.OrthographicCamera makeDefault position={[0, -100, 0]} zoom={0.08}>
             <OrbitControls enableDamping enableZoom={false} enablePan={false} dampingFactor={0.1} />
           </T.OrthographicCamera>
-        </CoopScene>
+        </CoopCanvas>
       </div>
     {/if}
   </div>

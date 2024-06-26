@@ -154,8 +154,8 @@ type Thumb = 'curved' | 'carbonfet' | 'manuform' | 'orbyl'
 const THUMB_CONFIG: Record<Thumb, { b64: string; n?: number[]; defaultN?: number }> = {
   curved: {
     b64:
-      'Ci8SExDAjwJAgICYAkjCmaCVkLwBUEMSFhDApwJAgIDMAkjCmaCVkLwBUIYBWDo4CAoWEhEQwANAgIAgSNCVgN2Q9QNQC1CeAgorEhEQwBtAgID4AUjmmfynkAtQVxIUEMAzQICApANI8JnEtdAwUHRYlQFQfxgCIgoIyAEQyAEYACAAQMuL/J/QMUitkdyNwZMG',
-    n: [2, 3, 4, 5],
+      'Ci8SExDAjwJAgICYAkjCmaCVkLwBUEMSFhDApwJAgIDMAkjCmaCVkLwBUIYBWDo4CAoWEhEQwANAgIAgSNCVgN2Q9QNQC1CeAgorEhEQwBtAgID4AUjmmfynkAtQVxIUEMAzQICApANI8JnEtdAwUHRYlQFQfwoYEhMQgD9AkrbtDEj6mejs8PwCUIYBUIICGAIiCgjIARDIARgAIABAy4v8n9AxSK2R3I3BkwY=',
+    n: [2, 3, 4, 5, 6],
     defaultN: 5,
   },
   carbonfet: {

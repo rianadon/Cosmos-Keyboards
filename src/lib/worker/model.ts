@@ -183,7 +183,7 @@ export function boundarySplines<T>(
 }
 
 export function webPolysTopOrBot(reinforced: ReturnType<typeof reinforceTriangles>, splines: Record<number, Record<number, Curve>>, top: boolean) {
-  let { triangles, triangleMap, allPts } = reinforced
+  let { triangles, allPts } = reinforced
   const surface = new CompBezierSurface()
 
   for (let [a, b, c] of triangles) {
@@ -219,6 +219,10 @@ export function webSolid(c: Cuttleform, geo: Geometry) {
   const topSplines = boundarySplines(c, boundary, i => walls[i].ti, wallCurve, walls!, geo.worldZ, geo.bottomZ, false)
   const bottomSplines = boundarySplines(c, boundary, i => walls[i].ki, wallCurve, walls!, geo.worldZ, geo.bottomZ, false)
 
+  // Add top and bottom faces
+  surface.extend(webPolysTopOrBot(topReinf, topSplines, true))
+  surface.extend(webPolysTopOrBot(botReinf, bottomSplines, false))
+
   // If we encounter a wall on the boundary, use boundary make the wall
   for (let [a, b, c] of triangles) {
     const makeSide = (x: number, y: number) => surface.addPatch(loftCurves(topSplines[x][y]!, bottomSplines[x][y]!))
@@ -241,10 +245,6 @@ export function webSolid(c: Cuttleform, geo: Geometry) {
     if (removedTriMap[c] && removedTriMap[c][b]) loftFace(c, b)
     if (removedTriMap[a] && removedTriMap[a][c]) loftFace(a, c)
   }
-
-  // Add top and bottom faces
-  surface.extend(webPolysTopOrBot(topReinf, topSplines, true))
-  surface.extend(webPolysTopOrBot(botReinf, bottomSplines, false))
 
   // Add extra walls
   for (const [a, b, other] of topReinf.extraWalls) {

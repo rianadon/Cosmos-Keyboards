@@ -8,7 +8,7 @@ import { basename, join } from 'path'
 import { type AnyShape, getOC, importSTEP, makeBaseBox, Solid } from 'replicad'
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
 import { fileURLToPath } from 'url'
-import { PART_NAMES, variantOptions, variantURL } from '../lib/geometry/socketsParts'
+import { PART_NAMES, variantURLs } from '../lib/geometry/socketsParts'
 import { exportGLTF } from './exportGLTF'
 import { serialize } from './modeling'
 import { setup } from './node-model'
@@ -122,17 +122,6 @@ async function main() {
 
   poolDisplayModel('oled-128x32-0.91in-dfrobot', dfDisplayProps, 0.5)
   poolDisplaySocket('oled-128x32-0.91in-dfrobot', dfDisplayProps)
-  // for (const socket of Object.keys(PART_NAMES) as CuttleKey['type'][]) {
-  //   pool.add(socket, async () => {
-  //     if (existsSync('.' + KEY_URLS[socket])) {
-  //       const glbName = join(targetDir, 'socket-' + socket + '.glb')
-  //       await writeMesh(glbName, await loadSocket(socket))
-  //     } else {
-  //       return `Warning: could not generate ${socket} since its file was not present in the filesystem.\n`
-  //         + `This is OK as long as the models you generate do not include this part.`
-  //     }
-  //   })
-  // }
 
   // Make all combinations of trackballs
   // for3(
@@ -167,20 +156,6 @@ async function main() {
 
   const filename = join(targetDir, `part-masses.json`)
   await writeFile(filename, JSON.stringify(masses))
-}
-
-/** [[a, [1,2]], [b, [3, 4]]] -> [{a: 1, b: 3}, {a: 1, b: 4}, {a: 2, b: 3}, {a: 3, b: 4}] */
-function permutations(xs: [string, string[]][]): Record<string, string>[] {
-  if (!xs.length) return [{}]
-  const [key, options] = xs[0]
-  return options.flatMap(opt => {
-    return permutations(xs.slice(1)).map(vs => ({ ...vs, [key]: opt }))
-  })
-}
-
-function variantURLs(socket: CuttleKey['type']) {
-  const options = variantOptions(socket)
-  return permutations(Object.entries(options)).map(p => variantURL({ type: socket, variant: p } as any))
 }
 
 main()

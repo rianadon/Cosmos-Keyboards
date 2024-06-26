@@ -101,7 +101,7 @@ export function socketSize(key: CuttleKey): Vector {
   return new Vector(18, 18, 5)
 }
 
-export function partBottom(sw: CuttleKey['type'] | undefined): [number, number, number][][] {
+export function partBottom(sw: CuttleKey['type'] | undefined, variant: Record<string, any> | undefined): [number, number, number][][] {
   if (sw == 'mx-pcb') {
     return [box(14, 14, 8.5), box(19.4, 19.4, 6.6)]
   }
@@ -119,7 +119,8 @@ export function partBottom(sw: CuttleKey['type'] | undefined): [number, number, 
   }
   if (sw == 'trackball') {
     // box = pcb then chip
-    return [box(28.5, 21.3, 27), box(16, 11, 29.5)]
+    if (variant?.size == '25mm') return [box(28.5, 21.3, 22.5), box(16, 11, 25)]
+    return [box(28.5, 21.3, 27), box(16, 11, 29.5)] // 34mm variant
   }
   if (sw == 'ec11') {
     return [box(12, 12, 14.5)]
@@ -135,6 +136,9 @@ export function partBottom(sw: CuttleKey['type'] | undefined): [number, number, 
   }
   if (sw == 'joystick-ps2-40x45') {
     return [box(40, 45, 19.5)]
+  }
+  if (sw == 'oled-128x32-0.91in-adafruit') {
+    return [box(22, 33.2, 4.1)]
   }
   return [box(10, 10, 2)]
 }
@@ -165,4 +169,25 @@ export function variantURL(key: CuttleKey) {
     return ('-' + key.variant.size + '-' + key.variant.bearings + '-' + key.variant.sensor).toLowerCase()
   }
   return ''
+}
+
+// ------------------------------------------------------------------------------------------------------
+// OTHER FUNCTIONS
+
+/** [[a, [1,2]], [b, [3, 4]]] -> [{a: 1, b: 3}, {a: 1, b: 4}, {a: 2, b: 3}, {a: 3, b: 4}] */
+function permutations(xs: [string, string[]][]): Record<string, string>[] {
+  if (!xs.length) return [{}]
+  const [key, options] = xs[0]
+  return options.flatMap(opt => {
+    return permutations(xs.slice(1)).map(vs => ({ ...vs, [key]: opt }))
+  })
+}
+
+export function allVariants(socket: CuttleKey['type']) {
+  const options = variantOptions(socket)
+  return permutations(Object.entries(options))
+}
+
+export function variantURLs(socket: CuttleKey['type']) {
+  return allVariants(socket).map(p => variantURL({ type: socket, variant: p } as any))
 }

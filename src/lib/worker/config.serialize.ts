@@ -157,6 +157,7 @@ const KEYBOARD_EXTRA_DEFAULTS: KeyboardExtra = {
   wristRestSlope: 225,
   wristRestExtension: 80,
   connectorIndex: -10,
+  screwIndices: [],
 }
 
 const TILT_DEFAULTS: TiltShell = {
@@ -605,7 +606,8 @@ export function serializeCosmosConfig(trimmed: Keyboard) {
     for (const key of Object.keys(trimmedExtra) as (keyof KeyboardExtra)[]) {
       if (trimmedExtra[key] == KEYBOARD_EXTRA_DEFAULTS[key]) delete trimmedExtra[key]
     }
-    if (Object.keys(trimmedExtra).length == 0) delete trimmed.extra
+    const usedTrimmedKeys = Object.values(trimmedExtra).filter(t => !Array.isArray(t) || t.length > 0)
+    if (usedTrimmedKeys.length == 0) delete trimmed.extra
   }
   if (trimmed.curvature && Object.keys(trimmed.curvature!).length == 0) delete trimmed.curvature
   if (JSON.stringify(trimmed.shell) == JSON.stringify(KEYBOARD_DEFAULTS.shell)) trimmed.shell = {} as any

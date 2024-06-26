@@ -97,6 +97,7 @@
   import { PART_CATEGORIES, PART_NAMES, variantOptions } from '$lib/geometry/socketsParts'
   import AngleInput from '../editor/AngleInput.svelte'
   import AngleInputInherit from '../editor/AngleInputInherit.svelte'
+  import { browser } from '$app/environment'
 
   export let darkMode: boolean
   export let showSupports = false
@@ -298,8 +299,16 @@
     protoConfig.update((p) => p)
   }
 
+  const initialLength = browser ? window.history.length : 0
   function handleKeydown(event: KeyboardEvent) {
-    if (document.activeElement != document.body || event.ctrlKey || event.metaKey || event.altKey) return
+    if (document.activeElement != document.body) return
+    // const isMac = navigator.platform.toLowerCase().includes('mac')
+    // if (event.ctrlKey == !isMac && event.metaKey == isMac && !event.altKey) {
+    //   console.log(window.history.length, initialLength)
+    //   if (event.shiftKey) window.history.forward()
+    //   else if (window.history.length > initialLength) window.history.back()
+    // }
+    if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return
     if (event.key == 'Escape') $clickedKey = null
     else if (event.key == 'q') $transformMode = 'select'
     else if (event.key == 'e' || event.key == 'r') $transformMode = 'rotate'
@@ -310,9 +319,12 @@
     else if (event.key == 'Delete') removeKey()
   }
 
-  function getClickedSide(config: CosmosKeyboard, n: number | null): 'unibody' | 'right' | 'left' {
+  function getClickedSide(
+    config: CosmosKeyboard,
+    n: number | null
+  ): 'unibody' | 'right' | 'left' | null {
     if (config?.unibody) return 'unibody'
-    if (n == null) return 'right'
+    if (n == null) return null
     return nthKey(config, n).cluster.side
   }
 
@@ -1395,23 +1407,25 @@
       <!-- <AxesHelper size={100} matrix={debug} /> -->
     {/if}
   </T.Group>
-  {@const clickedC = center[clickedSide]}
-  <T.Group position={[-clickedC[0], -clickedC[1], -clickedC[2]]}>
-    {#if $transformMode == 'select' && !showSupports}
-      {#each adjacentPositions(geometry[clickedSide], $clickedKey, $protoConfig, $selectMode) as adj}
-        <GroupMatrix
-          matrix={shouldFlipKey($view, $clickedKey, $protoConfig) ? flipMatrixX(adj.pos) : adj.pos}
-        >
-          <AddButton {darkMode} on:click={() => addKey(adj.dx, adj.dy)} />
-        </GroupMatrix>
-      {/each}
-    {/if}
-    <TransformControls
-      visible={!showSupports}
-      on:move={(e) => onMove(e.detail, false)}
-      on:change={(e) => onMove(e.detail, true)}
-    />
-  </T.Group>
+  {#if clickedSide != null}
+    {@const clickedC = center[clickedSide] || [0, 0, 0]}
+    <T.Group position={[-clickedC[0], -clickedC[1], -clickedC[2]]}>
+      {#if $transformMode == 'select' && !showSupports}
+        {#each adjacentPositions(geometry[clickedSide], $clickedKey, $protoConfig, $selectMode) as adj}
+          <GroupMatrix
+            matrix={shouldFlipKey($view, $clickedKey, $protoConfig) ? flipMatrixX(adj.pos) : adj.pos}
+          >
+            <AddButton {darkMode} on:click={() => addKey(adj.dx, adj.dy)} />
+          </GroupMatrix>
+        {/each}
+      {/if}
+      <TransformControls
+        visible={!showSupports}
+        on:move={(e) => onMove(e.detail, false)}
+        on:change={(e) => onMove(e.detail, true)}
+      />
+    </T.Group>
+  {/if}
   {#if $showGizmo}
     <Gizmo verticalPlacement="top" horizontalPlacement="left" paddingX={50} paddingY={50} />
   {/if}

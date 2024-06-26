@@ -69,14 +69,28 @@ test('Convert the default config to code then back', () => {
 
   const confFn = Function('Trsf', 'mirror', 'flipKeyLabels', code.replace('export default', 'return'))
   const newConf = confFn(ETrsf, mirror, flipKeyLabels) as FullCuttleform
-  newConf.right!.wristRestOrigin = new ETrsf()
 
   // Check the cuttleform configs against each other
+  newConf.right!.wristRestOrigin = new ETrsf()
   expect(preprocessCuttleform(newConf.right!, config)).toMatchObject(preprocessCuttleform(config))
 
   // Convert right back to cosmosconfs
   const secondCosmos = toFullCosmosConfig(newConf)
   expect(secondCosmos).toMatchObject(cosmos)
+})
+
+test('Convert unibody model to code then back', () => {
+  const cosmos = decodeConfigIdk(
+    'Cn8KDxIFEIA/ICcSABIAEgA4MQoPEgUQgEsgJxIAEgASADgdChwSBRCAVyAnEgASABIDELAvEgMQsF84CUCE8LwCChcSBRCAYyAnEgASABIDELA7EgMQsGs4CgoVEgUQgG8gJxIAEgASADgeQJCGirAHGABA9p2grvBVSNzwoqABCpIBChcSExDAwAJAgICYAkjCmaCVkLwBUEM4CAoVEhAQQECAgCBI0JWA3ZD1A1ALUJ4CChYSEhBAQICAzAJIwpmglZC8AVCGAVA6ChQSEBBAQICA+AFI5pn8p5ALUFdQfwoVEhAQQECAgKQDSPCZzLXQMFB0UJUBGAIiCgjIARDIARgAIABAwo2EpNAxSK2R3I3BkwZIDmgDeNSbvH4=',
+  )
+  const code = toCode(cosmos).replaceAll(': Key[]', '').replace(': Options', '')
+
+  const confFn = Function('Trsf', 'mirror', 'flipKeyLabels', code.replace('export default', 'return'))
+  const newConf = confFn(ETrsf, mirror, flipKeyLabels) as FullCuttleform
+
+  // Convert right back to cosmosconfs
+  const secondCosmos = toFullCosmosConfig(newConf)
+  expect(encodeCosmosConfig(secondCosmos)).toMatchObject(encodeCosmosConfig(cosmos))
 })
 
 // HELPER FUNCTIONS  HELPER FUNCTIONS  HELPER FUNCTIONS  HELPER FUNCTIONS  HELPER FUNCTIONS  HELPER

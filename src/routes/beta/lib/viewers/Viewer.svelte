@@ -64,11 +64,11 @@
     const widthScale = aspect / sizeXAtXZPlane
     const heightScale = 1 / aspect / sizeZAtXZPlane
     cameraScale = Math.min(widthScale, heightScale)
-    console.log('scale', cameraScale)
+    console.log('scale', cameraScale, size, aspect)
   }
 
   $: if (size) resize()
-  $: if (suggestedSize) updateSuggestedSize(suggestedSize)
+  $: if (suggestedSize && canvas) updateSuggestedSize(suggestedSize)
 </script>
 
 <svelte:window on:resize={resize} />

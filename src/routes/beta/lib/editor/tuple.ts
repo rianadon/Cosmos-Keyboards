@@ -48,8 +48,9 @@ export class TupleStore {
     this.t0.set(v0 / this.divisor)
     this.t1.set(v1 / this.divisor)
     this.t2.set(v2 / this.divisor)
-    this.updating = false // Let the last set call update the tuple
     this.t3.set(v3 / this.divisor)
+    this.updating = false
+    ;(this.tuple as Writable<bigint>).set(b)
   }
 }
 

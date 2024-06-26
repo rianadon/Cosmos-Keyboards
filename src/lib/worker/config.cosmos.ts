@@ -1,4 +1,4 @@
-import ETrsf, { fullMirrorETrsf, type MatrixOptions, mirror } from '$lib/worker/modeling/transformation-ext'
+import ETrsf, { Constant, fullMirrorETrsf, type MatrixOptions, mirror } from '$lib/worker/modeling/transformation-ext'
 // import { deserialize } from 'src/routes/beta/lib/serialize'
 import { flippedKey } from '$lib/geometry/keycaps'
 import { Matrix4, Vector3 } from 'three'
@@ -20,7 +20,7 @@ import {
 } from './config'
 import { decodePartType, encodePartType } from './config.serialize'
 import Trsf from './modeling/transformation'
-import { DefaultMap, objEntries, sum, TallyMap, trimUndefined } from './util'
+import { capitalize, DefaultMap, objEntries, sum, TallyMap, trimUndefined } from './util'
 
 export interface PartType {
   type?: CuttleKey['type']
@@ -249,11 +249,11 @@ export function stringifyCluster(cluster: CosmosCluster | undefined) {
   })
 }
 
-export function toFullCosmosConfig(conf: FullCuttleform): CosmosKeyboard {
+export function toFullCosmosConfig(conf: FullCuttleform, flipLeft = false): CosmosKeyboard {
   let kbd: CosmosKeyboard | undefined = undefined
   for (const [side, config] of objEntries(conf)) {
-    if (!kbd) kbd = toCosmosConfig(config!, side, false)
-    else kbd.clusters.push(...toCosmosConfig(config!, side, false).clusters)
+    if (!kbd) kbd = toCosmosConfig(config!, side, false, flipLeft)
+    else kbd.clusters.push(...toCosmosConfig(config!, side, false, flipLeft).clusters)
   }
   if (!kbd) throw new Error('No configuration for keyboard')
 
@@ -273,7 +273,7 @@ export function toFullCosmosConfig(conf: FullCuttleform): CosmosKeyboard {
   return kbd
 }
 
-export function toCosmosConfig(conf: Cuttleform, side: 'left' | 'right' | 'unibody', overrideWristRest: boolean): CosmosKeyboard {
+export function toCosmosConfig(conf: Cuttleform, side: 'left' | 'right' | 'unibody', overrideWristRest: boolean, flipLeft = false): CosmosKeyboard {
   const globalCurvature = dominantCurvature(conf.keys)
   const globalProfile = dominantProfile(conf.keys) ?? 'xda'
   const globalPartType = decodePartType(dominantPartType(conf.keys) ?? encodePartType({ type: 'mx-better', aspect: 1 }))
@@ -303,7 +303,7 @@ export function toCosmosConfig(conf: Cuttleform, side: 'left' | 'right' | 'unibo
     shell: conf.shell,
     wristRestEnable: !!conf.wristRest,
     connectorIndex: conf.connectorIndex,
-    unibody: false,
+    unibody: side == 'unibody',
     wristRestProps: conf.wristRest || {
       angle: 0,
       taper: 10,
@@ -315,14 +315,21 @@ export function toCosmosConfig(conf: Cuttleform, side: 'left' | 'right' | 'unibo
     wristRestPosition: overrideWristRest ? encodeTuple([100, -1000, 0]) : encodeTuple(wrOrigin.xyz().map(t => Math.round(t * 10))),
     clusters: side == 'unibody'
       ? [
-        ...toCosmosClusters(conf.keys, 'right', globalProfile, globalPartType, globalCurvature, wrOriginInv),
-        ...toCosmosClusters(conf.keys, 'left', globalProfile, globalPartType, globalCurvature, flippedWrOriginInv),
+        ...toCosmosClusters(filterUnibodySide(conf.keys, 'right'), 'right', globalProfile, globalPartType, globalCurvature, wrOriginInv),
+        ...toCosmosClusters(filterUnibodySide(conf.keys, 'left'), 'left', globalProfile, globalPartType, globalCurvature, flippedWrOriginInv),
       ]
       : toCosmosClusters(conf.keys, side, globalProfile, globalPartType, globalCurvature, wrOriginInv),
   }
-  if (side == 'left') keyboard.clusters = keyboard.clusters.map(c => mirrorCluster(c, false))
+  if (flipLeft && side == 'left') keyboard.clusters = keyboard.clusters.map(c => mirrorCluster(c, false))
   sortClusters(keyboard.clusters)
   return keyboard
+}
+
+/** Estimate which side of the keyboard a key is on */
+function filterUnibodySide(keys: CuttleKey[], side: 'left' | 'right') {
+  const xs = keys.map(k => k.position.evaluate({ flat: false }).origin().x)
+  const center = sum(xs) / xs.length
+  return keys.filter((k, i) => side == 'left' ? (xs[i] < center) : (xs[i] > center))
 }
 
 function dominantCurvature(keys: CuttleKey[]) {
@@ -514,8 +521,10 @@ export function cosmosKeyPosition(key: CosmosKey, column: CosmosCluster, cluster
       })
     }
   }
+  const clusterName = cluster.side + capitalize(cluster.name) + 'Plane'
+
   if (columnTrsf && placeOnColumn) trsf.transformBy(columnTrsf)
-  if (clusterTrsf) trsf.transformBy(clusterTrsf)
+  if (clusterTrsf) trsf.transformBy(new Constant(clusterName, clusterTrsf.history))
 
   if (flipLeft && cluster.side == 'left' && !keeb.unibody) trsf.mirror([1, 0, 0])
   return trsf

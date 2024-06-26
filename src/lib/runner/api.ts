@@ -1,5 +1,5 @@
 import type { FullCuttleform } from '$lib/worker/config'
-import ETrsf, { flipKeyLabels, mirror } from '$lib/worker/modeling/transformation-ext'
+import ETrsf, { mirror, unibody } from '$lib/worker/modeling/transformation-ext'
 
 export function run(content: string): { newConf?: FullCuttleform; err?: Error } {
   try {
@@ -7,10 +7,11 @@ export function run(content: string): { newConf?: FullCuttleform; err?: Error } 
     const newConf = Function(
       'Trsf',
       'mirror',
-      'flipKeyLabels',
+      'unibody',
       content.replace('export default', 'return'),
-    )(ETrsf, mirror, flipKeyLabels)
+    )(ETrsf, mirror, unibody)
 
+    if (newConf.left) newConf.left.keys = mirror(newConf.left.keys, false)
     return { newConf }
   } catch (err) {
     return { err }

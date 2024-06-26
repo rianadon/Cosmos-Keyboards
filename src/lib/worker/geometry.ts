@@ -788,7 +788,7 @@ export function bottomByNormal(c: Cuttleform, normal: Vector, t: Trsf) {
   let j = Math.min(...c.keys.flatMap(k => {
     const swTop = keyHoleTrsf(c, k, t.cleared())
     const swBottom = keyHoleTrsf(c, k, t.cleared()).pretranslated(0, 0, -webThickness(c, k))
-    const pts = partBottom(k.type).flat()
+    const pts = partBottom(k.type, k.variant).flat()
     return pts.map(p => swTop.pretranslated(p).origin().dot(normal))
       // See comment in additionalHeight about adding c.wallThickness / 2 as offset.
       .concat(keyCriticalPoints(c, k, swBottom, c.wallThickness / 2).map(p => p.origin().dot(normal)))
@@ -803,7 +803,7 @@ export function additionalHeight(c: Cuttleform, t?: Trsf) {
   let z = Math.min(...c.keys.flatMap(k => {
     const swTop = keyHoleTrsf(c, k, new Trsf())
     const swBottom = keyHoleTrsf(c, k, new Trsf()).pretranslated(0, 0, -webThickness(c, k))
-    const pts = partBottom(k.type).flat()
+    const pts = partBottom(k.type, k.variant).flat()
     return pts.map(p => swTop.pretranslated(p).origin().z)
       // The c.wallThickness/2 is added as an additional offset because when keys are rotated vertically,
       // the wall will stick out below the key. However, the ti on these walls is not quite translated out by wallThickness
@@ -1931,7 +1931,7 @@ export function topComponentBoxes(c: Cuttleform, keyholes: Trsf[]): ComponentBox
     return { origin, points }
   })
   const swPoints = keyholes.flatMap((trsf, i) => {
-    const boxes = partBottom(c.keys[i].type)
+    const boxes = partBottom(c.keys[i].type, c.keys[i].variant)
     return boxes.map(box => ({ origin: trsf, points: box.map(p => new Vector(...p)) }))
   })
   return holePts.concat(swPoints)

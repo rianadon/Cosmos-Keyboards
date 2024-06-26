@@ -7,11 +7,9 @@
   import ViewerMatrix from './lib/viewers/ViewerMatrix.svelte'
   import ViewerBottom from './lib/viewers/ViewerBottom.svelte'
   import ViewerTiming from './lib/viewers/ViewerTiming.svelte'
-  import GroupMatrix from '$lib/3d/GroupMatrix.svelte'
   import Popover from 'svelte-easy-popover'
   import Icon from '$lib/presentation/Icon.svelte'
   import * as mdi from '@mdi/js'
-  import { boundingSize } from '$lib/loaders/geometry'
   import { estimateFilament, SUPPORTS_DENSITY, type FilamentEstimate } from './lib/filament'
   import * as flags from '$lib/flags'
   import Performance from './lib/Performance.svelte'
@@ -32,24 +30,17 @@
     fullEstimatedCenter,
     fullEstimatedSize,
     newFullGeometry,
-    newGeometry,
     setBottomZ,
     type Cuttleform,
-    type CuttleformProto,
     type FullCenter,
     type FullCuttleform,
-    type Geometry,
   } from '$lib/worker/config'
   import { checkConfig, type ConfError, isRenderable, isWarning } from '$lib/worker/check'
-  import VisualEditor from './lib/editor/VisualEditor.svelte'
   import VisualEditor2 from './lib/editor/VisualEditor2.svelte'
-  import { Vector3, BufferGeometry, Matrix4 } from 'three'
-  import { additionalHeight, estimatedCenter } from '$lib/worker/geometry'
+  import { Matrix4 } from 'three'
   import {
     codeError,
     protoConfig,
-    user,
-    theme,
     showHand,
     stiltsMsg,
     developer,
@@ -69,12 +60,10 @@
   import DownloadDialog from './lib/dialogs/DownloadDialog.svelte'
   import { fromCosmosConfig, toCosmosConfig, toFullCosmosConfig } from '$lib/worker/config.cosmos'
   import KeyboardModel from '$lib/3d/KeyboardModel.svelte'
-  import { kbdOffset, type FullGeometry, type FullKeyboardMeshes } from './lib/viewers/viewer3dHelpers'
+  import { type FullGeometry, type FullKeyboardMeshes } from './lib/viewers/viewer3dHelpers'
   import { notNull, objEntriesNotNull, objKeys } from '$lib/worker/util'
   import { T } from '@threlte/core'
   import Checkbox from '$lib/presentation/Checkbox.svelte'
-
-  $: console.log('protoconfig', $protoConfig)
 
   const DEF_CENTER = [-35.510501861572266, -17.58449935913086, 35.66889877319336] as [
     number,
@@ -113,8 +102,16 @@
   let initialEditorContent = state.content
 
   function onHashChange() {
-    console.log('change')
-    //  state = deserialize(location.hash.substring(1), cuttleform);
+    const newHash = location.hash.substring(1)
+    const oldHash = stateToHash()
+    if (!newHash.startsWith('cf')) {
+      console.log('URL CHANGE: Change state? =', oldHash != newHash)
+      if (oldHash != newHash) {
+        // The page navigated!
+        state = deserialize(location.hash.substring(1), () => deserialize('cm', null))
+        mode = state.content ? 'advanced' : 'basic'
+      }
+    }
   }
 
   let ocError: TaskError | undefined
@@ -135,7 +132,7 @@
 
   $: cTransparency = showSupports ? 0 : transparency
 
-  const pool = new WorkerPool<typeof import('$lib/worker/api')>(3, () => {
+  const pool = new WorkerPool<typeof import('$lib/worker/api')>(4, () => {
     return new Worker(new URL('$lib/worker?worker', import.meta.url), { type: 'module' })
   })
   const tempPool = new WorkerPool<typeof import('$lib/worker/api')>(1, () => {
@@ -146,21 +143,23 @@
     tempPool.reset()
   })
 
+  function stateToHash() {
+    if (mode != 'advanced')
+      return serialize({
+        keyboard: 'cm',
+        options: $protoConfig,
+      })
+    return editorContent
+  }
+
   $: if ($protoConfig || (mode == 'advanced' && editorContent))
     try {
       config // Hack to force updates when config changes
       if (mode != 'advanced') {
-        console.log(
-          'Setting hash',
-          serialize({
-            keyboard: 'cm',
-            options: $protoConfig,
-          })
-        )
-        window.location.hash = serialize({
-          keyboard: 'cm',
-          options: $protoConfig,
-        })
+        console.log('Setting hash', stateToHash())
+        if (window.location.hash.startsWith('#cf'))
+          window.history.replaceState(null, '', '#' + stateToHash())
+        else window.location.hash = stateToHash()
       } else if (editorContent) {
         console.log('new editor content')
         if (window.location.hash.startsWith('#expert'))
@@ -239,9 +238,11 @@
     cutPromise: pool.execute((w) => w.cutWall(conf), 'Cut wall'),
     holderPromise: pool.execute((w) => w.generateBoardHolder(conf), 'Holder'),
     screwPromise: pool.execute((w) => w.generateScrewInserts(conf), 'Inserts'),
-    wristRestPromise: pool.execute((w) => w.generateWristRest(conf), 'Wrist Rest'),
+    wristRestPromise: hasPro && pool.execute((w) => w.generateWristRest(conf), 'Wrist Rest'),
     secondWristRestPromise:
-      side == 'unibody' && pool.execute((w) => w.generateMirroredWristRest(conf), 'Wrist Rest 2'),
+      hasPro &&
+      side == 'unibody' &&
+      pool.execute((w) => w.generateMirroredWristRest(conf), 'Wrist Rest 2'),
     cutPlatePromise: pool.execute((w) => w.generatePlate(conf, true), 'Full Plate'),
   })
 
@@ -467,7 +468,7 @@
     if (mode === 'advanced' && newMode !== 'advanced') {
       // if (!confirm('Are you sure you wish to exit expert mode? Your work will not be saved.')) return
       try {
-        state.options = toFullCosmosConfig(config)
+        state.options = toFullCosmosConfig(config, true)
         initialEditorContent = undefined // So the editor resets
       } catch (e) {
         console.error(e)
@@ -859,7 +860,7 @@
   &rbrace;,
   left: &lbrace;
     ...options,
-    keys: flipKeyLabels([...fingers, ...thumbs]),
+    keys: mirror([...fingers, ...thumbs]),
     wristRestOrigin,
   &rbrace;,
 &rbrace;</code

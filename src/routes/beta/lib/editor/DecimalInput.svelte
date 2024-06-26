@@ -18,6 +18,7 @@
   function onChange(e: Event) {
     value = Math.round((divisor * (e.target! as any).value) / multiplier) / divisor
     dispatch('change', value)
+    console.log('change decima', value)
   }
 </script>
 

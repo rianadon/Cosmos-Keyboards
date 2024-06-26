@@ -349,8 +349,8 @@ function placeOnSphereImpl(t: Trsf, opts: Unmerged<SphereOptions>, c: Evaluation
 }
 
 export class Constant extends ETrsf {
-  constructor(public name: string) {
-    super()
+  constructor(public name: string, history: Operation[] = []) {
+    super(history)
   }
 }
 
@@ -380,26 +380,18 @@ function rotate(keys: CuttleKey[], angle: number, position: [number, number, num
   }))
 }
 
-function fullMirror(keys: CuttleKey[]) {
-  const mirroredKeys = keys.map(k => {
-    const newK = {
-      ...k,
-      position: fullMirrorETrsf(k.position),
-    }
-    if ('keycap' in newK && newK.keycap.letter) {
-      // newK.keycap = { ...newK.keycap, letter: flippedKey(newK.keycap.letter) }
-    }
-    return newK
-  })
-  return mirroredKeys
-}
-
 export function fullMirrorETrsf(e: ETrsf) {
   const newHistory = JSON.parse(JSON.stringify(e.history)) as typeof e.history
   for (const h of newHistory) {
     if (h.name == 'placeOnMatrix') {
       const args: MatrixOptions = (h.args[0] as any).merged ?? h.args[0]
       args.column = -args.column
+    } else if (h.name == 'placeColumn') {
+      const args: MatrixOptions = (h.args[0] as any).merged ?? h.args[0]
+      args.column = -args.column
+    } else if (h.name == 'placeOnSphere') {
+      const args: SphereOptions = (h.args[0] as any).merged ?? h.args[0]
+      args.angle = -args.angle
     } else if (h.name == 'translate') {
       h.args[0] = -h.args[0]
     } else if (h.name == 'rotate') {
@@ -413,13 +405,28 @@ export function fullMirrorETrsf(e: ETrsf) {
   return new ETrsf(newHistory)
 }
 
+/** Mirror a set of keys and return the mirrored keys. */
+export function mirror(keys: CuttleKey[], flipKeys = true) {
+  const mirroredKeys = keys.map(k => {
+    const newK = {
+      ...k,
+      position: fullMirrorETrsf(k.position),
+    }
+    if (flipKeys && 'keycap' in newK && newK.keycap && newK.keycap.letter) {
+      newK.keycap = { ...newK.keycap, letter: flippedKey(newK.keycap.letter) }
+    }
+    return newK
+  })
+  return mirroredKeys
+}
+
 /**
  * Mirror a set of keys, with a given minimum X gap between them.
  *
  * Both the original keys and the mirrored keys will be returned.
  * This is useful for creating full keyboards instead of ones split in half.
  */
-export function mirror(keys: CuttleKey[], gap = 30, angle = 0) {
+export function unibody(keys: CuttleKey[], gap = 30, angle = 0) {
   const minX = Math.min(...keys.map(k => keyPosition({} as any, k, false).origin().x))
   const axisX = minX - gap / 2 - 10
   const mirroredKeys = keys.map(k => {
@@ -427,8 +434,8 @@ export function mirror(keys: CuttleKey[], gap = 30, angle = 0) {
       ...k,
       position: k.position.mirrored([1, 0, 0], [axisX, 0, 0]),
     }
-    if ('keycap' in newK && newK.keycap.letter) {
-      // newK.keycap = { ...newK.keycap, letter: flippedKey(newK.keycap.letter) }
+    if ('keycap' in newK && newK.keycap && newK.keycap.letter) {
+      newK.keycap = { ...newK.keycap, letter: flippedKey(newK.keycap.letter) }
     }
     return newK
   })

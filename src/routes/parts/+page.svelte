@@ -1,10 +1,11 @@
 <script lang="ts">
   import { base } from '$app/paths'
-  import { PART_NAMES } from '$lib/geometry/socketsParts'
+  import { allVariants, PART_NAMES } from '$lib/geometry/socketsParts'
   import Checkbox from '$lib/presentation/Checkbox.svelte'
   import { developer } from '$lib/store'
   import Part from './Part.svelte'
   import SharedRenderer from '$lib/3d/SharedRenderer.svelte'
+  import { objEntries } from '$lib/worker/util'
 
   const BACK_COMPATIBLE = [
     'old-mx',
@@ -16,10 +17,13 @@
   ]
   const BLOCK = ['blank']
 
-  const firstEntries = Object.entries(PART_NAMES).filter(
+  const allFirstEntries = objEntries(PART_NAMES).filter(
     ([part, _name]) => !BACK_COMPATIBLE.includes(part) && !BLOCK.includes(part)
   )
-  const backEntries = Object.entries(PART_NAMES).filter(
+  const firstEntries = allFirstEntries.filter(([part, _name]) => allVariants(part).length == 1)
+  const variantEntries = allFirstEntries.filter(([part, _name]) => allVariants(part).length > 1)
+
+  const backEntries = objEntries(PART_NAMES).filter(
     ([part, _name]) => !!BACK_COMPATIBLE.includes(part) && !BLOCK.includes(part)
   )
 </script>
@@ -69,6 +73,15 @@
         <Part {name} {part} dev={$developer} />
       {/each}
     </section>
+
+    {#each variantEntries as [part, name]}
+      <h2>{name}</h2>
+      <section class="parts">
+        {#each allVariants(part) as variant}
+          <Part {name} {part} {variant} dev={$developer} />
+        {/each}
+      </section>
+    {/each}
 
     <h2>For Backwards Compatibility</h2>
     <section class="parts">

@@ -19,6 +19,11 @@ export interface State {
 
 const SPLIT_CHAR = ':'
 
+// The default model
+const DEFAULT_CM =
+  // 'Cn8KDxIFEIA/ICcSABIAEgA4MQoPEgUQgEsgJxIAEgASADgdChwSBRCAVyAnEgASABIDELAvEgMQsF84CUCE8LwCChcSBRCAYyAnEgASABIDELA7EgMQsGs4CgoVEgUQgG8gJxIAEgASADgeQJCGirAHGABA6IWgrvBVSNzwoqABCooBCisSExDAgAJAgICYAkjCmaCVkLwBUEMSEkCAgMwCSMKZoJWQvAFQhgFYOjgIChUSEBBAQICAIEjQlYDdkPUDUAtQngIKJxIQEEBAgID4AUjmmfynkAtQVxIRQICApANI8JnEtdAwUHRYlQFQfxgCIgoIyAEQyAEYACAAQMuL/J/QMUitkdyNwZMG'
+  'CoUBChESBRCAPyAnEgASABIAODFAAAoREgUQgEsgJxIAEgASADgdQAAKHBIFEIBXICcSABIAEgMQsC8SAxCwXzgJQIDwvAIKGRIFEIBjICcSABIAEgMQsDsSAxCwazgKQAAKFRIFEIBvICcSABIAEgA4HkCAhorABxgAQOiFoK7wVUjc8KKgAQqKAQorEhMQwIACQICAmAJIwpmglZC8AVBDEhJAgIDMAkjCmaCVkLwBUIYBWDo4CAoVEhAQQECAgCBI0JWA3ZD1A1ALUJ4CCicSEBBAQICA+AFI5pn8p5ALUFcSEUCAgKQDSPCZxLXQMFB0WJUBUH8YAiIKCMgBEMgBGAAgAEDLi/yf0DFIrZHcjcGTBg=='
+
 /** Return true if there is a difference between the two objects */
 function areDifferent(data, reference) {
   return Object.keys(data).reduce((diff, key) => {
@@ -71,6 +76,7 @@ export function serialize(state: State) {
     data = Cuttleform.toBinary(diff)
   } else if (state.keyboard == 'cm') {
     const ser = serializeCosmosConfig(encodeCosmosConfig(state.options as any))
+    if (ser == DEFAULT_CM) return 'cm'
     return 'cm' + SPLIT_CHAR + ser
   } else {
     throw new Error(`Unknown keyboard type ${state.keyboard}`)
@@ -88,10 +94,8 @@ export function deserialize(str: string, fallback: () => State): State {
   if (str == 'cm') {
     return {
       keyboard: 'cm',
-      // options: decodeConfigIdk(
-      //   'CnMKDxIFEIADICcSABIAEgA4MQoPEgUQgA8gJxIAEgASADgdChYSBRCAGyAnEgASABIAEgA4CUCA8LwCChESBRCAJyAnEgASABIAEgA4CgoVEgUQgDMgJxIAEgASADgeQICGisAHGABA6IWgrvBVSNzwoqABCpIBChcSExDAwAFAgICQAkjCmaCVkLwBUEM4CAoVEhAQQECAgBhI0JWA3ZD1A1ALUJ4CChYSEhBAQICA1AJIwpmglZC8AVCGAVA6ChQSEBBAQICA8AFI5pn0p5ALUFdQfwoVEhAQQECAgKwDSPCZzLXQMFB0UJUBGAIiCgjIARDIARgAIABAy4uEpNAxSK2R3I3BkwY=',
-      // ),
-      options: toCosmosConfig(cuttleConf(cuttleform.options), 'right', true),
+      options: decodeConfigIdk(DEFAULT_CM),
+      // options: toCosmosConfig(cuttleConf(cuttleform.options), 'right', true),
     }
   }
 

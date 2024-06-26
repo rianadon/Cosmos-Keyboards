@@ -2,7 +2,7 @@ import { variantURL } from '$lib/geometry/socketsParts'
 import type { CuttleKey } from '$lib/worker/config'
 import type Trsf from '$lib/worker/modeling/transformation'
 import { notNull } from '$lib/worker/util'
-import { BoxGeometry, CylinderGeometry, SphereGeometry, TetrahedronGeometry } from 'three'
+import { SphereGeometry } from 'three'
 import { makeAsyncCacher } from './cacher'
 import loadGLTF from './gltfLoader'
 
@@ -25,7 +25,7 @@ const PART_URLS: Record<Switch, string | null> = {
   'evqwgd001': '/target/switch-evqwgd001.glb',
   'trackpad-cirque': '/src/assets/switch-cirque.glb',
   'oled-128x32-0.91in-dfrobot': '/target/switch-oled-128x32-0.91in-dfrobot.glb',
-  'oled-128x32-0.91in-adafruit': null,
+  'oled-128x32-0.91in-adafruit': '/src/assets/switch-oled-128x32-0.91in-adafruit.glb',
   'joystick-ps2-40x45': '/target/switch-joystick-ps2-40x45.glb',
   'trackball': null,
   'blank': null,

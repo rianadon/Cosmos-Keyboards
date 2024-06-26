@@ -1,10 +1,12 @@
 <script lang="ts">
-  import { BufferAttribute, BufferGeometry, Mesh, MeshBasicMaterial, Color } from 'three'
+  import { BufferAttribute, Mesh, MeshBasicMaterial, Color } from 'three'
   import type { Center, Geometry } from '$lib/worker/config'
   import Viewer from './Viewer.svelte'
   import { T } from '@threlte/core'
   import type { FullGeometry } from './viewer3dHelpers'
   import { objEntries } from '$lib/worker/util'
+  import { fromGeometry } from '$lib/loaders/geometry'
+  import { webSolid } from '$lib/worker/model'
 
   export let style: string = ''
   export let center: Center
@@ -31,19 +33,10 @@
 
     const { topReinf, botReinf } = geo.reinforcedTriangles
 
-    const topGeo = new Float32Array(topReinf.triangles.length * 9)
-    const botGeo = new Float32Array(botReinf.triangles.length * 9)
     const thicknesses: number[] = []
-    const colors = new Float32Array(topGeo.length + botGeo.length)
     const nTri = geo.solveTriangularization.triangles.length
 
     topReinf.triangles.forEach((triangle, i) => {
-      const pta = topReinf.allPts[triangle[0]].origin()
-      const ptb = topReinf.allPts[triangle[1]].origin()
-      const ptc = topReinf.allPts[triangle[2]].origin()
-      topGeo.set(pta.xyz(), i * 9)
-      topGeo.set(ptb.xyz(), i * 9 + 3)
-      topGeo.set(ptc.xyz(), i * 9 + 6)
       let th = topReinf.thickness[i].thickness
       if (th < 0) {
         const eq = eqIndices(topReinf.thickness, topReinf.thickness[i])
@@ -55,12 +48,6 @@
     })
 
     botReinf.triangles.forEach((triangle, i) => {
-      const pba = botReinf.allPts[triangle[0]].origin()
-      const pbb = botReinf.allPts[triangle[1]].origin()
-      const pbc = botReinf.allPts[triangle[2]].origin()
-      botGeo.set(pbc.xyz(), i * 9)
-      botGeo.set(pbb.xyz(), i * 9 + 3)
-      botGeo.set(pba.xyz(), i * 9 + 6)
       let th = botReinf.thickness[i].thickness
       if (th < 0) {
         const eq = eqIndices(botReinf.thickness, botReinf.thickness[i])
@@ -76,6 +63,10 @@
     const maxThickness = Math.max(...posThickness)
     const thicknessRange = maxThickness - minThickness
 
+    const mesh = webSolid(geo.c, geo).toMesh()
+    const colors = new Float32Array(mesh.vertices.length)
+
+    console.log(thicknesses.length, mesh.triangles.length / 3, mesh.faceGroups.length)
     thicknesses.forEach((t, i) => {
       let color: number[]
       if (t < 0) {
@@ -87,24 +78,21 @@
           .toArray()
         // color = new Vector3(1, 0.15, 0.15).lerp(new Vector3(0.15, 0.39, 1), scaled).toArray()
       }
-      colors.set(color, i * 9)
-      colors.set(color, i * 9 + 3)
-      colors.set(color, i * 9 + 6)
+      const face = mesh.faceGroups[i]
+      console.log(face)
+      for (let j = face.start; j < face.start + face.count; j++) {
+        colors.set(color, mesh.triangles[j * 3] * 3)
+        colors.set(color, mesh.triangles[j * 3 + 1] * 3)
+        colors.set(color, mesh.triangles[j * 3 + 2] * 3)
+      }
     })
 
-    const topMesh = new Mesh()
-    topMesh.geometry = new BufferGeometry()
-    topMesh.geometry.setAttribute('position', new BufferAttribute(topGeo, 3))
-    topMesh.geometry.setAttribute('color', new BufferAttribute(colors.slice(0, topGeo.length), 3))
-    topMesh.material = new MeshBasicMaterial({ vertexColors: true, toneMapped: false })
+    const theMesh = new Mesh()
+    theMesh.geometry = fromGeometry(mesh)!
+    theMesh.geometry.setAttribute('color', new BufferAttribute(colors, 3))
+    theMesh.material = new MeshBasicMaterial({ vertexColors: true, toneMapped: false })
 
-    const botMesh = new Mesh()
-    botMesh.geometry = new BufferGeometry()
-    botMesh.geometry.setAttribute('position', new BufferAttribute(botGeo, 3))
-    botMesh.geometry.setAttribute('color', new BufferAttribute(colors.slice(topGeo.length), 3))
-    botMesh.material = new MeshBasicMaterial({ vertexColors: true, toneMapped: false })
-
-    return { topMesh, botMesh, minThickness, maxThickness, thicknessRange }
+    return { theMesh, minThickness, maxThickness, thicknessRange }
   }
 
   function webMeshAll(geometry: FullGeometry | undefined, darkMode: boolean) {
@@ -152,10 +140,9 @@
   <T.Group>
     {#each objEntries(meshResult.meshes) as [kbd, result] (kbd)}
       {@const cent = center[kbd]}
-      {#if result && result.topMesh && cent}
+      {#if result && result.theMesh && cent}
         <T.Group position={[-cent[0], -cent[1], -cent[2]]} scale.x={kbd == 'left' ? -1 : 1}>
-          <T is={result.topMesh} />
-          <T is={result.botMesh} />
+          <T is={result.theMesh} />
         </T.Group>
       {/if}
     {/each}

@@ -14,31 +14,37 @@ export class CompBezierSurface {
   private triangles: Triangle[] = []
   private quads: Quad[] = []
 
+  private faces: (Patch | Triangle | Quad)[] = []
+
   /** Combine this surface with another surface */
   extend(b: CompBezierSurface) {
+    this.faces.push(...b.faces)
     this.patches.push(...b.patches)
     this.triangles.push(...b.triangles)
     this.quads.push(...b.quads)
   }
 
   addPatch(p: Patch) {
+    this.faces.push(p)
     this.patches.push(p)
   }
 
   addTriangle(a: Trsf, b: Trsf, c: Trsf) {
+    this.faces.push([a, b, c])
     this.triangles.push([a, b, c])
   }
 
   addQuad(a: Trsf, b: Trsf, c: Trsf, d: Trsf) {
+    this.faces.push([a, b, c, d])
     this.quads.push([a, b, c, d])
   }
 
   toMesh(): ShapeMesh {
-    return facesToMesh([
-      ...this.triangles.map(triangleToMesh),
-      ...this.quads.map(quadToMesh),
-      ...this.patches.map(patchToMesh),
-    ])
+    return facesToMesh(this.faces.map(f => {
+      if (f.length == 4 && Array.isArray(f[0])) return patchToMesh(f as any)
+      else if (f.length == 3) return triangleToMesh(f as any)
+      return quadToMesh(f as any)
+    }))
   }
 
   /** Create a Solid that can be used in opencascade from this surface. */
@@ -189,7 +195,7 @@ function facesToMesh(faces: FaceMesh[]) {
       mesh.triangles.push(t + offset)
     }
     mesh.faceGroups.push({
-      start: offset,
+      start: (mesh.triangles.length - face.triangles.length) / 3,
       count: face.triangles.length / 3,
       faceId: i,
     })
@@ -309,8 +315,8 @@ export class BezierSketch {
     const index = new Float32Array((shape.attributes['position'] as BufferAttribute).array.length / 3)
     for (let i = 0; i < index.length; i++) index[i] = i
     return {
-      vertices: (shape.attributes['position'] as BufferAttribute).array as number[],
-      normals: (shape.attributes['normal'] as BufferAttribute).array as number[],
+      vertices: (shape.attributes['position'] as BufferAttribute).array as any as number[],
+      normals: (shape.attributes['normal'] as BufferAttribute).array as any as number[],
       triangles: index as unknown as number[],
       faceGroups: [],
     }
