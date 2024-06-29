@@ -50,11 +50,6 @@
   import { PART_NAMES, SWITCHES } from '$lib/geometry/socketsParts'
   import DecimalInputInherit from './DecimalInputInherit.svelte'
   import {
-    Cuttleform_CurvedThumb_KEY_COUNT,
-    Cuttleform_DefaultThumb_KEY_COUNT,
-    ENCODER,
-  } from '../../../../../target/proto/cuttleform'
-  import {
     clusterAngle,
     clusterSeparation,
     getSize,
@@ -65,9 +60,8 @@
     setClusterSize,
     setThumbCluster,
   } from './visualEditorHelpers'
-  import { mdiCodeArray, mdiCodeJson, mdiPencil } from '@mdi/js'
+  import { mdiCodeJson, mdiPencil } from '@mdi/js'
   import Icon from '$lib/presentation/Icon.svelte'
-  import { decode } from 'punycode'
 
   export let cosmosConf: CosmosKeyboard
   export let conf: FullCuttleform

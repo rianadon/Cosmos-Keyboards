@@ -12,7 +12,7 @@ enumeration('PART', {
   0: null, // Special type for inheriting the global type
   1: 'mx-better',
   2: 'mx-pcb',
-  3: 'mx-pcb-twist',
+  // 3: 'mx-pcb-twist',
   4: 'mx-hotswap',
   5: 'alps',
   6: 'choc',

@@ -30,7 +30,7 @@
     const baseMatrix = new Matrix4().makeRotationFromEuler(new Euler(-Math.PI / 2, 0, -Math.PI / 2))
     if (reverse) baseMatrix.premultiply(new Matrix4().makeScale(1, 1, -1))
 
-    Object.entries(hand.localTransforms(baseMatrix, 1000 / scale)).forEach(([finger, transforms]) => {
+    Object.entries(hand.localTransforms(baseMatrix, 0.1 / scale)).forEach(([finger, transforms]) => {
       transforms.forEach((matrix, i) => {
         const node = handNodes[finger + i]
         matrix.decompose(node.position, node.quaternion, node.scale)

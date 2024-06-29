@@ -6,6 +6,7 @@
 
   const code = browser ? $page.url.searchParams.get('c') : ''
   let status = 'joining'
+  let statusError = ''
   let showStatus = true
   let pc: RTCPeerConnection
 
@@ -43,25 +44,31 @@
 
   async function connectStream(ws: WebSocket) {
     if (!window.navigator.mediaDevices?.getUserMedia) {
-      status = 'nomedia'
+      statusError = 'nomedia'
       return
     }
-    const stream = await navigator.mediaDevices.getUserMedia(
-      flags.noUMR
-        ? {
-            video: { facingMode: 'environment' },
-            audio: false,
-          }
-        : {
-            video: {
-              facingMode: 'environment',
-              frameRate: { ideal: 24 },
-              width: { min: 480, ideal: 1280, max: 1920 },
-              height: { min: 480, ideal: 720, max: 1080 },
-            },
-            audio: false,
-          }
-    )
+    let stream: MediaStream
+    try {
+      stream = await navigator.mediaDevices.getUserMedia(
+        flags.noUMR
+          ? {
+              video: { facingMode: 'environment' },
+              audio: false,
+            }
+          : {
+              video: {
+                facingMode: 'environment',
+                frameRate: { ideal: 24 },
+                width: { min: 480, ideal: 1280, max: 1920 },
+                height: { min: 480, ideal: 720, max: 1080 },
+              },
+              audio: false,
+            }
+      )
+    } catch (e) {
+      statusError = 'mediaerror'
+      return
+    }
     localVideo.srcObject = stream
 
     pc = new RTCPeerConnection()
@@ -103,10 +110,17 @@
   }
 </script>
 
-{#if showStatus}
+{#if showStatus || statusError}
   <div class="absolute fixed top-0 text-center left-0 right-0" out:fade={{ duration: 800 }}>
-    <div class="inline-block rounded-b-2 bg-slate-800 text-white px-10 py-1">
-      {status}
+    <div class="inline-block rounded-b-2 bg-slate-800 text-white px-10 py-1" class:statusError>
+      {#if statusError == 'mediaerror'}
+        You'll need to allow this page to use your camera. If you've already done so, check that your
+        browser app has permission to use the camera.
+      {:else if statusError == 'nomedia'}
+        Your browser does not support using the camera. Please try using a different browser.
+      {:else}
+        {status}
+      {/if}
     </div>
   </div>
 {/if}
@@ -132,5 +146,9 @@
     object-fit: contain;
     max-height: 100%;
     margin: 0 auto;
+  }
+
+  .statusError {
+    --at-apply: 'bg-red-700';
   }
 </style>

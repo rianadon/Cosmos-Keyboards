@@ -1,5 +1,4 @@
 <script lang="ts">
-  import KeyboardMesh from '$lib/3d/KeyboardMesh.svelte'
   import { keyGeometries } from '$lib/loaders/keycaps'
   import { KEY_NAMES, UNIFORM, keyInfo } from '$lib/geometry/keycaps'
   import { browser } from '$app/environment'
@@ -11,6 +10,7 @@
   import { simpleKeyGeo } from '$lib/loaders/simplekeys'
   import { T } from '@threlte/core'
   import { OrbitControls } from '@threlte/extras'
+  import KeyboardMaterial from '$lib/3d/KeyboardMaterial.svelte'
 
   export let row: number
   export let part: string
@@ -63,7 +63,7 @@
       <CoopCanvas>
         <T.Group rotation={[0, 0, Math.PI / 2]} position={[0, 0, -8]}>
           {#await partPromise then partMesh}
-            <KeyboardMesh geometry={partMesh} kind="key" />
+            <T.Mesh geometry={partMesh}><KeyboardMaterial kind="key" /></T.Mesh>
           {/await}
           {#if dev}
             <T.Mesh
@@ -91,7 +91,7 @@
               />
             {/if}
             {#await partPromise then partMesh}
-              <KeyboardMesh geometry={partMesh} kind="key" />
+              <T.Mesh geometry={partMesh}><KeyboardMaterial kind="key" /></T.Mesh>
             {/await}
           </T.Group>
           <T.OrthographicCamera makeDefault position={[0, -100, 0]} zoom={0.08}>

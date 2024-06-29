@@ -42,7 +42,7 @@ export const PART_NAMES: Record<CuttleKey['type'], string> = {
   'joystick-joycon-adafruit': 'Adafruit Mini Thumbstick',
   'evqwgd001': 'EVQWGD001 Encoder',
   'trackball': 'Trackball',
-  'blank': 'Blank',
+  'blank': 'Shaper (Blank key)',
   'oled-128x32-0.91in-adafruit': 'Adafruit 128x32 1" OLED',
   'oled-128x32-0.91in-dfrobot': 'DFRobot 128x32 0.91" OLED',
   'trackpad-cirque': 'Cirque Flat Circle Trackpad',
@@ -77,7 +77,7 @@ export const SWITCHES: CuttleKey['type'][] = [
   'mx-better',
   'mx-pcb',
   'mx-hotswap',
-  'mx-pcb-twist',
+  // 'mx-pcb-twist',
   'alps',
   'choc',
 ]

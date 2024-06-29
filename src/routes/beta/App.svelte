@@ -109,7 +109,12 @@
       if (oldHash != newHash) {
         // The page navigated!
         state = deserialize(location.hash.substring(1), () => deserialize('cm', null))
-        mode = state.content ? 'advanced' : 'basic'
+        const newMode = state.content ? 'advanced' : 'basic'
+        if (state.content) initialEditorContent = state.content
+        if (mode === 'advanced' && newMode !== 'advanced') {
+          initialEditorContent = undefined // So the editor resets
+        }
+        mode = newMode
       }
     }
   }
@@ -257,7 +262,6 @@
   let oldTempConfig: FullCuttleform | null = null
   let oldConfig: FullCuttleform | null = null
   async function process(conf: FullCuttleform, full: boolean) {
-    const renderNumber = ++lastRenderNumber
     const kbdNames = objKeys(conf)
       .filter((k) => !!conf[k])
       .sort((a, b) => b.localeCompare(a)) // Make sure right keyboard comes first
@@ -272,6 +276,8 @@
         differences.length == 1 &&
         (differences[0] == 'wristRest' || differences[0] == 'wristRestOrigin')
       ) {
+        const renderNumber = ++lastRenderNumber
+        console.log('PROCESSING WRIST REST', renderNumber)
         try {
           ocError = undefined
           generatorProgress = 0.5
@@ -324,6 +330,8 @@
     confError.set(originalErr)
     if (originalErr) return
 
+    const renderNumber = ++lastRenderNumber
+    console.log('PROCESSING', renderNumber)
     try {
       setBottomZ(conf)
     } catch (e) {
@@ -418,8 +426,8 @@
             if (finished.prom == otherPromises[finished.i].holderPromise) {
               if (conf[finished.kbd]!.microcontroller) meshes[finished.kbd]!.holderBuf = result.mesh
             } else if (finished.prom == otherPromises[finished.i].screwPromise) {
-              meshes[finished.kbd]!.screwBaseBuf = result.plateInserts.mesh
-              meshes[finished.kbd]!.screwPlateBuf = result.baseInserts.mesh
+              meshes[finished.kbd]!.screwBaseBuf = result.baseInserts.mesh
+              meshes[finished.kbd]!.screwPlateBuf = result.plateInserts.mesh
             } else if (finished.prom == otherPromises[finished.i].cutPromise) {
               meshes[finished.kbd]!.wallBuf = result.mesh
             } else if (finished.prom == otherPromises[finished.i].wristRestPromise) {
@@ -434,19 +442,23 @@
         }
         if (errors.length) throw errors[0]
 
-        const volume =
-          (await otherPromises[0].cutPromise).mass +
-          quickResults[0].web.mass +
-          quickResults[0].keys.mass +
-          (await otherPromises[0].screwPromise).plateInserts.mass +
-          (await otherPromises[0].screwPromise).baseInserts.mass
-        const supportVolume =
-          (await otherPromises[0].cutPromise).supports.volume +
-          quickResults[0].web.supports.volume +
-          quickResults[0].keys.supports.volume
-        filament = estimateFilament(volume, supportVolume)
+        let volume = 0
+        let supportVolume = 0
+        for (let i = 0; i < otherPromises.length; i++) {
+          volume +=
+            (await otherPromises[i].cutPromise).mass +
+            quickResults[i].web.mass +
+            quickResults[i].keys.mass +
+            (await otherPromises[i].screwPromise).plateInserts.mass +
+            (await otherPromises[i].screwPromise).baseInserts.mass
+          supportVolume +=
+            (await otherPromises[i].cutPromise).supports.volume +
+            quickResults[i].web.supports.volume +
+            quickResults[i].keys.supports.volume
+        }
 
         if (renderNumber >= lastRenderNumber) {
+          filament = estimateFilament(volume, supportVolume)
           for (let i = 0; i < kbdNames.length; i++) {
             meshes[kbdNames[i]]!.supportGeometries = [
               (await otherPromises[i].cutPromise).supports,
@@ -632,7 +644,7 @@
               <Checkbox small purple basic bind:value={$noLabels} /> Hide Labels
             </label>
             <label class="flex items-center my-2">
-              <Checkbox small purple basic bind:value={$noBlanks} /> Hide Blank
+              <Checkbox small purple basic bind:value={$noBlanks} /> Hide Shapers
             </label>
           </div>
         </Popover>
@@ -765,9 +777,9 @@
               <FilamentChart fractionKeyboard={filament.fractionKeyboard} />
               <div>
                 <p class="whitespace-nowrap mb-2">
-                  Estimated using <span class="font-semibold text-teal-500 dark:text-teal-400"
-                    >100% infill</span
-                  >,<br /><span class="font-semibold text-purple-500 dark:text-purple-400"
+                  Estimated {#if config.right}for 2 halves{/if} using
+                  <span class="font-semibold text-teal-500 dark:text-teal-400">100% infill</span>,<br
+                  /><span class="font-semibold text-purple-500 dark:text-purple-400"
                     >{SUPPORTS_DENSITY * 100}% supports density</span
                   >.
                 </p>
@@ -777,7 +789,9 @@
                   >.
                 </p>
                 <p class="whitespace-nowrap text-sm">
-                  The keyboard itself uses {filament.keyboard.length.toFixed(1)}m.
+                  The keyboard itself uses {filament.keyboard.length.toFixed(1)}m ({filament.keyboard.mass.toFixed(
+                    0
+                  )}g).
                 </p>
               </div>
             </div>
@@ -1088,7 +1102,7 @@
             any additional screws needed.
           </div>
         {/if}
-        <BomView geometry={geometry.right} conf={config} />
+        <BomView {geometry} />
       {/if}
     </div>
   </Dialog>

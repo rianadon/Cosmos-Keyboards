@@ -1,5 +1,4 @@
 <script lang="ts">
-  import KeyboardMesh from '$lib/3d/KeyboardMesh.svelte'
   import { partGeometry } from '$lib/loaders/parts'
   import loadGLTF from '$lib/loaders/gltfLoader'
   import { mdiFileEyeOutline } from '@mdi/js'
@@ -15,6 +14,7 @@
   import { T } from '@threlte/core'
   import { OrbitControls } from '@threlte/extras'
   import type { CuttleKey } from '$lib/worker/config'
+  import KeyboardMaterial from '$lib/3d/KeyboardMaterial.svelte'
 
   export let name: string
   export let part: CuttleKey['type']
@@ -73,10 +73,10 @@
     <div class="aspect-1 relative w-full">
       <CoopCanvas>
         {#await partPromise then partMesh}
-          <KeyboardMesh geometry={partMesh} kind="key" brightness={0.7} />
+          <T.Mesh geometry={partMesh}><KeyboardMaterial kind="key" brightness={0.7} /></T.Mesh>
         {/await}
         {#await socketPromise then socketMesh}
-          <KeyboardMesh geometry={socketMesh} kind="case" />
+          <T.Mesh geometry={socketMesh} kind="case"><KeyboardMaterial kind="case" /></T.Mesh>
         {/await}
         {#if dev && part !== 'trackball' && !part.includes('cirque')}
           <T.Mesh
@@ -104,7 +104,7 @@
     <div class="aspect-1 relative w-full">
       <CoopCanvas>
         {#await socketPromise then socketMesh}
-          <KeyboardMesh geometry={socketMesh} kind="case" />
+          <T.Mesh geometry={socketMesh}><KeyboardMaterial kind="case" /></T.Mesh>
         {/await}
         {#if dev && part !== 'trackball' && !part.includes('cirque')}
           <T.Mesh

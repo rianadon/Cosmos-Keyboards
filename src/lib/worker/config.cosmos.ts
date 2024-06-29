@@ -18,7 +18,7 @@ import {
   tupleToRot,
   tupleToXYZ,
 } from './config'
-import { decodePartType, encodePartType } from './config.serialize'
+import { decodePartType, encodePartType, KEYBOARD_DEFAULTS } from './config.serialize'
 import Trsf from './modeling/transformation'
 import { capitalize, DefaultMap, objEntries, sum, TallyMap, trimUndefined } from './util'
 
@@ -227,6 +227,19 @@ function toCosmosClusters(keys: CuttleKey[], side: 'left' | 'right', globalProfi
       }
     }
   }
+  const defaultCluster = {
+    type: 'matrix' as const,
+    side: side,
+    curvature: {},
+    profile: undefined,
+    partType: {},
+    clusters: [],
+    keys: [],
+    position: undefined,
+    rotation: undefined,
+  }
+  if (!clusters.find(c => c.name == 'fingers')) clusters.push({ ...defaultCluster, name: 'fingers' })
+  if (!clusters.find(c => c.name == 'thumbs')) clusters.push({ ...defaultCluster, name: 'thumbs' })
   return clusters
 }
 
@@ -312,7 +325,7 @@ export function toCosmosConfig(conf: Cuttleform, side: 'left' | 'right' | 'unibo
       tenting: 6,
       extension: 8,
     },
-    wristRestPosition: overrideWristRest ? encodeTuple([100, -1000, 0]) : encodeTuple(wrOrigin.xyz().map(t => Math.round(t * 10))),
+    wristRestPosition: overrideWristRest ? KEYBOARD_DEFAULTS.wristRestPosition! : encodeTuple(wrOrigin.xyz().map(t => Math.round(t * 10))),
     clusters: side == 'unibody'
       ? [
         ...toCosmosClusters(filterUnibodySide(conf.keys, 'right'), 'right', globalProfile, globalPartType, globalCurvature, wrOriginInv),
@@ -611,7 +624,7 @@ function dominantClusterType(keys: CuttleKey[], side: 'right' | 'left') {
 }
 
 function getTransformBy(key: CuttleKey) {
-  const transformBy = key.position.history.find(h => h.name == 'transformBy')
+  const transformBy = key.position.history.findLast(h => h.name == 'transformBy')
   if (transformBy) {
     // @ts-ignore
     const trsf = new ETrsf(transformBy.args[0].history)

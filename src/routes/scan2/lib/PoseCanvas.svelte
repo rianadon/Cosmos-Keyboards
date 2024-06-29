@@ -63,8 +63,8 @@
         </T.Mesh>
       {/if}
       <T.Mesh>
-        <MeshLineGeometry points={degPts[limb]} />
-        <MeshLineMaterial worldUnits={true} color={COLORS[limb]} linewidth={1} />
+        <MeshLineGeometry points={degPts[limb].map((p) => new Vector3(...p))} />
+        <MeshLineMaterial attenuate={false} color={COLORS[limb]} width={20} toneMapped={false} />
       </T.Mesh>
     </T.Group>
   {/each}

@@ -91,6 +91,7 @@ const FLIPPED_KEY: Record<string, string> = {
   p: 'q', o: 'w', i: 'e', u: 'r', y: 't',
   ';': 'a', l: 's', k: 'd', j: 'f', h: 'g',
   '/': 'z', '.': 'x', ',': 'c', 'm': 'v', n: 'b',
+  'F10': 'F1', 'F9': 'F2', 'F8': 'F3', 'F7': 'F4', 'F6': 'F5'
 }
 for (const k of Object.keys(FLIPPED_KEY)) FLIPPED_KEY[FLIPPED_KEY[k]] = k
 

@@ -115,8 +115,8 @@
   <T.Group>
     {#each lines2D as line}
       <T.Mesh>
-        <MeshLineGeometry points={line} />
-        <MeshLineMaterial color="#1e293b" worldUnits={true} linewidth={0.5} />
+        <MeshLineGeometry points={line.map((p) => new Vector3(...p))} />
+        <MeshLineMaterial color="#3b4f70" width={5} attenuate={false} />
       </T.Mesh>
     {/each}
     {#each points2D as pt}
@@ -126,7 +126,7 @@
       </T.Mesh>
     {/each}
     {#each info as inf}
-      <HTML position={inf.position} rotation={{ y: DEG2RAD * 90 }} transform>
+      <HTML position={inf.position.toArray()} rotation.y={DEG2RAD * 90} transform>
         <div style="height: 1em; font-size: 1.8em; text-align: center; text-shadow: 1px 0 1px black">
           {inf.text}
         </div>

@@ -96,7 +96,7 @@
         />
       </div>
     </div>
-    {#if $developer && $stat.history.length > 0 && medians}
+    {#if true && $stat.history.length > 0 && medians}
       <button class="underline" on:click={downloadZip}>Download Images</button>
       <details class="overflow-scroll">
         <summary class="text-gray-300 bg-slate-7 px-2 rounded">Detailed Measurements</summary>

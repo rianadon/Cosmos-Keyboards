@@ -23,6 +23,7 @@
     view,
     type TempConfig,
     showGizmo,
+    enableUndo,
   } from '$lib/store'
   import HandModel from '$lib/3d/HandModel.svelte'
   import { FINGERS, type Joints, SolvedHand } from '../hand'
@@ -39,7 +40,6 @@
   import { componentBoxes, componentGeometry } from '$lib/worker/geometry'
   import * as mdi from '@mdi/js'
   import Icon from '$lib/presentation/Icon.svelte'
-  import KeyboardMesh from '$lib/3d/KeyboardMesh.svelte'
   import { diff, notNull, objEntriesNotNull } from '$lib/worker/util'
   import { readHands, type HandData } from '$lib/handhelpers'
   import { simpleSocketGeos } from '$lib/loaders/simpleparts'
@@ -98,6 +98,7 @@
   import AngleInput from '../editor/AngleInput.svelte'
   import AngleInputInherit from '../editor/AngleInputInherit.svelte'
   import { browser } from '$app/environment'
+  import KeyboardMaterial from '$lib/3d/KeyboardMaterial.svelte'
 
   export let darkMode: boolean
   export let showSupports = false
@@ -302,12 +303,21 @@
   const initialLength = browser ? window.history.length : 0
   function handleKeydown(event: KeyboardEvent) {
     if (document.activeElement != document.body) return
-    // const isMac = navigator.platform.toLowerCase().includes('mac')
-    // if (event.ctrlKey == !isMac && event.metaKey == isMac && !event.altKey) {
-    //   console.log(window.history.length, initialLength)
-    //   if (event.shiftKey) window.history.forward()
-    //   else if (window.history.length > initialLength) window.history.back()
-    // }
+    const isMac = navigator.platform.toLowerCase().includes('mac')
+    const isCtrl = event.ctrlKey == !isMac && event.metaKey == isMac
+    if (isCtrl && !event.altKey && (event.key == 'z' || event.key == 'y')) {
+      if ($enableUndo) {
+        if ((event.key == 'z' && event.shiftKey) || (event.key == 'y' && !event.shiftKey))
+          window.history.forward()
+        else if (event.key == 'z') window.history.back()
+      } else if (
+        confirm(
+          "The undo/redo shortcuts are disabled by default because they simply navigate through browser history. Undo too many times, and you'll find your way back to the new tab page. Do you promise to be careful and wish to enable undo/redo?"
+        )
+      ) {
+        $enableUndo = true
+      }
+    }
     if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return
     if (event.key == 'Escape') $clickedKey = null
     else if (event.key == 'q') $transformMode = 'select'
@@ -643,7 +653,7 @@
 
   let timer = 0
   function scanHand() {
-    const win = window.open('scan')
+    const win = window.open('scan2')
     timer = setInterval(() => {
       if (win.closed) {
         clearInterval(timer)
@@ -781,566 +791,572 @@
   {/if}
 </div>
 
-<div class="absolute top-10 bottom-10 right-0 flex flex-col justify-center select-none">
-  <div class="relative flex flex-col gap-2 h-87">
-    <div
-      class="bigmenu bg-[#EFE8FF] dark:bg-slate-900 flex flex-col rounded-5 relative z-1 p-0.5 gap-0.5"
-    >
-      <button
-        class="sidebutton"
-        class:selected={$transformMode == 'select'}
-        on:click|stopPropagation={() => transformMode.set('select')}
-        ><Icon size="20px" path={mdi.mdiCursorDefaultOutline} />
-      </button>
-      <button
-        class="sidebutton"
-        class:selected={$transformMode == 'translate'}
-        on:click|stopPropagation={() => transformMode.set('translate')}
-        ><Icon path={mdi.mdiCursorMove} size="20px" />
-      </button>
-      <button
-        class="sidebutton"
-        class:selected={$transformMode == 'rotate'}
-        on:click|stopPropagation={() => transformMode.set('rotate')}
-        ><Icon path={mdi.mdiRotateOrbit} size="20px" />
-      </button>
-      <div class="my-2 h-[1px] bg-white dark:bg-slate-700" />
-
-      <button
-        class="sidebutton"
-        class:selected={$selectMode == 'key'}
-        on:click|stopPropagation={() => selectMode.set('key')}
-        ><Icon size="20px" name="keycap" />
-      </button>
-      <button
-        class="sidebutton"
-        class:selected={$selectMode == 'column'}
-        on:click|stopPropagation={() => selectMode.set('column')}
-        ><Icon name="column" size="20px" />
-      </button>
-      <button
-        class="sidebutton"
-        class:selected={$selectMode == 'cluster'}
-        on:click|stopPropagation={() => selectMode.set('cluster')}
-        ><Icon path={mdi.mdiGrid} size="20px" />
-      </button>
-    </div>
-    <div
-      class="mhelp absolute right-8.5 top-0 text-right flex flex-col py-0.5 px-1 gap-0.5 text-purple-950/60 dark:text-pink-300/90 text-sm z-1 pointer-events-none font-medium"
-      class:hidden!={popoutShown}
-    >
-      <div class="mhelpitem">Select / Add (q)</div>
-      <div class="mhelpitem">Reposition (w/g)</div>
-      <div class="mhelpitem">Rotate (e/r)</div>
-      <div class="h-[1px] my-2" />
-      <div class="mhelpitem">Select Keys (k)</div>
-      <div class="mhelpitem">Select Columns (l)</div>
-      <div class="mhelpitem">Select Clusters (o)</div>
-    </div>
-    <button class="sidemenu" class:selected={popoutShown} on:click={() => (popoutShown = !popoutShown)}>
-      {#if $selectMode == 'key'}Edit Key{/if}
-      {#if $selectMode == 'column'}Edit Column{/if}
-      {#if $selectMode == 'cluster'}Edit Cluster{/if}
-    </button>
-    {#if popoutShown}
+{#if !isExpert}
+  <div class="absolute top-10 bottom-10 right-0 flex flex-col justify-center select-none">
+    <div class="relative flex flex-col gap-2 h-87">
       <div
-        class="absolute right-10 bottom-[-4rem]"
-        class:w-60={$clickedKey != null}
-        class:w-50={$clickedKey == null}
+        class="bigmenu bg-[#EFE8FF] dark:bg-slate-900 flex flex-col rounded-5 relative z-1 p-0.5 gap-0.5"
       >
-        {#if $selectMode == 'key'}
-          <div
-            class="tab"
-            class:hide={$clickedKey != null
-              ? ![...PARTS_WITH_KEYCAPS, ...ROUND_PARTS].includes(
-                  nthPartType($protoConfig, $clickedKey, 'key')
-                )
-              : $hoveredKey == null ||
-                ![...PARTS_WITH_KEYCAPS, ...ROUND_PARTS].includes(
-                  nthPartType($protoConfig, $hoveredKey, 'key')
-                )}
-          >
-            {#if $clickedKey != null ? PARTS_WITH_KEYCAPS.includes(nthPartType($protoConfig, $clickedKey, 'key')) : $hoveredKey == null || PARTS_WITH_KEYCAPS.includes(nthPartType($protoConfig, $hoveredKey, 'key'))}
-              <div class="tabhead">Keycap</div>
-              <div class="px-2 py-1">
-                <Field small name="Profile" icon="keycapsmall">
-                  {#if keyIsClicked && $clickedKey != null}<SelectInherit
-                      small
-                      bind:value={keyIsClicked.profile.profile}
-                      inherit={nthProfile($protoConfig, $clickedKey, 'column')}
-                      on:change={updateProto}
-                    >
-                      {#each notNull(PROFILE).sort(sortProfiles) as prof}
-                        <option value={prof}>{profileName(prof)}</option>
-                      {/each}
-                    </SelectInherit>
-                  {:else if keyIsHovered}<span
-                      class="fallback"
-                      class:inherit={!keyIsHovered.profile.profile}
-                      >{formatProfile($protoConfig, $hoveredKey)}</span
-                    >
-                  {:else}<span class="fallback">-</span>{/if}
-                </Field>
-                <Field small name="Row">
-                  {#if keyIsClicked}<Select
-                      small
-                      bind:value={keyIsClicked.profile.row}
-                      on:change={updateProto}
-                    >
-                      <option value={5}>R5</option>
-                      <option value={4}>R4</option>
-                      <option value={3}>R3</option>
-                      <option value={2}>R2</option>
-                      <option value={1}>R1</option>
-                    </Select>
-                  {:else if keyIsHovered}<span class="fallback">{'R' + keyIsHovered.profile.row}</span>
-                  {:else}<span class="fallback">-</span>{/if}
-                </Field>
-                {#if $clickedKey != null ? nthPartType($protoConfig, $clickedKey, 'key') != 'blank' : $hoveredKey == null || nthPartType($protoConfig, $hoveredKey, 'key') != 'blank'}
-                  <Field small name="Homing">
+        <button
+          class="sidebutton"
+          class:selected={$transformMode == 'select'}
+          on:click|stopPropagation={() => transformMode.set('select')}
+          ><Icon size="20px" path={mdi.mdiCursorDefaultOutline} />
+        </button>
+        <button
+          class="sidebutton"
+          class:selected={$transformMode == 'translate'}
+          on:click|stopPropagation={() => transformMode.set('translate')}
+          ><Icon path={mdi.mdiCursorMove} size="20px" />
+        </button>
+        <button
+          class="sidebutton"
+          class:selected={$transformMode == 'rotate'}
+          on:click|stopPropagation={() => transformMode.set('rotate')}
+          ><Icon path={mdi.mdiRotateOrbit} size="20px" />
+        </button>
+        <div class="my-2 h-[1px] bg-white dark:bg-slate-700" />
+
+        <button
+          class="sidebutton"
+          class:selected={$selectMode == 'key'}
+          on:click|stopPropagation={() => selectMode.set('key')}
+          ><Icon size="20px" name="keycap" />
+        </button>
+        <button
+          class="sidebutton"
+          class:selected={$selectMode == 'column'}
+          on:click|stopPropagation={() => selectMode.set('column')}
+          ><Icon name="column" size="20px" />
+        </button>
+        <button
+          class="sidebutton"
+          class:selected={$selectMode == 'cluster'}
+          on:click|stopPropagation={() => selectMode.set('cluster')}
+          ><Icon path={mdi.mdiGrid} size="20px" />
+        </button>
+      </div>
+      <div
+        class="mhelp absolute right-8.5 top-0 text-right flex flex-col py-0.5 px-1 gap-0.5 text-purple-950/60 dark:text-pink-300/90 text-sm z-1 pointer-events-none font-medium"
+        class:hidden!={popoutShown}
+      >
+        <div class="mhelpitem">Select / Add (q)</div>
+        <div class="mhelpitem">Reposition (w/g)</div>
+        <div class="mhelpitem">Rotate (e/r)</div>
+        <div class="h-[1px] my-2" />
+        <div class="mhelpitem">Select Keys (k)</div>
+        <div class="mhelpitem">Select Columns (l)</div>
+        <div class="mhelpitem">Select Clusters (o)</div>
+      </div>
+      <button
+        class="sidemenu"
+        class:selected={popoutShown}
+        on:click={() => (popoutShown = !popoutShown)}
+      >
+        {#if $selectMode == 'key'}Edit Key{/if}
+        {#if $selectMode == 'column'}Edit Column{/if}
+        {#if $selectMode == 'cluster'}Edit Cluster{/if}
+      </button>
+      {#if popoutShown}
+        <div
+          class="absolute right-10 bottom-[-4rem]"
+          class:w-60={$clickedKey != null}
+          class:w-50={$clickedKey == null}
+        >
+          {#if $selectMode == 'key'}
+            <div
+              class="tab"
+              class:hide={$clickedKey != null
+                ? ![...PARTS_WITH_KEYCAPS, ...ROUND_PARTS].includes(
+                    nthPartType($protoConfig, $clickedKey, 'key')
+                  )
+                : $hoveredKey == null ||
+                  ![...PARTS_WITH_KEYCAPS, ...ROUND_PARTS].includes(
+                    nthPartType($protoConfig, $hoveredKey, 'key')
+                  )}
+            >
+              {#if $clickedKey != null ? PARTS_WITH_KEYCAPS.includes(nthPartType($protoConfig, $clickedKey, 'key')) : $hoveredKey == null || PARTS_WITH_KEYCAPS.includes(nthPartType($protoConfig, $hoveredKey, 'key'))}
+                <div class="tabhead">Keycap</div>
+                <div class="px-2 py-1">
+                  <Field small name="Profile" icon="keycapsmall">
+                    {#if keyIsClicked && $clickedKey != null}<SelectInherit
+                        small
+                        bind:value={keyIsClicked.profile.profile}
+                        inherit={nthProfile($protoConfig, $clickedKey, 'column')}
+                        on:change={updateProto}
+                      >
+                        {#each notNull(PROFILE).sort(sortProfiles) as prof}
+                          <option value={prof}>{profileName(prof)}</option>
+                        {/each}
+                      </SelectInherit>
+                    {:else if keyIsHovered}<span
+                        class="fallback"
+                        class:inherit={!keyIsHovered.profile.profile}
+                        >{formatProfile($protoConfig, $hoveredKey)}</span
+                      >
+                    {:else}<span class="fallback">-</span>{/if}
+                  </Field>
+                  <Field small name="Row">
                     {#if keyIsClicked}<Select
                         small
-                        bind:value={keyIsClicked.profile.home}
+                        bind:value={keyIsClicked.profile.row}
                         on:change={updateProto}
                       >
-                        <option value={null}>None</option>
-                        <option value="thumb">Thumb</option>
-                        <option value="index">Index</option>
-                        <option value="middle">Middle</option>
-                        <option value="ring">Ring</option>
-                        <option value="pinky">Pinky</option>
+                        <option value={5}>R5</option>
+                        <option value={4}>R4</option>
+                        <option value={3}>R3</option>
+                        <option value={2}>R2</option>
+                        <option value={1}>R1</option>
                       </Select>
-                    {:else if keyIsHovered}<span class="fallback">{formatHoming(keyIsHovered)}</span>
+                    {:else if keyIsHovered}<span class="fallback">{'R' + keyIsHovered.profile.row}</span>
                     {:else}<span class="fallback">-</span>{/if}
                   </Field>
-                  <Field small name="Letter" icon="letter">
-                    {#if keyIsClicked}<input
-                        class="s-input w-[5.4rem] mx-0 px-2"
-                        bind:value={keyIsClicked.profile.letter}
-                        on:change={updateProto}
-                        on:input={setLetter}
-                      />
-                    {:else if keyIsHovered}<span class="fallback"
-                        >{keyIsHovered.profile.letter || ''}</span
-                      >
-                    {:else}<span class="fallback">-</span>{/if}
-                  </Field>
-                {:else}
-                  <Field small name="Width">
+                  {#if $clickedKey != null ? nthPartType($protoConfig, $clickedKey, 'key') != 'blank' : $hoveredKey == null || nthPartType($protoConfig, $hoveredKey, 'key') != 'blank'}
+                    <Field small name="Homing">
+                      {#if keyIsClicked}<Select
+                          small
+                          bind:value={keyIsClicked.profile.home}
+                          on:change={updateProto}
+                        >
+                          <option value={null}>None</option>
+                          <option value="thumb">Thumb</option>
+                          <option value="index">Index</option>
+                          <option value="middle">Middle</option>
+                          <option value="ring">Ring</option>
+                          <option value="pinky">Pinky</option>
+                        </Select>
+                      {:else if keyIsHovered}<span class="fallback">{formatHoming(keyIsHovered)}</span>
+                      {:else}<span class="fallback">-</span>{/if}
+                    </Field>
+                    <Field small name="Letter" icon="letter">
+                      {#if keyIsClicked}<input
+                          class="s-input w-[5.4rem] mx-0 px-2"
+                          bind:value={keyIsClicked.profile.letter}
+                          on:change={updateProto}
+                          on:input={setLetter}
+                        />
+                      {:else if keyIsHovered}<span class="fallback"
+                          >{keyIsHovered.profile.letter || ''}</span
+                        >
+                      {:else}<span class="fallback">-</span>{/if}
+                    </Field>
+                  {:else}
+                    <Field small name="Width">
+                      {#if keyIsClicked}<DecimalInputInherit
+                          small
+                          noColor
+                          inherit={18.5}
+                          bind:value={keyIsClicked.sizeA}
+                          on:change={updateProto}
+                        />
+                      {:else if keyIsHovered}<span class="fallback">{keyIsHovered.sizeA || '18.5'}</span>
+                      {:else}<span class="fallback">-</span>{/if}
+                    </Field>
+                    <Field small name="Height">
+                      {#if keyIsClicked}<DecimalInputInherit
+                          small
+                          noColor
+                          inherit={18.5}
+                          bind:value={keyIsClicked.sizeB}
+                          on:change={updateProto}
+                        />
+                      {:else if keyIsHovered}<span class="fallback">{keyIsHovered.sizeB || '18.5'}</span>
+                      {:else}<span class="fallback">-</span>{/if}
+                    </Field>
+                  {/if}
+                </div>
+              {:else}
+                <div class="tabhead">Trackball / Trackpad</div>
+                <div class="px-2 py-1">
+                  <Field small name="Sides">
                     {#if keyIsClicked}<DecimalInputInherit
                         small
                         noColor
-                        inherit={18.5}
-                        bind:value={keyIsClicked.sizeA}
-                        on:change={updateProto}
-                      />
-                    {:else if keyIsHovered}<span class="fallback">{keyIsHovered.sizeA || '18.5'}</span>
-                    {:else}<span class="fallback">-</span>{/if}
-                  </Field>
-                  <Field small name="Height">
-                    {#if keyIsClicked}<DecimalInputInherit
-                        small
-                        noColor
-                        inherit={18.5}
+                        inherit={20}
                         bind:value={keyIsClicked.sizeB}
                         on:change={updateProto}
                       />
-                    {:else if keyIsHovered}<span class="fallback">{keyIsHovered.sizeB || '18.5'}</span>
+                    {:else if keyIsHovered}<span class="fallback">{keyIsHovered.sizeB || '20'}</span>
                     {:else}<span class="fallback">-</span>{/if}
                   </Field>
-                {/if}
-              </div>
-            {:else}
-              <div class="tabhead">Trackball / Trackpad</div>
+                </div>
+              {/if}
+            </div>
+            <div class="tab">
+              <div class="tabhead">Key Position</div>
               <div class="px-2 py-1">
-                <Field small name="Sides">
-                  {#if keyIsClicked}<DecimalInputInherit
+                <Field small name="Row">
+                  {#if keyIsClicked && columnIsClicked}<DecimalInputInherit
                       small
-                      noColor
-                      inherit={20}
-                      bind:value={keyIsClicked.sizeB}
-                      on:change={updateProto}
-                    />
-                  {:else if keyIsHovered}<span class="fallback">{keyIsHovered.sizeB || '20'}</span>
-                  {:else}<span class="fallback">-</span>{/if}
-                </Field>
-              </div>
-            {/if}
-          </div>
-          <div class="tab">
-            <div class="tabhead">Key Position</div>
-            <div class="px-2 py-1">
-              <Field small name="Row">
-                {#if keyIsClicked && columnIsClicked}<DecimalInputInherit
-                    small
-                    bind:value={keyIsClicked.row}
-                    inherit={columnIsClicked.row}
-                    on:change={updateProto}
-                    divisor={100}
-                  />
-                {:else if keyIsHovered}<span
-                    class="fallback"
-                    class:inherit={typeof keyIsHovered.row == 'undefined'}
-                  >
-                    {keyProp($protoConfig, $hoveredKey, 'row')}
-                  </span>
-                {:else}<span class="fallback">-</span>{/if}
-              </Field>
-              <Field small name={sphereColumn ? 'Angle' : 'Column'}>
-                {#if keyIsClicked && columnIsClicked}
-                  {#if sphereColumn}<AngleInputInherit
-                      small
-                      bind:value={keyIsClicked.column}
-                      inherit={columnIsClicked.column}
+                      bind:value={keyIsClicked.row}
+                      inherit={columnIsClicked.row}
                       on:change={updateProto}
                       divisor={100}
                     />
-                  {:else}<DecimalInputInherit
-                      small
-                      bind:value={keyIsClicked.column}
-                      inherit={columnIsClicked.column}
-                      on:change={updateProto}
-                      divisor={100}
-                    />
-                  {/if}
-                {:else if keyIsHovered}<span
-                    class="fallback"
-                    class:inherit={typeof keyIsHovered.column == 'undefined'}
-                  >
-                    {keyProp($protoConfig, $hoveredKey, 'column')}{#if sphereColumn}&deg;{/if}
-                  </span>
-                {:else}<span class="fallback">-</span>{/if}
-              </Field>
-              <div class="my-2" />
-              <Field small name="Offset X" icon="movex" iconColor="#ff3653">
-                {#if $clickedKey != null}<DecimalInput small bind:value={$positionX} />
-                {:else if hoveredPosition}<span class="fallback">{hoveredPosition[0] / 10}</span>
-                {:else}<span class="fallback">-</span>{/if}
-              </Field>
-              <Field small name="Offset Y" icon="movey" iconColor="#8adb00">
-                {#if $clickedKey != null}<DecimalInput small bind:value={$positionY} />
-                {:else if hoveredPosition}<span class="fallback">{hoveredPosition[1] / 10}</span>
-                {:else}<span class="fallback">-</span>{/if}
-              </Field>
-              <Field small name="Offset Z" icon="movez" iconColor="#2c8fff">
-                {#if $clickedKey != null}<DecimalInput small bind:value={$positionZ} />
-                {:else if hoveredPosition}<span class="fallback">{hoveredPosition[2] / 10}</span>
-                {:else}<span class="fallback">-</span>{/if}
-              </Field>
-              <div class="my-2" />
-              <Field small name="Rotation X" icon="rotatex" iconColor="#ff3653">
-                {#if $clickedKey != null}
-                  <AngleInput small bind:value={$rotationX} />
-                {:else if hoveredRotation}
-                  <span class="fallback">{Math.round(hoveredRotation[0] / 4.5) / 10}&deg;</span>
-                {:else}
-                  <span class="fallback">-</span>
-                {/if}
-              </Field>
-              <Field small name="Rotation Y" icon="rotatey" iconColor="#8adb00">
-                {#if $clickedKey != null}
-                  <AngleInput small bind:value={$rotationY} />
-                {:else if hoveredRotation}
-                  <span class="fallback">{Math.round(hoveredRotation[1] / 4.5) / 10}&deg;</span>
-                {:else}
-                  <span class="fallback">-</span>
-                {/if}
-              </Field>
-              <Field small name="Rotation Z" icon="rotatez" iconColor="#2c8fff">
-                {#if $clickedKey != null}
-                  <AngleInput small bind:value={$rotationZ} />
-                {:else if hoveredRotation}
-                  <span class="fallback">{Math.round(hoveredRotation[2] / 4.5) / 10}&deg;</span>
-                {:else}
-                  <span class="fallback">-</span>
-                {/if}
-              </Field>
-            </div>
-          </div>
-        {:else if $selectMode == 'column'}
-          <div class="tab">
-            <div class="tabhead">
-              Column Curvature
-              {#if columnType}<button class="ctbutton" on:click={() => changeCType(columnIsClicked)}>
-                  {columnType}
-                </button>{/if}
-            </div>
-            <div class="px-2 py-1">
-              <Field small name="Curvature" icon="column-curve">
-                {#if columnIsClicked && $clickedKey != null}<AngleInputInherit
-                    small
-                    bind:value={columnIsClicked.curvature.curvatureB}
-                    on:change={updateProto}
-                    inherit={nthCurvature($protoConfig, $clickedKey, 'curvatureB', 'cluster')}
-                  />
-                {:else if $hoveredKey != null && columnIsHovered}<span
-                    class="fallback"
-                    class:inherit={typeof columnIsHovered.curvature.curvatureB == 'undefined'}
-                  >
-                    {nthCurvature($protoConfig, $hoveredKey, 'curvatureB', 'column')}&deg;
-                  </span>
-                {:else}<span class="fallback">-</span>{/if}
-              </Field>
-              {#if !sphereColumn}
-                <Field small name="Arc" icon="bulge">
-                  {#if columnIsClicked && $clickedKey != null}<DecimalInputInherit
-                      small
-                      bind:value={columnIsClicked.curvature.arc}
-                      on:change={updateProto}
-                      inherit={nthCurvature($protoConfig, $clickedKey, 'arc', 'cluster')}
-                    />
-                  {:else if $hoveredKey != null && columnIsHovered}<span
+                  {:else if keyIsHovered}<span
                       class="fallback"
-                      class:inherit={typeof columnIsHovered.curvature.arc == 'undefined'}
+                      class:inherit={typeof keyIsHovered.row == 'undefined'}
                     >
-                      {nthCurvature($protoConfig, $hoveredKey, 'arc', 'column')}&deg;
+                      {keyProp($protoConfig, $hoveredKey, 'row')}
                     </span>
                   {:else}<span class="fallback">-</span>{/if}
                 </Field>
-              {/if}
-              <Field small name="Spacing" icon="expand-vertical">
-                {#if columnIsClicked && $clickedKey != null}<DecimalInputInherit
-                    small
-                    bind:value={columnIsClicked.curvature.verticalSpacing}
-                    on:change={updateProto}
-                    inherit={nthCurvature($protoConfig, $clickedKey, 'verticalSpacing', 'cluster')}
-                  />
-                {:else if $hoveredKey != null && columnIsHovered}<span
-                    class="fallback"
-                    class:inherit={typeof columnIsHovered.curvature.verticalSpacing == 'undefined'}
-                  >
-                    {nthCurvature($protoConfig, $hoveredKey, 'verticalSpacing', 'column')}
-                  </span>
-                {:else}<span class="fallback">-</span>{/if}
-              </Field>
-            </div>
-          </div>
-          <div class="tab">
-            <div class="tabhead">Column Position</div>
-            <div class="px-2 py-1">
-              <Field small name={sphereColumn ? 'Angle' : 'Column'}>
-                {#if columnIsClicked && columnIsClicked}
-                  {#if sphereColumn}<AngleInput
-                      small
-                      bind:value={columnIsClicked.column}
-                      on:change={updateProto}
-                      divisor={100}
-                    />
-                  {:else}<DecimalInput
-                      small
-                      bind:value={columnIsClicked.column}
-                      on:change={updateProto}
-                      divisor={100}
-                    />
-                  {/if}
-                {:else if columnIsHovered}<span class="fallback">
-                    {columnIsHovered.column}{#if sphereColumn}&deg;{/if}
-                  </span>
-                {:else}<span class="fallback">-</span>{/if}
-              </Field>
-              {#if !sphereColumn}
-                <Field small name="Splay">
-                  {#if $clickedKey != null}
-                    <AngleInput
-                      small
-                      value={nthSplay($protoConfig, $clickedKey)}
-                      on:change={setFingerSplay}
-                    />
-                  {:else if $hoveredKey != null}
-                    <span class="fallback"
-                      >{Math.round(nthSplay($protoConfig, $hoveredKey) / 4.5) / 10}&deg;</span
+                <Field small name={sphereColumn ? 'Angle' : 'Column'}>
+                  {#if keyIsClicked && columnIsClicked}
+                    {#if sphereColumn}<AngleInputInherit
+                        small
+                        bind:value={keyIsClicked.column}
+                        inherit={columnIsClicked.column}
+                        on:change={updateProto}
+                        divisor={100}
+                      />
+                    {:else}<DecimalInputInherit
+                        small
+                        bind:value={keyIsClicked.column}
+                        inherit={columnIsClicked.column}
+                        on:change={updateProto}
+                        divisor={100}
+                      />
+                    {/if}
+                  {:else if keyIsHovered}<span
+                      class="fallback"
+                      class:inherit={typeof keyIsHovered.column == 'undefined'}
                     >
+                      {keyProp($protoConfig, $hoveredKey, 'column')}{#if sphereColumn}&deg;{/if}
+                    </span>
+                  {:else}<span class="fallback">-</span>{/if}
+                </Field>
+                <div class="my-2" />
+                <Field small name="Offset X" icon="movex" iconColor="#ff3653">
+                  {#if $clickedKey != null}<DecimalInput small bind:value={$positionX} />
+                  {:else if hoveredPosition}<span class="fallback">{hoveredPosition[0] / 10}</span>
+                  {:else}<span class="fallback">-</span>{/if}
+                </Field>
+                <Field small name="Offset Y" icon="movey" iconColor="#8adb00">
+                  {#if $clickedKey != null}<DecimalInput small bind:value={$positionY} />
+                  {:else if hoveredPosition}<span class="fallback">{hoveredPosition[1] / 10}</span>
+                  {:else}<span class="fallback">-</span>{/if}
+                </Field>
+                <Field small name="Offset Z" icon="movez" iconColor="#2c8fff">
+                  {#if $clickedKey != null}<DecimalInput small bind:value={$positionZ} />
+                  {:else if hoveredPosition}<span class="fallback">{hoveredPosition[2] / 10}</span>
+                  {:else}<span class="fallback">-</span>{/if}
+                </Field>
+                <div class="my-2" />
+                <Field small name="Rotation X" icon="rotatex" iconColor="#ff3653">
+                  {#if $clickedKey != null}
+                    <AngleInput small bind:value={$rotationX} />
+                  {:else if hoveredRotation}
+                    <span class="fallback">{Math.round(hoveredRotation[0] / 4.5) / 10}&deg;</span>
                   {:else}
                     <span class="fallback">-</span>
                   {/if}
                 </Field>
-              {/if}
-              <div class="my-2" />
-              <Field small name="Offset X" icon="movex" iconColor="#ff3653">
-                {#if $clickedKey != null}<DecimalInput small bind:value={$cpositionX} />
-                {:else if hoveredCPosition}<span class="fallback">{hoveredCPosition[0] / 10}</span>
-                {:else}<span class="fallback">-</span>{/if}
-              </Field>
-              <Field small name="Offset Y" icon="movey" iconColor="#8adb00">
-                {#if $clickedKey != null}<DecimalInput small bind:value={$cpositionY} />
-                {:else if hoveredCPosition}<span class="fallback">{hoveredCPosition[1] / 10}</span>
-                {:else}<span class="fallback">-</span>{/if}
-              </Field>
-              <Field small name="Offset Z" icon="movez" iconColor="#2c8fff">
-                {#if $clickedKey != null}<DecimalInput small bind:value={$cpositionZ} />
-                {:else if hoveredCPosition}<span class="fallback">{hoveredCPosition[2] / 10}</span>
-                {:else}<span class="fallback">-</span>{/if}
-              </Field>
-              <div class="my-2" />
-              <Field small name="Rotation X" icon="rotatex" iconColor="#ff3653">
-                {#if $clickedKey != null}
-                  <AngleInput small bind:value={$crotationX} />
-                {:else if hoveredCRotation}
-                  <span class="fallback">{Math.round(hoveredCRotation[0] / 4.5) / 10}&deg;</span>
-                {:else}
-                  <span class="fallback">-</span>
-                {/if}
-              </Field>
-              <Field small name="Rotation Y" icon="rotatey" iconColor="#8adb00">
-                {#if $clickedKey != null}
-                  <AngleInput small bind:value={$crotationY} />
-                {:else if hoveredCRotation}
-                  <span class="fallback">{Math.round(hoveredCRotation[1] / 4.5) / 10}&deg;</span>
-                {:else}
-                  <span class="fallback">-</span>
-                {/if}
-              </Field>
-              <Field small name="Rotation Z" icon="rotatez" iconColor="#2c8fff">
-                {#if $clickedKey != null}
-                  <AngleInput small bind:value={$crotationZ} />
-                {:else if hoveredCRotation}
-                  <span class="fallback">{Math.round(hoveredCRotation[2] / 4.5) / 10}&deg;</span>
-                {:else}
-                  <span class="fallback">-</span>
-                {/if}
-              </Field>
+                <Field small name="Rotation Y" icon="rotatey" iconColor="#8adb00">
+                  {#if $clickedKey != null}
+                    <AngleInput small bind:value={$rotationY} />
+                  {:else if hoveredRotation}
+                    <span class="fallback">{Math.round(hoveredRotation[1] / 4.5) / 10}&deg;</span>
+                  {:else}
+                    <span class="fallback">-</span>
+                  {/if}
+                </Field>
+                <Field small name="Rotation Z" icon="rotatez" iconColor="#2c8fff">
+                  {#if $clickedKey != null}
+                    <AngleInput small bind:value={$rotationZ} />
+                  {:else if hoveredRotation}
+                    <span class="fallback">{Math.round(hoveredRotation[2] / 4.5) / 10}&deg;</span>
+                  {:else}
+                    <span class="fallback">-</span>
+                  {/if}
+                </Field>
+              </div>
             </div>
-          </div>
-        {:else if $selectMode == 'cluster'}
-          <div class="tab">
-            <div class="tabhead">
-              Cluster Curvature
-              {#if clusterType}<button class="ctbutton" on:click={() => changeCType(clusterIsClicked)}>
-                  {clusterType}
-                </button>{/if}
-            </div>
-            <div class="px-2 py-1">
-              <Field small name="Row Curve" icon="row-curve">
-                {#if clusterIsClicked && $clickedKey != null}<AngleInputInherit
-                    small
-                    bind:value={clusterIsClicked.curvature.curvatureA}
-                    on:change={updateProto}
-                    inherit={nthCurvature($protoConfig, $clickedKey, 'curvatureA', 'kb')}
-                  />
-                {:else if $hoveredKey != null && clusterIsHovered}<span
-                    class="fallback"
-                    class:inherit={typeof clusterIsHovered.curvature.curvatureA == 'undefined'}
-                  >
-                    {nthCurvature($protoConfig, $hoveredKey, 'curvatureA', 'cluster')}&deg;
-                  </span>
-                {:else}<span class="fallback">-</span>{/if}
-              </Field>
-              <Field small name="Col Curve" icon="column-curve">
-                {#if clusterIsClicked && $clickedKey != null}<AngleInputInherit
-                    small
-                    bind:value={clusterIsClicked.curvature.curvatureB}
-                    on:change={updateProto}
-                    inherit={nthCurvature($protoConfig, $clickedKey, 'curvatureB', 'kb')}
-                  />
-                {:else if $hoveredKey != null && clusterIsHovered}<span
-                    class="fallback"
-                    class:inherit={typeof clusterIsHovered.curvature.curvatureB == 'undefined'}
-                  >
-                    {nthCurvature($protoConfig, $hoveredKey, 'curvatureB', 'cluster')}&deg;
-                  </span>
-                {:else}<span class="fallback">-</span>{/if}
-              </Field>
-              <Field small name="Arc" icon="bulge">
-                {#if clusterIsClicked && $clickedKey != null}<DecimalInputInherit
-                    small
-                    bind:value={clusterIsClicked.curvature.arc}
-                    on:change={updateProto}
-                    inherit={nthCurvature($protoConfig, $clickedKey, 'arc', 'kb')}
-                  />
-                {:else if $hoveredKey != null && clusterIsHovered}<span
-                    class="fallback"
-                    class:inherit={typeof clusterIsHovered.curvature.arc == 'undefined'}
-                  >
-                    {nthCurvature($protoConfig, $hoveredKey, 'arc', 'cluster')}&deg;
-                  </span>
-                {:else}<span class="fallback">-</span>{/if}
-              </Field>
-              <div class="my-2" />
-              <Field small name="H Spacing" icon="expand-horizontal">
-                {#if clusterIsClicked && $clickedKey != null}<DecimalInputInherit
-                    small
-                    bind:value={clusterIsClicked.curvature.horizontalSpacing}
-                    on:change={updateProto}
-                    inherit={nthCurvature($protoConfig, $clickedKey, 'horizontalSpacing', 'kb')}
-                  />
-                {:else if $hoveredKey != null && clusterIsHovered}<span
-                    class="fallback"
-                    class:inherit={typeof clusterIsHovered.curvature.horizontalSpacing == 'undefined'}
-                  >
-                    {nthCurvature($protoConfig, $hoveredKey, 'horizontalSpacing', 'cluster')}
-                  </span>
-                {:else}<span class="fallback">-</span>{/if}
-              </Field>
-              <Field small name="V Spacing" icon="expand-vertical">
-                {#if clusterIsClicked && $clickedKey != null}<DecimalInputInherit
-                    small
-                    bind:value={clusterIsClicked.curvature.verticalSpacing}
-                    on:change={updateProto}
-                    inherit={nthCurvature($protoConfig, $clickedKey, 'verticalSpacing', 'kb')}
-                  />
-                {:else if $hoveredKey != null && clusterIsHovered}<span
-                    class="fallback"
-                    class:inherit={typeof clusterIsHovered.curvature.verticalSpacing == 'undefined'}
-                  >
-                    {nthCurvature($protoConfig, $hoveredKey, 'verticalSpacing', 'cluster')}
-                  </span>
-                {:else}<span class="fallback">-</span>{/if}
-              </Field>
-            </div>
-          </div>
-          <div class="tab">
-            <div class="tabhead">Cluster Position</div>
-            <div class="px-2 py-1">
-              <Field small name="Offset X" icon="movex" iconColor="#ff3653">
-                {#if $clickedKey != null}<DecimalInput small bind:value={$lpositionX} />
-                {:else if hoveredLPosition}<span class="fallback">{hoveredLPosition[0] / 10}</span>
-                {:else}<span class="fallback">-</span>{/if}
-              </Field>
-              <Field small name="Offset Y" icon="movey" iconColor="#8adb00">
-                {#if $clickedKey != null}<DecimalInput small bind:value={$lpositionY} />
-                {:else if hoveredLPosition}<span class="fallback">{hoveredLPosition[1] / 10}</span>
-                {:else}<span class="fallback">-</span>{/if}
-              </Field>
-              <Field small name="Offset Z" icon="movez" iconColor="#2c8fff">
-                {#if $clickedKey != null}<DecimalInput small bind:value={$lpositionZ} />
-                {:else if hoveredLPosition}<span class="fallback">{hoveredLPosition[2] / 10}</span>
-                {:else}<span class="fallback">-</span>{/if}
-              </Field>
-              <div class="my-2" />
-              <Field small name="Rotation X" icon="rotatex" iconColor="#ff3653">
-                {#if $clickedKey != null}
-                  <DecimalInput small bind:value={$lrotationX} divisor={45} />
-                {:else if hoveredLRotation}
-                  <span class="fallback">{Math.round(hoveredLRotation[0] / 4.5) / 10}</span>
-                {:else}
-                  <span class="fallback">-</span>
+          {:else if $selectMode == 'column'}
+            <div class="tab">
+              <div class="tabhead">
+                Column Curvature
+                {#if columnType}<button class="ctbutton" on:click={() => changeCType(columnIsClicked)}>
+                    {columnType}
+                  </button>{/if}
+              </div>
+              <div class="px-2 py-1">
+                <Field small name="Curvature" icon="column-curve">
+                  {#if columnIsClicked && $clickedKey != null}<AngleInputInherit
+                      small
+                      bind:value={columnIsClicked.curvature.curvatureB}
+                      on:change={updateProto}
+                      inherit={nthCurvature($protoConfig, $clickedKey, 'curvatureB', 'cluster')}
+                    />
+                  {:else if $hoveredKey != null && columnIsHovered}<span
+                      class="fallback"
+                      class:inherit={typeof columnIsHovered.curvature.curvatureB == 'undefined'}
+                    >
+                      {nthCurvature($protoConfig, $hoveredKey, 'curvatureB', 'column')}&deg;
+                    </span>
+                  {:else}<span class="fallback">-</span>{/if}
+                </Field>
+                {#if !sphereColumn}
+                  <Field small name="Arc" icon="bulge">
+                    {#if columnIsClicked && $clickedKey != null}<DecimalInputInherit
+                        small
+                        bind:value={columnIsClicked.curvature.arc}
+                        on:change={updateProto}
+                        inherit={nthCurvature($protoConfig, $clickedKey, 'arc', 'cluster')}
+                      />
+                    {:else if $hoveredKey != null && columnIsHovered}<span
+                        class="fallback"
+                        class:inherit={typeof columnIsHovered.curvature.arc == 'undefined'}
+                      >
+                        {nthCurvature($protoConfig, $hoveredKey, 'arc', 'column')}&deg;
+                      </span>
+                    {:else}<span class="fallback">-</span>{/if}
+                  </Field>
                 {/if}
-              </Field>
-              <Field small name="Rotation Y" icon="rotatey" iconColor="#8adb00">
-                {#if $clickedKey != null}
-                  <DecimalInput small bind:value={$lrotationY} divisor={45} />
-                {:else if hoveredLRotation}
-                  <span class="fallback">{Math.round(hoveredLRotation[1] / 4.5) / 10}</span>
-                {:else}
-                  <span class="fallback">-</span>
-                {/if}
-              </Field>
-              <Field small name="Rotation Z" icon="rotatez" iconColor="#2c8fff">
-                {#if $clickedKey != null}
-                  <DecimalInput small bind:value={$lrotationZ} divisor={45} />
-                {:else if hoveredLRotation}
-                  <span class="fallback">{Math.round(hoveredLRotation[2] / 4.5) / 10}</span>
-                {:else}
-                  <span class="fallback">-</span>
-                {/if}
-              </Field>
+                <Field small name="Spacing" icon="expand-vertical">
+                  {#if columnIsClicked && $clickedKey != null}<DecimalInputInherit
+                      small
+                      bind:value={columnIsClicked.curvature.verticalSpacing}
+                      on:change={updateProto}
+                      inherit={nthCurvature($protoConfig, $clickedKey, 'verticalSpacing', 'cluster')}
+                    />
+                  {:else if $hoveredKey != null && columnIsHovered}<span
+                      class="fallback"
+                      class:inherit={typeof columnIsHovered.curvature.verticalSpacing == 'undefined'}
+                    >
+                      {nthCurvature($protoConfig, $hoveredKey, 'verticalSpacing', 'column')}
+                    </span>
+                  {:else}<span class="fallback">-</span>{/if}
+                </Field>
+              </div>
             </div>
-          </div>
-        {/if}
-      </div>
-    {/if}
+            <div class="tab">
+              <div class="tabhead">Column Position</div>
+              <div class="px-2 py-1">
+                <Field small name={sphereColumn ? 'Angle' : 'Column'}>
+                  {#if columnIsClicked && columnIsClicked}
+                    {#if sphereColumn}<AngleInput
+                        small
+                        bind:value={columnIsClicked.column}
+                        on:change={updateProto}
+                        divisor={100}
+                      />
+                    {:else}<DecimalInput
+                        small
+                        bind:value={columnIsClicked.column}
+                        on:change={updateProto}
+                        divisor={100}
+                      />
+                    {/if}
+                  {:else if columnIsHovered}<span class="fallback">
+                      {columnIsHovered.column}{#if sphereColumn}&deg;{/if}
+                    </span>
+                  {:else}<span class="fallback">-</span>{/if}
+                </Field>
+                {#if !sphereColumn}
+                  <Field small name="Splay">
+                    {#if $clickedKey != null}
+                      <AngleInput
+                        small
+                        value={nthSplay($protoConfig, $clickedKey)}
+                        on:change={setFingerSplay}
+                      />
+                    {:else if $hoveredKey != null}
+                      <span class="fallback"
+                        >{Math.round(nthSplay($protoConfig, $hoveredKey) / 4.5) / 10}&deg;</span
+                      >
+                    {:else}
+                      <span class="fallback">-</span>
+                    {/if}
+                  </Field>
+                {/if}
+                <div class="my-2" />
+                <Field small name="Offset X" icon="movex" iconColor="#ff3653">
+                  {#if $clickedKey != null}<DecimalInput small bind:value={$cpositionX} />
+                  {:else if hoveredCPosition}<span class="fallback">{hoveredCPosition[0] / 10}</span>
+                  {:else}<span class="fallback">-</span>{/if}
+                </Field>
+                <Field small name="Offset Y" icon="movey" iconColor="#8adb00">
+                  {#if $clickedKey != null}<DecimalInput small bind:value={$cpositionY} />
+                  {:else if hoveredCPosition}<span class="fallback">{hoveredCPosition[1] / 10}</span>
+                  {:else}<span class="fallback">-</span>{/if}
+                </Field>
+                <Field small name="Offset Z" icon="movez" iconColor="#2c8fff">
+                  {#if $clickedKey != null}<DecimalInput small bind:value={$cpositionZ} />
+                  {:else if hoveredCPosition}<span class="fallback">{hoveredCPosition[2] / 10}</span>
+                  {:else}<span class="fallback">-</span>{/if}
+                </Field>
+                <div class="my-2" />
+                <Field small name="Rotation X" icon="rotatex" iconColor="#ff3653">
+                  {#if $clickedKey != null}
+                    <AngleInput small bind:value={$crotationX} />
+                  {:else if hoveredCRotation}
+                    <span class="fallback">{Math.round(hoveredCRotation[0] / 4.5) / 10}&deg;</span>
+                  {:else}
+                    <span class="fallback">-</span>
+                  {/if}
+                </Field>
+                <Field small name="Rotation Y" icon="rotatey" iconColor="#8adb00">
+                  {#if $clickedKey != null}
+                    <AngleInput small bind:value={$crotationY} />
+                  {:else if hoveredCRotation}
+                    <span class="fallback">{Math.round(hoveredCRotation[1] / 4.5) / 10}&deg;</span>
+                  {:else}
+                    <span class="fallback">-</span>
+                  {/if}
+                </Field>
+                <Field small name="Rotation Z" icon="rotatez" iconColor="#2c8fff">
+                  {#if $clickedKey != null}
+                    <AngleInput small bind:value={$crotationZ} />
+                  {:else if hoveredCRotation}
+                    <span class="fallback">{Math.round(hoveredCRotation[2] / 4.5) / 10}&deg;</span>
+                  {:else}
+                    <span class="fallback">-</span>
+                  {/if}
+                </Field>
+              </div>
+            </div>
+          {:else if $selectMode == 'cluster'}
+            <div class="tab">
+              <div class="tabhead">
+                Cluster Curvature
+                {#if clusterType}<button class="ctbutton" on:click={() => changeCType(clusterIsClicked)}>
+                    {clusterType}
+                  </button>{/if}
+              </div>
+              <div class="px-2 py-1">
+                <Field small name="Row Curve" icon="row-curve">
+                  {#if clusterIsClicked && $clickedKey != null}<AngleInputInherit
+                      small
+                      bind:value={clusterIsClicked.curvature.curvatureA}
+                      on:change={updateProto}
+                      inherit={nthCurvature($protoConfig, $clickedKey, 'curvatureA', 'kb')}
+                    />
+                  {:else if $hoveredKey != null && clusterIsHovered}<span
+                      class="fallback"
+                      class:inherit={typeof clusterIsHovered.curvature.curvatureA == 'undefined'}
+                    >
+                      {nthCurvature($protoConfig, $hoveredKey, 'curvatureA', 'cluster')}&deg;
+                    </span>
+                  {:else}<span class="fallback">-</span>{/if}
+                </Field>
+                <Field small name="Col Curve" icon="column-curve">
+                  {#if clusterIsClicked && $clickedKey != null}<AngleInputInherit
+                      small
+                      bind:value={clusterIsClicked.curvature.curvatureB}
+                      on:change={updateProto}
+                      inherit={nthCurvature($protoConfig, $clickedKey, 'curvatureB', 'kb')}
+                    />
+                  {:else if $hoveredKey != null && clusterIsHovered}<span
+                      class="fallback"
+                      class:inherit={typeof clusterIsHovered.curvature.curvatureB == 'undefined'}
+                    >
+                      {nthCurvature($protoConfig, $hoveredKey, 'curvatureB', 'cluster')}&deg;
+                    </span>
+                  {:else}<span class="fallback">-</span>{/if}
+                </Field>
+                <Field small name="Arc" icon="bulge">
+                  {#if clusterIsClicked && $clickedKey != null}<DecimalInputInherit
+                      small
+                      bind:value={clusterIsClicked.curvature.arc}
+                      on:change={updateProto}
+                      inherit={nthCurvature($protoConfig, $clickedKey, 'arc', 'kb')}
+                    />
+                  {:else if $hoveredKey != null && clusterIsHovered}<span
+                      class="fallback"
+                      class:inherit={typeof clusterIsHovered.curvature.arc == 'undefined'}
+                    >
+                      {nthCurvature($protoConfig, $hoveredKey, 'arc', 'cluster')}&deg;
+                    </span>
+                  {:else}<span class="fallback">-</span>{/if}
+                </Field>
+                <div class="my-2" />
+                <Field small name="H Spacing" icon="expand-horizontal">
+                  {#if clusterIsClicked && $clickedKey != null}<DecimalInputInherit
+                      small
+                      bind:value={clusterIsClicked.curvature.horizontalSpacing}
+                      on:change={updateProto}
+                      inherit={nthCurvature($protoConfig, $clickedKey, 'horizontalSpacing', 'kb')}
+                    />
+                  {:else if $hoveredKey != null && clusterIsHovered}<span
+                      class="fallback"
+                      class:inherit={typeof clusterIsHovered.curvature.horizontalSpacing == 'undefined'}
+                    >
+                      {nthCurvature($protoConfig, $hoveredKey, 'horizontalSpacing', 'cluster')}
+                    </span>
+                  {:else}<span class="fallback">-</span>{/if}
+                </Field>
+                <Field small name="V Spacing" icon="expand-vertical">
+                  {#if clusterIsClicked && $clickedKey != null}<DecimalInputInherit
+                      small
+                      bind:value={clusterIsClicked.curvature.verticalSpacing}
+                      on:change={updateProto}
+                      inherit={nthCurvature($protoConfig, $clickedKey, 'verticalSpacing', 'kb')}
+                    />
+                  {:else if $hoveredKey != null && clusterIsHovered}<span
+                      class="fallback"
+                      class:inherit={typeof clusterIsHovered.curvature.verticalSpacing == 'undefined'}
+                    >
+                      {nthCurvature($protoConfig, $hoveredKey, 'verticalSpacing', 'cluster')}
+                    </span>
+                  {:else}<span class="fallback">-</span>{/if}
+                </Field>
+              </div>
+            </div>
+            <div class="tab">
+              <div class="tabhead">Cluster Position</div>
+              <div class="px-2 py-1">
+                <Field small name="Offset X" icon="movex" iconColor="#ff3653">
+                  {#if $clickedKey != null}<DecimalInput small bind:value={$lpositionX} />
+                  {:else if hoveredLPosition}<span class="fallback">{hoveredLPosition[0] / 10}</span>
+                  {:else}<span class="fallback">-</span>{/if}
+                </Field>
+                <Field small name="Offset Y" icon="movey" iconColor="#8adb00">
+                  {#if $clickedKey != null}<DecimalInput small bind:value={$lpositionY} />
+                  {:else if hoveredLPosition}<span class="fallback">{hoveredLPosition[1] / 10}</span>
+                  {:else}<span class="fallback">-</span>{/if}
+                </Field>
+                <Field small name="Offset Z" icon="movez" iconColor="#2c8fff">
+                  {#if $clickedKey != null}<DecimalInput small bind:value={$lpositionZ} />
+                  {:else if hoveredLPosition}<span class="fallback">{hoveredLPosition[2] / 10}</span>
+                  {:else}<span class="fallback">-</span>{/if}
+                </Field>
+                <div class="my-2" />
+                <Field small name="Rotation X" icon="rotatex" iconColor="#ff3653">
+                  {#if $clickedKey != null}
+                    <DecimalInput small bind:value={$lrotationX} divisor={45} />
+                  {:else if hoveredLRotation}
+                    <span class="fallback">{Math.round(hoveredLRotation[0] / 4.5) / 10}</span>
+                  {:else}
+                    <span class="fallback">-</span>
+                  {/if}
+                </Field>
+                <Field small name="Rotation Y" icon="rotatey" iconColor="#8adb00">
+                  {#if $clickedKey != null}
+                    <DecimalInput small bind:value={$lrotationY} divisor={45} />
+                  {:else if hoveredLRotation}
+                    <span class="fallback">{Math.round(hoveredLRotation[1] / 4.5) / 10}</span>
+                  {:else}
+                    <span class="fallback">-</span>
+                  {/if}
+                </Field>
+                <Field small name="Rotation Z" icon="rotatez" iconColor="#2c8fff">
+                  {#if $clickedKey != null}
+                    <DecimalInput small bind:value={$lrotationZ} divisor={45} />
+                  {:else if hoveredLRotation}
+                    <span class="fallback">{Math.round(hoveredLRotation[2] / 4.5) / 10}</span>
+                  {:else}
+                    <span class="fallback">-</span>
+                  {/if}
+                </Field>
+              </div>
+            </div>
+          {/if}
+        </div>
+      {/if}
+    </div>
   </div>
-</div>
+{/if}
 
 <NewViewer {style} bind:cameraPosition {enableRotate} {enableZoom} enablePan={true} suggestedSize={size}>
   {#each objEntriesNotNull(geometry) as [kbd, geo] (kbd)}
@@ -1356,32 +1372,32 @@
           reachability={kbd != 'left' ? reachabilityArr : undefined}
           side={kbd}
         />
+        {#if flags.intersection}
+          {#each componentBoxes(geo.c, geo) as box}
+            <T.Mesh geometry={componentGeometry(box)} material={new KeyMaterial(1, 1, 'red')} />
+          {/each}
+        {/if}
+        {#if $showKeyInts}
+          {#each geo.c.keys as k, i}
+            <GroupMatrix matrix={geo.keyHolesTrsfs[i].Matrix4()}>
+              {#each simpleSocketGeos(k.type) as g}
+                <T.Mesh geometry={g}><KeyboardMaterial status="error" kind="key" /></T.Mesh>
+              {/each}
+              {@const skey = simpleKeyGeo(k, true)}
+              {#if skey}
+                <GroupMatrix matrix={simpleKeyPosition(k, new Trsf()).Matrix4()}>
+                  <T.Mesh geometry={skey}><KeyboardMaterial status="error" kind="key" /></T.Mesh>
+                </GroupMatrix>
+              {/if}
+            </GroupMatrix>
+          {/each}
+        {/if}
       </T.Group>
     {/if}
   {/each}
   <slot />
   {@const bestC = center.unibody || center.right || center.left}
   <T.Group position={[-bestC[0], -bestC[1], -bestC[2]]}>
-    {#if flags.intersection && conf && geometry.right}
-      {#each componentBoxes(conf, geometry.right) as box}
-        <T.Mesh geometry={componentGeometry(box)} material={new KeyMaterial(1, 1, 'red')} />
-      {/each}
-    {/if}
-    {#if $showKeyInts && geometry.right && conf}
-      {#each conf.keys as k, i}
-        <GroupMatrix matrix={geometry.right.keyHolesTrsfs[i].Matrix4()}>
-          {#each simpleSocketGeos(k.type) as g}
-            <KeyboardMesh geometry={g} status="error" kind="key" />
-          {/each}
-          {@const skey = simpleKeyGeo(k, true)}
-          {#if skey}
-            <GroupMatrix matrix={simpleKeyPosition(k, new Trsf()).Matrix4()}>
-              <KeyboardMesh geometry={skey} status="error" kind="key" />
-            </GroupMatrix>
-          {/if}
-        </GroupMatrix>
-      {/each}
-    {/if}
     {#if conf && flags.hand && showHand && jointsJSON}
       <T.Group
         position={$view == 'left' ? leftHandPosition : rightHandPosition}

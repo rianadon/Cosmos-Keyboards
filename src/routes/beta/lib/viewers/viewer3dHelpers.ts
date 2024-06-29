@@ -126,9 +126,11 @@ export function addKeyInPlace(keeb: CosmosKeyboard, n: number, dx: number, dy: n
   const col = key.column || column.column
   if (typeof col == 'undefined') return undefined
   const columnCluster = cluster.clusters.find((c) => c.column == col + dx)
+  const oldRow = key.profile.row
   let newKey: CosmosKey = {
     profile: {
       letter: adjacentKeycapLetter(key.profile.letter, dx, dy),
+      row: typeof oldRow != 'undefined' ? Math.max(1, Math.min(4, oldRow + dy)) : undefined,
       home: null,
     },
     partType: {},

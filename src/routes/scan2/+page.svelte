@@ -9,8 +9,10 @@
   import PoseResults from './steps/PoseResults.svelte'
   import { step } from './store'
   import PastMeasurements from './lib/PastMeasurements.svelte'
+  import LengthInstructions from './steps/LengthInstructions.svelte'
+  import PoseInstructions from './steps/PoseInstructions.svelte'
 
-  $: if ($step == 9) setTimeout(() => window.close(), 300)
+  $: if ($step == 11) setTimeout(() => window.close(), 300)
   let fullScreenErr = false
 
   function startScan() {
@@ -74,19 +76,23 @@
   {:else if $step == 2}
     <Pairing />
   {:else if $step == 3}
+    <LengthInstructions />
+  {:else if $step == 4}
     <MeasureLengths desiredHand="Left" />
     <!-- <CameraCalibration /> -->
-  {:else if $step == 4}
-    <LengthResults desiredHand="Left" />
   {:else if $step == 5}
-    <MeasureLengths desiredHand="Right" />
+    <LengthResults desiredHand="Left" />
   {:else if $step == 6}
-    <LengthResults desiredHand="Right" otherHand="Left" />
+    <MeasureLengths desiredHand="Right" />
   {:else if $step == 7}
-    <MeasurePose />
+    <LengthResults desiredHand="Right" otherHand="Left" />
   {:else if $step == 8}
-    <PoseResults />
+    <PoseInstructions />
   {:else if $step == 9}
+    <MeasurePose />
+  {:else if $step == 10}
+    <PoseResults />
+  {:else if $step == 11}
     You can safely close this tab.
   {/if}
 </main>

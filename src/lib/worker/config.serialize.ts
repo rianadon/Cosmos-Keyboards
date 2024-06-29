@@ -115,7 +115,7 @@ export function decodeProfile(flags: number): Profile {
   return { profile: profile ?? undefined, row: row + 1, letter, home: home || inferredHoming || null }
 }
 
-const KEYBOARD_DEFAULTS: Keyboard = {
+export const KEYBOARD_DEFAULTS: Keyboard = {
   keyProfile: encodeProfile({ profile: 'xda' }),
   partType: encodePartType({ type: 'mx-better', aspect: 1 }),
   curvature: {
@@ -134,7 +134,7 @@ const KEYBOARD_DEFAULTS: Keyboard = {
   microcontroller: encodeMicrocontroller({ microcontroller: 'kb2040-adafruit', fastenMicrocontroller: true }),
   roundedFlags: encodeRoundedFlags({ side: false, top: false }),
   keyboardFlags: encodeKeyboardFlags({ wrEnable: true, unibody: false }),
-  wristRestPosition: encodeTuple([100, -1000, 0]),
+  wristRestPosition: encodeTuple([100, -1100, 0]),
   cluster: [],
   shell: {
     oneofKind: 'basicShell',

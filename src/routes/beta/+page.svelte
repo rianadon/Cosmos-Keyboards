@@ -2,6 +2,10 @@
   import { base } from '$app/paths'
   import { browser } from '$app/environment'
   import App from './App.svelte'
+  import { hasPro } from '@pro/index'
+  import { getUser } from './lib/login'
+  import V3Dialog from './lib/dialogs/V3Dialog.svelte'
+  import { user } from '$lib/store'
 </script>
 
 <svelte:head>
@@ -13,5 +17,17 @@
 <svelte:body class="bg-white dark:bg-gray-800 dark:text-white" />
 
 {#if browser}
-  <App />
+  {#if hasPro}
+    {#await getUser()}
+      Checking for pro access...
+    {:then us}
+      {#if us.sponsor || $user.sponsor}
+        <App />
+      {:else}
+        <V3Dialog hasClose={false} />
+      {/if}
+    {/await}
+  {:else}
+    <App />
+  {/if}
 {/if}

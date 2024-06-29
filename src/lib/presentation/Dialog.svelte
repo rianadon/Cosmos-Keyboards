@@ -4,8 +4,9 @@
   import Icon from '$lib/presentation/Icon.svelte'
 
   export let big = false
-  export let center = false
+  export let dialogcls = ''
   export let forceDark = false
+  export let hasClose = true
   const dispatch = createEventDispatcher()
 
   onMount(() => {
@@ -21,7 +22,7 @@
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <div class="fixed inset-0 bg-gray-900/80 z-20" on:click={close}>
-  <div class="absolute left-0 right-0 {center ? 'top-[calc(50%-10rem)]' : 'top-4 md:top-24'} bottom-4">
+  <div class="absolute left-0 right-0 {dialogcls ? dialogcls : 'top-4 md:top-24'} bottom-4">
     <div
       class="mx-auto {big
         ? 'w-[50rem]'
@@ -34,13 +35,15 @@
         <h3 class="text-2xl font-medium {forceDark ? 'text-white' : 'text-gray-900 dark:text-white'}">
           <slot name="title" />
         </h3>
-        <button class="absolute right-0 top-1" on:click={close}>
-          <Icon
-            path={mdiClose}
-            size="24"
-            class={forceDark ? 'text-gray-100' : 'text-gray-800 dark:text-gray-100'}
-          />
-        </button>
+        {#if hasClose}
+          <button class="absolute right-0 top-1" on:click={close}>
+            <Icon
+              path={mdiClose}
+              size="24"
+              class={forceDark ? 'text-gray-100' : 'text-gray-800 dark:text-gray-100'}
+            />
+          </button>
+        {/if}
       </div>
       <div class="mt-2 py-3 text-start">
         <slot name="content" />

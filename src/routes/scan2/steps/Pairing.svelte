@@ -8,6 +8,7 @@
   let status = '[1/6] Connecting to signalling server'
   let wifiWarning = false
   let added = false
+  let showPairLink = false
 
   const ws = new WebSocket('wss://cosmos.ryanis.cool/signal')
   const pc = new RTCPeerConnection()
@@ -105,6 +106,8 @@
           Scan the QR code below. On most phones you can scan a code using the built-in camera app.
         </p>
         <Qrcode style="margin: 1rem auto; border-radius: 0.25rem;" value={pairURL} />
+        <button class="hover:underline" on:click={() => (showPairLink = true)}>show pairing url</button>
+        {#if showPairLink}<p>{pairURL}</p>{/if}
       {/if}
     </div>
     <br />

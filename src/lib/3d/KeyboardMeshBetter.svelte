@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Vector3, type BufferGeometry } from 'three'
+  import { type BufferGeometry } from 'three'
   import KeyboardMaterial from './KeyboardMaterial.svelte'
   import type { KeyStatus } from './keyboardKey'
   import { T } from '@threlte/core'
@@ -27,7 +27,7 @@
 </script>
 
 {#if threeGeo}
-  <T.Mesh geometry={threeGeo} {...$$restProps} visible={$$restProps.visible && opacity > 0} let:ref>
+  <T.Mesh geometry={threeGeo} {...$$restProps} visible={$$restProps.visible && opacity > 0}>
     <KeyboardMaterial {opacity} {brightness} {kind} {status} {letter} />
   </T.Mesh>
 {/if}
