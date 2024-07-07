@@ -44,12 +44,18 @@ async function writeModel(filename: string, model: AnyShape) {
 }
 
 async function writeMesh(filename: string, model: AnyShape) {
-  const mesh = model.mesh({ tolerance: 0.1, angularTolerance: 10 })
   const oc = getOC() as OpenCascadeInstance
   const props = new oc.GProp_GProps_1()
   oc.BRepGProp.VolumeProperties_2(model.wrapped, props, 0.01, false, true)
-  const mass = props.Mass()
+  let mass = props.Mass()
   props.delete()
+  // Flip all faces if mass is negative
+  if (mass < 0) {
+    mass = -mass
+    model.wrapped.Reverse()
+  }
+
+  const mesh = model.mesh({ tolerance: 0.1, angularTolerance: 10 })
   model.delete()
   const geometry = fromGeometry(mesh)
   await exportGLTF(filename, geometry!)
@@ -124,18 +130,18 @@ async function main() {
   poolDisplaySocket('oled-128x32-0.91in-dfrobot', dfDisplayProps)
 
   // Make all combinations of trackballs
-  // for3(
-  //   [25, 34],
-  //   ['Roller', 'Ball'] as TrackballOptions['bearings'][],
-  //   ['Joe'] as TrackballOptions['sensor'][],
-  // )(
-  //   (diameter, bearings, sensor) => {
-  //     pool.add(`${diameter}mm trackball, ${bearings}, ${sensor}`, async () => {
-  //       const stepName = join(targetDir, `key-trackball-${diameter}mm-${bearings}-${sensor}.step`)
-  //       await writeModel(stepName, trackballSocket({ diameter, bearings, sensor }))
-  //     })
-  //   },
-  // )
+  for3(
+    [25, 34],
+    ['Roller', 'Ball'] as TrackballOptions['bearings'][],
+    ['Joe'] as TrackballOptions['sensor'][],
+  )(
+    (diameter, bearings, sensor) => {
+      pool.add(`${diameter}mm trackball, ${bearings}, ${sensor}`, async () => {
+        const stepName = join(targetDir, `key-trackball-${diameter}mm-${bearings}-${sensor}.step`.toLowerCase())
+        await writeModel(stepName, trackballSocket({ diameter, bearings, sensor }))
+      })
+    },
+  )
 
   await pool.run()
 

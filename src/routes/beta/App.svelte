@@ -98,6 +98,8 @@
   let state: State = deserialize(browser ? location.hash.substring(1) : '', () =>
     deserialize('cm', null)
   )
+  if (state.error)
+    confError.set({ type: 'exception', error: state.error, side: 'right', when: 'parsing URL' })
   console.log('state', state)
   let initialEditorContent = state.content
 
@@ -1056,12 +1058,14 @@
       </div>
 
       {#if mode == 'basic' || mode == 'intermediate'}
-        <VisualEditor2
-          basic={mode == 'basic'}
-          cosmosConf={state.options}
-          bind:conf={config}
-          on:goAdvanced={() => (mode = 'intermediate')}
-        />
+        {#if !state.error}
+          <VisualEditor2
+            basic={mode == 'basic'}
+            cosmosConf={state.options}
+            bind:conf={config}
+            on:goAdvanced={() => (mode = 'intermediate')}
+          />
+        {/if}
       {:else}
         <Editor
           bind:initialContent={initialEditorContent}

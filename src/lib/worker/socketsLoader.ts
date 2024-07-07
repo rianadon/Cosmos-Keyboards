@@ -37,7 +37,7 @@ export const KEY_URLS: Record<CuttleKey['type'], string> = {
 
 const keyCacher = makeAsyncCacher(async (key: CuttleKey) => {
   if (key.type == 'blank') return makeBaseBox(key.size?.width ?? 18.5, key.size?.height ?? 18.5, 5).translateZ(-5)
-  const url = KEY_URLS[key.type] + variantURL(key)
+  const url = KEY_URLS[key.type].replace('.step', variantURL(key) + '.step')
   if (!url) throw new Error(`No model for key ${key.type}`)
   const urls = keyUrls || JSON.parse(process.env.SOCKET_URLS!)
   if (!urls[url]) throw new Error(`Model for url ${url} does not exist`)
