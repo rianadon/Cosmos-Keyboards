@@ -1,5 +1,6 @@
 import cuttleform from '$assets/cuttleform.json' assert { type: 'json' }
 import { cuttleConf, type Cuttleform, type CuttleKey, orbylThumbs } from '$lib/worker/config'
+import { fromCosmosConfig } from '$lib/worker/config.cosmos'
 import ETrsf from '$lib/worker/modeling/transformation-ext'
 import { for2, range } from '$lib/worker/util'
 import { deserialize } from '../routes/beta/lib/serialize'
@@ -25,7 +26,7 @@ async function renderMult(confs: Cuttleform[], filename: string, opts?: Opts) {
 
 async function renderURL(hash: string, filename: string, opts?: Opts) {
   const proto = deserialize(hash, cuttleform).options as any
-  const conf = cuttleConf(proto)
+  const conf = fromCosmosConfig(proto).right!
   const img = await render(conf, opts?.parts, 5000, 5000, { color: COLOR, ...opts })
   await img.resize(500, 500, { fit: 'outside' }).trim().toFile(filename)
 }
@@ -297,12 +298,12 @@ async function main() {
   const pool = new PromisePool()
   const docs = (name: string) => 'docs/assets/target/' + name
 
-  pool.add('Sphere', () => renderTrimmed(kbSphere(), docs('sphere.png'), { parts: ['holes'] }))
-  pool.add('Matrix', () => renderTrimmed(kbMatrix(), docs('/matrix.png'), { parts: ['holes'] }))
-  pool.add('Stadium', () => renderTrimmed(kbStadium(), docs('/stadium.png'), { cameraPos: [-1, 0.5, 0] }))
-  pool.add('OpenSource', () => renderMult(kbOpenSource(), docs('/gen-opensource.png'), { zoom: 300, cameraPos: [0, 1, 0.4] }))
-  pool.add('Cosmos', () => renderMult(kbCosmos(), docs('/gen-cosmos.png'), { zoom: 350, cameraPos: [0, 1, 0.4] }))
-  pool.add('Adaptive', () => renderTrimmed(kbAdaptive(), docs('/adaptive.png'), { cameraPos: [1, 0.1, 0], parts: ['holes', 'web'] }))
+  // pool.add('Sphere', () => renderTrimmed(kbSphere(), docs('sphere.png'), { parts: ['holes'] }))
+  // pool.add('Matrix', () => renderTrimmed(kbMatrix(), docs('/matrix.png'), { parts: ['holes'] }))
+  // pool.add('Stadium', () => renderTrimmed(kbStadium(), docs('/stadium.png'), { cameraPos: [-1, 0.5, 0] }))
+  // pool.add('OpenSource', () => renderMult(kbOpenSource(), docs('/gen-opensource.png'), { zoom: 300, cameraPos: [0, 1, 0.4] }))
+  // pool.add('Cosmos', () => renderMult(kbCosmos(), docs('/gen-cosmos.png'), { zoom: 350, cameraPos: [0, 1, 0.4] }))
+  // pool.add('Adaptive', () => renderTrimmed(kbAdaptive(), docs('/adaptive.png'), { cameraPos: [1, 0.1, 0], parts: ['holes', 'web'] }))
   pool.add(
     'VerticalWeb',
     () =>

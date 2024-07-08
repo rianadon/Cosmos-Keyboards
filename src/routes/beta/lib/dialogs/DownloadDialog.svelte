@@ -1,7 +1,7 @@
 <script lang="ts">
   import { modelName, user } from '$lib/store'
   import { isPro } from '$lib/worker/check'
-  import { newGeometry, type Cuttleform, type FullCuttleform } from '$lib/worker/config'
+  import { newGeometry, setBottomZ, type Cuttleform, type FullCuttleform } from '$lib/worker/config'
   import Dialog from '$lib/presentation/Dialog.svelte'
   import * as flags from '$lib/flags'
   import { createEventDispatcher } from 'svelte'
@@ -30,9 +30,12 @@
   let generatingError: Error | undefined
 
   function downloadSTEP(side: 'left' | 'right' | 'unibody') {
-    if (side != 'unibody' && !config[side!]?.bottomZ) {
+    if (!config) {
       generatingError = new Error('Configuration has not yet been evaluated')
       return
+    }
+    if (side != 'unibody' && !config[side!]?.bottomZ) {
+      setBottomZ(config)
     }
     const begin = window.performance.now()
     generatingSTEP = true
@@ -58,9 +61,12 @@
   }
 
   function downloadSTL(model: string, side: 'left' | 'right' | 'unibody') {
-    if (side != 'unibody' && !config[side!]?.bottomZ) {
+    if (!config) {
       generatingError = new Error('Configuration has not yet been evaluated')
       return
+    }
+    if (side != 'unibody' && !config[side!]?.bottomZ) {
+      setBottomZ(config)
     }
     const begin = window.performance.now()
     generatingSTL = true

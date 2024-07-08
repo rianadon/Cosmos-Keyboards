@@ -68,7 +68,7 @@ jobs:
           bun-version: latest
 
       - name: Install npm dependencies
-        run: bun install --production
+        run: bun install
 
       - name: Install openscad
         run: choco install openscad

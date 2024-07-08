@@ -1,5 +1,5 @@
 import type { Mesh } from 'three'
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { makeAsyncCacher } from './cacher'
 
 let glbUrls: Record<string, { default: string }> | undefined = {}

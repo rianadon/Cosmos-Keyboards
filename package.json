@@ -64,8 +64,7 @@
     "vite": "^5.3.3"
   },
   "optionalDependencies": {
-    "canvas": "^2.11.2",
-    "gl": "^8.0.2"
+    "playwright": "^1.45.1"
   },
   "type": "module",
   "simple-git-hooks": {
