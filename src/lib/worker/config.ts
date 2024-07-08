@@ -1,8 +1,7 @@
 import type manuform from '$assets/manuform.json'
 import { socketSize } from '$lib/geometry/socketsParts'
+import type { CuttleKey, MicrocontrollerName } from '$target/cosmosStructs'
 import { StiltsGeometry } from '@pro/stiltsGeo'
-import type { FullGeometry } from 'src/routes/beta/lib/viewers/viewer3dHelpers'
-import type { CuttleKey, MicrocontrollerName } from 'target/cosmosStructs'
 import { Matrix4, Vector3 } from 'three'
 import {
   CONNECTOR,
@@ -25,6 +24,7 @@ import {
   SCREW_TYPE,
   SWITCH,
 } from '../../../target/proto/cuttleform'
+import type { FullGeometry } from '../../routes/beta/lib/viewers/viewer3dHelpers'
 import { BaseGeometry, BlockGeometry, TiltGeometry } from './cachedGeometry'
 import type { CosmosCluster, CosmosKey, CosmosKeyboard } from './config.cosmos'
 import { estimatedBB, estimatedCenter } from './geometry'
@@ -88,6 +88,8 @@ export interface SpecificCuttleform<S> {
   }
   wristRestOrigin: ETrsf
   microcontroller: MicrocontrollerName
+  /* Angle at which microcontroller should be placed */
+  microcontrollerAngle: number
   fastenMicrocontroller: boolean
   /** Additional height to add to the model. */
   verticalClearance: number

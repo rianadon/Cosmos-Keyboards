@@ -40,23 +40,23 @@ target/PseudoProfiles:
 target/PseudoProfiles/libraries: target/PseudoProfiles
 	cd target/PseudoProfiles && unzip libraries.zip && mv libraries/* .
 
-keycaps: target/KeyV2 target/PseudoProfiles/libraries
+keycaps: target/KeyV2 target/PseudoProfiles/libraries build
 	$(NODE) src/model_gen/keycaps.ts
-keycaps-simple: target/KeyV2 target/PseudoProfiles/libraries
+keycaps-simple: target/KeyV2 target/PseudoProfiles/libraries build
 	$(NODE) src/model_gen/keycaps-simple.ts
-keycaps2: target/KeyV2 target/PseudoProfiles/libraries
+keycaps2: target/KeyV2 target/PseudoProfiles/libraries build
 	$(NODE) src/model_gen/keycaps2.ts
-keycaps-simple2: target/KeyV2 target/PseudoProfiles/libraries
+keycaps-simple2: target/KeyV2 target/PseudoProfiles/libraries build
 	$(NODE) src/model_gen/keycaps-simple2.ts
-keyholes:
+keyholes: build
 	$(NODE) src/model_gen/keyholes.ts
-parts:
+parts: build
 	$(NODE) src/model_gen/parts.ts
-parts-simple:
+parts-simple: build
 	$(NODE) src/model_gen/parts-simple.ts
 optimize:
 	$(NODE) src/compress-media.ts
-keyboards:
+keyboards: build
 	$(NODE) src/model_gen/keyboards.ts
 
 dev:

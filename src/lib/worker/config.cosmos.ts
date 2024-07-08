@@ -71,6 +71,7 @@ export type CosmosKeyboard =
     keyBasis: Keycap['profile']
     screwIndices: number[]
     microcontroller: Cuttleform['microcontroller'] | null
+    microcontrollerAngle: number
     fastenMicrocontroller: boolean
     clusters: CosmosCluster[]
     verticalClearance: number
@@ -293,6 +294,7 @@ export function toCosmosConfig(conf: Cuttleform, side: 'left' | 'right' | 'unibo
     screwCountersink: conf.screwCountersink,
     clearScrews: conf.clearScrews,
     microcontroller: conf.microcontroller,
+    microcontrollerAngle: conf.microcontrollerAngle,
     fastenMicrocontroller: conf.fastenMicrocontroller,
     verticalClearance: conf.verticalClearance,
     rounded: conf.rounded,
@@ -389,6 +391,7 @@ export function sideFromCosmosConfig(c: CosmosKeyboard, side: 'left' | 'right' |
     connectorSizeUSB: c.connectorSizeUSB,
     connectorIndex: c.connectorIndex,
     microcontroller: c.microcontroller,
+    microcontrollerAngle: c.microcontrollerAngle,
     fastenMicrocontroller: c.fastenMicrocontroller,
     wristRest: c.wristRestEnable ? { ...c.wristRestProps } : undefined,
     wristRestOrigin: new ETrsf().translate(wrPos[0] / 10, wrPos[1] / 10, wrPos[2] / 10),

@@ -61,6 +61,8 @@ message KeyboardExtra {
   optional sint32 wrist_rest_angle = 12;
   optional sint32 wrist_rest_slope = 13;
   optional sint32 wrist_rest_tenting = 14;
+
+  optional sint32 microcontroller_angle = 15;
 }
 
 message Curvature {

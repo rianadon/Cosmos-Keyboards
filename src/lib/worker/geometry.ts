@@ -647,7 +647,7 @@ export function wallXToY(walls: WallCriticalPoints[], x: number, start: number, 
   return null
 }
 
-export function originForConnector(c: Cuttleform, walls: WallCriticalPoints[], surfaces: Line[][], wall: number) {
+export function originForConnector(c: Cuttleform, initwalls: WallCriticalPoints[], surfaces: Line[][], wall: number) {
   const idx = Math.floor(wall)
   // const surf = surfaces[idx]
   // const next = surfaces[(idx + 1) % surfaces.length]
@@ -657,8 +657,16 @@ export function originForConnector(c: Cuttleform, walls: WallCriticalPoints[], s
 
   // let [horizTangent, vertTangent] = bezierTangentAtZ1(wallBiMi, idx)
   // vertTangent.normalize()
-  let vertTangent = walls[idx].mi.origin().sub(walls[idx].bi.origin()).normalize()
+  let vertTangent = initwalls[idx].mi.origin().sub(initwalls[idx].bi.origin()).normalize()
   let horizTangent = new Vector(vertTangent.z, 0, -vertTangent.x).normalize()
+
+  // Form the wrist rest by considering all walls roated by the wrist rest angle
+  // At the end of the function, everything is rotated back.
+  const transformation = new Trsf()
+    .coordSystemChange(new Vector(), horizTangent, vertTangent)
+    .rotate(c.microcontrollerAngle || 0, [0, 0, 0], vertTangent.xyz())
+  const walls = initwalls.map(p => transformCriticalPoint(p, transformation.inverted()))
+
   // if (vertTangent.z < 0) vertTangent.negate()
   vertTangent.normalize().add(new Vector(0, 0, 1))
   vertTangent.addScaledVector(horizTangent, -vertTangent.dot(horizTangent)).normalize()
@@ -677,8 +685,7 @@ export function originForConnector(c: Cuttleform, walls: WallCriticalPoints[], s
     }
     pos.add(new Vector(0, Math.min(...ys) - pos.y + BOARD_HOLDER_OFFSET, 0))
   }
-  return walls[0].bi.cleared()
-    .coordSystemChange(pos, horizTangent, vertTangent)
+  return new Trsf().translate(pos.xyz()).premultiply(transformation)
 }
 
 function cubicBezier(t: number, a: number, b: number, c: number, d: number) {
@@ -1422,18 +1429,18 @@ export function boardPositions(c: Cuttleform, connOrigin: Trsf, walls: WallCriti
   return positionsImplMap(c, walls, z, boardIndices(c, connOrigin, walls, z, bottomZ, select) as any)
 }
 
-function rotateCriticalPoint(pt: WallCriticalPoints, angle: number, position: Vector3Tuple, direction: Vector3Tuple): WallCriticalPoints {
+function transformCriticalPoint(pt: WallCriticalPoints, trsf: Trsf): WallCriticalPoints {
   return {
     ...pt,
-    ti: pt.ti.rotated(angle, position, direction),
-    to: pt.to.rotated(angle, position, direction),
-    mi: pt.mi.rotated(angle, position, direction),
-    ki: pt.ki.rotated(angle, position, direction),
-    mo: pt.mo.rotated(angle, position, direction),
-    bi: pt.bi.rotated(angle, position, direction),
-    bo: pt.bo.rotated(angle, position, direction),
-    si: pt.si?.rotated(angle, position, direction),
-    sm: pt.sm?.rotated(angle, position, direction),
+    ti: pt.ti.premultiplied(trsf),
+    to: pt.to.premultiplied(trsf),
+    mi: pt.mi.premultiplied(trsf),
+    ki: pt.ki.premultiplied(trsf),
+    mo: pt.mo.premultiplied(trsf),
+    bi: pt.bi.premultiplied(trsf),
+    bo: pt.bo.premultiplied(trsf),
+    si: pt.si?.premultiplied(trsf),
+    sm: pt.sm?.premultiplied(trsf),
   }
 }
 
@@ -1443,7 +1450,7 @@ export function wristRestGeometry(c: Cuttleform, geo: Geometry) {
   // Form the wrist rest by considering all walls roated by the wrist rest angle
   // At the end of the function, everything is rotated back.
   const origin = new ETrsf(c.wristRestOrigin.history).evaluate({ flat: false }).xyz()
-  const walls = geo.allWallCriticalPoints().map(p => rotateCriticalPoint(p, -c.wristRest!.angle, origin, [0, 0, 1]))
+  const walls = geo.allWallCriticalPoints().map(p => transformCriticalPoint(p, new Trsf().rotate(-c.wristRest!.angle, origin, [0, 0, 1])))
 
   const xMin = new Set<number>()
   const xMax = new Set<number>()

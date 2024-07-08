@@ -834,12 +834,17 @@
       prevent it from fitting into the holder.
     </InfoBox>
   {/if}
-  {#if !basic}<Field
+  {#if !basic}
+    <Field name="Microcontroller Angle">
+      <AngleInput bind:value={$protoConfig.microcontrollerAngle} />
+    </Field>
+    <Field
       name="Fasten Microcontroller"
       help="Add clamps above the microcontroller to hold it inside its holder"
     >
       <Checkbox bind:value={$protoConfig.fastenMicrocontroller} />
-    </Field>{/if}
+    </Field>
+  {/if}
   <Field name="Fasten Base With Screws" icon="screw">
     <Checkbox value={$protoConfig.screwIndices.length > 0} on:change={setScrewsEnabled} />
   </Field>
