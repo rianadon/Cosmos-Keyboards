@@ -6,7 +6,6 @@
   import KMesh from '$lib/3d/KeyboardMeshBetter.svelte'
   import type { KeyboardMeshes } from 'src/routes/beta/lib/viewers/viewer3dHelpers'
 
-  export let geometry: Geometry | undefined
   export let microcontrollerGeometry: Geometry | undefined
   export let meshes: KeyboardMeshes
   export let transparency: number

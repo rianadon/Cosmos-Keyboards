@@ -64,8 +64,8 @@
     "vite": "^5.3.3"
   },
   "optionalDependencies": {
-    "gl": "^6.0.2",
-    "canvas": "^2.11.2"
+    "canvas": "^2.11.2",
+    "gl": "^8.0.2"
   },
   "type": "module",
   "simple-git-hooks": {

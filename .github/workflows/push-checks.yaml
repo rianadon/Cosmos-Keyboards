@@ -19,8 +19,14 @@ jobs:
         with:
           node-version: 21
 
+      - name: Delete package-lock.json
+        run: rm package-lock.json && rm -rf node_modules
+
+      - name: Just make npm work
+        run: npm i @rollup/rollup-linux-x64-gnu
+
       - name: Install npm dependencies
-        run: npm ci --omit=optional
+        run: npm install --omit=optional
 
       - name: Install openscad
         run: sudo apt-get update && sudo apt-get install -y openscad
@@ -30,8 +36,8 @@ jobs:
 
       - name: Build simple keycaps
         run: OPENSCAD=$(which openscad) make keycaps-simple
-  openscad-bun:
-    name: Verify that OpenSCAD keycap scripts work (Bun)
+  openscad-linux-bun:
+    name: Verify that OpenSCAD keycap scripts work (Bun/Linux)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -51,3 +57,24 @@ jobs:
 
       - name: Build simple keycaps
         run: OPENSCAD=$(which openscad) make keycaps-simple
+  setup-windows-bun:
+    name: Verify Set up (Bun/Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install npm dependencies
+        run: bun install --production
+
+      - name: Install openscad
+        run: choco install openscad
+
+      - name: Install make
+        run: choco install make
+
+      - name: Compile Code
+        run: make ci-setup build

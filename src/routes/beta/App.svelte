@@ -58,7 +58,7 @@
   import { hasPro } from '@pro'
   import ViewerDev from './lib/viewers/ViewerDev.svelte'
   import DownloadDialog from './lib/dialogs/DownloadDialog.svelte'
-  import { fromCosmosConfig, toCosmosConfig, toFullCosmosConfig } from '$lib/worker/config.cosmos'
+  import { fromCosmosConfig, toFullCosmosConfig } from '$lib/worker/config.cosmos'
   import KeyboardModel from '$lib/3d/KeyboardModel.svelte'
   import { type FullGeometry, type FullKeyboardMeshes } from './lib/viewers/viewer3dHelpers'
   import { notNull, objEntriesNotNull, objKeys } from '$lib/worker/util'
@@ -711,7 +711,6 @@
                   {hideWall}
                   {transparency}
                   {showSupports}
-                  geometry={geometry[kbd]}
                   microcontrollerGeometry={microcontrollerGeometry[kbd]}
                   meshes={mesh}
                 />
@@ -737,7 +736,6 @@
                   {hideWall}
                   {transparency}
                   {showSupports}
-                  geometry={geometry[kbd]}
                   microcontrollerGeometry={microcontrollerGeometry[kbd]}
                   meshes={mesh}
                 />

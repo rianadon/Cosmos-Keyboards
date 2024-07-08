@@ -71,7 +71,7 @@ docs-ci: venv
 
 # CI Specific tasks
 ci-setup:
-	mkdir -p target && mkdir -p docs/assets/target
+	mkdir -p target && mkdir -p docs/assets/target && mkdir -p .svelte-kit && cp src/assets/default-tsconfig.json .svelte-kit/tsconfig.json
 vite-build:
 	$(NPM) run build
 npm-install:

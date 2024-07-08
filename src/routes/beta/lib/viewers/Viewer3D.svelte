@@ -1469,9 +1469,6 @@
 {/if}
 
 <style>
-  .button.selected {
-    --at-apply: 'bg-gray-400 dark:bg-gray-700';
-  }
   .button {
     z-index: 10;
     --at-apply: 'appearance-none bg-gray-200 dark:bg-gray-900 p-1 pr-2 m-1 rounded text-gray-800 dark:text-gray-200 flex gap-2';
