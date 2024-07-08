@@ -390,9 +390,6 @@
   }
 
   .input {
-    --at-apply: 'focus:border-teal-500 border border-transparent text-gray-700 focus:outline-none';
-    --at-apply: 'border-gray-200 dark:border-transparent bg-gray-100 dark:bg-gray-700 dark:text-gray-100';
-    --at-apply: 'appearance-none w-44 rounded mx-2';
-    --at-apply: 'text-ellipsis';
+    --at-apply: 'focus:border-teal-500 border border-transparent text-gray-700 focus:outline-none border-gray-200 dark:border-transparent bg-gray-100 dark:bg-gray-700 dark:text-gray-100 appearance-none w-44 rounded mx-2 text-ellipsis';
   }
 </style>

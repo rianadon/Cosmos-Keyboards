@@ -112,18 +112,15 @@
 
 <style>
   .input-basic {
-    --at-apply: 'focus:border-teal-500 border border-transparent text-gray-700 focus:outline-none';
-    --at-apply: 'border-gray-200 dark:border-transparent bg-gray-100 dark:bg-gray-700 dark:text-gray-100';
+    --at-apply: 'focus:border-teal-500 border border-transparent text-gray-700 focus:outline-none border-gray-200 dark:border-transparent bg-gray-100 dark:bg-gray-700 dark:text-gray-100';
   }
 
   .input {
-    --at-apply: 'appearance-none w-[6.88rem] rounded ml-2.5';
-    --at-apply: 'input-basic text-ellipsis';
+    --at-apply: 'appearance-none w-[6.88rem] rounded ml-2.5 input-basic text-ellipsis';
   }
 
   .sinput {
-    --at-apply: 'appearance-none w-[5.45rem] rounded ml-2.5';
-    --at-apply: 'input-basic text-ellipsis';
+    --at-apply: 'appearance-none w-[5.45rem] rounded ml-2.5 input-basic text-ellipsis';
   }
 
   input:focus + div > div {

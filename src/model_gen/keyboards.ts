@@ -158,8 +158,9 @@ export function kbOpenSource(): Cuttleform[] {
   const keys1: CuttleKey[] = [
     ...phrase('OPEN–', kb1Plane),
     {
-      type: 'cirque-23mm',
+      type: 'trackpad-cirque',
       size: { sides: 50 },
+      variant: { size: '23mm' },
       aspect: 1,
       cluster: 'fingers',
       position: new ETrsf()
@@ -180,7 +181,12 @@ export function kbOpenSource(): Cuttleform[] {
     ...phrase('SOURCE', kb2Plane),
     {
       type: 'trackball',
-      size: { radius: 20.9, sides: 10 },
+      size: { sides: 10 },
+      variant: {
+        size: '34mm',
+        bearings: 'Roller',
+        sensor: 'Joe',
+      },
       aspect: 1,
       cluster: 'fingers',
       position: new ETrsf()
@@ -243,7 +249,12 @@ export function kbCosmos(): Cuttleform {
         .translate(0, 0, 15)
         .placeOnMatrix({ ...curvature, row: 1.8, column: 1 })
         .transformBy(plane),
-      size: { radius: 20.9, sides: 20 },
+      size: { sides: 20 },
+      variant: {
+        size: '34mm',
+        bearings: 'Roller',
+        sensor: 'Joe',
+      },
     },
     {
       type: 'ec11',
@@ -267,7 +278,6 @@ function kbAdaptive() {
     type: 'mx-better',
     aspect: 1,
     keycap: { profile, row: i + 1 },
-    aspect: 1,
     cluster: 'fingers',
     position: new ETrsf().placeOnMatrix({
       curvatureOfColumn: 15,

@@ -5,9 +5,9 @@ import { makeAsyncCacher } from './modeling/cacher'
 import { getOC } from './modeling/index'
 import type Trsf from './modeling/transformation'
 
-let keyUrls: Record<string, string> = {}
+let keyUrls: Record<string, { default: string }> = {}
 try {
-  keyUrls = import.meta.glob(['$target/*.step', '$assets/*.step'], { as: 'url', eager: true })
+  keyUrls = import.meta.glob(['$target/*.step', '$assets/*.step'], { query: '?url', eager: true })
 } catch (e) {
   keyUrls = undefined
 }
@@ -34,9 +34,9 @@ const keyCacher = makeAsyncCacher(async (key: CuttleKey) => {
   const urls = keyUrls || JSON.parse(process.env.SOCKET_URLS!)
   if (!urls[url]) throw new Error(`Model for url ${url} does not exist`)
   return keyUrls
-    ? await fetch(urls[url]).then(r => r.blob())
+    ? await fetch(urls[url].default).then(r => r.blob())
       .then(r => importSTEPFixed(r) as Promise<Solid>)
-    : (await import(process.env.FS!)).readFile(urls[url])
+    : (await import(process.env.FS!)).readFile(urls[url].default)
       .then(r => importSTEPFixed(new Blob([r])) as Promise<Solid>)
 })
 

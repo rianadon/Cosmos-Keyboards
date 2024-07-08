@@ -1015,29 +1015,6 @@
 </Section>
 
 <style>
-  .preset {
-    --at-apply: 'bg-[#99F0DC] dark:bg-gray-900 hover:bg-teal-500 dark:hover:bg-teal-700 dark:text-white py-1 px-4 rounded focus:outline-none border border-transparent focus:border-teal-500 mb-2';
-  }
-
-  .input-basic {
-    --at-apply: 'focus:border-teal-500 border border-transparent text-gray-700 focus:outline-none';
-    --at-apply: 'border-gray-200 dark:border-transparent bg-gray-100 dark:bg-gray-700 dark:text-gray-100';
-  }
-
-  .input {
-    --at-apply: 'appearance-none w-[6.88rem] rounded ml-2.5';
-    --at-apply: 'input-basic text-ellipsis';
-  }
-
-  .sinput {
-    --at-apply: 'appearance-none w-[5.45rem] rounded ml-2.5';
-    --at-apply: 'input-basic text-ellipsis';
-  }
-
-  .preset {
-    --at-apply: 'bg-[#99F0DC] dark:bg-gray-900 hover:bg-teal-500 dark:hover:bg-teal-700 dark:text-white py-1 px-4 rounded focus:outline-none border border-transparent focus:border-teal-500 mb-2';
-  }
-
   .button {
     --at-apply: 'appearance-none bg-gray-200 dark:bg-gray-900 px-2 py-1 m-1 rounded text-gray-800 dark:text-gray-200 flex items-center  gap-2';
   }

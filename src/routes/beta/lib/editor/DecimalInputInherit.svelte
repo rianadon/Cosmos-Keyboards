@@ -56,15 +56,11 @@
 
 <style>
   .input {
-    --at-apply: 'focus:border-teal-500 border border-transparent text-gray-700 focus:outline-none';
-    --at-apply: 'border-gray-200 dark:border-transparent bg-gray-100 dark:bg-gray-700 dark:text-gray-100';
-    --at-apply: 'appearance-none rounded ml-2.5 text-ellipsis px-2';
+    --at-apply: 'focus:border-teal-500 border border-transparent text-gray-700 focus:outline-none border-gray-200 dark:border-transparent bg-gray-100 dark:bg-gray-700 dark:text-gray-100 appearance-none rounded ml-2.5 text-ellipsis px-2';
   }
 
   .input-units {
-    --at-apply: 'pointer-events-none text-sm flex items-center';
-    --at-apply: 'border-l border-gray-200 dark:border-gray-600 pl-1';
-    --at-apply: 'text-gray-700 dark:text-gray-200';
+    --at-apply: 'pointer-events-none text-sm flex items-center border-l border-gray-200 dark:border-gray-600 pl-1 text-gray-700 dark:text-gray-200';
   }
 
   .input:focus + .input-units {

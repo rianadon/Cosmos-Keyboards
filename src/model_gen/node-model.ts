@@ -16,10 +16,10 @@ globalThis.require = createRequire(import.meta.url)
 
 // Set socket urls
 process.env.SOCKET_URLS = JSON.stringify(Object.fromEntries(
-  fg.sync(['target/*.step', 'src/assets/*.step']).map(u => ['/' + u, u]),
+  fg.sync(['target/*.step', 'src/assets/*.step']).map(u => ['/' + u, { default: u }]),
 ))
 process.env.GLB_URLS = JSON.stringify(Object.fromEntries(
-  fg.sync(['target/*.glb', 'src/assets/*.glb']).map(u => ['/' + u, u]),
+  fg.sync(['target/*.glb', 'src/assets/*.glb']).map(u => ['/' + u, { default: u }]),
 ))
 process.env.FS = 'fs/promises'
 
