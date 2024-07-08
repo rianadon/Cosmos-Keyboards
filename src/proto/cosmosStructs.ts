@@ -1,7 +1,6 @@
 /** Cosmos-Specific encoding schemas. Helpers are at the bottom */
 
 import { PART_INFO, socketSize } from '$lib/geometry/socketsParts'
-import { PARTS_WITH_KEYCAPS } from '$lib/worker/config.cosmos'
 import { objEntries, objKeys } from '$lib/worker/util'
 import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -201,7 +200,7 @@ for (const [part, info] of objEntries(PART_INFO)) {
   }
   code += `export interface Cuttle${safeCaps(part)}Key extends CuttleBaseKey { type: '${part}',`
   if ('variants' in info) code += `variant: ${safeCaps(part)}Variant,`
-  if (PARTS_WITH_KEYCAPS.includes(part)) code += 'keycap: IKeycap,'
+  if (PART_INFO[part].keycap) code += 'keycap: IKeycap,'
   if ('radius' in socketSize({ type: part, variant: {} } as any)) code += 'size?: { sides: number },'
   code += '}\n'
 }

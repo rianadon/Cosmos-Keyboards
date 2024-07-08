@@ -55,7 +55,6 @@
     toPosRotation,
     type CosmosCluster,
     type CosmosKey,
-    PARTS_WITH_KEYCAPS,
     nthProfile,
     fromCosmosConfig,
     nthPartAspect,
@@ -71,6 +70,7 @@
     rotationPositionETrsf,
     nthSplay,
     calculateSplay,
+    PARTS_WITH_KEYCAPS,
   } from '$lib/worker/config.cosmos'
   import { PART, PROFILE } from '../../../../../target/cosmosStructs'
   import {
@@ -731,7 +731,7 @@
             </div>
           </div>
         {/if}
-        {#if ($selectMode == 'key' && PARTS_WITH_KEYCAPS.includes(nthPartType($protoConfig, $clickedKey, 'key'))) || $selectMode == 'column'}
+        {#if ($selectMode == 'key' && PART_INFO[nthPartType($protoConfig, $clickedKey, 'key')].keycap) || $selectMode == 'column'}
           <div class="relative bg-purple-200 dark:bg-pink-900/80">
             <select
               class="appearance-none bg-transparent w-22 h-8 px-2"

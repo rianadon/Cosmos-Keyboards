@@ -1,5 +1,5 @@
-import type { TrackballVariant, TrackpadCirqueVariant } from 'target/cosmosStructs'
-import type { CuttleBlankKey, CuttleKey } from '../worker/config'
+import type { CuttleBlankKey, TrackballVariant, TrackpadCirqueVariant } from 'target/cosmosStructs'
+import type { CuttleKey } from '../worker/config'
 
 const MX_BOTTOM = box(14, 14, 8.5)
 const CHOC_BOTTOM = box(12, 12, 5.2)
@@ -17,6 +17,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     partOverride: MX_PART,
     socketSize: [18, 18, 4.7],
     partBottom: [MX_BOTTOM],
+    keycap: true,
   },
   'mx-pcb': {
     partName: 'MX-Compatible PCB (Amoeba King)',
@@ -26,6 +27,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     partOverride: MX_PART,
     socketSize: [19.2, 19.2, 4.7],
     partBottom: [MX_BOTTOM, box(19.4, 19.4, 6.6)],
+    keycap: true,
   },
   'mx-hotswap': {
     partName: 'MX-Compatible with 3DP Hotswap',
@@ -35,6 +37,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     partOverride: MX_PART,
     socketSize: [18, 18, 5.85],
     partBottom: [box(16.9, 16.8, 8)],
+    keycap: true,
   },
   // 'mx-pcb-twist': {
   //   partName: 'MX-Compatible PCB (Amoeba Twist)',
@@ -53,6 +56,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     partOverride: '/src/assets/switch-alps.glb',
     socketSize: [18.6, 17, 5],
     partBottom: [box(15, 13, 8.6)],
+    keycap: true,
   },
   'choc': {
     partName: 'Choc (Kailh)',
@@ -62,6 +66,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     partOverride: CHOC_PART,
     socketSize: [17.5, 16.5, 2.2],
     partBottom: [CHOC_BOTTOM],
+    keycap: true,
   },
   'blank': {
     partName: 'Shaper (Blank key)',
@@ -73,6 +78,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     // @ts-ignore
     socketSize: (k: CuttleBlankKey) => [k.size?.width ?? 18.5, k.size?.height ?? 18.5, 5],
     partBottom: [],
+    keycap: true,
   },
   'old-mx': {
     partName: 'Old MX-Compatible',
@@ -82,6 +88,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     partOverride: MX_PART,
     socketSize: [18, 18, 5],
     partBottom: [MX_BOTTOM],
+    keycap: true,
   },
   'old-mx-snap-in': {
     partName: 'Old MX-Compatible snap-in',
@@ -91,6 +98,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     partOverride: MX_PART,
     socketSize: [18, 18, 5],
     partBottom: [MX_BOTTOM],
+    keycap: true,
   },
   'old-mx-hotswap': {
     partName: 'Old MX-Compatible',
@@ -100,6 +108,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     partOverride: MX_PART,
     socketSize: [18, 18, 5],
     partBottom: [MX_BOTTOM],
+    keycap: true,
   },
   'old-mx-snap-in-hotswap': {
     partName: 'Old MX-Compatible Hotswap',
@@ -109,6 +118,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     partOverride: MX_PART,
     socketSize: [18, 18, 5],
     partBottom: [MX_BOTTOM],
+    keycap: true,
   },
   'old-box': {
     partName: 'Old Kailh Box Switches',
@@ -118,6 +128,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     partOverride: MX_PART,
     socketSize: [18, 18, 5],
     partBottom: [MX_BOTTOM],
+    keycap: true,
   },
   'choc-hotswap': {
     partName: 'Old Choc (Kailh)',
@@ -127,6 +138,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     partOverride: CHOC_PART,
     socketSize: [18, 18, 5],
     partBottom: [CHOC_BOTTOM],
+    keycap: true,
   },
   'ec11': {
     partName: 'EC11 Encoder',
@@ -242,6 +254,7 @@ type PartInfo = (PartInfoNonVariant | PartInfoVariant) & {
   stepFile: string
   partOverride?: string | null
   category: string
+  keycap?: boolean
 }
 
 // ------------------------------------------------------------------------------------------------------

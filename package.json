@@ -78,6 +78,6 @@
     "pre-commit": "npx lint-staged"
   },
   "lint-staged": {
-    "*.{ts,tsx,js,jsx,cjs,mjs,json,md,svelte}": "npx dprint fmt"
+    "*.{ts,tsx,js,jsx,cjs,mjs,json,md,svelte}": "npx dprint fmt --allow-no-files"
   }
 }

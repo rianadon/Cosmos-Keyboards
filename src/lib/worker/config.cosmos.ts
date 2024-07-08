@@ -86,26 +86,8 @@ export type CosmosKeyboard =
   & ScrewFlags
   & Connector
 
-/**
- * List of parts that are used with physical keys.
- * All of these have configurable key aspect ratios.
- */
-export const PARTS_WITH_KEYCAPS = [
-  'mx-better',
-  'mx-pcb',
-  'mx-hotswap',
-  'alps',
-  'choc',
-  'choc-hotswap',
-  'old-mx',
-  'old-box',
-  'old-mx-hotswap',
-  'old-mx-hotswap',
-  'old-mx-snap-in-hotswap',
-  'blank',
-]
-
 export const ROUND_PARTS = objKeys(PART_INFO).filter(p => 'radius' in socketSize({ type: p, variant: {} } as any))
+export const PARTS_WITH_KEYCAPS = objKeys(PART_INFO).filter(p => PART_INFO[p].keycap)
 
 function getRowColumn(t: ETrsf) {
   let row = 0
@@ -427,7 +409,7 @@ export function sideFromCosmosConfig(c: CosmosKeyboard, side: 'left' | 'right' |
           position: cosmosKeyPosition(key, clusterB, clusterA, c, flipLeft),
         } as any
         cuttleKey.variant = decodeVariant(cuttleKey.type, key.partType.variant ?? clusterB.partType.variant ?? clusterA.partType.variant ?? c.partType.variant!)
-        if (PARTS_WITH_KEYCAPS.includes(cuttleKey.type)) {
+        if (PART_INFO[cuttleKey.type].keycap) {
           ;(cuttleKey as CuttleKeycapKey).keycap = {
             letter: key.profile.letter,
             home: key.profile.home ?? undefined,
