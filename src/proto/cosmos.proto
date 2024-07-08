@@ -95,4 +95,5 @@ message Key {
   optional int64 rotation = 9;
   optional sint32 row2 = 10;
   optional sint32 column2 = 11;
+  optional string letter = 12;
 }

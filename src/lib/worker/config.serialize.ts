@@ -103,7 +103,7 @@ export function encodeProfile(p: Partial<Profile>) {
   })
 }
 
-export function decodeProfile(flags: number): Profile {
+export function decodeProfile(flags: number, overrideLetter?: string): Profile {
   const { profile, row, letter: letterId, home } = decodeKeycap(flags)
 
   let letter = letterId > 0 ? String.fromCharCode(letterId >> 1) : undefined
@@ -112,6 +112,7 @@ export function decodeProfile(flags: number): Profile {
     letter = lookupId(LETTERS, letterId >> 1, 'letter')
     inferredHoming = INFERRED_HOMING[letterId >> 1]
   }
+  letter = overrideLetter ?? letter
   return { profile: profile ?? undefined, row: row + 1, letter, home: home || inferredHoming || null }
 }
 
@@ -361,7 +362,7 @@ export function decodeCosmosCluster(clusterA: Cluster): CosmosCluster {
           lastKey = key
           return {
             partType: decodePartType(key.partType || 0),
-            profile: decodeProfile(key.keyProfile || 0),
+            profile: decodeProfile(key.keyProfile || 0, key.letter),
             row: typeof key.row2 !== 'undefined' ? key.row2 / 100 : (typeof key.row !== 'undefined' ? key.row / 10 : undefined),
             column: typeof key.column2 !== 'undefined' ? key.column2 / 100 : (typeof key.column !== 'undefined' ? key.column / 10 : undefined),
             position: key.position,
@@ -541,6 +542,7 @@ export function encodeCosmosCluster(clusterA: CosmosCluster): Cluster {
         position: key.position,
         sizeA: typeof key.sizeA != 'undefined' ? Math.round(key.sizeA * 10) : undefined,
         sizeB: typeof key.sizeB != 'undefined' ? Math.round(key.sizeB * 10) : undefined,
+        letter: key.profile.letter && key.profile.letter.length > 1 ? key.profile.letter : undefined,
       }
 
       let thisProfile: number | undefined = encodeProfile(key.profile)

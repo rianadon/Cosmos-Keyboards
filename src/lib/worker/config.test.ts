@@ -93,6 +93,16 @@ test('Convert unibody model to code then back', () => {
   expect(encodeCosmosConfig(secondCosmos)).toMatchObject(encodeCosmosConfig(cosmos))
 })
 
+test('Ensure long letters are saved', () => {
+  const cosmos = decodeConfigIdk(
+    'CmIKDRIFEKBPIAkSADgTQAAKGBIFEKBbIAkSAxCwLxIDELBfOABAgPC8AgoVEgUQoGcgCRIDELA7EgMQsGs4FEAAChESBRCgcyAJEgA4KECAhorABxgAQJaD2J/wVUjc8KKgAQodGAIiCgjIARDIARgAIABAy4v8n9AxSK2R3I3BkwY=',
+  )
+  cosmos.clusters[0].clusters[0].keys[0].profile.letter = 'LOOOONG'
+  const encoded = serializeCosmosConfig(encodeCosmosConfig(cosmos))
+  const decoded = decodeConfigIdk(encoded)
+  expect(decoded.clusters[0].clusters[0].keys[0].profile.letter).toEqual('LOOOONG')
+})
+
 // HELPER FUNCTIONS  HELPER FUNCTIONS  HELPER FUNCTIONS  HELPER FUNCTIONS  HELPER FUNCTIONS  HELPER
 // FUNCTIONS  HELPER FUNCTIONS  HELPER FUNCTIONS  HELPER FUNCTIONS  HELPER FUNCTIONS HELPER FUNCTIONS
 // HELPER FUNCTIONS  HELPER FUNCTIONS  HELPER FUNCTIONS  HELPER FUNCTIONS  HELPER FUNCTIONS  HELPER

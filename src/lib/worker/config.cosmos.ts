@@ -477,11 +477,11 @@ export function encodeVariant(type: CuttleKey['type'], variant: Record<string, a
 
 /** Calculate the cluster trsf, accounting for the fact that everything rotates in flat mode by fingers key rotation */
 export function calcClusterTrsf(cluster: CosmosCluster, keeb: CosmosKeyboard) {
+  if (cluster.name == 'fingers') return rotationPositionETrsf(cluster, false)
+
   const fingerCluster = keeb.clusters.find(c => c.side == cluster.side && c.name == 'fingers') || mirrorCluster(keeb.clusters.find(c => c.name == 'fingers')!)
   const fingerPos = rotationPositionETrsf(fingerCluster, false) || new ETrsf()
   const fingerPosInv = rotationPositionInvETrsf(fingerCluster) || new ETrsf()
-
-  if (fingerCluster == cluster) return fingerPos
   return (rotationPositionETrsf(cluster) || new ETrsf()).transformBy(fingerPosInv).transformBy(fingerPos)
 }
 

@@ -2,6 +2,7 @@ import { PART_INFO, socketSize, variantURL } from '$lib/geometry/socketsParts'
 import { drawRoundedRectangle, importSTEP, makeBaseBox, type Solid } from 'replicad'
 import type { CuttleKey } from './config'
 import { makeAsyncCacher } from './modeling/cacher'
+import { getOC } from './modeling/index'
 import type Trsf from './modeling/transformation'
 
 let keyUrls: Record<string, string> = {}
@@ -9,6 +10,19 @@ try {
   keyUrls = import.meta.glob(['$target/*.step', '$assets/*.step'], { as: 'url', eager: true })
 } catch (e) {
   keyUrls = undefined
+}
+
+async function importSTEPFixed(b: Blob) {
+  const oc = getOC()
+  const model = await importSTEP(b)
+  const props = new oc.GProp_GProps_1()
+  oc.BRepGProp.VolumeProperties_2(model.wrapped, props, 0.01, false, true)
+  // Flip all faces if mass is negative
+  if (props.Mass() < 0) {
+    model.wrapped.Reverse()
+  }
+  props.delete()
+  return model
 }
 
 const keyCacher = makeAsyncCacher(async (key: CuttleKey) => {
@@ -21,9 +35,9 @@ const keyCacher = makeAsyncCacher(async (key: CuttleKey) => {
   if (!urls[url]) throw new Error(`Model for url ${url} does not exist`)
   return keyUrls
     ? await fetch(urls[url]).then(r => r.blob())
-      .then(r => importSTEP(r) as Promise<Solid>)
+      .then(r => importSTEPFixed(r) as Promise<Solid>)
     : (await import(process.env.FS!)).readFile(urls[url])
-      .then(r => importSTEP(new Blob([r])) as Promise<Solid>)
+      .then(r => importSTEPFixed(new Blob([r])) as Promise<Solid>)
 })
 
 const extendedKeyCacher = makeAsyncCacher(async (key: CuttleKey) => {

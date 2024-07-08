@@ -389,6 +389,9 @@ export function fullMirrorETrsf(e: ETrsf) {
     } else if (h.name == 'placeColumn') {
       const args: MatrixOptions = (h.args[0] as any).merged ?? h.args[0]
       args.column = -args.column
+    } else if (h.name == 'placeRow') {
+      const args: RowOptions = (h.args[0] as any).merged ?? h.args[0]
+      if (args.columnForArc) args.columnForArc = -args.columnForArc
     } else if (h.name == 'placeOnSphere') {
       const args: SphereOptions = (h.args[0] as any).merged ?? h.args[0]
       args.angle = -args.angle
