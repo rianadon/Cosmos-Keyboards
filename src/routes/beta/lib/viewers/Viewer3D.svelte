@@ -698,7 +698,7 @@
   {#if $clickedKey !== null}
     <div class="flex flex-1 justify-around">
       <div
-        class="flex justify-center bg-[#EFE8FF] dark:bg-gray-900 rounded-5 pl-1 pr-2 gap-0.5 z-100 items-center mt-2"
+        class="flex justify-center bg-[#EFE8FF] dark:bg-gray-900 rounded-5 pl-1 pr-2 gap-0.5 z-100 items-center mt-2 overflow-hidden"
       >
         {#if $selectMode == 'cluster'}
           <div class="line-height-8 px-8 capitalize">{clusterName(clusterIsClicked)} Cluster</div>
@@ -710,7 +710,7 @@
               <Icon size="20px" name="keycap" />
             </div>
             <select
-              class="appearance-none bg-transparent w-88 pl-20 h-8 pl-11!"
+              class="appearance-none bg-[#EFE8FF] dark:bg-gray-900 w-88 pl-20 h-8 pl-11!"
               class:w-64!={PART_INFO[nthPartType($protoConfig, $clickedKey, $selectMode)].partName
                 .length < 20}
               on:change={changeKey}
@@ -732,9 +732,9 @@
           </div>
         {/if}
         {#if ($selectMode == 'key' && PART_INFO[nthPartType($protoConfig, $clickedKey, 'key')].keycap) || $selectMode == 'column'}
-          <div class="relative bg-purple-200 dark:bg-pink-900/80">
+          <div class="relative">
             <select
-              class="appearance-none bg-transparent w-22 h-8 px-2"
+              class="appearance-none bg-purple-200 dark:bg-pink-900/80 w-22 h-8 px-2"
               on:change={changeKeyAspect}
               value={nthPartAspect($protoConfig, $clickedKey, $selectMode)}
             >
@@ -752,9 +752,9 @@
         {#if $selectMode == 'key'}
           {@const info = PART_INFO[nthPartType($protoConfig, $clickedKey, 'key')]}
           {#each Object.entries('variants' in info ? info.variants : {}) as [key, opt]}
-            <div class="relative bg-purple-200 dark:bg-pink-900/80">
+            <div class="relative">
               <select
-                class="appearance-none bg-transparent w-24 h-8 px-2"
+                class="appearance-none bg-purple-200 dark:bg-pink-900/80 w-24 h-8 px-2"
                 value={nthPartVariant($protoConfig, $clickedKey)[key]}
                 on:change={(ev) => changeKeyVariant(ev, key)}
               >
