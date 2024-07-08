@@ -114,13 +114,13 @@ function roundRows(keyboard: CosmosKeyboard) {
 }
 
 /** Compare the position of keys in two keyboards. */
-function comparePosition(c: Cuttleform, other: Cuttleform | undefined, i: number) {
+function comparePosition(c: Cuttleform, other: Cuttleform | undefined, i: number, flat: boolean) {
   if (!other) return 'ok'
   if (!other.keys[i]) return 'missing'
   const wrA = c.wristRestOrigin?.evaluate({ flat: false }, new Trsf()).invert() || new Trsf()
   const wrB = other.wristRestOrigin?.evaluate({ flat: false }, new Trsf()).invert() || new Trsf()
-  const pA = c.keys[i].position.evaluate({ flat: false }, new Trsf()).premultiply(wrA)
-  const pB = other.keys[i].position.evaluate({ flat: false }, new Trsf()).premultiply(wrB)
+  const pA = c.keys[i].position.evaluate({ flat }, new Trsf()).premultiply(wrA)
+  const pB = other.keys[i].position.evaluate({ flat }, new Trsf()).premultiply(wrB)
   const distance = pA.origin().distanceTo(pB.origin())
   const angle = new Quaternion().setFromRotationMatrix(pA.Matrix4()).angleTo(new Quaternion().setFromRotationMatrix(pB.Matrix4())) * 180 / Math.PI
   let error: string[] = []
@@ -149,7 +149,7 @@ function preprocessCuttleform(c: Cuttleform, other?: Cuttleform) {
   return {
     ...c,
     keys: c.keys.map((k, i) => {
-      const newKey = { ...k, position: comparePosition(c, other, i) }
+      const newKey = { ...k, position: comparePosition(c, other, i, false) }
       if ('keycap' in newKey && newKey.keycap) {
         newKey.keycap = { ...newKey.keycap }
         if (!newKey.keycap.letter) delete newKey.keycap.letter

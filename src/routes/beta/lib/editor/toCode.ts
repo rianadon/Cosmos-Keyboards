@@ -1,5 +1,5 @@
 import { curvature, cuttleConf, type Cuttleform, type CuttleformProto, fingers, newFullGeometry, newGeometry, thumbCurvature, thumbOrigin, thumbs, upperKeysPlane } from '$lib/worker/config'
-import { type CosmosKey, type CosmosKeyboard, fromCosmosConfig, mirrorCluster, rotationPositionETrsf, sortClusters, toCosmosConfig } from '$lib/worker/config.cosmos'
+import { calcClusterTrsf, type CosmosKey, type CosmosKeyboard, fromCosmosConfig, mirrorCluster, rotationPositionETrsf, sortClusters, toCosmosConfig } from '$lib/worker/config.cosmos'
 import ETrsf, { stringifyObj } from '$lib/worker/modeling/transformation-ext'
 import { capitalize, notNull, objEntries } from '$lib/worker/util'
 import type { ClusterName, ClusterSide } from 'target/cosmosStructs'
@@ -109,7 +109,7 @@ export function toCode(proto: CosmosKeyboard) {
     ...notNull(
       allClustersFlipped(proto).map(cluster => {
         const clusterName = cluster.side + capitalize(cluster.name) + 'Plane'
-        const clusterTrsf = rotationPositionETrsf(cluster)
+        const clusterTrsf = calcClusterTrsf(cluster, proto)
         return clusterTrsf ? `const ${clusterName} = ${clusterTrsf.toString(2)}\n` : null
       }),
     ),

@@ -180,7 +180,7 @@ function toCosmosClusters(keys: CuttleKey[], side: 'left' | 'right', globalProfi
           { row: keyRow } as any,
           column,
           { ...cluster, ...toPosRotation(clusterTrsf.Matrix4()) }, // Override cluster position to be independent of wrOriginInv
-          { partType: globalPartType, profile: globalProfile.profile, curvature: globalCurvature } as any,
+          { partType: globalPartType, profile: globalProfile.profile, curvature: globalCurvature, clusters } as any,
         ).evaluate({ flat: false })
         const trsf = new ETrsf(colKey.position.history).evaluate({ flat: false }).premultiplied(trsfSoFar.invert())
 
@@ -470,8 +470,23 @@ export function encodeVariant(type: CuttleKey['type'], variant: Record<string, a
   return undefined
 }
 
+// /** Determines how much the thumb cluster shifts when the thumb origin is moved from  */
+// function clusterFlatAdjustment(cluster: CosmosCluster, keeb: CosmosKeyboard) {
+
+// }
+
+/** Calculate the cluster trsf, accounting for the fact that everything rotates in flat mode by fingers key rotation */
+export function calcClusterTrsf(cluster: CosmosCluster, keeb: CosmosKeyboard) {
+  const fingerCluster = keeb.clusters.find(c => c.side == cluster.side && c.name == 'fingers') || mirrorCluster(keeb.clusters.find(c => c.name == 'fingers')!)
+  const fingerPos = rotationPositionETrsf(fingerCluster, false) || new ETrsf()
+  const fingerPosInv = rotationPositionInvETrsf(fingerCluster) || new ETrsf()
+
+  if (fingerCluster == cluster) return fingerPos
+  return (rotationPositionETrsf(cluster) || new ETrsf()).transformBy(fingerPosInv).transformBy(fingerPos)
+}
+
 export function cosmosKeyPosition(key: CosmosKey, column: CosmosCluster, cluster: CosmosCluster, keeb: CosmosKeyboard, flipLeft = false): ETrsf {
-  const clusterTrsf = rotationPositionETrsf(cluster)
+  const clusterTrsf = calcClusterTrsf(cluster, keeb)
   const columnTrsf = rotationPositionETrsf(column)
   const trsf = rotationPositionETrsf(key) || new ETrsf()
 
@@ -526,16 +541,30 @@ export function cosmosKeyPosition(key: CosmosKey, column: CosmosCluster, cluster
   return trsf
 }
 
-export function rotationPositionETrsf(c: CosmosCluster | CosmosKey) {
+export function rotationPositionETrsf(c: CosmosCluster | CosmosKey, inFlat = true) {
   if (!c.position && !c.rotation) return undefined
   const trsf = new ETrsf()
   if (c.rotation) {
     const rot = tupleToRot(c.rotation)
-    trsf.rotate(rot.alpha, [0, 0, 0], [1, 0, 0])
-      .rotate(rot.beta, [0, 0, 0], [0, 1, 0])
-      .rotate(rot.gamma, [0, 0, 0], [0, 0, 1])
+    trsf.rotate(rot.alpha, [0, 0, 0], [1, 0, 0], inFlat)
+      .rotate(rot.beta, [0, 0, 0], [0, 1, 0], inFlat)
+      .rotate(rot.gamma, [0, 0, 0], [0, 0, 1], inFlat)
   }
   if (c.position) trsf.translate(tupleToXYZ(c.position))
+  return trsf
+}
+
+export function rotationPositionInvETrsf(c: CosmosCluster | CosmosKey, inFlat = true) {
+  if (!c.position && !c.rotation) return undefined
+  const trsf = new ETrsf()
+  if (c.position) trsf.translate(tupleToXYZ(c.position).map(x => -x) as any)
+  if (c.rotation) {
+    const rot = tupleToRot(c.rotation)
+    trsf
+      .rotate(-rot.gamma, [0, 0, 0], [0, 0, 1], inFlat)
+      .rotate(-rot.beta, [0, 0, 0], [0, 1, 0], inFlat)
+      .rotate(-rot.alpha, [0, 0, 0], [1, 0, 0], inFlat)
+  }
   return trsf
 }
 
