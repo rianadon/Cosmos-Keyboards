@@ -1,16 +1,15 @@
 import type { OpenCascadeInstance } from '$assets/replicad_single'
-import { fromGeometry } from '$lib/loaders/geometry'
+import { fromGeometry, makeFlashy } from '$lib/loaders/geometry'
 import type { Cuttleform, CuttleKey } from '$lib/worker/config'
-import { KEY_URLS } from '$lib/worker/socketsLoader'
-import { for3, objKeys } from '$lib/worker/util'
+import { for3, objEntries, objKeys } from '$lib/worker/util'
 import { readFile, writeFile } from 'fs/promises'
 import { basename, join } from 'path'
-import { type AnyShape, getOC, importSTEP, makeBaseBox, Solid } from 'replicad'
+import { type AnyShape, getOC } from 'replicad'
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
 import { fileURLToPath } from 'url'
-import { PART_NAMES, variantURLs } from '../lib/geometry/socketsParts'
+import { PART_INFO, variantURLs } from '../lib/geometry/socketsParts'
 import { exportGLTF } from './exportGLTF'
-import { serialize } from './modeling'
+import { importSTEPSpecifically, serialize } from './modeling'
 import { setup } from './node-model'
 import { displayModel, type DisplayProps, displaySocket } from './parametric/display-gen'
 import { DEFAULT_PROPS, type Holes, type MicrocontrollerProps, ucModel } from './parametric/microcontroller-gen'
@@ -28,13 +27,6 @@ async function genPart(name: string) {
   const stl = await readFile(stlName)
   const geometry = loader.parse(stl.buffer as ArrayBuffer)
   await exportGLTF(glbName, geometry)
-}
-
-async function loadSocket(name: string, variantURL: string) {
-  if (name == 'blank') return makeBaseBox(18.5, 18.5, 5).translateZ(-5)
-  // @ts-ignore
-  const file = await readFile('.' + KEY_URLS[name].replace('.step', variantURL + '.step'))
-  return await importSTEP(new Blob([file]))
 }
 
 async function writeModel(filename: string, model: AnyShape) {
@@ -55,10 +47,13 @@ async function writeMesh(filename: string, model: AnyShape) {
     model.wrapped.Reverse()
   }
 
-  const mesh = model.mesh({ tolerance: 0.1, angularTolerance: 10 })
+  const mesh = model.mesh({ tolerance: 0.05, angularTolerance: 1 })
   model.delete()
-  const geometry = fromGeometry(mesh)
-  await exportGLTF(filename, geometry!)
+  let geometry = fromGeometry(mesh)!
+  if (filename.includes('oled') && (filename.includes('target/splitpart-') || filename.includes('target/switch-'))) {
+    geometry = makeFlashy(geometry)
+  }
+  await exportGLTF(filename, geometry)
   return mass
 }
 
@@ -143,14 +138,49 @@ async function main() {
     },
   )
 
+  // Check that all STEP files that need to be split are split
+  const toSplit: CuttleKey['type'][] = []
+  for (const [socket, info] of objEntries(PART_INFO)) {
+    if ('partOverride' in info) continue // Skip parts with a specified part model
+    if ('variant' in info) continue // Variants not supported for now
+    if (info.stepFile.startsWith('/target')) continue // Generated models not supported for now
+    const contents = await readFile('.' + info.stepFile, { encoding: 'utf-8' })
+    const names = [...contents.matchAll(/PRODUCT\('(.*?)'/g)].map(m => m[1])
+    const hasSocket = names.includes('Socket')
+    const hasPart = names.includes('Part')
+    if (!hasSocket || !hasPart) {
+      console.error(`The STEP file for part ${socket}, ${info.stepFile} does not a specify a partOverride,`)
+      console.error('so the file will be split into part and socket models based on component names in the assembly.')
+      console.error('The following names are missing:')
+      if (!hasPart) console.error(' - "Socket" for the socket')
+      if (!hasPart) console.error(' - "Part" for the part')
+      console.error(`PLease rename the components ${JSON.stringify(names)} to "Part" and "Socket".`)
+      console.error()
+    } else {
+      toSplit.push(socket)
+    }
+  }
+
   await pool.run()
 
   const masses: Record<string, number> = {}
-  for (const socket of objKeys(PART_NAMES)) {
+  for (const socket of objKeys(PART_INFO)) {
+    if (socket == 'blank') continue // These don't get a part
     for (const variantURL of variantURLs(socket)) {
       try {
         const glbName = join(targetDir, 'socket-' + socket + variantURL + '.glb')
-        masses[socket + variantURL] = await writeMesh(glbName, await loadSocket(socket, variantURL))
+        const file = await readFile('.' + PART_INFO[socket].stepFile.replace('.step', variantURL + '.step'))
+        const blob = new Blob([file])
+        if (toSplit.includes(socket)) {
+          const socketModel = await importSTEPSpecifically(blob, 'Socket')
+          const partModel = await importSTEPSpecifically(blob, 'Part')
+
+          await writeModel(join(targetDir, 'splitsocket-' + socket + variantURL + '.step'), socketModel.clone())
+          await writeMesh(join(targetDir, 'splitpart-' + socket + variantURL + '.glb'), partModel)
+          masses[socket + variantURL] = await writeMesh(glbName, socketModel)
+        } else {
+          // masses[socket + variantURL] = await writeMesh(glbName, await importSTEP(blob))
+        }
       } catch (e) {
         if (e instanceof Error && 'code' in e && e.code === 'ENOENT') {
           console.log(`Warning: could not generate ${socket}${variantURL} since its file was not present in the filesystem`)

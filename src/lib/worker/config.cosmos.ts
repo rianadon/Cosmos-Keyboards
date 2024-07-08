@@ -1,6 +1,7 @@
 import ETrsf, { Constant, fullMirrorETrsf, type MatrixOptions, mirror } from '$lib/worker/modeling/transformation-ext'
 // import { deserialize } from 'src/routes/beta/lib/serialize'
 import { flippedKey } from '$lib/geometry/keycaps'
+import { PART_INFO, socketSize } from '$lib/geometry/socketsParts'
 import { Matrix4, Vector3 } from 'three'
 import { type ClusterName, type ClusterSide, type ClusterType, type Connector, decodeClusterFlags, encodeClusterFlags, type ScrewFlags } from '../../../target/cosmosStructs'
 import type { Curvature } from '../../../target/proto/cosmos'
@@ -20,7 +21,7 @@ import {
 } from './config'
 import { decodePartType, encodePartType, KEYBOARD_DEFAULTS } from './config.serialize'
 import Trsf from './modeling/transformation'
-import { capitalize, DefaultMap, objEntries, sum, TallyMap, trimUndefined } from './util'
+import { capitalize, DefaultMap, objEntries, objKeys, sum, TallyMap, trimUndefined } from './util'
 
 export interface PartType {
   type?: CuttleKey['type']
@@ -104,7 +105,7 @@ export const PARTS_WITH_KEYCAPS = [
   'blank',
 ]
 
-export const ROUND_PARTS = ['trackpad-cirque', 'trackball']
+export const ROUND_PARTS = objKeys(PART_INFO).filter(p => 'radius' in socketSize({ type: p, variant: {} } as any))
 
 function getRowColumn(t: ETrsf) {
   let row = 0

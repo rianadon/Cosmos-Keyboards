@@ -87,27 +87,27 @@ const extendedKeyCacher = makeAsyncCacher(async (key: CuttleKey) => {
 function extendPlate(plate: Mesh, key: CuttleKey) {
   const size = socketSize(key)
   if (key.aspect == 1) return plate
-  if ('trackball' in key) return plate
+  if (!Array.isArray(size)) return plate
 
   if (key.aspect > 1) {
-    const pad = size.x * (key.aspect - 1) / 2
+    const pad = size[0] * (key.aspect - 1) / 2
     return {
       mesh: mergeBufferGeometries([
         plate.mesh,
-        boxGeo(pad, size.y, size.z).translate((size.x + pad) / 2, 0, -size.z / 2),
-        boxGeo(pad, size.y, size.z).translate(-(size.x + pad) / 2, 0, -size.z / 2),
+        boxGeo(pad, size[1], size[2]).translate((size[0] + pad) / 2, 0, -size[2] / 2),
+        boxGeo(pad, size[1], size[2]).translate(-(size[0] + pad) / 2, 0, -size[2] / 2),
       ]),
-      mass: plate.mass + 2 * pad * size.z,
+      mass: plate.mass + 2 * pad * size[2],
     }
   } else {
-    const pad = size.y * (1 / key.aspect - 1) / 2
+    const pad = size[1] * (1 / key.aspect - 1) / 2
     return {
       mesh: mergeBufferGeometries([
         plate.mesh,
-        boxGeo(size.x, pad, size.z).translate(0, (size.y + pad) / 2, -size.z / 2),
-        boxGeo(size.x, pad, size.z).translate(0, -(size.y + pad) / 2, -size.z / 2),
+        boxGeo(size[0], pad, size[2]).translate(0, (size[1] + pad) / 2, -size[2] / 2),
+        boxGeo(size[0], pad, size[2]).translate(0, -(size[1] + pad) / 2, -size[2] / 2),
       ]),
-      mass: plate.mass + 2 * pad * size.z,
+      mass: plate.mass + 2 * pad * size[2],
     }
   }
 }

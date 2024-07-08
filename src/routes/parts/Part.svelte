@@ -3,13 +3,12 @@
   import loadGLTF from '$lib/loaders/gltfLoader'
   import { mdiFileEyeOutline } from '@mdi/js'
   import Icon from '$lib/presentation/Icon.svelte'
-  import { KEY_URLS } from '$lib/worker/socketsLoader'
   import Popover from 'svelte-easy-popover/dist/ts/Popover.svelte'
   import { fade } from 'svelte/transition'
   import { browser } from '$app/environment'
   import { drawLinedRectangleOutside, makeBox } from '../beta/lib/viewers/viewerHelpers'
   import { MeshBasicMaterial } from 'three'
-  import { partBottom, socketSize, variantURL } from '$lib/geometry/socketsParts'
+  import { PART_INFO, partBottom, socketSize, variantURL } from '$lib/geometry/socketsParts'
   import CoopCanvas from '$lib/3d/CoopCanvas.svelte'
   import { T } from '@threlte/core'
   import { OrbitControls } from '@threlte/extras'
@@ -27,13 +26,16 @@
   const NULL = Promise.resolve(undefined)
   const partPromise = browser ? partGeometry(part as any, variant) : NULL
   const socketPromise = browser ? loadGLTF('/target/socket-' + part + variantURL(key) + '.glb') : NULL
-  const path = KEY_URLS[part]
+  const path = PART_INFO[part].stepFile
   const source = path.startsWith('/src/assets')
     ? `https://github.com/rianadon/Cosmos-Keyboards/tree/main${path}`
     : null
 
-  const size = socketSize({ type: part } as any)
-  const bottom = partBottom(part, variant)
+  const size = socketSize(key)
+  const width = 'radius' in size ? size.radius * 2 : size[0]
+  const length = 'radius' in size ? size.radius * 2 : size[1]
+  const height = 'radius' in size ? size.height : size[2]
+  const bottom = partBottom(key)
 
   Promise.all([partPromise, socketPromise]).then(() => (loading = false))
 </script>
@@ -78,17 +80,15 @@
         {#await socketPromise then socketMesh}
           <T.Mesh geometry={socketMesh} kind="case"><KeyboardMaterial kind="case" /></T.Mesh>
         {/await}
-        {#if dev && part !== 'trackball' && !part.includes('cirque')}
-          <T.Mesh
-            geometry={makeBox(size.x / 2 + 5, 0, -size.z / 2, 10, size.y, size.z)}
-            material={new MeshBasicMaterial({ color: 0x14b8a6 })}
-          />
-          <T.Mesh
-            geometry={makeBox(-size.x / 2 - 5, 0, -size.z / 2, 10, size.y, size.z)}
-            material={new MeshBasicMaterial({ color: 0x14b8a6 })}
-          />
-        {/if}
         {#if dev}
+          <T.Mesh
+            geometry={makeBox(width / 2 + 5, 0, -height / 2, 10, length, height)}
+            material={new MeshBasicMaterial({ color: 0x14b8a6 })}
+          />
+          <T.Mesh
+            geometry={makeBox(-width / 2 - 5, 0, -height / 2, 10, length, height)}
+            material={new MeshBasicMaterial({ color: 0x14b8a6 })}
+          />
           {#each bottom as b}
             <T.Mesh
               geometry={makeBox(0, 0, b[0][2] + 1, 2 * Math.abs(b[0][0]), 2 * Math.abs(b[0][1]), 2)}
@@ -108,7 +108,7 @@
         {/await}
         {#if dev && part !== 'trackball' && !part.includes('cirque')}
           <T.Mesh
-            geometry={drawLinedRectangleOutside(-size.x / 2, -size.y / 2, size.x, size.y, 0.8)}
+            geometry={drawLinedRectangleOutside(-width / 2, -length / 2, width, length, 0.8)}
             material={new MeshBasicMaterial({ color: 0x14b8a6 })}
           />
         {/if}

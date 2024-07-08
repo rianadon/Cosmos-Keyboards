@@ -3,11 +3,10 @@
  *
  * This file helps export Typescript defintions to strings
  */
-import type { FunctionDeclaration, Node, Signature, Symbol, Type, TypeAliasDeclaration } from 'ts-morph'
+import type { Node, Signature, Symbol, Type } from 'ts-morph'
 import tsMorph from 'ts-morph'
 
-type Declaration = TypeAliasDeclaration | FunctionDeclaration
-export function typeFootprint(a: Declaration, overrides?: Record<string, string>, excludes?: string[]) {
+export function typeFootprint(a: Node, overrides?: Record<string, string>, excludes?: string[]) {
   const t = a.getType()
   const text = footprintOfType({ type: t, node: a, overrides, excludes })
   return text

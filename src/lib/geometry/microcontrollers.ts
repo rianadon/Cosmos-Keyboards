@@ -266,7 +266,7 @@ export function boardOffsetInfo(config: Cuttleform): BoardOffset {
           {
             model: 'trrs',
             offset: config.microcontroller && BOARD_PROPERTIES[config.microcontroller].sizeName == 'Large'
-              ? new Vector(-16.5, 0, 2.5)
+              ? new Vector(-16.5, 0, 2.5) // Extra space for large microcontrollers
               : new Vector(-14.5, 0, 2.5),
             size: new Vector(6.1, 12.2, 5),
             boundingBoxZ: 6,

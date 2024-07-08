@@ -139,7 +139,8 @@ function calcThickness(thisTop: Trsf, thisThick: number, nextTop: Trsf, normal: 
  */
 function maxReinfMargin(key: CuttleKey) {
   const keyWidth = (key.type == 'choc') ? 17.5 : 18.5
-  const socketWidth = socketSize(key).x
+  const size = socketSize(key)
+  const socketWidth = 'radius' in size ? size.radius * 2 : size[0]
   return (keyWidth - socketWidth) / 2 + 0.25
 }
 /**

@@ -1,6 +1,6 @@
 import { BOARD_PROPERTIES } from '$lib/geometry/microcontrollers'
 import { SCREWS } from '$lib/geometry/screws'
-import { socketSize } from '$lib/geometry/socketsParts'
+import { socketHeight } from '$lib/geometry/socketsParts'
 import { switchInfo } from '$lib/geometry/switches'
 import { simpleSocketTris } from '$lib/loaders/simpleparts'
 import type { Triangle } from 'three'
@@ -240,8 +240,8 @@ export function* unsortedSocketIntersections(conf: Cuttleform, trsfs: Trsf[], cr
     tree.addTriangle(tri)
   }
   for (let i = 0; i < trsfs.length; i++) {
-    const size = socketSize(conf.keys[i])
-    const prism = prismTriangles(critPts[i], trsfs[i], size.z, i)
+    const height = socketHeight(conf.keys[i])
+    const prism = prismTriangles(critPts[i], trsfs[i], height, i)
     for (const triangle of prism) {
       tree.addTriangle(triangle)
     }

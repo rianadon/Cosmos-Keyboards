@@ -94,7 +94,7 @@
   import { TupleStore } from '../editor/tuple'
   import DecimalInputInherit from '../editor/DecimalInputInherit.svelte'
   import SelectInherit from '$lib/presentation/SelectInherit.svelte'
-  import { PART_CATEGORIES, PART_NAMES, variantOptions } from '$lib/geometry/socketsParts'
+  import { PART_INFO } from '$lib/geometry/socketsParts'
   import AngleInput from '../editor/AngleInput.svelte'
   import AngleInputInherit from '../editor/AngleInputInherit.svelte'
   import { browser } from '$app/environment'
@@ -711,14 +711,15 @@
             </div>
             <select
               class="appearance-none bg-transparent w-88 pl-20 h-8 pl-11!"
-              class:w-64!={PART_NAMES[nthPartType($protoConfig, $clickedKey, $selectMode)].length < 20}
+              class:w-64!={PART_INFO[nthPartType($protoConfig, $clickedKey, $selectMode)].partName
+                .length < 20}
               on:change={changeKey}
               value={nthPartType($protoConfig, $clickedKey, $selectMode)}
             >
-              {#each [...new Set(Object.values(PART_CATEGORIES))] as cat}
+              {#each [...new Set(Object.values(PART_INFO).map((p) => p.category))] as cat}
                 <optgroup label={cat}>
-                  {#each Object.values(PART).filter((v) => v != null && PART_CATEGORIES[v] == cat) as part}
-                    <option value={part}>{PART_NAMES[part]}</option>
+                  {#each notNull(Object.values(PART)).filter((v) => PART_INFO[v].category == cat) as part}
+                    <option value={part}>{PART_INFO[part].partName}</option>
                   {/each}
                 </optgroup>
               {/each}
@@ -749,7 +750,8 @@
           </div>
         {/if}
         {#if $selectMode == 'key'}
-          {#each Object.entries(variantOptions(nthPartType($protoConfig, $clickedKey, 'key'))) as [key, opt]}
+          {@const info = PART_INFO[nthPartType($protoConfig, $clickedKey, 'key')]}
+          {#each Object.entries('variants' in info ? info.variants : {}) as [key, opt]}
             <div class="relative bg-purple-200 dark:bg-pink-900/80">
               <select
                 class="appearance-none bg-transparent w-24 h-8 px-2"

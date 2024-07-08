@@ -406,7 +406,7 @@ export function fullMirrorETrsf(e: ETrsf) {
 }
 
 /** Mirror a set of keys and return the mirrored keys. */
-export function mirror(keys: CuttleKey[], flipKeys = true) {
+export function mirror(keys: CuttleKey[], flipKeys = true): CuttleKey[] {
   const mirroredKeys = keys.map(k => {
     const newK = {
       ...k,
@@ -426,7 +426,7 @@ export function mirror(keys: CuttleKey[], flipKeys = true) {
  * Both the original keys and the mirrored keys will be returned.
  * This is useful for creating full keyboards instead of ones split in half.
  */
-export function unibody(keys: CuttleKey[], gap = 30, angle = 0) {
+export function unibody(keys: CuttleKey[], gap = 30, angle = 0): CuttleKey[] {
   const minX = Math.min(...keys.map(k => keyPosition({} as any, k, false).origin().x))
   const axisX = minX - gap / 2 - 10
   const mirroredKeys = keys.map(k => {
@@ -447,7 +447,7 @@ export function unibody(keys: CuttleKey[], gap = 30, angle = 0) {
  *
  * This function returns copies of the keys that are passed in.
  */
-export function flipKeyLabels(keys: CuttleKey[]) {
+export function flipKeyLabels(keys: CuttleKey[]): CuttleKey[] {
   return keys.map(k => {
     const newK = {
       ...k,

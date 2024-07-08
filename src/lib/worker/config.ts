@@ -1,8 +1,8 @@
 import type manuform from '$assets/manuform.json'
-import { hasPro } from '@pro/index'
+import { socketSize } from '$lib/geometry/socketsParts'
 import { StiltsGeometry } from '@pro/stiltsGeo'
 import type { FullGeometry } from 'src/routes/beta/lib/viewers/viewer3dHelpers'
-import type { Curvature } from 'target/proto/cosmos'
+import type { CuttleKey, MicrocontrollerName } from 'target/cosmosStructs'
 import { Matrix4, Vector3 } from 'three'
 import {
   CONNECTOR,
@@ -39,6 +39,7 @@ type DeepRequired<T> = Required<
   }
 >
 
+export type { CuttleKey } from 'target/cosmosStructs'
 export type CuttleformProto = DeepRequired<CuttleformProtoP>
 
 // const MANUFORM_KEYCAP_TYPE = "xda"
@@ -51,7 +52,6 @@ const X: Point = [1, 0, 0]
 const Y: Point = [0, 1, 0]
 const Z: Point = [0, 0, 1]
 
-type _ETrsf = ETrsf // For code gen
 export interface SpecificCuttleform<S> {
   wallThickness: number
   wallShrouding: number
@@ -87,20 +87,7 @@ export interface SpecificCuttleform<S> {
     stilts?: boolean
   }
   wristRestOrigin: ETrsf
-  microcontroller:
-    | 'pi-pico'
-    | 'promicro'
-    | 'promicro-usb-c'
-    | 'itsybitsy-adafruit'
-    | 'itsybitsy-adafruit-nrf52840'
-    | 'kb2040-adafruit'
-    | 'rp2040-black-usb-c-aliexpress'
-    | 'nrfmicro-or-nicenano'
-    | 'seeed-studio-xiao'
-    | 'seeed-studio-xiao-nrf52840'
-    | 'waveshare-rp2040-zero'
-    | 'weact-studio-ch552t'
-    | null
+  microcontroller: MicrocontrollerName
   fastenMicrocontroller: boolean
   /** Additional height to add to the model. */
   verticalClearance: number
@@ -157,7 +144,7 @@ export interface TiltShell {
 }
 export type AnyShell = BasicShell | StiltsShell | BlockShell | TiltShell
 
-interface CuttleBaseKey {
+export interface CuttleBaseKey {
   /** The position at which to place the key. */
   position: ETrsf
   /** Aspect ratio of the key. Use 1.5 for 1.5u keys, etc. If the aspect is <1, the key will be placed vertically. */
@@ -174,61 +161,6 @@ export interface Keycap {
   letter?: string
   /** The finger that rests on this key in home position. */
   home?: 'thumb' | 'index' | 'middle' | 'ring' | 'pinky'
-}
-
-export interface CuttleKeycapKey extends CuttleBaseKey {
-  type: 'old-box' | 'old-mx' | 'mx-better' | 'old-mx-snap-in' | 'alps' | 'choc' | 'mx-pcb' | 'mx-pcb-twist' | 'old-mx-hotswap' | 'old-mx-snap-in-hotswap' | 'choc-hotswap' | 'mx-hotswap'
-  keycap: Keycap
-}
-
-interface CuttleBasicKey extends CuttleBaseKey {
-  type: 'ec11' | 'oled-128x32-0.91in-adafruit' | 'oled-128x32-0.91in-dfrobot' | 'evqwgd001' | 'joystick-joycon-adafruit' | 'joystick-ps2-40x45'
-}
-
-interface CuttleBlankKey extends CuttleBaseKey {
-  type: 'blank'
-  keycap?: Keycap
-  size: { width: number; height: number }
-}
-
-interface CuttleTrackballKey extends CuttleBaseKey {
-  type: 'trackball'
-  variant: {
-    size: '25mm' | '34mm'
-    bearings: 'Roller' | 'Ball'
-    sensor: 'Joe'
-  }
-  size: { sides: number }
-}
-
-interface CuttleCirqueKey extends CuttleBaseKey {
-  type: 'trackpad-cirque'
-  variant: {
-    size: '23mm' | '35mm' | '40mm'
-  }
-  size: { sides: number }
-}
-
-export type CuttleKey = CuttleKeycapKey | CuttleBasicKey | CuttleTrackballKey | CuttleCirqueKey | CuttleBlankKey
-
-type RoundSize = { radius: number; sides: number }
-export function keyRoundSize(key: CuttleKey): RoundSize | undefined {
-  switch (key.type) {
-    case 'trackball':
-      return {
-        // @ts-ignore: for backwards compatibility.
-        sides: key.size?.sides ?? key.trackball?.sides ?? 20,
-        radius: trackballRadius(key.variant),
-      }
-    case 'trackpad-cirque':
-      return {
-        // @ts-ignore: for backwards compatibility.
-        sides: key.size?.sides ?? key.trackball?.sides ?? 20,
-        radius: cirqueRadius(key.variant),
-      }
-    default:
-      return undefined
-  }
 }
 
 export const MAP_SCREW_SIZE: Record<SCREW_SIZE, Cuttleform['screwSize']> = {
@@ -481,7 +413,7 @@ function keyType(m: Manuform): CuttleKey['type'] {
   return t as any
 }
 
-export function keycapType(c: DeepRequired<CuttleformProto>): Required<CuttleKeycapKey>['keycap']['profile'] {
+export function keycapType(c: DeepRequired<CuttleformProto>): Keycap['profile'] {
   if (c.upperKeys.keycapType == KEYCAP.MT3) return 'mt3'
   if (c.upperKeys.keycapType == KEYCAP.OEM) return 'oem'
   if (c.upperKeys.keycapType == KEYCAP.CHERRY) return 'cherry'
@@ -492,7 +424,7 @@ export function keycapType(c: DeepRequired<CuttleformProto>): Required<CuttleKey
   return 'dsa'
 }
 
-export function switchType(c: DeepRequired<CuttleformProto>): Required<CuttleKeycapKey>['type'] {
+export function switchType(c: DeepRequired<CuttleformProto>): CuttleKey['type'] {
   if (c.upperKeys.switchType == SWITCH.MX) return 'old-mx'
   if (c.upperKeys.switchType == SWITCH.MX_HOTSWAP) return 'mx-hotswap'
   if (c.upperKeys.switchType == SWITCH.MX_BETTER) return 'mx-better'
@@ -547,15 +479,15 @@ function letterForKeycap(row: number, column: number) {
   return letter
 }
 
-function keycapInfo(c: CuttleformProto, row: number, column: number): CuttleKeycapKey['keycap'] {
-  let home: CuttleKeycapKey['keycap']['home']
+function keycapInfo(c: CuttleformProto, row: number, column: number): Keycap {
+  let home: Keycap['home']
   if (row == 3) {
     home = ({
       1: 'index',
       2: 'middle',
       3: 'ring',
       4: 'pinky',
-    } as Record<number, CuttleKeycapKey['keycap']['home']>)[column]
+    } as Record<number, Keycap['home']>)[column]
   }
 
   // Row 5 is used for thumb keys (in MT3, the 5th row key has zero tilt)
@@ -670,7 +602,7 @@ export function cosmosFingers(nRows: number, nCols: number, side: 'left' | 'righ
             2: 'middle',
             3: 'ring',
             4: 'pinky',
-          } as Record<number, CuttleKeycapKey['keycap']['home']>)[column] ?? null
+          } as Record<number, Keycap['home']>)[column] ?? null
           : null,
         letter: letterForKeycap(row2Row(row), column),
       },
@@ -1507,31 +1439,18 @@ export function matrixToConfig(m: Matrix4, key: CuttleKey | undefined = undefine
   const aspect = key?.aspect || 1
   const keyType = key ? TYPE_TO_ID[key.type] : 0
 
-  const roundSize = key ? keyRoundSize(key) : undefined
+  const size = key ? socketSize(key) : undefined
+  const roundSize = size && 'radius' in size ? size : undefined
   return {
     position: encodeTuple([Math.round(translation.x * 10), Math.round(translation.y * 10), Math.round(translation.z * 10), keyType]),
     rotation: encodeTuple([Math.round(rpy[0] * 45), Math.round(rpy[1] * 45), Math.round(rpy[2] * 45), Math.round((aspect < 1 ? -1 / aspect : aspect) * 100)]),
     trackballRadius: key?.type == 'trackball' ? Math.round(roundSize!.radius * 10) : undefined,
-    /* @ts-ignore */
-    trackballSides: roundSize?.sides,
+    trackballSides: (key as any).size.sides,
   }
 }
 
 export function findKeyByAttr(config: Cuttleform, attr: 'home' | 'letter', value: string) {
   return config.keys.find(k => 'keycap' in k && k.keycap && k.keycap[attr] == value)
-}
-
-function cirqueRadius(variant: CuttleCirqueKey['variant']) {
-  if (variant.size == '23mm') return 12.4
-  if (variant.size == '35mm') return 18.4
-  if (variant.size == '40mm') return 20.9
-  throw new Error('Unknown trackpad size ' + variant.size)
-}
-
-function trackballRadius(variant: CuttleTrackballKey['variant']) {
-  if (variant.size == '25mm') return 16.4
-  if (variant.size == '34mm') return 20.9
-  throw new Error('Unknown trackpad size ' + variant.size)
 }
 
 export type Geometry = BaseGeometry<Cuttleform>

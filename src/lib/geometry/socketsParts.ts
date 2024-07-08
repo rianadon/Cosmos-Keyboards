@@ -1,178 +1,283 @@
-import type { CuttleKey } from '../worker/config'
-import { Vector } from '../worker/modeling/transformation'
+import type { TrackballVariant, TrackpadCirqueVariant } from 'target/cosmosStructs'
+import type { CuttleBlankKey, CuttleKey } from '../worker/config'
 
-export const BOM_PART_NAMES: Record<CuttleKey['type'], string> = {
-  'mx-better': 'MX-Compatible Switches',
-  'old-mx': 'MX-Compatible Switches',
-  'mx-pcb': 'MX-Compatible Switches',
-  'mx-hotswap': 'MX-Compatible Switches',
-  'mx-pcb-twist': 'MX-Compatible Switches',
-  'old-mx-snap-in': 'MX-Compatible Switches',
-  'old-mx-hotswap': 'MX-Compatible Switches',
-  'old-mx-snap-in-hotswap': 'MX-Compatible Switches',
-  'alps': 'Alps Switches',
-  'old-box': 'Kailh Box Switches',
-  'choc': 'Kailh Choc Switches',
-  'choc-hotswap': 'Kailh Choc Switches',
-  'ec11': 'EC11 Encoders',
-  'joystick-joycon-adafruit': 'Adafruit Mini Thumbsticks (Joycon style, #5628)',
-  'evqwgd001': 'EVQWGD001 Encoders',
-  'trackball': 'Trackballs',
-  'blank': 'Ignore this',
-  'oled-128x32-0.91in-adafruit': 'Adafruit 128x32 1" Diagonal OLEDs',
-  'oled-128x32-0.91in-dfrobot': 'DFRobot 128x32 0.91" Diagonal OLEDs (DFR0647)',
-  'trackpad-cirque': 'Cirque Flat Circle Trackpads',
-  'joystick-ps2-40x45': 'PS2 style joystick modules',
+const MX_BOTTOM = box(14, 14, 8.5)
+const CHOC_BOTTOM = box(12, 12, 5.2)
+
+// To reduce the number of assets needed, all switch mounts share the same switch models
+const MX_PART = '/target/switch-cherry-mx.glb'
+const CHOC_PART = '/src/assets/switch-choc.glb'
+
+export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
+  'mx-better': {
+    partName: 'MX-Compatible (Cherry, Gateron, ...)',
+    bomName: 'MX-Compatible Switches',
+    category: 'Sockets',
+    stepFile: '/src/assets/key-mx-better.step',
+    partOverride: MX_PART,
+    socketSize: [18, 18, 4.7],
+    partBottom: [MX_BOTTOM],
+  },
+  'mx-pcb': {
+    partName: 'MX-Compatible PCB (Amoeba King)',
+    bomName: 'MX-Compatible Switches',
+    category: 'Sockets',
+    stepFile: '/src/assets/key-mx-pcb.step',
+    partOverride: MX_PART,
+    socketSize: [19.2, 19.2, 4.7],
+    partBottom: [MX_BOTTOM, box(19.4, 19.4, 6.6)],
+  },
+  'mx-hotswap': {
+    partName: 'MX-Compatible with 3DP Hotswap',
+    bomName: 'MX-Compatible Switches',
+    category: 'Sockets',
+    stepFile: '/target/key-mx-hotswap.step',
+    partOverride: MX_PART,
+    socketSize: [18, 18, 5.85],
+    partBottom: [box(16.9, 16.8, 8)],
+  },
+  // 'mx-pcb-twist': {
+  //   partName: 'MX-Compatible PCB (Amoeba Twist)',
+  //   bomName: 'MX-Compatible Switches',
+  //   category: 'Sockets',
+  //   stepFile: '/src/assets/key-mx-pcb-twist.step',
+  //   partOverride: MX_PART,
+  //   socketSize: [18.7, 18.7, 9.52],
+  //   partBottom: [MX_BOTTOM, box(19.4, 19.4, 6.6)],
+  // },
+  'alps': {
+    partName: 'Alps (and clones)',
+    bomName: 'Alps Switches',
+    category: 'Sockets',
+    stepFile: '/src/assets/key-alps.step',
+    partOverride: '/src/assets/switch-alps.glb',
+    socketSize: [18.6, 17, 5],
+    partBottom: [box(15, 13, 8.6)],
+  },
+  'choc': {
+    partName: 'Choc (Kailh)',
+    bomName: 'Kailh Choc Switches',
+    category: 'Sockets',
+    stepFile: '/src/assets/key-choc.step',
+    partOverride: CHOC_PART,
+    socketSize: [17.5, 16.5, 2.2],
+    partBottom: [CHOC_BOTTOM],
+  },
+  'blank': {
+    partName: 'Shaper (Blank key)',
+    bomName: 'Ignore this',
+    category: 'Sockets',
+    // @ts-ignore blank has a custom model
+    stepFile: null,
+    partOverride: null,
+    // @ts-ignore
+    socketSize: (k: CuttleBlankKey) => [k.size?.width ?? 18.5, k.size?.height ?? 18.5, 5],
+    partBottom: [],
+  },
+  'old-mx': {
+    partName: 'Old MX-Compatible',
+    bomName: 'MX-Compatible Switches',
+    category: 'Backwards-Compatible',
+    stepFile: '/target/key-old-mx.step',
+    partOverride: MX_PART,
+    socketSize: [18, 18, 5],
+    partBottom: [MX_BOTTOM],
+  },
+  'old-mx-snap-in': {
+    partName: 'Old MX-Compatible snap-in',
+    bomName: 'MX-Compatible Switches',
+    category: 'Backwards-Compatible',
+    stepFile: '/target/key-mxSnapIn.step',
+    partOverride: MX_PART,
+    socketSize: [18, 18, 5],
+    partBottom: [MX_BOTTOM],
+  },
+  'old-mx-hotswap': {
+    partName: 'Old MX-Compatible',
+    bomName: 'MX-Compatible Switches',
+    category: 'Backwards-Compatible',
+    stepFile: '/target/key-old-mx-hotswap.step',
+    partOverride: MX_PART,
+    socketSize: [18, 18, 5],
+    partBottom: [MX_BOTTOM],
+  },
+  'old-mx-snap-in-hotswap': {
+    partName: 'Old MX-Compatible Hotswap',
+    bomName: 'MX-Compatible Switches',
+    category: 'Backwards-Compatible',
+    stepFile: '/target/key-old-mxSnapIn-hotswap.step',
+    partOverride: MX_PART,
+    socketSize: [18, 18, 5],
+    partBottom: [MX_BOTTOM],
+  },
+  'old-box': {
+    partName: 'Old Kailh Box Switches',
+    bomName: 'Kailh Box Switches',
+    category: 'Backwards-Compatible',
+    stepFile: '/target/key-old-box.step',
+    partOverride: MX_PART,
+    socketSize: [18, 18, 5],
+    partBottom: [MX_BOTTOM],
+  },
+  'choc-hotswap': {
+    partName: 'Old Choc (Kailh)',
+    bomName: 'Kailh Choc Switches',
+    category: 'Backwards-Compatible',
+    stepFile: '/target/key-choc-hotswap.step',
+    partOverride: CHOC_PART,
+    socketSize: [18, 18, 5],
+    partBottom: [CHOC_BOTTOM],
+  },
+  'ec11': {
+    partName: 'EC11 Encoder',
+    bomName: 'EC11 Encoders',
+    category: 'Encoders',
+    stepFile: '/src/assets/key-ec11.step',
+    socketSize: [14.5, 14.5, 4.5],
+    partBottom: [box(12, 12, 14.5)],
+  },
+  'evqwgd001': {
+    partName: 'EVQWGD001 Encoder',
+    bomName: 'EVQWGD001 Encoders',
+    category: 'Encoders',
+    stepFile: '/src/assets/key-evqwgd001.step',
+    partOverride: '/target/switch-evqwgd001.glb',
+    socketSize: [19.2, 19.2, 4.7],
+    partBottom: [box(16, 16, 5.8)],
+  },
+  'oled-128x32-0.91in-adafruit': {
+    partName: 'Adafruit 128x32 1" OLED',
+    bomName: 'Adafruit 128x32 1" Diagonal OLEDs',
+    category: 'Displays',
+    stepFile: '/src/assets/key-oled-128x32-0.91in-adafruit.step',
+    socketSize: [22.044, 33.22, 5],
+    partBottom: [box(22, 33.2, 4.1)],
+  },
+  'oled-128x32-0.91in-dfrobot': {
+    partName: 'DFRobot 128x32 0.91" OLED',
+    bomName: 'DFRobot 128x32 0.91" Diagonal OLEDs (DFR0647)',
+    category: 'Displays',
+    stepFile: '/target/key-oled-128x32-0.91in-dfrobot.step',
+    partOverride: '/target/switch-oled-128x32-0.91in-dfrobot.glb',
+    socketSize: [11.6, 41.18, 2.84],
+    partBottom: [box(11.5, 24.4, 4.3)],
+  },
+  'trackball': {
+    partName: 'Trackball',
+    bomName: () => 'Trackballs',
+    category: 'Trackballs & Trackpads',
+    stepFile: '/target/key-trackball.step',
+    partOverride: null, // Trackball model is a custom one
+    socketSize: (v: Variant) => ({
+      radius: { '25mm': 16.4, '34mm': 20.9 }[v.size as TrackballVariant['size']],
+      height: 4,
+      sides: 20,
+    }),
+    partBottom: (v: Variant) => {
+      // box = pcb then chip
+      if (v.size == '25mm') return [box(28.5, 21.3, 22.5), box(16, 11, 25)]
+      return [box(28.5, 21.3, 27), box(16, 11, 29.5)] // 34mm variant
+    },
+    variants: {
+      size: ['25mm', '34mm'],
+      bearings: ['Roller', 'Ball'],
+      sensor: ['Joe'],
+    },
+  },
+  'trackpad-cirque': {
+    partName: 'Cirque Flat Circle Trackpad',
+    bomName: (v: Variant) => `Cirque Flat Circle ${v.size} Trackpads`,
+    category: 'Trackballs & Trackpads',
+    stepFile: '/src/assets/key-cirque.step',
+    partOverride: '/src/assets/switch-cirque.glb',
+    socketSize: (v: Variant) => ({
+      radius: { '23mm': 12.4, '35mm': 18.4, '40mm': 20.9 }[v.size as TrackpadCirqueVariant['size']],
+      height: 3,
+      sides: 20,
+    }),
+    partBottom: () => [box(10, 10, 2)],
+    variants: {
+      size: ['23mm', '35mm', '40mm'],
+    },
+  },
+  'joystick-joycon-adafruit': {
+    partName: 'Adafruit Mini Thumbstick',
+    bomName: 'Adafruit Mini Thumbsticks (Joycon style, #5628)',
+    category: 'Joysticks',
+    stepFile: '/src/assets/key-joystick-joycon-adafruit.step',
+    partOverride: '/target/switch-joystick-joycon-adafruit.glb',
+    socketSize: [24.25, 24.4, 3.5],
+    partBottom: [box(24.25, 22.4, 3.5)],
+  },
+  'joystick-ps2-40x45': {
+    partName: 'PS2 style joystick module',
+    bomName: 'PS2 style joystick modules',
+    category: 'Joysticks',
+    stepFile: '/src/assets/key-joystick-ps2-40x45.step',
+    partOverride: '/target/switch-joystick-ps2-40x45.glb',
+    socketSize: [40, 45, 4],
+    partBottom: [box(40, 45, 19.5)],
+  },
 }
 
-export const PART_NAMES: Record<CuttleKey['type'], string> = {
-  'mx-better': 'MX-Compatible (Cherry, Gateron, ...)',
-  'old-mx': 'Old MX-Compatible',
-  'mx-pcb': 'MX-Compatible PCB (Amoeba King)',
-  'mx-hotswap': 'MX-Compatible with 3DP Hotswap',
-  'mx-pcb-twist': 'MX-Compatible PCB (Amoeba Twist)',
-  'old-mx-snap-in': 'Old MX-Compatible snap-in',
-  'old-mx-hotswap': 'Old MX-Compatible',
-  'old-mx-snap-in-hotswap': 'Old MX-Compatible Hotswap',
-  'alps': 'Alps (and clones)',
-  'old-box': 'Old Kailh Box Switches',
-  'choc': 'Choc (Kailh)',
-  'choc-hotswap': 'Old Choc (Kailh)',
-  'ec11': 'EC11 Encoder',
-  'joystick-joycon-adafruit': 'Adafruit Mini Thumbstick',
-  'evqwgd001': 'EVQWGD001 Encoder',
-  'trackball': 'Trackball',
-  'blank': 'Shaper (Blank key)',
-  'oled-128x32-0.91in-adafruit': 'Adafruit 128x32 1" OLED',
-  'oled-128x32-0.91in-dfrobot': 'DFRobot 128x32 0.91" OLED',
-  'trackpad-cirque': 'Cirque Flat Circle Trackpad',
-  'joystick-ps2-40x45': 'PS2 style joystick module',
+// ------------------------------------------------------------------------------------------------------
+// TYPES
+
+type PartSize = [number, number, number] | { radius: number; sides: number; height: number }
+type Variant = Record<string, any>
+
+type PartInfoNonVariant = {
+  bomName: string
+  socketSize: PartSize | ((k: CuttleKey) => PartSize)
+  partBottom: [number, number, number][][]
+}
+type PartInfoVariant = {
+  bomName: (v: Variant) => string
+  socketSize: (v: Variant, k: CuttleKey) => PartSize
+  partBottom: (v: Variant) => [number, number, number][][]
+  variants: Record<string, string[]>
+}
+type PartInfo = (PartInfoNonVariant | PartInfoVariant) & {
+  partName: string
+  stepFile: string
+  partOverride?: string | null
+  category: string
 }
 
-export const PART_CATEGORIES: Record<CuttleKey['type'], string> = {
-  'mx-better': 'Sockets',
-  'mx-pcb': 'Sockets',
-  'mx-hotswap': 'Sockets',
-  'mx-pcb-twist': 'Sockets',
-  'alps': 'Sockets',
-  'choc': 'Sockets',
-  'ec11': 'Encoders',
-  'joystick-joycon-adafruit': 'Joysticks',
-  'evqwgd001': 'Encoders',
-  'trackball': 'Trackballs & Trackpads',
-  'blank': 'Sockets',
-  'oled-128x32-0.91in-adafruit': 'Displays',
-  'oled-128x32-0.91in-dfrobot': 'Displays',
-  'trackpad-cirque': 'Trackballs & Trackpads',
-  'joystick-ps2-40x45': 'Joysticks',
-  'old-mx': 'Backwards-Compatible',
-  'old-mx-snap-in': 'Backwards-Compatible',
-  'old-mx-hotswap': 'Backwards-Compatible',
-  'old-mx-snap-in-hotswap': 'Backwards-Compatible',
-  'old-box': 'Backwards-Compatible',
-  'choc-hotswap': 'Backwards-Compatible',
-}
-
-export const SWITCHES: CuttleKey['type'][] = [
-  'mx-better',
-  'mx-pcb',
-  'mx-hotswap',
-  // 'mx-pcb-twist',
-  'alps',
-  'choc',
-]
-
-export function socketSize(key: CuttleKey): Vector {
-  if (key.type == 'blank') return new Vector(key.size?.width ?? 18.5, key.size?.height ?? 18.5, 5)
-  if (key.type == 'mx-pcb') return new Vector(19.2, 19.2, 4.7)
-  if (key.type == 'mx-pcb-twist') return new Vector(18.7, 18.7, 9.52)
-  if (key.type == 'mx-better') return new Vector(18, 18, 4.7)
-  if (key.type == 'mx-hotswap') return new Vector(18, 18, 5.85)
-  if (key.type == 'choc') return new Vector(17.5, 16.5, 2.2)
-  if (key.type == 'ec11') return new Vector(14.5, 14.5, 4.5)
-  if (key.type == 'joystick-joycon-adafruit') return new Vector(24.25, 24.4, 3.5)
-  if (key.type == 'evqwgd001') return new Vector(19.2, 19.2, 4.7)
-  if (key.type == 'oled-128x32-0.91in-adafruit') return new Vector(22.044, 33.22, 5)
-  if (key.type == 'oled-128x32-0.91in-dfrobot') return new Vector(11.6, 41.18, 2.84)
-  if (key.type == 'alps') return new Vector(18.6, 17, 5)
-  if (key.type == 'joystick-ps2-40x45') return new Vector(40, 45, 4)
-  if (key.type == 'trackball') return new Vector(0, 0, 4)
-  if (key.type == 'trackpad-cirque') return new Vector(0, 0, 3)
-  return new Vector(18, 18, 5)
-}
-
-export function partBottom(sw: CuttleKey['type'] | undefined, variant: Record<string, any> | undefined): [number, number, number][][] {
-  if (sw == 'mx-pcb') {
-    return [box(14, 14, 8.5), box(19.4, 19.4, 6.6)]
-  }
-  if (sw == 'mx-hotswap') {
-    return [box(16.9, 16.8, 8)]
-  }
-  if (sw == 'box' || sw?.startsWith('mx') || sw?.startsWith('old-mx')) {
-    return [box(14, 14, 8.5)]
-  }
-  if (sw == 'choc') {
-    return [box(12, 12, 5.2)]
-  }
-  if (sw == 'alps') {
-    return [box(15, 13, 8.6)]
-  }
-  if (sw == 'trackball') {
-    // box = pcb then chip
-    if (variant?.size == '25mm') return [box(28.5, 21.3, 22.5), box(16, 11, 25)]
-    return [box(28.5, 21.3, 27), box(16, 11, 29.5)] // 34mm variant
-  }
-  if (sw == 'ec11') {
-    return [box(12, 12, 14.5)]
-  }
-  if (sw == 'joystick-joycon-adafruit') {
-    return [box(24.25, 22.4, 3.5)]
-  }
-  if (sw == 'evqwgd001') {
-    return [box(16, 16, 5.8)]
-  }
-  if (sw == 'oled-128x32-0.91in-dfrobot') {
-    return [box(11.5, 24.4, 4.3)]
-  }
-  if (sw == 'joystick-ps2-40x45') {
-    return [box(40, 45, 19.5)]
-  }
-  if (sw == 'oled-128x32-0.91in-adafruit') {
-    return [box(22, 33.2, 4.1)]
-  }
-  return [box(10, 10, 2)]
-}
+// ------------------------------------------------------------------------------------------------------
+// OTHER FUNCTIONS
 
 function box(width: number, length: number, depth: number): [number, number, number][] {
   return [[-width / 2, -length / 2, -depth], [width / 2, -length / 2, -depth], [width / 2, length / 2, -depth], [-width / 2, length / 2, -depth]]
 }
 
-export function variantOptions(type: CuttleKey['type']): Record<string, string[]> {
-  if (type == 'trackpad-cirque') {
-    return {
-      size: ['23mm', '35mm', '40mm'],
-    }
-  } else if (type == 'trackball') {
-    return {
-      size: ['25mm', '34mm'],
-      bearings: ['Roller', 'Ball'],
-      sensor: ['Joe'],
-    }
-  }
-  return {}
-}
-
 export function variantURL(key: CuttleKey) {
-  if (key.type == 'trackpad-cirque') {
-    return '-' + key.variant.size
-  } else if (key.type == 'trackball') {
-    return ('-' + key.variant.size + '-' + key.variant.bearings + '-' + key.variant.sensor).toLowerCase()
-  }
-  return ''
+  const info = PART_INFO[key.type]
+  const keyVariant = key.variant as Variant
+  if (!keyVariant || !('variants' in info)) return ''
+  return '-' + Object.keys(info.variants).map(v => keyVariant[v]).join('-').toLowerCase()
 }
 
-// ------------------------------------------------------------------------------------------------------
-// OTHER FUNCTIONS
+export function socketSize(k: CuttleKey): PartSize {
+  const info = PART_INFO[k.type]
+  if ('variants' in info) return info.socketSize(k.variant!, k)
+  if (typeof info.socketSize == 'function') return info.socketSize(k)
+  return info.socketSize
+}
+export function socketHeight(k: CuttleKey): number {
+  const size = socketSize(k)
+  return 'height' in size ? size.height : size[2]
+}
+export function partBottom(k: CuttleKey): [number, number, number][][] {
+  const info = PART_INFO[k.type]
+  if ('variants' in info) return info.partBottom(k.variant!)
+  return info.partBottom
+}
+export function bomName(k: CuttleKey): string {
+  const info = PART_INFO[k.type]
+  if ('variants' in info) return info.bomName(k.variant!)
+  return info.bomName
+}
 
 /** [[a, [1,2]], [b, [3, 4]]] -> [{a: 1, b: 3}, {a: 1, b: 4}, {a: 2, b: 3}, {a: 3, b: 4}] */
 function permutations(xs: [string, string[]][]): Record<string, string>[] {
@@ -184,7 +289,8 @@ function permutations(xs: [string, string[]][]): Record<string, string>[] {
 }
 
 export function allVariants(socket: CuttleKey['type']) {
-  const options = variantOptions(socket)
+  const info = PART_INFO[socket]
+  const options = 'variants' in info ? info.variants : {}
   return permutations(Object.entries(options))
 }
 

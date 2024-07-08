@@ -1,7 +1,7 @@
 import { keyInfo } from '$lib/geometry/keycaps'
 import { boardElements, holderBoundsOrigin, holderOuterRadius, holderThickness, localHolderBounds } from '$lib/geometry/microcontrollers'
 import { SCREWS } from '$lib/geometry/screws'
-import { partBottom, socketSize } from '$lib/geometry/socketsParts'
+import { partBottom, socketHeight, socketSize } from '$lib/geometry/socketsParts'
 import { switchInfo } from '$lib/geometry/switches'
 import { wallBezier, wallCurveRounded, wallSurfacesInnerRoundedTop, wallSurfacesOuterRoundedTop } from '@pro/rounded'
 import cdt2d from 'cdt2d'
@@ -9,7 +9,7 @@ import findBoundary from 'simplicial-complex-boundary'
 import { ExtrudeGeometry, Matrix3, Shape, Triangle, type Vector3Tuple } from 'three'
 import { Vector2 } from 'three/src/math/Vector2.js'
 import concaveman from './concaveman'
-import { type Cuttleform, type CuttleKey, type Geometry, keyRoundSize } from './config'
+import { type Cuttleform, type CuttleKey, type Geometry } from './config'
 import { intersectLineCircle, intersectPolyPoly, intersectPtPoly, intersectTriCircle } from './geometry.intersections'
 import { PLATE_HEIGHT, screwInsertDimensions } from './model'
 import Trsf from './modeling/transformation'
@@ -55,7 +55,7 @@ export interface WallCriticalPoints {
 
 export const webThickness = (c: Cuttleform, key: CuttleKey) => {
   if (c.webThickness > 0) return c.webThickness
-  return socketSize(key).z
+  return socketHeight(key)
 }
 
 /** Like offsetAxisLerp(..., 0.5) = offsetAxis. The lerp parameter controsl which normal the given normal is closest to. */
@@ -131,11 +131,11 @@ export function offsetBisector(p1: Trsf, p2: Trsf, p3: Trsf, offset: number, z: 
 }
 
 export function keyCriticalPoints(c: Cuttleform, key: CuttleKey, hole: Trsf, offset = 0): CriticalPoints {
-  const roundSize = keyRoundSize(key)
-  if (roundSize) {
+  const size = socketSize(key)
+  if ('radius' in size) {
     const pts: Trsf[] = []
-    const r = roundSize.radius
-    const sides = roundSize.sides
+    const r = size.radius
+    const sides = (key as any).size?.sides ?? size.sides
     for (let j = 0; j < sides; j++) {
       pts.push(hole.pretranslated(r * Math.cos(2 * Math.PI / sides * -j), r * Math.sin(2 * Math.PI / sides * -j), 0))
     }
@@ -143,8 +143,8 @@ export function keyCriticalPoints(c: Cuttleform, key: CuttleKey, hole: Trsf, off
   }
 
   // Compute width and height of the key based on its aspect ratio
-  const width = socketSize(key).x * Math.max(1, key.aspect)
-  const height = socketSize(key).y * Math.max(1, 1 / key.aspect)
+  const width = size[0] * Math.max(1, key.aspect)
+  const height = size[1] * Math.max(1, 1 / key.aspect)
 
   // Return the points!
   return [
@@ -788,7 +788,7 @@ export function bottomByNormal(c: Cuttleform, normal: Vector, t: Trsf) {
   let j = Math.min(...c.keys.flatMap(k => {
     const swTop = keyHoleTrsf(c, k, t.cleared())
     const swBottom = keyHoleTrsf(c, k, t.cleared()).pretranslated(0, 0, -webThickness(c, k))
-    const pts = partBottom(k.type, k.variant).flat()
+    const pts = partBottom(k).flat()
     return pts.map(p => swTop.pretranslated(p).origin().dot(normal))
       // See comment in additionalHeight about adding c.wallThickness / 2 as offset.
       .concat(keyCriticalPoints(c, k, swBottom, c.wallThickness / 2).map(p => p.origin().dot(normal)))
@@ -803,7 +803,7 @@ export function additionalHeight(c: Cuttleform, t?: Trsf) {
   let z = Math.min(...c.keys.flatMap(k => {
     const swTop = keyHoleTrsf(c, k, new Trsf())
     const swBottom = keyHoleTrsf(c, k, new Trsf()).pretranslated(0, 0, -webThickness(c, k))
-    const pts = partBottom(k.type, k.variant).flat()
+    const pts = partBottom(k).flat()
     return pts.map(p => swTop.pretranslated(p).origin().z)
       // The c.wallThickness/2 is added as an additional offset because when keys are rotated vertically,
       // the wall will stick out below the key. However, the ti on these walls is not quite translated out by wallThickness
@@ -1931,7 +1931,7 @@ export function topComponentBoxes(c: Cuttleform, keyholes: Trsf[]): ComponentBox
     return { origin, points }
   })
   const swPoints = keyholes.flatMap((trsf, i) => {
-    const boxes = partBottom(c.keys[i].type, c.keys[i].variant)
+    const boxes = partBottom(c.keys[i])
     return boxes.map(box => ({ origin: trsf, points: box.map(p => new Vector(...p)) }))
   })
   return holePts.concat(swPoints)

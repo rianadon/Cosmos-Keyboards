@@ -45,9 +45,9 @@
   import Checkbox from '$lib/presentation/Checkbox.svelte'
   import CheckboxOpt from '$lib/presentation/CheckboxOptDef.svelte'
   import Select from '$lib/presentation/Select.svelte'
-  import { notNull } from '$lib/worker/util'
+  import { notNull, objKeys } from '$lib/worker/util'
   import { profileName, sortProfiles } from '../viewers/viewer3dHelpers'
-  import { PART_NAMES, SWITCHES } from '$lib/geometry/socketsParts'
+  import { PART_INFO } from '$lib/geometry/socketsParts'
   import DecimalInputInherit from './DecimalInputInherit.svelte'
   import {
     clusterAngle,
@@ -342,8 +342,8 @@
   </Field>
   <Field name="Switches" icon="switch" on:change={updateSwitch}>
     <Select bind:value={$protoConfig.partType.type}>
-      {#each SWITCHES as part}
-        <option value={part}>{PART_NAMES[part]}</option>
+      {#each objKeys(PART_INFO).filter((k) => PART_INFO[k].category == 'Sockets' && k != 'blank') as part}
+        <option value={part}>{PART_INFO[part].partName}</option>
       {/each}
     </Select>
   </Field>

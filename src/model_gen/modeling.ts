@@ -4,7 +4,26 @@ import Trsf from '$lib/worker/modeling/transformation'
 import { writeFileSync } from 'fs'
 import loadMF from 'manifold-3d'
 import type { CrossSection, Manifold, ManifoldToplevel } from 'manifold-3d'
-import { type AnyShape, draw, drawCircle, Drawing, drawRectangle, Face, getOC, makeCylinder, makeFace, makePolygon, makeSolid, type Point, revolution, Sketch, Solid, Transformation } from 'replicad'
+import {
+  type AnyShape,
+  cast,
+  draw,
+  drawCircle,
+  Drawing,
+  drawRectangle,
+  Face,
+  getOC,
+  localGC,
+  makeCylinder,
+  makeFace,
+  makePolygon,
+  makeSolid,
+  type Point,
+  revolution,
+  Sketch,
+  Solid,
+  Transformation,
+} from 'replicad'
 import { Matrix4, Triangle, Vector3 } from 'three'
 
 let mf: ManifoldToplevel
@@ -195,7 +214,7 @@ function makeHull(shapes: Solid[]) {
 }
 
 export function compute(op: Operation): Solid {
-  const oc = getOC()
+  const oc = getOC() as OpenCascadeInstance
   switch (op.op) {
     case 'cube': {
       const { x, y, z } = op
@@ -243,7 +262,7 @@ export function compute(op: Operation): Solid {
 }
 
 export function serialize(filename: string, model: AnyShape) {
-  const oc = getOC()
+  const oc = getOC() as OpenCascadeInstance
 
   const writer = new oc.STEPControl_Writer_1()
   oc.Interface_Static.SetIVal('write.step.schema', 5)
@@ -269,7 +288,7 @@ export function serialize(filename: string, model: AnyShape) {
 }
 
 export function serialize2(filename: string, model: Solid) {
-  const oc = getOC()
+  const oc = getOC() as OpenCascadeInstance
 
   const progress = new oc.Message_ProgressRange_1()
   oc.BRepTools.Write_3(model.wrapped, `./${filename}.txt`, progress)
@@ -282,7 +301,7 @@ export function serialize2(filename: string, model: Solid) {
 }
 
 export function serialize3(filename: string, model: Solid) {
-  const oc = getOC()
+  const oc = getOC() as OpenCascadeInstance
 
   const progress = new oc.Message_ProgressRange_1()
   oc.BinTools.Write_3(model.wrapped, `./${filename}.bin`, progress)
@@ -292,4 +311,36 @@ export function serialize3(filename: string, model: Solid) {
   const file = oc.FS.readFile(`/${filename}.bin`)
   oc.FS.unlink(`/${filename}.bin`)
   return file
+}
+
+export async function importSTEPSpecifically(blob: Blob, name: string) {
+  const oc = getOC() as OpenCascadeInstance
+  const [r, gc] = localGC()
+
+  const text = await blob.text()
+  const re = new RegExp(`(#\\d*)\\s*=\\s*NEXT_ASSEMBLY_USAGE_OCCURRENCE\\([^\n;]*,'${name}'`)
+  const label = text.match(re)![1]
+
+  const fileName = Date.now().toString(36) + Math.random().toString(36).substring(2)
+  const bufferView = new Uint8Array(await blob.arrayBuffer())
+  oc.FS.writeFile(`/${fileName}`, bufferView)
+
+  const reader = r(new oc.STEPControl_Reader_1())
+  if (reader.ReadFile(fileName)) {
+    oc.FS.unlink('/' + fileName)
+
+    const model = reader.StepModel().get()
+    const rank = model.NextNumberForLabel(label, 0, false)
+    if (rank == 0) throw new Error(`Model ${label} not found`)
+    reader.TransferOne(rank, r(new oc.Message_ProgressRange_1()))
+    const stepShape = r(reader.OneShape())
+
+    const shape = cast(stepShape)
+    gc()
+    return shape
+  } else {
+    oc.FS.unlink('/' + fileName)
+    gc()
+    throw new Error('Failed to load STEP file')
+  }
 }

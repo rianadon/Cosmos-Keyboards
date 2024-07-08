@@ -27,11 +27,11 @@ target/proto/lightcycle.ts: src/proto/lightcycle.proto
 target/proto/cosmos.ts: src/proto/cosmos.proto
 	$(NPX) protoc --ts_out target --proto_path src $<
 
-target/editorDeclarations.d.ts: src/lib/worker/config.ts src/lib/worker/modeling/transformation-ext.ts
+target/editorDeclarations.d.ts: src/lib/worker/config.ts src/lib/worker/modeling/transformation-ext.ts target/cosmosStructs.ts
 	$(NODE) src/model_gen/genEditorTypes.ts
 
-target/cosmosStructs.ts: src/proto/cosmosStructs.ts
-	$(NODE) $<
+target/cosmosStructs.ts: src/proto/cosmosStructs.ts src/lib/geometry/socketsParts.ts
+	$(NODE) src/proto/cosmosStructs.ts
 
 target/KeyV2:
 	git clone -b choc https://github.com/rianadon/KeyV2 target/KeyV2

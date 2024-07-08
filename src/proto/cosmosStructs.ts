@@ -1,5 +1,8 @@
 /** Cosmos-Specific encoding schemas. Helpers are at the bottom */
 
+import { PART_INFO, socketSize } from '$lib/geometry/socketsParts'
+import { PARTS_WITH_KEYCAPS } from '$lib/worker/config.cosmos'
+import { objEntries, objKeys } from '$lib/worker/util'
 import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -19,7 +22,7 @@ enumeration('PART', {
   7: 'choc-hotswap',
   8: 'blank',
 
-  // You wouldn't put many of these o a keyboard.
+  // You wouldn't put many of these on a keyboard.
   16: 'ec11',
   17: 'oled-128x32-0.91in-adafruit',
   18: 'oled-128x32-0.91in-dfrobot',
@@ -115,7 +118,7 @@ struct('TiltShellFlags', { usePattern: 'bool,1' })
 // ----------------------------------------------------------------------------
 
 function capitalize(name: string) {
-  return name.split('_').map(s => s[0].toUpperCase() + s.substring(1).toLowerCase()).join('')
+  return name.split(/[_-]/).map(s => s[0].toUpperCase() + s.substring(1).toLowerCase()).join('')
 }
 
 function enumeration<T extends string | null>(name: string, fields: Record<number, T> | T[], writeTransformers = false) {
@@ -181,7 +184,28 @@ function checkInt(x: number, bits: number, msg: string) {
   if (x < 0 || x >= (1 << bits)) throw new Error(\`Integer \${x} for field \${msg} is out of bounds\`)
   return x
 }
+
+import type { CuttleBaseKey, Keycap as IKeycap } from '../src/lib/worker/config'
 `
+
+const safeCaps = (s: string) => capitalize(s).replace(/\W/g, '_')
+
+for (const [part, info] of objEntries(PART_INFO)) {
+  if (part == 'blank') { // Special interface for blank keys
+    code += "export interface CuttleBlankKey extends CuttleBaseKey { type: 'blank', keycap?: IKeycap, size: { width: number; height: number } }\n"
+    continue
+  }
+  if ('variants' in info) {
+    const body = Object.entries(info.variants).map(([k, v]) => k + ':' + v.map(i => JSON.stringify(i)).join('|')).join(',')
+    code += `export type ${safeCaps(part)}Variant = {${body}}\n`
+  }
+  code += `export interface Cuttle${safeCaps(part)}Key extends CuttleBaseKey { type: '${part}',`
+  if ('variants' in info) code += `variant: ${safeCaps(part)}Variant,`
+  if (PARTS_WITH_KEYCAPS.includes(part)) code += 'keycap: IKeycap,'
+  if ('radius' in socketSize({ type: part, variant: {} } as any)) code += 'size?: { sides: number },'
+  code += '}\n'
+}
+code += 'export type CuttleKey = ' + objKeys(PART_INFO).map(p => `Cuttle${safeCaps(p)}Key`).join('|') + '\n'
 
 const targetDir = fileURLToPath(new URL('../../target', import.meta.url))
 writeFileSync(join(targetDir, 'cosmosStructs.ts'), code)

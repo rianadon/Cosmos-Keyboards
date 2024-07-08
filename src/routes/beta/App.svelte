@@ -100,6 +100,7 @@
   )
   if (state.error)
     confError.set({ type: 'exception', error: state.error, side: 'right', when: 'parsing URL' })
+  $: if ($confError && $confError.type == 'exception') console.error($confError.error)
   console.log('state', state)
   let initialEditorContent = state.content
 
