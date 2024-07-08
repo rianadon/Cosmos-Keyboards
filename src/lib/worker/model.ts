@@ -798,7 +798,8 @@ export const connectors: Record<string, { positive: (c: Cuttleform) => Solid | n
       return null
     },
     negative(c: Cuttleform) {
-      return drawCircle(3.2).translate(-14.5, 0) // trrs hole
+      const lg = BOARD_PROPERTIES[c.microcontroller].sizeName == 'Large'
+      return drawCircle(3.2).translate(lg ? -16.5 : -14.5, 0) // trrs hole
         .fuse(rectangleForUSB(c)) // usb hole
         .sketchOnPlane('XZ')
         .extrude(c.wallThickness * 10)

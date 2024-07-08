@@ -51,7 +51,7 @@ function extendPlate(plate: Solid, key: CuttleKey) {
   if (key.aspect == 1) return plate
   if ('radius' in size) return plate
 
-  const extension = drawRoundedRectangle(size.x * Math.max(key.aspect, 1), size.y * Math.max(1 / key.aspect, 1))
+  const extension = drawRoundedRectangle(size[0] * Math.max(key.aspect, 1), size[1] * Math.max(1 / key.aspect, 1))
     .cut(drawRoundedRectangle(size[0], size[1]))
     .sketchOnPlane('XY')
     .extrude(-size[2]) as Solid

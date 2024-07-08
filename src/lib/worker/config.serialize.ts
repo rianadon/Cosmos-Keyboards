@@ -595,6 +595,11 @@ export function encodeCosmosConfig(conf: CosmosKeyboard): Keyboard {
       wristRestExtension: Math.round(conf.wristRestProps.extension * 10),
       connectorIndex: Math.round(conf.connectorIndex * 10),
       screwIndices: conf.screwIndices.some(c => c >= 0) ? conf.screwIndices.map(i => Math.round(i * 10) + 10) : [],
+      roundedSideConcavity: conf.rounded.side ? Math.round(conf.rounded.side.concavity * 10) : undefined,
+      roundedSideDivisor: conf.rounded.side ? Math.round(conf.rounded.side.divisor * 10) : undefined,
+      roundedTopHorizontal: conf.rounded.top ? Math.round(conf.rounded.top.horizontal * 100) : undefined,
+      roundedTopVertical: conf.rounded.top ? Math.round(conf.rounded.top.vertical * 100) : undefined,
+      webMinThicknessFactor: Math.round(conf.webMinThicknessFactor * 10),
     },
   }
 }

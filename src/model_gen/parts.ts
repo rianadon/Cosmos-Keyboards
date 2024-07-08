@@ -4,7 +4,7 @@ import type { Cuttleform, CuttleKey } from '$lib/worker/config'
 import { for3, objEntries, objKeys } from '$lib/worker/util'
 import { readFile, writeFile } from 'fs/promises'
 import { basename, join } from 'path'
-import { type AnyShape, getOC } from 'replicad'
+import { type AnyShape, getOC, importSTEP } from 'replicad'
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
 import { fileURLToPath } from 'url'
 import { PART_INFO, variantURLs } from '../lib/geometry/socketsParts'
@@ -179,7 +179,7 @@ async function main() {
           await writeMesh(join(targetDir, 'splitpart-' + socket + variantURL + '.glb'), partModel)
           masses[socket + variantURL] = await writeMesh(glbName, socketModel)
         } else {
-          // masses[socket + variantURL] = await writeMesh(glbName, await importSTEP(blob))
+          masses[socket + variantURL] = await writeMesh(glbName, await importSTEP(blob))
         }
       } catch (e) {
         if (e instanceof Error && 'code' in e && e.code === 'ENOENT') {
