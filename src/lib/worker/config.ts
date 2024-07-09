@@ -1,8 +1,6 @@
 import type manuform from '$assets/manuform.json'
 import { socketSize } from '$lib/geometry/socketsParts'
 import type { CuttleKey, MicrocontrollerName } from '$target/cosmosStructs'
-import { StiltsGeometry } from '@pro/stiltsGeo'
-import { Matrix4, Vector3 } from 'three'
 import {
   CONNECTOR,
   CONNECTOR_SIZE,
@@ -23,10 +21,12 @@ import {
   SCREW_SIZE,
   SCREW_TYPE,
   SWITCH,
-} from '../../../target/proto/cuttleform'
+} from '$target/proto/cuttleform'
+import { StiltsGeometry } from '@pro/stiltsGeo'
+import { Matrix4, Vector3 } from 'three'
 import type { FullGeometry } from '../../routes/beta/lib/viewers/viewer3dHelpers'
 import { BaseGeometry, BlockGeometry, TiltGeometry } from './cachedGeometry'
-import type { CosmosCluster, CosmosKey, CosmosKeyboard } from './config.cosmos'
+import type { ConnectorMaybeCustom, CosmosCluster } from './config.cosmos'
 import { estimatedBB, estimatedCenter } from './geometry'
 import { DEFAULT_MWT_FACTOR } from './geometry.thickWebs'
 import Trsf from './modeling/transformation'
@@ -39,7 +39,7 @@ type DeepRequired<T> = Required<
   }
 >
 
-export type { CuttleKey } from 'target/cosmosStructs'
+export type { CuttleKey } from '$target/cosmosStructs'
 export type CuttleformProto = DeepRequired<CuttleformProtoP>
 
 // const MANUFORM_KEYCAP_TYPE = "xda"
@@ -62,8 +62,11 @@ export interface SpecificCuttleform<S> {
   keys: CuttleKey[]
   /** The basis on which to compute  */
   keyBasis: Keycap['profile']
-  connector: 'usb' | 'trrs' | null
-  connectorSizeUSB: 'slim' | 'average' | 'big'
+  connectors: ConnectorMaybeCustom[]
+  /** @deprecated */
+  connector?: 'usb' | 'trrs' | null
+  /** @deprecated */
+  connectorSizeUSB?: 'slim' | 'average' | 'big'
   /** The index of the wall by which the connector is placed. */
   connectorIndex: number
   /** The indices of the walls at which to place screw inserts. */
@@ -1546,4 +1549,12 @@ export function fullEstimatedSize(geo: FullGeometry | undefined): Full<[number, 
       right: [rx2 - rx1, ry2 - ry1, rz2 - rz1],
     }
   }
+}
+
+export function convertToMaybeCustomConnectors(c: Cuttleform): ConnectorMaybeCustom[] {
+  if (c.connector === null) return []
+  if (c.connector && !c.connectorSizeUSB) throw new Error('connectorSizeUSB not defined')
+  if (c.connector === 'usb') return [{ preset: 'usb', size: c.connectorSizeUSB! }]
+  if (c.connector === 'trrs') return [{ preset: 'trrs' }, { preset: 'usb', size: c.connectorSizeUSB! }]
+  return c.connectors
 }

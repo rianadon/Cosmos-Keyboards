@@ -2,9 +2,9 @@ import ETrsf, { Constant, fullMirrorETrsf, type MatrixOptions, mirror } from '$l
 // import { deserialize } from 'src/routes/beta/lib/serialize'
 import { flippedKey } from '$lib/geometry/keycaps'
 import { PART_INFO, socketSize } from '$lib/geometry/socketsParts'
+import { type ClusterName, type ClusterSide, type ClusterType, type Connector, decodeClusterFlags, encodeClusterFlags, type ScrewFlags } from '$target/cosmosStructs'
+import type { Curvature } from '$target/proto/cosmos'
 import { Matrix4, Vector3 } from 'three'
-import { type ClusterName, type ClusterSide, type ClusterType, type Connector, decodeClusterFlags, encodeClusterFlags, type ScrewFlags } from '../../../target/cosmosStructs'
-import type { Curvature } from '../../../target/proto/cosmos'
 import {
   type AnyShell,
   curvature,
@@ -22,6 +22,21 @@ import {
 import { decodePartType, encodePartType, KEYBOARD_DEFAULTS } from './config.serialize'
 import Trsf from './modeling/transformation'
 import { capitalize, DefaultMap, objEntries, objKeys, sum, TallyMap, trimUndefined } from './util'
+
+export type CustomConnector = {
+  preset?: undefined
+  width: number
+  height: number
+  x: number
+  y: number
+  radius: number
+}
+export type ConnectorMaybeCustom = {
+  preset: 'usb'
+  size: 'slim' | 'average' | 'big'
+} | {
+  preset: 'trrs'
+} | CustomConnector
 
 export interface PartType {
   type?: CuttleKey['type']

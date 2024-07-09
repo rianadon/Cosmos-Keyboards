@@ -12,19 +12,6 @@ try {
   keyUrls = undefined
 }
 
-async function importSTEPFixed(b: Blob) {
-  const oc = getOC()
-  const model = await importSTEP(b)
-  const props = new oc.GProp_GProps_1()
-  oc.BRepGProp.VolumeProperties_2(model.wrapped, props, 0.01, false, true)
-  // Flip all faces if mass is negative
-  if (props.Mass() < 0) {
-    model.wrapped.Reverse()
-  }
-  props.delete()
-  return model
-}
-
 const keyCacher = makeAsyncCacher(async (key: CuttleKey) => {
   if (key.type == 'blank') return makeBaseBox(key.size?.width ?? 18.5, key.size?.height ?? 18.5, 5).translateZ(-5)
   const url = 'partOverride' in PART_INFO[key.type]
@@ -35,9 +22,9 @@ const keyCacher = makeAsyncCacher(async (key: CuttleKey) => {
   if (!urls[url]) throw new Error(`Model for url ${url} does not exist`)
   return keyUrls
     ? await fetch(urls[url].default).then(r => r.blob())
-      .then(r => importSTEPFixed(r) as Promise<Solid>)
+      .then(r => importSTEP(r) as Promise<Solid>)
     : (await import(process.env.FS!)).readFile(urls[url].default)
-      .then(r => importSTEPFixed(new Blob([r])) as Promise<Solid>)
+      .then(r => importSTEP(new Blob([r])) as Promise<Solid>)
 })
 
 const extendedKeyCacher = makeAsyncCacher(async (key: CuttleKey) => {

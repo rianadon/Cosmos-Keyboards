@@ -224,7 +224,7 @@ export function encodeShell(shell: Cuttleform['shell']): Keyboard['shell'] {
       if (opts.tiltShell[key] == TILT_DEFAULTS[key]) delete opts.tiltShell[key]
     }
   }
-  throw new Error('Shell type not supported')
+  throw new Error(`Shell type ${shell.type} not supported`)
 }
 
 interface FullKeyboard extends Required<Keyboard> {

@@ -172,9 +172,9 @@ export async function generate(config: Cuttleform, geo: Geometry, stitchWalls: b
   console.timeEnd('Creating holes')
   console.time('Creating connector')
   // let connector = null
-  if (config.connector && connOrigin) {
+  if (connOrigin) {
     // connector = makeConnector(config, config.connector, connOrigin)
-    walls = cutWithConnector(config, walls, config.connector, connOrigin)
+    walls = cutWithConnector(config, walls, connOrigin)
   }
   console.timeEnd('Creating connector')
   console.time('Creating screw inserts')
@@ -269,8 +269,8 @@ export async function cutWall(config: Cuttleform) {
   await ensureOC()
   const geo = newGeometry(config)
   let walls = makeWalls(config, geo.allWallCriticalPoints(), geo.worldZ, geo.bottomZ).toSolid(false, false)
-  if (config.connector && geo.connectorOrigin) {
-    walls = cutWithConnector(config, walls, config.connector, geo.connectorOrigin)
+  if (geo.connectorOrigin) {
+    walls = cutWithConnector(config, walls, geo.connectorOrigin)
   }
   const result = meshWithVolumeAndSupport(walls, geo.bottomZ)
   // walls.delete()

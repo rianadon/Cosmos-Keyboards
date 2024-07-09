@@ -1,4 +1,4 @@
-import type { Cuttleform } from '$lib/worker/config'
+import { convertToMaybeCustomConnectors, type Cuttleform } from '$lib/worker/config'
 import { Vector } from '$lib/worker/modeling/transformation'
 
 import { PLATE_HEIGHT, screwInsertDimensions } from '$lib/worker/model'
@@ -258,35 +258,28 @@ interface BoardOffset {
 export type Connector = 'trrs'
 
 export function boardOffsetInfo(config: Cuttleform): BoardOffset {
-  if (!config.connector) return { connectors: [] }
-  switch (config.connector) {
-    case 'trrs':
-      return {
-        connectors: [
-          {
-            model: 'trrs',
-            offset: config.microcontroller && BOARD_PROPERTIES[config.microcontroller].sizeName == 'Large'
-              ? new Vector(-16.5, 0, 2.5) // Extra space for large microcontrollers
-              : new Vector(-14.5, 0, 2.5),
-            size: new Vector(6.1, 12.2, 5),
-            boundingBoxZ: 6,
-            rails: {
-              width: RAIL_WIDTH,
-              backstop: true,
-              clamps: [
-                { side: 'left', radius: 0.4 },
-                { side: 'right', radius: 0.4 },
-                { side: 'back', radius: RAIL_RADIUS * 1.5 },
-              ],
-            },
-          },
+  let elements: BoardElement[] = []
+  const connectors = convertToMaybeCustomConnectors(config)
+  if (connectors.find(c => c.preset == 'trrs')) {
+    elements.push({
+      model: 'trrs',
+      offset: config.microcontroller && BOARD_PROPERTIES[config.microcontroller].sizeName == 'Large'
+        ? new Vector(-16.5, 0, 2.5) // Extra space for large microcontrollers
+        : new Vector(-14.5, 0, 2.5),
+      size: new Vector(6.1, 12.2, 5),
+      boundingBoxZ: 6,
+      rails: {
+        width: RAIL_WIDTH,
+        backstop: true,
+        clamps: [
+          { side: 'left', radius: 0.4 },
+          { side: 'right', radius: 0.4 },
+          { side: 'back', radius: RAIL_RADIUS * 1.5 },
         ],
-      }
-    case 'usb':
-      return { connectors: [] }
-    default:
-      throw new Error(`Connector type ${config.connector} is not supported`)
+      },
+    })
   }
+  return { connectors: elements }
 }
 
 export function boardElements(config: Cuttleform, layout: boolean): BoardElement[] {

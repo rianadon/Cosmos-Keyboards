@@ -106,7 +106,8 @@ function footprintOfType(params: {
 
   if (type.isArray()) {
     const subType = type.getArrayElementTypeOrThrow()
-    return `${next(subType)}[]`
+    const formatted = next(subType)
+    return formatted.includes('|') ? `(${formatted})[]` : formatted + '[]'
   }
 
   if (type.isTuple()) {

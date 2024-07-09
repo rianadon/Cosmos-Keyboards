@@ -6,7 +6,8 @@ import { makeStiltsPlate, makeStiltsPlateSimpleMesh, splitStiltsScrewInserts } f
 import { cast, CornerFinder, downcast, draw, drawCircle, Drawing, drawRoundedRectangle, Face, loft, type Point, type Sketch, Sketcher, Solid } from 'replicad'
 import type { TiltGeometry } from './cachedGeometry'
 import { createTriangleMap } from './concaveman'
-import type { Cuttleform, Geometry } from './config'
+import { convertToMaybeCustomConnectors, type Cuttleform, type Geometry } from './config'
+import type { ConnectorMaybeCustom, CustomConnector } from './config.cosmos'
 import {
   bezierPatch,
   type CriticalPoints,
@@ -771,6 +772,28 @@ function rectangleForUSB(c: Cuttleform) {
   }
 }
 
+function convertToCustomConnectors(c: Cuttleform, conn: ConnectorMaybeCustom): CustomConnector {
+  if (conn.preset == 'trrs') {
+    return {
+      width: 6.4,
+      height: 6.4,
+      radius: 3.2,
+      x: c.microcontroller && BOARD_PROPERTIES[c.microcontroller].sizeName == 'Large' ? -16.5 : -14.5,
+      y: 5,
+    }
+  }
+  if (conn.preset == 'usb') {
+    return {
+      width: { slim: 10.5, average: 12, big: 13 }[conn.size],
+      height: { slim: 6.5, average: 7, big: 8 }[conn.size],
+      radius: 3,
+      x: 0,
+      y: 5,
+    }
+  }
+  return conn
+}
+
 export const connectors: Record<string, { positive: (c: Cuttleform) => Solid | null; negative: (c: Cuttleform) => Solid }> = {
   rj9: {
     positive(c: Cuttleform) {
@@ -830,11 +853,23 @@ export const connectors: Record<string, { positive: (c: Cuttleform) => Solid | n
   },
 }
 
-export function cutWithConnector(c: Cuttleform, wall: Solid, conn: keyof typeof connectors, origin: Trsf) {
-  if (!conn) return wall
-  const pos = connectors[conn].positive(c)
-  if (pos) return wall.cut(origin.transform(pos))
-  return wall.cut(origin.transform(connectors[conn].negative(c)))
+export function cutWithConnector(c: Cuttleform, wall: Solid, origin: Trsf) {
+  // if (!conn) return wall
+  // const pos = connectors[conn].positive(c)
+  // if (pos) return wall.cut(origin.transform(pos))
+  // return wall.cut(origin.transform(connectors[conn].negative(c)))
+  const connectors = convertToMaybeCustomConnectors(c).map(conn => convertToCustomConnectors(c, conn))
+  if (connectors.length == 0) return wall
+
+  const connectorSketches = connectors.map(k =>
+    (k.width == k.radius * 2 && k.height == k.radius * 2 ? drawCircle(k.radius) : drawRoundedRectangle(k.width, k.height, k.radius))
+      .translate(k.x, k.y)
+  )
+  const fusedSketch = connectorSketches.reduce((a, b) => a.fuse(b))
+  return wall.cut(origin.transform(
+    fusedSketch.sketchOnPlane('XZ').extrude(c.wallThickness * 10)
+      .translate(0, c.wallThickness * 10, 0) as Solid,
+  ))
 }
 
 export function makeConnector(c: Cuttleform, conn: keyof typeof connectors, origin: Point) {

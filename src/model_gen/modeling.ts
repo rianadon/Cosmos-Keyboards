@@ -266,7 +266,6 @@ export function serialize(filename: string, model: AnyShape) {
 
   const writer = new oc.STEPControl_Writer_1()
   oc.Interface_Static.SetIVal('write.step.schema', 5)
-  oc.Interface_Static.SetIVal('write.surfacecurve.mode', 0)
   writer.Model(true).delete()
   const progress = new oc.Message_ProgressRange_1()
 
