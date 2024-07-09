@@ -102,7 +102,7 @@
 
 <svelte:window on:resize={resize} />
 
-<div class="container" bind:this={container}>
+<div class="canvascont" bind:this={container}>
   <canvas bind:this={canvas}>
     {#if $initialized}
       <SceneGraphObject object={ctx.scene}>
@@ -113,7 +113,7 @@
 </div>
 
 <style>
-  .container,
+  .canvascont,
   canvas {
     position: absolute;
     width: 100%;

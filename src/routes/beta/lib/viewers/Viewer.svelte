@@ -74,7 +74,7 @@
 <svelte:window on:resize={resize} />
 
 {#if WebGL.isWebGLAvailable()}
-  <div class="container" bind:this={canvas} {style}>
+  <div class="canvascont" bind:this={canvas} {style}>
     <Canvas toneMapping={0} bind:ctx>
       <Interactivity>
         <T.Group scale={cameraScale}>
@@ -102,7 +102,7 @@
 {/if}
 
 <style>
-  .container {
+  .canvascont {
     position: absolute;
     width: 100%;
     height: 100%;
