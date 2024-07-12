@@ -5,6 +5,8 @@
   import Dialog from '$lib/presentation/Dialog.svelte'
   import { discordMsg } from '$lib/store'
   import Header from '$lib/Header.svelte'
+  import { keyboards } from './showcase/showcase'
+  import { browser } from '$app/environment'
 
   const discord = 'https://discord.gg/nXjqkfgtGy'
   const discordUsers = fetch('https://cosmos.ryanis.cool/discord/members', { method: 'POST' }).then(
@@ -68,9 +70,49 @@
     class="text-black bg-brand-green font-semibold sm:pt-1 sm:px-10 rounded sm:border-b-6 border-[#f57aec] inline-flex items-center gap-30 cta sm:text-xl my-4 sm:pb-0.5 px-6 border-b-4"
     on:click={join}
   >
-    Try the beta
+    Try the Beta
     <Icon path={mdiChevronRight} size="100%" class="w-[28px] sm:w-[32px]" />
   </a>
+</section>
+<section class="mt-6 mb-24 px-8">
+  <div class="w-full carousel-container max-w-525 mx-auto overflow-hidden">
+    <div class="flex w-600 md:w-1050 carousel py-2">
+      {#each keyboards.concat(keyboards) as kbd}
+        <a
+          class="block bg-[#2e272d]/50 w-full rounded-2 overflow-hidden mx-2 transition-transform hover:scale-105 citem"
+          href="{base}/showcase/{kbd.key}"
+          tabindex="-1"
+        >
+          {#if browser}
+            <div class="w-full aspect-[1.9/1] vignette">
+              <img
+                src={kbd.image}
+                alt="Image of {kbd.author}'s keyboard"
+                class="w-full h-full object-cover"
+              />
+            </div>
+            <div class="flex gap-4 mx-2 my-2 items-center">
+              <img
+                src={kbd.authorImage}
+                alt="Profile icon for {kbd.author}"
+                class="h-6 w-6 rounded-full"
+              />
+              {kbd.author}
+            </div>
+          {:else}
+            <div class="w-full aspect-[1.9/1] bg-slate-800" />
+            <div class="my-2 h-6" />
+          {/if}
+        </a>
+      {/each}
+    </div>
+  </div>
+  <p class="text-center opacity-50 hover:underline">
+    <a href="{base}/showcase" class="inline-flex items-center gap-1">
+      See more keyboards in the showcase
+      <Icon path={mdiChevronRight} size="20px" />
+    </a>
+  </p>
 </section>
 <section class="section">
   <img src="{base}/hand.svg" class="<sm:mx-auto sm:float-right w-72 ml-6 mb-6 mt--6" alt="" />
@@ -214,7 +256,7 @@
     class="text-black bg-brand-pink font-semibold sm:pt-1 sm:px-10 rounded sm:border-b-6 border-brand-green inline-flex items-center gap-30 cta sm:text-xl my-4 sm:pb-0.5 px-6 border-b-4"
     on:click={join}
   >
-    Try the beta
+    Try the Beta
     <Icon path={mdiChevronRight} size="100%" class="w-[28px] sm:w-[32px]" />
   </a>
   <p class="mt-6 max-w-prose mx-auto px-6 text-gray-200">
@@ -232,7 +274,7 @@
     <span slot="title" class="font-urbanist">Before you leave…</span>
     <div slot="content" class="text-center text-white font-urbanist">
       <p class="font-system">
-        Don't miss out on updates! The generator is in constant flux during the beta, and joining the
+        Don't miss out on updates! The generator is in constant flux during the Beta, and joining the
         Discord server will keep you up to date with the changes.
       </p>
       <div class="bg-gray-700 inline-flex my-6 py-2 px-4 rounded items-center gap-4">
@@ -260,7 +302,7 @@
       <a
         href="beta"
         class="inline-block text-black bg-brand-pink rounded px-2 py-0.5 font-semibold mt-6"
-        on:click={subbed}>Just take me to the beta already</a
+        on:click={subbed}>Just take me to the Beta already</a
       >
     </div>
   </Dialog>
@@ -330,6 +372,39 @@
     animation: rotate-slow 4s ease-in-out alternate infinite;
   }
 
+  .vignette {
+    position: relative;
+  }
+  .vignette::after {
+    content: ' ';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, transparent 60%, rgba(46, 39, 45, 0.4) 100%);
+  }
+
+  .carousel {
+    animation: carousel 50s linear infinite;
+  }
+
+  .carousel-container {
+    position: relative;
+  }
+
+  .carousel-container::before {
+    content: '';
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      to right,
+      #17171d 0%,
+      rgba(23, 23, 29, 0) 20%,
+      rgba(23, 23, 29, 0) 80%,
+      #17171d 100%
+    );
+  }
+
   @keyframes bounce-slow {
     100% {
       transform: translateY(-6%);
@@ -346,5 +421,18 @@
     0% {
       transform: rotate(1deg);
     }
+  }
+
+  @keyframes carousel {
+    100% {
+      transform: translateZ(0) translateX(-50%);
+    }
+    0% {
+      transform: translateZ(0) translateX(0);
+    }
+  }
+
+  .citem:hover > .vignette > img {
+    filter: brightness(1.3);
   }
 </style>

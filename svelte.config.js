@@ -39,6 +39,11 @@ const config = {
         // otherwise fail the build
         throw new Error(message)
       },
+      handleMissingId: ({ path, id, message }) => {
+        // Ignore missing ids on the generator page.
+        if (path.startsWith((process.env.BASE_PATH || '') + '/beta')) return
+        throw new Error(message)
+      },
     },
   },
 }
