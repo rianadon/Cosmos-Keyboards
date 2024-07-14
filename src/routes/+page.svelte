@@ -75,8 +75,8 @@
   </a>
 </section>
 <section class="mt-6 mb-24 px-8">
-  <div class="w-full carousel-container max-w-525 mx-auto overflow-hidden">
-    <div class="flex w-600 md:w-1050 carousel py-2">
+  <div class="w-full carousel-container max-w-612.6 mx-auto overflow-hidden">
+    <div class="flex w-700 md:w-1225 carousel py-2">
       {#each keyboards.concat(keyboards) as kbd}
         <a
           class="block bg-[#2e272d]/50 w-full rounded-2 overflow-hidden mx-2 transition-transform hover:scale-105 citem"

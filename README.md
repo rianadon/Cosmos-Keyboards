@@ -67,6 +67,10 @@ Otherwise if you're looking to change how the generated keyboards look, the thre
 
 Rendering in Cosmos is split into two parts: geometrical calculations (which determines where parts go), and modeling operations (building the 3d model in OpenCascade). The files `geometry.ts` and `cachedGeometry.ts` perform those geometrical calculations (with the latter acting as a higher-level wrapper over functions in the former), and `model.ts` is responsible for all 3d modeling operations.
 
+### License
+
+All code is licensed under the [AGPL-3.0 license](https://github.com/rianadon/Cosmos-Keyboards/blob/main/LICENSE). All STEP models under the `src/assets` folder are licensed under the [CC0](https://creativecommons.org/public-domain/cc0/) License. All other assets and images are copyrighted and may not be reused without permission.
+
 ## Hand Scanning
 
 The code is at [`src/routes/scan`](https://github.com/rianadon/Cosmos-Keyboards/tree/main/src/routes/scan). Most of the processing happens in [`lib/hand.ts`](https://github.com/rianadon/Cosmos-Keyboards/tree/main/src/routes/scan/lib/hand.ts).
