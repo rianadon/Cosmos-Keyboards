@@ -52,6 +52,7 @@
     view,
     noBlanks,
     noLabels,
+    showGrid,
   } from '$lib/store'
   import { onDestroy } from 'svelte'
   import { browser } from '$app/environment'
@@ -255,7 +256,8 @@
     cutPromise: pool.execute((w) => w.cutWall(conf), 'Cut wall'),
     holderPromise: pool.execute((w) => w.generateBoardHolder(conf), 'Holder'),
     screwPromise: pool.execute((w) => w.generateScrewInserts(conf), 'Inserts'),
-    wristRestPromise: hasPro && pool.execute((w) => w.generateWristRest(conf), 'Wrist Rest'),
+    wristRestPromise:
+      hasPro && pool.execute((w) => w.generateWristRest(conf, side == 'left'), 'Wrist Rest'),
     secondWristRestPromise:
       hasPro &&
       side == 'unibody' &&
@@ -285,8 +287,7 @@
       oldTempConfig = cloneConfig(conf)
 
       if (
-        differences.length == 1 &&
-        (differences[0] == 'wristRest' || differences[0] == 'wristRestOrigin')
+        differences.every((d) => d == 'wristRestLeft' || d == 'wristRestRight' || d == 'wristRestOrigin')
       ) {
         const renderNumber = ++lastRenderNumber
         console.log('PROCESSING WRIST REST', renderNumber)
@@ -307,7 +308,9 @@
           } else {
             pool.reset(kbdNames.length)
             const wristMeshes = await Promise.all(
-              kbdNames.map((k) => pool.execute((w) => w.generateWristRest(conf[k]!), 'Wrist Rest'))
+              kbdNames.map((k) =>
+                pool.execute((w) => w.generateWristRest(conf[k]!, k == 'left'), 'Wrist Rest')
+              )
             )
             if (renderNumber >= lastRenderNumber) {
               wristMeshes.forEach((wristMesh, i) => {
@@ -646,6 +649,9 @@
                 class:selected={$view == 'right'}><Icon name="kb-right" /></button
               >
             </div>
+            <label class="flex items-center mt-2 mb-4">
+              <Checkbox small purple basic bind:value={$showGrid} /> Show Grid
+            </label>
             <label class="flex items-center my-2">
               <Checkbox small purple basic bind:value={$noWall} /> Hide Wall
             </label>

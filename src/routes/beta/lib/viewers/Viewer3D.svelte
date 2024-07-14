@@ -24,6 +24,7 @@
     type TempConfig,
     showGizmo,
     enableUndo,
+    showGrid,
   } from '$lib/store'
   import HandModel from '$lib/3d/HandModel.svelte'
   import { FINGERS, type Joints, SolvedHand } from '../hand'
@@ -383,7 +384,7 @@
   $: if ($clickedKey != null)
     lrotationStore.update(nthKey($tempConfig, $clickedKey).cluster.rotation || 0n)
 
-  // $: floorZ = geometry.right?.floorZ ?? 0
+  $: floorZ = $showGrid ? (geometry.right || geometry.unibody)?.floorZ ?? 0 : 0
   $: keyIsClicked = $clickedKey == null ? null : nthKey($protoConfig, $clickedKey).key
   $: columnIsClicked = $clickedKey == null ? null : nthKey($protoConfig, $clickedKey).column
   $: clusterIsClicked = $clickedKey == null ? null : nthKey($protoConfig, $clickedKey).cluster
@@ -1447,11 +1448,14 @@
   {#if $showGizmo}
     <Gizmo verticalPlacement="top" horizontalPlacement="left" paddingX={50} paddingY={50} />
   {/if}
-  <!-- <T.GridHelper
-    args={[150, 10, 0x888888]}
-    position.z={floorZ - center[2]}
-    rotation={[-Math.PI / 2, 0, 0]}
-  /> -->
+  {#if $showGrid}
+    <T.GridHelper
+      args={[$view == 'both' ? 400 : 300, $view == 'both' ? 40 : 30, 0x888888]}
+      position.z={floorZ - (Object.values(center)[0] || [0, 0, 0])[2]}
+      rotation={[-Math.PI / 2, 0, 0]}
+    />
+  {/if}
+  <!--  -->
 </NewViewer>
 {#if $debugViewport}
   <div

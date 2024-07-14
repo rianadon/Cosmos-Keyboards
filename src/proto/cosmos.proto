@@ -55,9 +55,11 @@ message KeyboardExtra {
   optional int32 rounded_top_horizontal = 7;
   optional int32 rounded_top_vertical = 8;
 
-  optional int32 wrist_rest_extension = 9;
+  optional int32 wrist_rest_left_extension = 9;
+  optional int32 wrist_rest_right_extension = 16;
   optional sint32 wrist_rest_taper = 10;
-  optional int32 wrist_rest_max_width= 11;
+  optional int32 wrist_rest_left_max_width = 11;
+  optional int32 wrist_rest_right_max_width = 17;
   optional sint32 wrist_rest_angle = 12;
   optional sint32 wrist_rest_slope = 13;
   optional sint32 wrist_rest_tenting = 14;

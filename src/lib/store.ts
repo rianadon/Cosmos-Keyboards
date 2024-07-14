@@ -19,6 +19,7 @@ export const codeError = writable<Error | null>(null)
 export const hoveredKey = writable<number | null>(null)
 export const clickedKey = writable<number | null>(null)
 
+export const showGrid = writable(false)
 export const noWall = writable(false)
 export const noBase = writable(false)
 export const noBlanks = writable(false)

@@ -52,6 +52,22 @@ const X: Point = [1, 0, 0]
 const Y: Point = [0, 1, 0]
 const Z: Point = [0, 0, 1]
 
+interface WristRest {
+  /** Angle at which the wrist rest is attached to the keyboard */
+  angle: number
+  /** Angle at which the wrist rest sides are tapered inwards */
+  taper: number
+  /** Maximum width of the wrist rest */
+  maxWidth: number
+  /** Angle at which the wrist rest is tented */
+  tenting: number
+  /** Angle at which the wrist rests slopes down towards the wrist */
+  slope: number
+  /** Amount by which the wrist rests sticks out past the wrist */
+  extension: number
+  stilts?: boolean
+}
+
 export interface SpecificCuttleform<S> {
   wallThickness: number
   wallShrouding: number
@@ -74,21 +90,8 @@ export interface SpecificCuttleform<S> {
   screwType: 'screw insert' | 'tapered screw insert' | 'expanding screw insert' | 'tapped hole'
   screwSize: 'M3' | 'M4' | '#4-40' | '#6-32'
   screwCountersink: boolean
-  wristRest?: {
-    /** Angle at which the wrist rest is attached to the keyboard */
-    angle: number
-    /** Angle at which the wrist rest sides are tapered inwards */
-    taper: number
-    /** Maximum width of the wrist rest */
-    maxWidth: number
-    /** Angle at which the wrist rest is tented */
-    tenting: number
-    /** Angle at which the wrist rests slopes down towards the wrist */
-    slope: number
-    /** Amount by which the wrist rests sticks out past the wrist */
-    extension: number
-    stilts?: boolean
-  }
+  wristRestLeft?: WristRest
+  wristRestRight?: WristRest
   wristRestOrigin: ETrsf
   microcontroller: MicrocontrollerName
   /* Angle at which microcontroller should be placed */
@@ -312,7 +315,20 @@ export function cuttleConf(c: DeepRequired<CuttleformProto>): Cuttleform {
     connector: MAP_CONNECTOR[c.wall.connector],
     connectorSizeUSB: MAP_CONNECTOR_SIZE[c.wall.connectorSizeUsb],
     connectorIndex: -1,
-    wristRest: c.wall.wristRest
+    wristRestRight: c.wall.wristRest
+      ? {
+        // length: c.wall.wristRestLength / 10,
+        maxWidth: c.wall.wristRestMaxWidth / 10,
+        // xOffset: c.wall.wristRestXOffset / 10,
+        // zOffset: c.wall.wristRestZOffset / 10,
+        angle: 0,
+        taper: c.wall.wristRestAngle / 45,
+        tenting: c.curvature.tenting / 45 / 2 + c.wall.wristRestTenting / 45,
+        slope: 5,
+        extension: 8,
+      }
+      : undefined,
+    wristRestLeft: c.wall.wristRest
       ? {
         // length: c.wall.wristRestLength / 10,
         maxWidth: c.wall.wristRestMaxWidth / 10,
@@ -1502,12 +1518,12 @@ export function fullEstimatedCenter(geo: FullGeometry | undefined, withWristRest
   const defaultCenter = { left: [0, 0, 0] as Point, unibody: [0, 0, 0] as Point, right: [0, 0, 0] as Point }
   if (!geo) return { left: defaultCenter, both: defaultCenter, right: defaultCenter }
   if (geo.unibody) {
-    const center = estimatedCenter(geo.unibody, withWristRest && !!geo.unibody!.c.wristRest)
+    const center = estimatedCenter(geo.unibody, withWristRest && !!geo.unibody!.c.wristRestRight)
     const modelCenters = { unibody: center }
     return { left: modelCenters, both: modelCenters, right: modelCenters }
   } else {
-    const leftBB = estimatedBB(geo.left!, withWristRest && !!geo.left!.c.wristRest)
-    const rightBB = estimatedBB(geo.right!, withWristRest && !!geo.right!.c.wristRest)
+    const leftBB = estimatedBB(geo.left!, withWristRest && !!geo.left!.c.wristRestRight)
+    const rightBB = estimatedBB(geo.right!, withWristRest && !!geo.right!.c.wristRestRight)
     const sepDiff = (VIEW_SEPARATION - (rightBB[0] + leftBB[0])) / 2
     return {
       left: {

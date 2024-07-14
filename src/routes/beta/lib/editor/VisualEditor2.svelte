@@ -1044,12 +1044,14 @@
       <DecimalInput bind:value={$wrPositionZ} supersmall />
     </Field>
 
-    <Field name="Wrist Rest Max Width">
-      <DecimalInput bind:value={$protoConfig.wristRestProps.maxWidth} units="mm" />
+    <Field name="Wrist Rest Max Width (L/R)">
+      <DecimalInput bind:value={$protoConfig.wristRestProps.maxWidthLeft} class="w-[5.2rem]" />
+      <DecimalInput bind:value={$protoConfig.wristRestProps.maxWidthRight} class="w-[5.2rem]" />
     </Field>
 
-    <Field name="Wrist Rest Extension">
-      <DecimalInput bind:value={$protoConfig.wristRestProps.extension} units="mm" />
+    <Field name="Wrist Rest Extension (L/R)">
+      <DecimalInput bind:value={$protoConfig.wristRestProps.extensionLeft} class="w-[5.2rem]" />
+      <DecimalInput bind:value={$protoConfig.wristRestProps.extensionRight} class="w-[5.2rem]" />
     </Field>
 
     <Field name="Wrist Rest Attachment Angle">

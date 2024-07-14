@@ -76,6 +76,20 @@ export type CosmosKey = {
   sizeA?: number
   sizeB?: number
 }
+
+interface CosmosWristRestProps {
+  angle: number
+  taper: number
+  tenting: number
+  slope: number
+  stilts?: boolean
+
+  maxWidthLeft: number
+  maxWidthRight: number
+  extensionLeft: number
+  extensionRight: number
+}
+
 export type CosmosKeyboard =
   & {
     curvature: Required<CosmosCurvature>
@@ -95,7 +109,7 @@ export type CosmosKeyboard =
     shell: AnyShell
     wristRestEnable: boolean
     unibody: boolean
-    wristRestProps: Exclude<Cuttleform['wristRest'], undefined>
+    wristRestProps: CosmosWristRestProps
     wristRestPosition: bigint
     connectorIndex: number
   }
@@ -314,17 +328,30 @@ export function toCosmosConfig(conf: Cuttleform, side: 'left' | 'right' | 'unibo
     verticalClearance: conf.verticalClearance,
     rounded: conf.rounded,
     shell: conf.shell,
-    wristRestEnable: !!conf.wristRest,
+    wristRestEnable: !!conf.wristRestRight,
     connectorIndex: conf.connectorIndex,
     unibody: side == 'unibody',
-    wristRestProps: conf.wristRest || {
-      angle: 0,
-      taper: 10,
-      slope: 5,
-      maxWidth: 100,
-      tenting: 6,
-      extension: 8,
-    },
+    wristRestProps: conf.wristRestRight
+      ? {
+        angle: conf.wristRestRight.angle,
+        taper: conf.wristRestRight.taper,
+        slope: conf.wristRestRight.slope,
+        maxWidthRight: conf.wristRestRight.maxWidth,
+        maxWidthLeft: conf.wristRestLeft?.maxWidth ?? 100,
+        tenting: conf.wristRestRight.tenting,
+        extensionRight: conf.wristRestRight.extension,
+        extensionLeft: conf.wristRestLeft?.extension ?? 6,
+      }
+      : {
+        angle: 0,
+        taper: 10,
+        slope: 5,
+        maxWidthLeft: 100,
+        maxWidthRight: 100,
+        tenting: 6,
+        extensionLeft: 8,
+        extensionRight: 8,
+      },
     wristRestPosition: overrideWristRest ? KEYBOARD_DEFAULTS.wristRestPosition! : encodeTuple(wrOrigin.xyz().map(t => Math.round(t * 10))),
     clusters: side == 'unibody'
       ? [
@@ -408,7 +435,28 @@ export function sideFromCosmosConfig(c: CosmosKeyboard, side: 'left' | 'right' |
     microcontroller: c.microcontroller,
     microcontrollerAngle: c.microcontrollerAngle,
     fastenMicrocontroller: c.fastenMicrocontroller,
-    wristRest: c.wristRestEnable ? { ...c.wristRestProps } : undefined,
+    wristRestLeft: c.wristRestEnable
+      ? {
+        angle: c.wristRestProps.angle,
+        taper: c.wristRestProps.taper,
+        tenting: c.wristRestProps.tenting,
+        slope: c.wristRestProps.slope,
+
+        maxWidth: c.wristRestProps.maxWidthLeft,
+        extension: c.wristRestProps.extensionLeft,
+      }
+      : undefined,
+    wristRestRight: c.wristRestEnable
+      ? {
+        angle: c.wristRestProps.angle,
+        taper: c.wristRestProps.taper,
+        tenting: c.wristRestProps.tenting,
+        slope: c.wristRestProps.slope,
+
+        maxWidth: c.wristRestProps.maxWidthRight,
+        extension: c.wristRestProps.extensionRight,
+      }
+      : undefined,
     wristRestOrigin: new ETrsf().translate(wrPos[0] / 10, wrPos[1] / 10, wrPos[2] / 10),
     shell: c.shell,
   }

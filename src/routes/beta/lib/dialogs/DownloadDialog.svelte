@@ -298,7 +298,7 @@
           <div class="break-inside-avoid">
             <h3 class="mb-2 mt-4 text-lg semibold text-black dark:text-white">Wrist Rest</h3>
             {#if $user.success && $user.sponsor}
-              {#if Object.values(config).some((c) => c.wristRest)}
+              {#if Object.values(config).some((c) => c.wristRestRight)}
                 <div class="inline-flex items-center gap-2">
                   {#each configKeys as kbd}
                     <button
@@ -343,7 +343,7 @@
             A <span class="text-teal-500 dark:text-teal-400 font-bold">PRO</span> account will add wrist rests
             will to this file.
           </p>
-        {:else if !Object.values(config).some((c) => c.wristRest)}
+        {:else if !Object.values(config).some((c) => c.wristRestRight)}
           <p class="mt-2">
             Wrist rests will not be added to this assembly. Check "Show Wrists" rests in basic/advanced
             view to enable them or add them to your expert mode configuration.
