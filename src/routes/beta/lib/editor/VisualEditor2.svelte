@@ -123,8 +123,8 @@
     else if (type == 'tilt')
       $protoConfig.shell = {
         type: 'tilt',
-        tilt: $rotationY / 2,
-        raiseBy: 10,
+        tilt: $rotationY * 0.4,
+        raiseBy: 3,
         pattern: [10, 5],
       }
     else if (type == 'stilts')
@@ -243,6 +243,26 @@
       const splitInd = newInd.split(',').map(Number)
       if (splitInd.some(isNaN)) return
       $protoConfig.screwIndices = splitInd
+    }
+  }
+
+  function setTiltPillarsEnabled(e: Event) {
+    if ($protoConfig.shell.type != 'tilt') return
+    if ((e.target as HTMLInputElement).checked) $protoConfig.shell.pattern = [10, 5]
+    else $protoConfig.shell.pattern = null
+  }
+
+  function enterPattern() {
+    if ($protoConfig.shell.type != 'tilt') return
+    const ind = $protoConfig.shell.pattern?.join(',')
+    const newInd = prompt(
+      'Enter the lengths of pillars and gaps in the pattern separated by commas. For example: 10, 5.',
+      ind
+    )
+    if (newInd) {
+      const splitInd = newInd.split(',').map(Number)
+      if (splitInd.some(isNaN)) return
+      $protoConfig.shell.pattern = splitInd
     }
   }
 
@@ -768,11 +788,42 @@
       >Tilting Base</Preset
     >
   </div>
-  {#if $protoConfig.shell.type == 'tilt'}
+  {#if $protoConfig.shell.type == 'basic'}
+    {#if !basic}
+      <Field name="Add Lip" help="Add a lip to the bottom plate to hide warping defects">
+        <Checkbox bind:value={$protoConfig.shell.lip} />
+      </Field>
+    {/if}
+  {:else if $protoConfig.shell.type == 'stilts'}
+    <Field name="Tuck in Bottom Plate">
+      <Checkbox bind:value={$protoConfig.shell.inside} />
+    </Field>
+  {:else if $protoConfig.shell.type == 'tilt'}
     <InfoBox>
       The Tilting Base helps you achieve high tenting angles without needing to print as much support.
       Make sure to print the plate in two parts so that the bottom can be removed for access.
     </InfoBox>
+    <Field name="Case Tenting Angle" icon="angle">
+      {#if typeof $protoConfig.shell.tilt == 'number'}
+        <AngleInput bind:value={$protoConfig.shell.tilt} />
+      {:else}
+        <InfoBox>
+          The tilt angle is currently configured as a vector, which can only be edited in Expert Mode.
+        </InfoBox>
+      {/if}
+    </Field>
+    {#if !basic}<div class="relative">
+        <div class="absolute right-48 top--1.5">
+          <button class="button" on:click={enterPattern}><Icon path={mdiCodeJson} /></button>
+        </div>
+        <Field name="Use Pillars">
+          <Checkbox value={$protoConfig.shell.pattern != null} on:change={setTiltPillarsEnabled} />
+        </Field>
+      </div>
+      <Field name="Raise Case By" icon="expand-vertical">
+        <DecimalInput bind:value={$protoConfig.shell.raiseBy} units="mm" />
+      </Field>
+    {/if}
   {/if}
   {#if !basic}
     <Field name="Connectivity" icon="usb-port">

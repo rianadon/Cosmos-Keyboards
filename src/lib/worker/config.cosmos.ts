@@ -309,7 +309,7 @@ export function toCosmosConfig(conf: Cuttleform, side: 'left' | 'right' | 'unibo
     screwCountersink: conf.screwCountersink,
     clearScrews: conf.clearScrews,
     microcontroller: conf.microcontroller,
-    microcontrollerAngle: conf.microcontrollerAngle,
+    microcontrollerAngle: conf.microcontrollerAngle || 0,
     fastenMicrocontroller: conf.fastenMicrocontroller,
     verticalClearance: conf.verticalClearance,
     rounded: conf.rounded,

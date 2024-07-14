@@ -184,7 +184,9 @@ export class BlockGeometry extends BaseGeometry<SpecificCuttleform<BlockShell>> 
 }
 
 export class TiltGeometry extends BaseGeometry<SpecificCuttleform<TiltShell>> {
+  @Memoize()
   get worldZ() {
+    console.log(this.keyHolesTrsfs.map(t => t.xyz()))
     if (Array.isArray(this.c.shell.tilt)) return new Vector(...this.c.shell.tilt).normalize()
     const angle = this.c.shell.tilt / 180 * Math.PI
     return new Vector(Math.sin(angle), 0, Math.cos(angle))

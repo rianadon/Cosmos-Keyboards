@@ -290,14 +290,14 @@ async function getModel(conf: Cuttleform, name: string, stitchWalls: boolean, fl
     assembly = assembly.transform(new Trsf().translate(0, 0, -geo.floorZ))
     return assembly
   } else if (name == 'plate' || name == 'platetop') {
-    return makePlate(conf, geometry, true, true).top()
+    return makePlate(conf, geometry, true, true).top().translateZ(-geometry.floorZ)
   } else if (name == 'platebottom') {
     const bot = makePlate(conf, geometry, true, true).bottom
-    return bot ? bot() : undefined
+    return bot ? bot().translateZ(-geometry.floorZ) : undefined
   } else if (name == 'holder') {
-    return boardHolder(conf, geometry)
+    return boardHolder(conf, geometry).translateZ(-geometry.floorZ)
   } else if (name == 'wristrest') {
-    return wristRest(conf, geometry)
+    return wristRest(conf, geometry).translateZ(-geometry.floorZ)
   } else {
     throw new Error("I don't know what model you want")
   }

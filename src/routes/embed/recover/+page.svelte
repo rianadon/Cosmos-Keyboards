@@ -99,7 +99,7 @@
     <div>
       {#if recovered.length && recovered.startsWith('http')}
         <p class="inline-block bg-pink-100 rounded-1 px-8 py-2">
-          Your recovered link is <a href={recovered}>{formatURL(recovered)}</a>.
+          Your recovered link is <a target="_parent" href={recovered}>{formatURL(recovered)}</a>.
         </p>
       {:else if recovered.length}
         <p class="mb-2">The embedded data in the {filetype} file isn't a URL. Instead, it's:</p>

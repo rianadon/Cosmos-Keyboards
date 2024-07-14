@@ -190,7 +190,7 @@ export function decodeShell(shell: Keyboard['shell']): Cuttleform['shell'] {
       tilt: opts.tiltVector ? tupletoRotOnly(opts.tiltVector) : opts.tilt / 45,
     }
   }
-  throw new Error('Shell type not supported')
+  throw new Error(`Decoding shell type ${shell.oneofKind} not supported`)
 }
 
 export function encodeShell(shell: Cuttleform['shell']): Keyboard['shell'] {
@@ -223,8 +223,9 @@ export function encodeShell(shell: Cuttleform['shell']): Keyboard['shell'] {
     for (const key of objKeys(opts.tiltShell)) {
       if (opts.tiltShell[key] == TILT_DEFAULTS[key]) delete opts.tiltShell[key]
     }
+    return opts
   }
-  throw new Error(`Shell type ${shell.type} not supported`)
+  throw new Error(`Encoding shell type ${shell.type} not supported`)
 }
 
 interface FullKeyboard extends Required<Keyboard> {

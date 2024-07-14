@@ -30,8 +30,8 @@
     "three": "^0.164.1"
   },
   "devDependencies": {
-    "@gltf-transform/core": "^3.9.0",
-    "@gltf-transform/functions": "^3.9.0",
+    "@gltf-transform/core": "^4.0.4",
+    "@gltf-transform/functions": "^4.0.4",
     "@protobuf-ts/plugin": "^2.8.2",
     "@sveltejs/adapter-auto": "^3.2.2",
     "@sveltejs/adapter-static": "^3.0.2",

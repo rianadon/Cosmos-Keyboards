@@ -1,7 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte'
 
-  export let value: any
+  export let value: number
   export let small = false
   export let divisor = 45
 

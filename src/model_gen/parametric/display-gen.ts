@@ -6,7 +6,7 @@ import { drawRoundedRectangle, makeBaseBox } from 'replicad'
 const DISP_TOL = 0.05
 
 export interface DisplayProps {
-  /** Lengtho f the long side of the PCB */
+  /** Length of the long side of the PCB */
   pcbLongSideWidth: number
   /** Length of the short side of the PCB */
   pcbShortSideWidth: number
