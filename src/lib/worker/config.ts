@@ -156,7 +156,7 @@ export interface Keycap {
 }
 
 interface CuttleKeycapKey extends CuttleBaseKey {
-  type: 'old-box' | 'old-mx' | 'mx-better' | 'old-mx-snap-in' | 'alps' | 'choc' | 'mx-pcb' | 'old-mx-hotswap' | 'old-mx-snap-in-hotswap' | 'mx-better-pcb' | 'choc-hotswap' | 'mx-hotswap'
+  type: 'old-box' | 'old-mx' | 'mx-better' | 'old-mx-snap-in' | 'alps' | 'choc' | 'mx-pcb' | 'old-mx-hotswap' | 'old-mx-snap-in-hotswap' | 'mx-better-pcb' | 'choc-hotswap' | 'mx-hotswap' | 'mx-sunken'
   keycap: Keycap
 }
 
