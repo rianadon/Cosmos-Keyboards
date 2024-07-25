@@ -9,8 +9,8 @@ FILE_DESCRIPTION(
 /* implementation_level */ '2;1');
 
 FILE_NAME(
-/* name */ 'key-mx-sunken-twist.step',
-/* time_stamp */ '2024-07-24T21:00:40-04:00',
+/* name */ 'spiral mx raised.step',
+/* time_stamp */ '2024-07-25T14:26:44-04:00',
 /* author */ (''),
 /* organization */ (''),
 /* preprocessor_version */ 'ST-DEVELOPER v20',
@@ -2012,7 +2012,7 @@ POSITIVE_RATIO_MEASURE(7850.),#1197);
 #1954=CARTESIAN_POINT('Origin',(-2.71053761370137,1.50432238722626,-6.45));
 #1955=CARTESIAN_POINT('Origin',(3.05028154058695,0.552976060200181,-8.17));
 #1956=CARTESIAN_POINT('',(0.,0.,0.));
-#1957=CARTESIAN_POINT('',(0.,0.,-2.));
+#1957=CARTESIAN_POINT('',(0.,0.,-0.25));
 #1958=UNCERTAINTY_MEASURE_WITH_UNIT(LENGTH_MEASURE(0.01),#1966,
 'DISTANCE_ACCURACY_VALUE',
 'Maximum model space distance between geometric entities at asserted c
