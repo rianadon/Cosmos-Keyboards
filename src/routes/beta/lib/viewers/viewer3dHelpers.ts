@@ -219,7 +219,11 @@ export function formatProfile(keeb: CosmosKeyboard, n: number | null) {
 }
 /** Sorts profiles so that choc goes last. Poor choc. */
 export function sortProfiles(a: Profile, b: Profile) {
-  const val = (v: Profile) => v == 'choc' ? 100 : 1
+  const val = (v: Profile) => {
+    if (v == 'choc') return 100
+    if (UNIFORM.includes(v)) return 0
+    return 1
+  }
   return val(a) - val(b)
 }
 

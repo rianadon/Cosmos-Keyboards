@@ -18,10 +18,8 @@
 <h1 class="uppercase text-xl sm:text-3xl text-[#68e4a9] font-medium text-center mt-10">
   Keyboards from the Community
 </h1>
-<p class="text-center mt-2">You can click on any keyboard to view more information.</p>
-<p class="text-center mt-2 opacity-50">
-  n.b. most of these will have bugs when you import them. I'll fix the models once V3 is publicly
-  released.
+<p class="text-center mt-2">
+  Psst! Click on any keyboard to import it into Cosmos or to view more information.
 </p>
 <div
   class="mx-8 my-6 grid sm:grid-cols-[repeat(2,18rem)] md:grid-cols-[repeat(2,21rem)] gap-2 justify-center"

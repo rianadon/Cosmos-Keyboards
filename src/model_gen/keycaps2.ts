@@ -17,7 +17,7 @@ $stem_support_type = "disable";
 const US = [1, 1.25, 1.5, 2]
 const ROWS = [0, 1, 2, 3, 4, 5]
 
-const UNIFORM = ['dsa', 'xda', 'choc']
+const UNIFORM = ['dsa', 'xda', 'choc', 'ma']
 
 async function genKey(config: { profile: string; u: number; row?: number }) {
   const openscad = await loadOpenSCAD()
@@ -54,6 +54,7 @@ async function genKeys() {
     ...US.map(u => ({ profile: 'dsa', u })),
     ...US.map(u => ({ profile: 'xda', u })),
     ...US.map(u => ({ profile: 'choc', u })),
+    ...US.map(u => ({ profile: 'ma', u })),
     ...US.flatMap(u => ROWS.map(r => ({ profile: 'mt3', u, row: r }))),
     ...US.flatMap(u => ROWS.map(r => ({ profile: 'oem', u, row: r }))),
     ...US.flatMap(u => ROWS.map(r => ({ profile: 'sa', u, row: r }))),

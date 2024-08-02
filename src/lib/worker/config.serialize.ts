@@ -159,7 +159,8 @@ const KEYBOARD_EXTRA_DEFAULTS: KeyboardExtra = {
   wristRestSlope: 225,
   wristRestLeftExtension: 80,
   wristRestRightExtension: 80,
-  connectorIndex: -10,
+  connectorLeftIndex: -10,
+  connectorRightIndex: -10,
   screwIndices: [],
   microcontrollerAngle: 0,
 }
@@ -418,7 +419,8 @@ export function decodeConfigIdk(b64: string): CosmosKeyboard {
       extensionRight: keebExtra.wristRestRightExtension / 10,
     },
     wristRestPosition: keeb.wristRestPosition,
-    connectorIndex: keebExtra.connectorIndex / 10,
+    connectorLeftIndex: keebExtra.connectorLeftIndex / 10,
+    connectorRightIndex: keebExtra.connectorRightIndex / 10,
     clusters: keeb.cluster.map(decodeCosmosCluster),
   }
   return conf
@@ -602,7 +604,8 @@ export function encodeCosmosConfig(conf: CosmosKeyboard): Keyboard {
       wristRestSlope: Math.round(conf.wristRestProps.slope * 45),
       wristRestLeftExtension: Math.round(conf.wristRestProps.extensionLeft * 10),
       wristRestRightExtension: Math.round(conf.wristRestProps.extensionRight * 10),
-      connectorIndex: Math.round(conf.connectorIndex * 10),
+      connectorLeftIndex: Math.round(conf.connectorLeftIndex * 10),
+      connectorRightIndex: Math.round(conf.connectorRightIndex * 10),
       screwIndices: conf.screwIndices.some(c => c >= 0) ? conf.screwIndices.map(i => Math.round(i * 10) + 10) : [],
       roundedSideConcavity: conf.rounded.side ? Math.round(conf.rounded.side.concavity * 10) : undefined,
       roundedSideDivisor: conf.rounded.side ? Math.round(conf.rounded.side.divisor * 10) : undefined,
@@ -622,8 +625,9 @@ export function serializeCosmosConfig(trimmed: Keyboard) {
   if (trimmedExtra) {
     for (const key of Object.keys(trimmedExtra) as (keyof KeyboardExtra)[]) {
       if (trimmedExtra[key] == KEYBOARD_EXTRA_DEFAULTS[key]) delete trimmedExtra[key]
+      if (typeof trimmedExtra[key] == 'undefined') delete trimmedExtra[key]
     }
-    const usedTrimmedKeys = Object.values(trimmedExtra).filter(t => !Array.isArray(t) || t.length > 0)
+    const usedTrimmedKeys = Object.entries(trimmedExtra).filter(([k, v]) => !Array.isArray(v) || v.length > 0)
     if (usedTrimmedKeys.length == 0) delete trimmed.extra
   }
   if (trimmed.curvature && Object.keys(trimmed.curvature!).length == 0) delete trimmed.curvature

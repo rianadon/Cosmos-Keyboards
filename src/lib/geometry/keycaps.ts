@@ -1,6 +1,6 @@
 import type { CuttleKey } from '$lib/worker/config'
 
-export const UNIFORM = ['xda', 'dsa', 'choc']
+export const UNIFORM = ['xda', 'dsa', 'choc', 'ma']
 
 export function closestAspect(aspect: number) {
   if (aspect < 1) aspect = 1 / aspect
@@ -23,7 +23,10 @@ export const KEY_INFO: Record<string, Record<number, { depth: number; tilt: numb
     0: { depth: 7.9, tilt: 0 },
   },
   xda: {
-    0: { depth: 9.9, tilt: 0 },
+    0: { depth: 11, tilt: 0 },
+  },
+  ma: {
+    0: { depth: 11.9, tilt: 0 },
   },
   choc: {
     0: { depth: 4, tilt: 0 },
@@ -71,6 +74,7 @@ export const KEY_NAMES: Record<string, string> = {
   oem: 'OEM',
   cherry: 'Cherry',
   des: 'DES',
+  ma: 'MA',
 }
 
 export function keyInfo(k: CuttleKey) {

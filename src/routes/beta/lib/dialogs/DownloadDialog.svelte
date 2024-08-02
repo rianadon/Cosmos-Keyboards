@@ -268,7 +268,7 @@
               {/each}
             </div>
             <div class="text-sm opacity-70 text-center mt-2 pb-1">
-              Download both the Top and Bot models
+              Download both the Top and Bot models.
             </div>
           {:else}
             <div class="inline-flex items-center gap-2">

@@ -14,7 +14,7 @@ enumeration('PART', {
   0: null, // Special type for inheriting the global type
   1: 'mx-better',
   2: 'mx-pcb',
-  // 3: 'mx-pcb-twist',
+  3: 'mx-pcb-twist',
   4: 'mx-hotswap',
   5: 'alps',
   6: 'choc',
@@ -40,7 +40,7 @@ enumeration('PART', {
   115: 'old-mx-snap-in-hotswap',
 })
 
-enumeration('PROFILE', [null, 'xda', 'dsa', 'choc', 'sa', 'mt3', 'oem', 'des', 'cherry'])
+enumeration('PROFILE', [null, 'xda', 'dsa', 'choc', 'sa', 'mt3', 'oem', 'des', 'cherry', 'ma'])
 enumeration('HOMING', [null, 'thumb', 'index', 'middle', 'ring', 'pinky'])
 
 enumeration('CONNECTOR_TYPE', [null, 'usb', 'trrs'])

@@ -840,14 +840,24 @@
         <option value="big">Big (fits everything)</option>
       </Select>
     </Field>
-    <Field
-      name="Connector Index"
-      help="Position of the microcontroller and connector, expressed as a wall index. See expert mode documentation for details."
-    >
-      <DecimalInput bind:value={$protoConfig.connectorIndex} />
-    </Field>
+    {#if $protoConfig.unibody}
+      <Field
+        name="Connector Index"
+        help="Position of the microcontroller and connector, expressed as a wall index. See expert mode documentation for details."
+      >
+        <DecimalInput bind:value={$protoConfig.connectorRightIndex} />
+      </Field>
+    {:else}
+      <Field
+        name="Connector Index (L/R)"
+        help="Position of the microcontroller and connector, expressed as a wall index. See expert mode documentation for details."
+      >
+        <DecimalInput bind:value={$protoConfig.connectorLeftIndex} class="w-[5.2rem]" />
+        <DecimalInput bind:value={$protoConfig.connectorRightIndex} class="w-[5.2rem]" />
+      </Field>
+    {/if}
   {/if}
-  {#if $protoConfig.connectorIndex != -1}
+  {#if $protoConfig.connectorRightIndex != -1 || (!$protoConfig.unibody && $protoConfig.connectorLeftIndex != -1)}
     <InfoBox>
       The microcontroller and connector are manually placed in this model. Set Advanced &rarr; Connector
       Index to -1 to automatically place them.

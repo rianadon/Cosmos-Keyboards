@@ -1061,7 +1061,7 @@ function findClosestWall(
 }
 
 function findBoardWalls(c: Cuttleform, walls: WallCriticalPoints[], origin: Trsf, select: string[], worldZ: Vector, bottomZ: number, optimize = false) {
-  const hBnd = localHolderBounds(c, true)
+  const hBnd = localHolderBounds(c, false) // was true before, but really needs to be false so board walls don't block the connector
   const bottomRadius = screwInsertDimensions(c).outerBottomRadius
 
   const p1 = new Vector(hBnd.minx - bottomRadius, hBnd.maxy, 0)

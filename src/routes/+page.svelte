@@ -75,9 +75,41 @@
   </a>
 </section>
 <section class="mt-6 mb-24 px-8">
-  <div class="w-full carousel-container max-w-612.6 mx-auto overflow-hidden">
-    <div class="flex w-700 md:w-1225 carousel py-2">
-      {#each keyboards.concat(keyboards) as kbd}
+  <div class="w-full carousel-container max-w-437.5 mx-auto overflow-hidden">
+    <div class="flex w-500 md:w-875 carousel py-2">
+      {#each keyboards.slice(0, 5).concat(keyboards.slice(0, 5)) as kbd}
+        <a
+          class="block bg-[#2e272d]/50 w-full rounded-2 overflow-hidden mx-2 transition-transform hover:scale-105 citem"
+          href="{base}/showcase/{kbd.key}"
+          tabindex="-1"
+        >
+          {#if browser}
+            <div class="w-full aspect-[1.9/1] vignette">
+              <img
+                src={kbd.image}
+                alt="Image of {kbd.author}'s keyboard"
+                class="w-full h-full object-cover"
+              />
+            </div>
+            <div class="flex gap-4 mx-2 my-2 items-center">
+              <img
+                src={kbd.authorImage}
+                alt="Profile icon for {kbd.author}"
+                class="h-6 w-6 rounded-full"
+              />
+              {kbd.author}
+            </div>
+          {:else}
+            <div class="w-full aspect-[1.9/1] bg-slate-800" />
+            <div class="my-2 h-6" />
+          {/if}
+        </a>
+      {/each}
+    </div>
+  </div>
+  <div class="w-full carousel-container max-w-437.5 mx-auto overflow-hidden">
+    <div class="flex w-500 md:w-875 carousel-back py-2">
+      {#each keyboards.slice(5, 10).concat(keyboards.slice(5, 10)) as kbd}
         <a
           class="block bg-[#2e272d]/50 w-full rounded-2 overflow-hidden mx-2 transition-transform hover:scale-105 citem"
           href="{base}/showcase/{kbd.key}"
@@ -386,6 +418,10 @@
     animation: carousel 50s linear infinite;
   }
 
+  .carousel-back {
+    animation: carousel-back 50s linear infinite;
+  }
+
   .carousel-container {
     position: relative;
   }
@@ -429,6 +465,15 @@
     }
     0% {
       transform: translateZ(0) translateX(0);
+    }
+  }
+
+  @keyframes carousel-back {
+    100% {
+      transform: translateZ(0) translateX(0);
+    }
+    0% {
+      transform: translateZ(0) translateX(-50%);
     }
   }
 

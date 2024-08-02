@@ -141,10 +141,10 @@ export default class ETrsf {
   }
 
   /** Rotates through an axis about some position by some number of degrees. */
-  rotate(angle: number, position?: Point, direction?: Point, inFlat = true) {
+  rotate(angle: number, position: Point, direction: Point, inFlat = true) {
     return this.apply({ name: 'rotate', args: [angle, position, direction, inFlat] })
   }
-  rotated(angle: number, position?: Point, direction?: Point, inFlat = true) {
+  rotated(angle: number, position: Point, direction: Point, inFlat = true) {
     return this.applied({ name: 'rotate', args: [angle, position, direction, inFlat] })
   }
   /** Rotates the z axis towards a new z axis by some fraction. */

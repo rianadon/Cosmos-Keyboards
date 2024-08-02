@@ -1,5 +1,5 @@
 import type { TopoDS_Shell } from '$assets/replicad_single'
-import { BOARD_PROPERTIES, type BoardElement, boardElements, holderOuterRadius, holderThickness, STOPPER_WIDTH } from '$lib/geometry/microcontrollers'
+import { BOARD_PROPERTIES, type BoardElement, boardElements, convertToCustomConnectors, holderOuterRadius, holderThickness, STOPPER_WIDTH } from '$lib/geometry/microcontrollers'
 import { SCREWS } from '$lib/geometry/screws'
 import { wallBezier } from '@pro/rounded'
 import { makeStiltsPlate, makeStiltsPlateSimpleMesh, splitStiltsScrewInserts } from '@pro/stiltsModel'
@@ -770,28 +770,6 @@ function rectangleForUSB(c: Cuttleform) {
     default: // average
       return drawRoundedRectangle(12, 7, 3)
   }
-}
-
-function convertToCustomConnectors(c: Cuttleform, conn: ConnectorMaybeCustom): CustomConnector {
-  if (conn.preset == 'trrs') {
-    return {
-      width: 6.4,
-      height: 6.4,
-      radius: 3.2,
-      x: c.microcontroller && BOARD_PROPERTIES[c.microcontroller].sizeName == 'Large' ? -16.5 : -14.5,
-      y: 5,
-    }
-  }
-  if (conn.preset == 'usb') {
-    return {
-      width: { slim: 10.5, average: 12, big: 13 }[conn.size],
-      height: { slim: 6.5, average: 7, big: 8 }[conn.size],
-      radius: 3,
-      x: 0,
-      y: 5,
-    }
-  }
-  return conn
 }
 
 export const connectors: Record<string, { positive: (c: Cuttleform) => Solid | null; negative: (c: Cuttleform) => Solid }> = {

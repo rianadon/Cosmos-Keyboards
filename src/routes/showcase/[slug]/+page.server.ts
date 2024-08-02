@@ -11,6 +11,8 @@ function isTrulyKey(k: CuttleKey) {
   return PART_INFO[k.type].keycap && k.type != 'blank'
 }
 
+export const trailingSlash = 'always'
+
 export const load = ({ params }) => {
   const keyboard = keyboards.find(k => k.key == params.slug)
 

@@ -60,6 +60,7 @@ function recreate2(data, reference) {
 }
 
 export function serialize(state: State) {
+  console.log('ENCODE CM', state)
   let data
   if (state.keyboard === 'manuform') {
     const diff = {}

@@ -95,7 +95,7 @@
   import { TupleStore } from '../editor/tuple'
   import DecimalInputInherit from '../editor/DecimalInputInherit.svelte'
   import SelectInherit from '$lib/presentation/SelectInherit.svelte'
-  import { PART_INFO } from '$lib/geometry/socketsParts'
+  import { PART_INFO, sortedCategories } from '$lib/geometry/socketsParts'
   import AngleInput from '../editor/AngleInput.svelte'
   import AngleInputInherit from '../editor/AngleInputInherit.svelte'
   import { browser } from '$app/environment'
@@ -717,7 +717,7 @@
               on:change={changeKey}
               value={nthPartType($protoConfig, $clickedKey, $selectMode)}
             >
-              {#each [...new Set(Object.values(PART_INFO).map((p) => p.category))] as cat}
+              {#each sortedCategories as cat}
                 <optgroup label={cat}>
                   {#each notNull(Object.values(PART)).filter((v) => PART_INFO[v].category == cat) as part}
                     <option value={part}>{PART_INFO[part].partName}</option>

@@ -34,8 +34,10 @@ export type CustomConnector = {
 export type ConnectorMaybeCustom = {
   preset: 'usb'
   size: 'slim' | 'average' | 'big'
+  x?: number
 } | {
   preset: 'trrs'
+  x?: number
 } | CustomConnector
 
 export interface PartType {
@@ -111,7 +113,8 @@ export type CosmosKeyboard =
     unibody: boolean
     wristRestProps: CosmosWristRestProps
     wristRestPosition: bigint
-    connectorIndex: number
+    connectorLeftIndex: number
+    connectorRightIndex: number
   }
   & ScrewFlags
   & Connector
@@ -279,7 +282,12 @@ export function toFullCosmosConfig(conf: FullCuttleform, flipLeft = false): Cosm
   let kbd: CosmosKeyboard | undefined = undefined
   for (const [side, config] of objEntries(conf)) {
     if (!kbd) kbd = toCosmosConfig(config!, side, false, flipLeft)
-    else kbd.clusters.push(...toCosmosConfig(config!, side, false, flipLeft).clusters)
+    else {
+      const c = toCosmosConfig(config!, side, false, flipLeft)
+      kbd.clusters.push(...c.clusters)
+      if (side == 'left') kbd.connectorLeftIndex = c.connectorLeftIndex
+      if (side == 'right') kbd.connectorRightIndex = c.connectorRightIndex
+    }
   }
   if (!kbd) throw new Error('No configuration for keyboard')
 
@@ -329,7 +337,8 @@ export function toCosmosConfig(conf: Cuttleform, side: 'left' | 'right' | 'unibo
     rounded: conf.rounded,
     shell: conf.shell,
     wristRestEnable: !!conf.wristRestRight,
-    connectorIndex: conf.connectorIndex,
+    connectorLeftIndex: conf.connectorIndex,
+    connectorRightIndex: conf.connectorIndex,
     unibody: side == 'unibody',
     wristRestProps: conf.wristRestRight
       ? {
@@ -431,7 +440,7 @@ export function sideFromCosmosConfig(c: CosmosKeyboard, side: 'left' | 'right' |
     rounded: JSON.parse(JSON.stringify(c.rounded)),
     connector: c.connector,
     connectorSizeUSB: c.connectorSizeUSB,
-    connectorIndex: c.connectorIndex,
+    connectorIndex: side == 'left' ? c.connectorLeftIndex : c.connectorRightIndex,
     microcontroller: c.microcontroller,
     microcontrollerAngle: c.microcontrollerAngle,
     fastenMicrocontroller: c.fastenMicrocontroller,
@@ -513,11 +522,11 @@ export function decodeVariant(type: CuttleKey['type'], variant: number): Record<
     }
   } else if (type == 'trackball') {
     const size = variant & 0x7
-    const bearings = (variant >> 3) & 0x3
-    const sensor = (variant >> 5) & 0x3
+    const bearings = (variant >> 3) & 0x7
+    const sensor = (variant >> 6) & 0x3
     return {
       size: ['34mm', '25mm'][size] || '34mm',
-      bearings: ['Roller', 'Ball'][bearings] || 'Roller',
+      bearings: ['Roller', 'Ball', 'BTU (7.5mm)', 'BTU (9mm)'][bearings] || 'Roller',
       sensor: ['Joe'][sensor] || 'Joe',
     }
   }
@@ -529,9 +538,9 @@ export function encodeVariant(type: CuttleKey['type'], variant: Record<string, a
     return ['23mm', '35mm', '40mm'].indexOf(variant.size)
   } else if (type == 'trackball') {
     const size = ['34mm', '25mm'].indexOf(variant.size)
-    const bearings = ['Roller', 'Ball'].indexOf(variant.bearings)
+    const bearings = ['Roller', 'Ball', 'BTU (7.5mm)', 'BTU (9mm)'].indexOf(variant.bearings)
     const sensor = ['Joe'].indexOf(variant.sensor)
-    return size + (bearings << 3) + (sensor << 5)
+    return size + (bearings << 3) + (sensor << 6)
   }
   return undefined
 }

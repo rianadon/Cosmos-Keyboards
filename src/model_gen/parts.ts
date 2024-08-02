@@ -1,19 +1,20 @@
 import type { OpenCascadeInstance } from '$assets/replicad_single'
 import { fromGeometry, makeFlashy } from '$lib/loaders/geometry'
 import type { Cuttleform, CuttleKey } from '$lib/worker/config'
-import { for3, objEntries, objKeys } from '$lib/worker/util'
+import { objEntries, objKeys } from '$lib/worker/util'
+import type { TrackballVariant } from '$target/cosmosStructs'
 import { readFile, writeFile } from 'fs/promises'
 import { basename, join } from 'path'
 import { type AnyShape, getOC, importSTEP } from 'replicad'
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
 import { fileURLToPath } from 'url'
-import { PART_INFO, variantURLs } from '../lib/geometry/socketsParts'
+import { allVariants, PART_INFO, variantURL, variantURLs } from '../lib/geometry/socketsParts'
 import { exportGLTF } from './exportGLTF'
 import { importSTEPSpecifically, serialize } from './modeling'
 import { setup } from './node-model'
 import { displayModel, type DisplayProps, displaySocket } from './parametric/display-gen'
 import { DEFAULT_PROPS, type Holes, type MicrocontrollerProps, ucModel } from './parametric/microcontroller-gen'
-import { type TrackballOptions, trackballSocket } from './parametric/trackball-gen'
+import { trackballPart, trackballSocket } from './parametric/trackball-gen'
 import { ProcessPool } from './processPool'
 
 const assetsDir = fileURLToPath(new URL('../assets', import.meta.url))
@@ -125,18 +126,19 @@ async function main() {
   poolDisplaySocket('oled-128x32-0.91in-dfrobot', dfDisplayProps)
 
   // Make all combinations of trackballs
-  for3(
-    [25, 34],
-    ['Roller', 'Ball'] as TrackballOptions['bearings'][],
-    ['Joe'] as TrackballOptions['sensor'][],
-  )(
-    (diameter, bearings, sensor) => {
-      pool.add(`${diameter}mm trackball, ${bearings}, ${sensor}`, async () => {
-        const stepName = join(targetDir, `key-trackball-${diameter}mm-${bearings}-${sensor}.step`.toLowerCase())
-        await writeModel(stepName, trackballSocket({ diameter, bearings, sensor }))
+  for (const v of allVariants('trackball') as TrackballVariant[]) {
+    const url = variantURL({ type: 'trackball', variant: v } as any)
+    pool.add(`${v.size} trackball, ${v.bearings}, ${v.sensor}`, async () => {
+      const stepName = join(targetDir, `key-trackball${url}.step`.toLowerCase())
+      await writeModel(stepName, trackballSocket({ diameter: parseFloat(v.size), bearings: v.bearings, sensor: v.sensor }))
+    })
+    if (v.bearings == 'BTU (7.5mm)' || v.bearings == 'BTU (9mm)') {
+      pool.add(`${v.size} trackball BTU Part, ${v.bearings}, ${v.sensor}`, async () => {
+        const glbName = join(targetDir, `switch-trackball${url}.glb`.toLowerCase())
+        await writeMesh(glbName, trackballPart({ diameter: parseFloat(v.size), bearings: v.bearings, sensor: v.sensor }))
       })
-    },
-  )
+    }
+  }
 
   // Check that all STEP files that need to be split are split
   const toSplit: CuttleKey['type'][] = []

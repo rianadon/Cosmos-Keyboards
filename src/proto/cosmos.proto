@@ -46,7 +46,8 @@ message TiltShell {
 
 message KeyboardExtra {
   optional float web_min_thickness_factor = 1;
-  optional int32 connector_index = 2;
+  optional int32 connector_left_index = 18;
+  optional int32 connector_right_index = 2;
   repeated uint32 screw_indices = 3; // Both this and n_screws do similar things
 
   optional int32 vertical_clearance = 4;

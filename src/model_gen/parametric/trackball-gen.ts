@@ -1,6 +1,7 @@
+import { SCREWS } from '$lib/geometry/screws'
 import { combine } from '$lib/worker/modeling/index'
 import Trsf from '$lib/worker/modeling/transformation'
-import { draw, drawCircle, drawRoundedRectangle, makeSphere, Solid } from 'replicad'
+import { draw, drawCircle, drawEllipse, drawRoundedRectangle, makeSphere, type SketchInterface, Solid } from 'replicad'
 
 const PMW_LENS_HEIGHT = 3.4 // Height of PMW sensor lens
 
@@ -9,6 +10,10 @@ const JOE_SENSOR_TAP_HOLE_DIAM = 2.05 // For M2.5 screw
 const JOE_SENSOR_CLEAR_HOLE_DIAM = 3 // For M2.5 screw
 const JOE_SENSOR_LENS_WIDTH = 21 // Width of lense on sensor
 
+const BKB_SENSOR_HOLE_SPACING = 37 // Distance between two mounting holes
+const BKB_SENSOR_INSERT_DIAMETER = SCREWS.M3.mounting['screw insert'].diameter
+const BKB_SENSOR_INSERT_HEIGHT = SCREWS.M3.mounting['screw insert'].height * 1.5
+
 const DEFAULT_OPTS = {
   /** Trackball diameter */
   diameter: 34,
@@ -16,17 +21,56 @@ const DEFAULT_OPTS = {
   spaceAroundBall: 1,
   /** Wall thickness of the socket */
   thickness: 3,
-  /** How far the sensor is from the trackball */
-  sensorDistance: 0.9,
+  /** How far the sensor is from the trackball. Must be between 2.2 and 2.6 to meet pmw3360 specs */
+  sensorDistance: 2.2,
+  /** How much material to add for sensor alignment */
+  sensorAlignHeight: 1,
 
-  sensor: 'Joe' as 'Joe',
-  bearings: 'Ball' as 'Roller' | 'Ball',
+  sensor: 'Joe' as 'Joe' | 'Bastardkb',
+  bearings: 'Ball' as 'Roller' | 'Ball' | 'BTU (9mm)' | 'BTU (7.5mm)',
 
   /** Angle from horizontal at which bearings are placed (~phi in polar coordinates) */
   bearingPhi: 13,
   /** Angles at which bearings are placed about the Z axis (~theta in polar coodinates) */
   bearingThetas: [90, 210, 330],
+
+  /** Radius of the ball for ball beraigs */
+  ballBearingRadius: 1.585, // 1/8 inch outer diameter ball bearings
 }
+
+interface BTUProps {
+  /** Diameter of the BTU */
+  btuDiameter: number
+  /** Total height of the BTU, including the ball */
+  btuTotalHeight: number
+  /** Diameter of the lip (widest part of the BTU) */
+  btuLipDiameter: number
+  /** Thickness of the lip */
+  btuLipThickness: number
+  /** Height up to the bottom of the lip */
+  btuHeightToLip: number
+  /** Diameter of the ball in the BTU */
+  ballDiameter: number
+}
+
+const BTU_PROPS = {
+  '9mm': {
+    btuDiameter: 9,
+    btuTotalHeight: 7.15,
+    btuLipDiameter: 11,
+    btuLipThickness: 1,
+    btuHeightToLip: 5,
+    ballDiameter: 4.5,
+  },
+  '7.5mm': {
+    btuDiameter: 7.5,
+    btuTotalHeight: 6.05,
+    btuLipDiameter: 9,
+    btuLipThickness: 1,
+    btuHeightToLip: 4,
+    ballDiameter: 3.5,
+  },
+} satisfies Record<string, BTUProps>
 
 export type TrackballOptions = typeof DEFAULT_OPTS
 
@@ -41,14 +85,22 @@ function trackballGeometry(opts: TrackballOptions) {
   // makes a horizontal line across, then resumes its arc.
   // (innerArcEndX, innerArcEndY) are the position at which the inner arc stops for the sensor cutout
   // (outerArcEndX, outerArcEndY) are the position at which the outer arc stops for the sensor cutout
-  const outerArcEndY = -r - sensorDistance
-  const innerArcEndY = -r - sensorDistance + 0.3
+  const sensorY = -r - sensorDistance
+  const outerArcEndY = Math.max(sensorY, -outerR + 1e-3)
+  const innerArcEndY = Math.max(sensorY + 0.3, -innerR + 1e-3)
   const outerArcEndX = Math.sqrt(outerR * outerR - outerArcEndY ** 2)
   const innerArcEndX = Math.sqrt(innerR * innerR - innerArcEndY ** 2)
-  return { r, innerR, outerR, outerArcEndX, outerArcEndY, innerArcEndX, innerArcEndY }
+  return { r, innerR, outerR, outerArcEndX, outerArcEndY, innerArcEndX, innerArcEndY, sensorY }
 }
 
-/** Returns the transformations to put the bearings (roller or ball bearings) into place. */
+/**
+ * Returns the transformations to put the bearings (roller or ball bearings) into place.
+ * The origin of the workspace is placed at the diameter of the ball,
+ * and the x axis is aligned to be normal to the trackball.
+ *
+ * Therefore, make sure to place the edge of ball or roller or whatever is touching
+ * the trackball at X=0.
+ */
 function bearingTrsfs(opts: TrackballOptions) {
   return opts.bearingThetas.map(angle =>
     new Trsf()
@@ -78,16 +130,31 @@ export function trackballSocket(opt: Partial<TrackballOptions>): Solid {
     .sketchOnPlane('XZ')
     .revolve() as Solid
 
+  if (opts.sensor == 'Joe') socket = addJoesSensor(socket, opts)
+  if (opts.sensor == 'Bastardkb') socket = addBkbSensor(socket, opts)
+  socket = cutoutPMW(socket, opts)
+
   if (opts.bearings == 'Roller') socket = addRollerBearings(socket, opts)
   if (opts.bearings == 'Ball') socket = addBallBearings(socket, opts)
-
-  if (opts.sensor == 'Joe') socket = addJoesSensor(socket, opts)
+  if (opts.bearings == 'BTU (7.5mm)') socket = addBtuBearings(socket, opts, '7.5mm')
+  if (opts.bearings == 'BTU (9mm)') socket = addBtuBearings(socket, opts, '9mm')
 
   return socket.translateZ(-webThickness)
 }
 
+export function trackballPart(opt: Partial<TrackballOptions>): Solid {
+  const opts = { ...DEFAULT_OPTS, ...opt }
+  const webThickness = 4 // Height of web to be drawn around the part
+
+  let model = makeSphere(opts.diameter / 2)
+  if (opts.bearings == 'BTU (7.5mm)') model = combine([model, btuModel(opts, '7.5mm')])
+  if (opts.bearings == 'BTU (9mm)') model = combine([model, btuModel(opts, '9mm')])
+
+  return model.translateZ(-webThickness)
+}
+
 function addBallBearings(socket: Solid, opts: TrackballOptions) {
-  const ballR = 1.585 // 1/8 inch outer diameter ball bearings
+  const ballR = opts.ballBearingRadius
   const ballClearance = 0.2 // Space to add around the ball
   const cylinderThickness = 2 // Thickness of cylinder to add around the ball
   const cylinderAboveBall = 1 // How far above the center of the ball the cylinder should extend
@@ -166,15 +233,79 @@ function addRollerBearings(socket: Solid, opts: TrackballOptions) {
     .cut(t.transform(inners))), socket)
 }
 
+// Add Ball Transfer Unit (BTU) bearings
+function addBtuBearings(socket: Solid, opts: TrackballOptions, diameter: keyof typeof BTU_PROPS) {
+  const btuOpts = BTU_PROPS[diameter]
+  const btuClearance = 0.1 // Space to add around BTU on all sidesr
+
+  // The BTU is extruded from X=0 (touching the trackball).
+  const cylinder = drawCircle((btuOpts.btuDiameter / 2) + btuClearance)
+    .sketchOnPlane('YZ')
+    .extrude(-btuOpts.btuTotalHeight - btuClearance) as Solid
+
+  const lip = drawCircle((btuOpts.btuLipDiameter / 2) + btuClearance)
+    .sketchOnPlane('YZ')
+    .extrude(-btuOpts.btuTotalHeight + btuOpts.btuHeightToLip - btuClearance) as Solid
+
+  const btu = cylinder.fuse(lip)
+  return bearingTrsfs(opts).reduce((socket, t) => (socket.cut(t.transform(btu))), socket)
+}
+
+export function btuModel(opts: TrackballOptions, diameter: keyof typeof BTU_PROPS) {
+  const btuOpts = BTU_PROPS[diameter]
+
+  const ball = makeSphere(btuOpts.ballDiameter / 2).translateX(-btuOpts.ballDiameter / 2)
+  const lip = drawCircle(btuOpts.btuLipDiameter / 2)
+    .sketchOnPlane('YZ')
+    .extrude(btuOpts.btuLipThickness)
+    .translateX(btuOpts.btuHeightToLip - btuOpts.btuTotalHeight) as Solid
+  const cylinder = drawCircle(btuOpts.btuDiameter / 2)
+    .sketchOnPlane('YZ')
+    .extrude(btuOpts.btuHeightToLip + btuOpts.btuLipThickness)
+    .translateX(-btuOpts.btuTotalHeight) as Solid
+
+  const btu = combine([ball, cylinder.fuse(lip)])
+  // const btu = cylinder.fuse(lip)
+  return combine(bearingTrsfs(opts).map(t => t.transform(btu)))
+}
+
+/** Cut out alignment area and opening for PMW sensor */
+function cutoutPMW(socket: Solid, opts: TrackballOptions) {
+  const { innerR, outerR, sensorY } = trackballGeometry(opts)
+  const { sensorAlignHeight } = opts
+  const TOLERANCE = 0.1
+
+  // Cut out jig used to align sensor
+  if (sensorAlignHeight) {
+    const alignment = drawRoundedRectangle(10.97 * 2, 19, 7.05).offset(TOLERANCE)
+      .sketchOnPlane('XY', sensorY).extrude(-sensorAlignHeight) as Solid
+    socket = socket.cut(alignment)
+  }
+
+  const chamferY = 2
+  const chamferX = chamferY / Math.tan(68.5 * Math.PI / 180)
+
+  // To prevent opencascade bugs, sensor cutout is flared from 2mm downwards instead of all the way
+  const openingMin = drawRoundedRectangle(8, 4.5).sketchOnPlane('XY', sensorY).extrude(2 * opts.sensorDistance) as Solid
+
+  // Taken from the datasheet, but doubled so that the pcb can be inserted in either orientation.
+  const opening = (drawRoundedRectangle(8, 4.5).sketchOnPlane('XY', chamferY) as SketchInterface)
+    .loftWith(drawRoundedRectangle(8 + chamferX * 2, 4.5 + chamferX * 2).sketchOnPlane('XY') as SketchInterface, {})
+    .translateZ(sensorY) as Solid
+
+  return socket.cut(openingMin.fuse(opening))
+}
+
 /** Add sensor mount for the PMW Sensor PCB designed by Joe's Sensors. */
 function addJoesSensor(socket: Solid, opts: TrackballOptions) {
-  const { innerR, outerR, outerArcEndY } = trackballGeometry(opts)
+  const { innerR, outerR, sensorY } = trackballGeometry(opts)
+  const { sensorAlignHeight } = opts
 
   const sensorCylinderWidth = 4
   const sensorClearance = 0.5 // Space around sensor lens
   const bottomWidth = JOE_SENSOR_LENS_WIDTH + sensorClearance * 2 + sensorCylinderWidth * 2
   // Bottom plate to hold sensor in place
-  let bottom = drawRoundedRectangle(bottomWidth, 21, 8).sketchOnPlane('XY').extrude(outerArcEndY) as Solid
+  let bottom = drawRoundedRectangle(bottomWidth, 22, 8).sketchOnPlane('XY').extrude(sensorY - sensorAlignHeight + 0.1) as Solid
   // Post with screwhole for sensor
   const cylinder = drawRoundedRectangle(sensorCylinderWidth, 10, 1.6)
     .translate(JOE_SENSOR_LENS_WIDTH / 2 + sensorCylinderWidth / 2 + sensorClearance, 0)
@@ -183,13 +314,38 @@ function addJoesSensor(socket: Solid, opts: TrackballOptions) {
   const holeInnerIntersectY = -Math.sqrt(innerR * innerR - (JOE_SENSOR_HOLE_SPACING / 2) ** 2) - 0.1
   const hole = draw().movePointerTo([0, holeInnerIntersectY])
     .line(-JOE_SENSOR_TAP_HOLE_DIAM / 2, -JOE_SENSOR_TAP_HOLE_DIAM)
-    .vLineTo(outerArcEndY - PMW_LENS_HEIGHT)
+    .vLineTo(sensorY - PMW_LENS_HEIGHT)
     .hLineTo(0).close().sketchOnPlane('XZ').revolve() as Solid
   bottom = bottom.cut(makeSphere(innerR * 0.1 + outerR * 0.9))
-  bottom = bottom.fuse(new Trsf().translate(0, 0, outerArcEndY).transform(cylinder))
-  bottom = bottom.fuse(new Trsf().translate(0, 0, outerArcEndY).mirror([1, 0, 0]).transform(cylinder))
+  bottom = bottom.fuse(new Trsf().translate(0, 0, sensorY).transform(cylinder))
+  bottom = bottom.fuse(new Trsf().translate(0, 0, sensorY).mirror([1, 0, 0]).transform(cylinder))
 
   return socket.fuse(bottom)
     .cut(new Trsf().translate(JOE_SENSOR_HOLE_SPACING / 2, 0, 0).transform(hole))
     .cut(new Trsf().translate(-JOE_SENSOR_HOLE_SPACING / 2, 0, 0).transform(hole))
+}
+
+/** Add sensor mount for BastardKB's PMW shield */
+function addBkbSensor(socket: Solid, opts: TrackballOptions) {
+  const { innerR, outerR, sensorY } = trackballGeometry(opts)
+  const { sensorAlignHeight } = opts
+
+  // Bottom plate to hold sensor in place
+  let bottom = drawEllipse(21, 20).sketchOnPlane('XY').extrude(sensorY - sensorAlignHeight + 0.1) as Solid as Solid
+  // Post with screwhole for sensor
+  const insertHolderRadius = Math.max(21 - BKB_SENSOR_HOLE_SPACING / 2, BKB_SENSOR_INSERT_DIAMETER / 2 + 2)
+  const cylinder = draw().line(insertHolderRadius, sensorY)
+    .vLineTo(sensorY - PMW_LENS_HEIGHT).hLineTo(0).close()
+    .sketchOnPlane('XZ').revolve() as Solid
+  // Screw insert hole
+  const hole = drawCircle(BKB_SENSOR_INSERT_DIAMETER / 2)
+    .sketchOnPlane('XY', sensorY).extrude(-BKB_SENSOR_INSERT_HEIGHT) as Solid
+
+  bottom = bottom.fuse(new Trsf().translate(BKB_SENSOR_HOLE_SPACING / 2, 0, 0).transform(cylinder))
+  bottom = bottom.fuse(new Trsf().translate(-BKB_SENSOR_HOLE_SPACING / 2, 0, 0).transform(cylinder))
+  bottom = bottom.cut(makeSphere(innerR * 0.1 + outerR * 0.9))
+
+  return socket.fuse(bottom)
+    .cut(new Trsf().translate(BKB_SENSOR_HOLE_SPACING / 2, 0, 0).transform(hole))
+    .cut(new Trsf().translate(-BKB_SENSOR_HOLE_SPACING / 2, 0, 0).transform(hole))
 }

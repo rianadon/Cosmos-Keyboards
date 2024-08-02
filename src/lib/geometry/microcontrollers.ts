@@ -1,6 +1,7 @@
 import { convertToMaybeCustomConnectors, type Cuttleform } from '$lib/worker/config'
 import { Vector } from '$lib/worker/modeling/transformation'
 
+import type { ConnectorMaybeCustom, CustomConnector } from '$lib/worker/config.cosmos'
 import { PLATE_HEIGHT, screwInsertDimensions } from '$lib/worker/model'
 import { closestScrewHeight, SCREWS } from './screws'
 
@@ -257,6 +258,28 @@ interface BoardOffset {
 
 export type Connector = 'trrs'
 
+export function convertToCustomConnectors(c: Cuttleform, conn: ConnectorMaybeCustom): CustomConnector {
+  if (conn.preset == 'trrs') {
+    return {
+      width: 6.4,
+      height: 6.4,
+      radius: 3.2,
+      x: conn.x ?? (c.microcontroller && BOARD_PROPERTIES[c.microcontroller].sizeName == 'Large' ? -16.5 : -14.5),
+      y: 5,
+    }
+  }
+  if (conn.preset == 'usb') {
+    return {
+      width: { slim: 10.5, average: 12, big: 13 }[conn.size],
+      height: { slim: 6.5, average: 7, big: 8 }[conn.size],
+      radius: 3,
+      x: conn.x ?? 0,
+      y: 5,
+    }
+  }
+  return conn
+}
+
 export function boardOffsetInfo(config: Cuttleform): BoardOffset {
   let elements: BoardElement[] = []
   const connectors = convertToMaybeCustomConnectors(config)
@@ -318,9 +341,16 @@ export function boardConnectorOffset(config: Cuttleform): Vector {
 const sizePlusRails = (b: BoardElement) => b.size.x + (b.rails?.width || 0) * 2
 export function localHolderBounds(c: Cuttleform, layout: boolean) {
   const elements = boardElements(c, layout)
+  const connectors = layout ? [] : convertToMaybeCustomConnectors(c).map(conn => convertToCustomConnectors(c, conn))
   return {
-    minx: Math.min(...elements.map(conn => conn.offset.x - sizePlusRails(conn) / 2)),
-    maxx: Math.max(...elements.map(conn => conn.offset.x + sizePlusRails(conn) / 2)),
+    minx: Math.min(
+      ...elements.map(conn => conn.offset.x - sizePlusRails(conn) / 2),
+      ...connectors.map(conn => conn.x - conn.width / 2),
+    ),
+    maxx: Math.max(
+      ...elements.map(conn => conn.offset.x + sizePlusRails(conn) / 2),
+      ...connectors.map(conn => conn.x + conn.width / 2),
+    ),
     miny: Math.min(...elements.map(conn => conn.offset.y - conn.size.y)) - STOPPER_HEIGHT,
     maxy: Math.max(...elements.map(conn => conn.offset.y)),
   }

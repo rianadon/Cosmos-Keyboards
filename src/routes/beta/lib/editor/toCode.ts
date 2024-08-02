@@ -56,6 +56,7 @@ export function toCode(proto: CosmosKeyboard) {
 
   const baseConfig: Partial<Cuttleform> = { ...cosmosConf.right! ?? cosmosConf.unibody }
   delete baseConfig.keys
+  baseConfig.connectorIndex = -1
 
   const fingerDefinitions: string[] = []
   const fingerReferences: string[] = []
@@ -63,6 +64,7 @@ export function toCode(proto: CosmosKeyboard) {
     fingerReferences.push(
       `  ${name}: {`,
       '    ...options,',
+      ...(kbd!.connectorIndex != -1 ? [`    connectorIndex: ${kbd!.connectorIndex},`] : []),
       `    keys: [...fingers${capitalize(name)}, ...thumbs${capitalize(name)}],`,
       '  },',
     )

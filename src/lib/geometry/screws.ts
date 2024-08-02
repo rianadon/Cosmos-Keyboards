@@ -9,6 +9,7 @@ interface Screw {
     height: number
     taper?: number
   }>
+  /** Clearance hole size */
   plateDiameter: number
   countersunkDiameter: number
   countersunkAngle: number

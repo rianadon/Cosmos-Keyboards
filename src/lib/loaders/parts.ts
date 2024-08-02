@@ -11,8 +11,10 @@ const PART_URLS = Object.fromEntries(Object.entries(PART_INFO).map(([p, i]) => [
 type Switch = CuttleKey['type']
 
 export async function partGeometry(type: Switch, variant: Record<string, any> = {}) {
-  if (type == 'trackball' && variant?.size == '34mm') return new SphereGeometry(17, 64, 32).translate(0, 0, -4)
-  if (type == 'trackball' && variant?.size == '25mm') return new SphereGeometry(12.5, 64, 32).translate(0, 0, -4)
+  if (type == 'trackball' && !(variant?.bearings.includes('BTU'))) {
+    if (variant?.size == '34mm') return new SphereGeometry(17, 64, 32).translate(0, 0, -4)
+    if (variant?.size == '25mm') return new SphereGeometry(12.5, 64, 32).translate(0, 0, -4)
+  }
 
   const varurl = variantURL({ type, variant } as any)
   if ('partOverride' in PART_INFO[type]) {
