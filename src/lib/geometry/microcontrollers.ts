@@ -9,6 +9,7 @@ const STOPPER_HEIGHT = 2 // Size of stopper used to align board
 export const STOPPER_WIDTH = 2
 const RAIL_WIDTH = 1.5 // Size of rails to add around the board
 const RAIL_RADIUS = 1 // How far in the rails stick
+const BACKSTOP_HEIGHT = 0.5 // How much extra backstop height to add
 
 const IN = 25.4 // in to mm
 
@@ -42,6 +43,8 @@ interface BoardProperties {
   rearPins?: number
   /** If the microcontroller has castellated holes. */
   castellated?: boolean
+  /** Override height of the backstop. */
+  backstopHeight?: number
 }
 
 type Microcontroller = Exclude<Cuttleform['microcontroller'], null>
@@ -203,9 +206,11 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     sidecutout: 3.1,
     sidePins: 10,
   },
-  'adafruit-rp2040-feather': {
-    name: 'Adafruit rp2040 feather (USB-C)',
+  'feather-rp2040-adafruit': {
+    name: 'Adafruit RP2040 Feather',
+    extraName: '(USB-C)',
     size: new Vector(0.9 * IN, 2 * IN, 1.57),
+    sizeName: 'Large',
     boundingBoxZ: 0.28 * IN,
     offset: new Vector(0, 0, 1.835),
     tappedHoleDiameter: 0.1 * IN,
@@ -213,6 +218,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     cutouts: [],
     sidecutout: 0.1 * IN,
     sidePins: 16, // asymmetrical; only 12 on the I2C connector side
+    backstopHeight: 0,
   },
 }
 
@@ -255,7 +261,7 @@ export interface BoardElement {
     /** Width of the rails in mm */
     width: number
     /** Include a backstop so the part doesn't slip backwards */
-    backstop: boolean
+    backstopHeight: number
     /** The nubs that hold in the part */
     clamps: {
       side: 'left' | 'right' | 'back'
@@ -306,7 +312,7 @@ export function boardOffsetInfo(config: Cuttleform): BoardOffset {
       boundingBoxZ: 6,
       rails: {
         width: RAIL_WIDTH,
-        backstop: true,
+        backstopHeight: BACKSTOP_HEIGHT,
         clamps: [
           { side: 'left', radius: 0.4 },
           { side: 'right', radius: 0.4 },
@@ -332,7 +338,7 @@ export function boardElements(config: Cuttleform, layout: boolean): BoardElement
       boundingBoxZ: BOARD_PROPERTIES[config.microcontroller].boundingBoxZ,
       rails: {
         width: RAIL_WIDTH,
-        backstop: true,
+        backstopHeight: BOARD_PROPERTIES[config.microcontroller].backstopHeight ?? BACKSTOP_HEIGHT,
         clamps: [
           { side: 'left', radius: RAIL_RADIUS },
           { side: 'right', radius: RAIL_RADIUS },

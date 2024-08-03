@@ -942,10 +942,10 @@ function addRails(c: Cuttleform, solid: Solid, element: BoardElement): Solid {
   }))
 
   // Add backstop
-  if (element.rails.backstop) {
+  if (typeof element.rails.backstopHeight !== 'undefined') {
     solid = solid.fuse(boardBoxBox({
       offset: new Vector(element.offset.x, element.offset.y - element.size.y, BOARD_TOLERANCE_Z),
-      size: new Vector(element.size.x + BOARD_COMPONENT_TOL * 2, STOPPER_WIDTH, element.size.z + element.offset.z + 0.5),
+      size: new Vector(element.size.x + BOARD_COMPONENT_TOL * 2, STOPPER_WIDTH, element.size.z + element.offset.z + element.rails.backstopHeight),
     }))
   }
 

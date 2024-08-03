@@ -67,6 +67,7 @@ enumeration('MICROCONTROLLER_NAME', [
   'seeed-studio-xiao-nrf52840',
   'waveshare-rp2040-zero',
   'weact-studio-ch552t',
+  'feather-rp2040-adafruit',
 ])
 
 struct('PartVariant', {
