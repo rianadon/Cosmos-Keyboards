@@ -12,7 +12,7 @@ enum CONNECTOR_SIZE { SLIM = 0; AVERAGE = 1; BIG = 2; }
 enum SCREW_SIZE { M3 = 0; M4 = 1; I4_40 = 2; I6_32 = 3; }
 enum SCREW_TYPE { STRAIGHT_INSERT = 0; TAPERED_INSERT = 1; EXPANDING_INSERT = 2; TAPPED = 3; }
 enum KEY_SIZE { U1 = 0; U125 = 1; U15 = 2; U2 = 3; }
-enum MICROCONTROLLER { NOMC = 0; PIPICO = 1; PROMICRO = 2; PROMICRO_C = 3; ITSYBITSY = 4; ITSYBITSY_BT = 5; KB2040 = 6; RP2040_BLACK = 7; NRFMICRO = 8; XIAO = 9; XIAO_BT = 10; RP2040_ZERO = 11; WEACT_CH552T = 12; }
+enum MICROCONTROLLER { NOMC = 0; PIPICO = 1; PROMICRO = 2; PROMICRO_C = 3; ITSYBITSY = 4; ITSYBITSY_BT = 5; KB2040 = 6; RP2040_BLACK = 7; NRFMICRO = 8; XIAO = 9; XIAO_BT = 10; RP2040_ZERO = 11; WEACT_CH552T = 12; ADAFRUIT_RP2040_FEATHER = 13; }
 enum ENCODER { EC11 = 0; EVQWGD001 = 1; }
 
 message Cuttleform {
@@ -148,6 +148,7 @@ message Cuttleform {
                                                    (ndropdown) = {n: 4, name: "Adafruit ItsyBitsy RP2040/M0/M4/32u4", group: "Medium Size"},
                                                    (ndropdown) = {n: 5, name: "Adafruit ItsyBitsy nRF52840 (Bluetooth)", group: "Medium Size"},
                                                    (ndropdown) = {n: 8, name: "nRFMicro or Nice!Nano (USB-C, Bluetooth)", group: "Medium Size"},
+                                                   (ndropdown) = {n: 13, name: "Adafruit RP2040 Feather (USB-C)", group: "Large Size"},
                                                    (ndropdown) = {n: 0, name: "None", group: "More"}];
     optional bool fasten_microcontroller = 27 [(name) = "Fasten Microcontroller", (help) = "Add clamps above the microcontroller to hold it inside its holder"];
     optional bool screw_inserts = 2 [(name) = "Fasten Base with Screws", (icon) = "screw", (basic) = true];
