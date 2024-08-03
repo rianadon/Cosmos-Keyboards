@@ -86,7 +86,8 @@ const INFERRED_HOMING = {
 
 export function encodeProfile(p: Partial<Profile>) {
   let row = p.row ?? 1
-  if (typeof row !== 'undefined' && (row < 1 || row > 8)) throw new Error('Row out of bounds')
+  if (typeof row !== 'undefined' && (row < 0 || row > 8)) throw new Error('Row out of bounds')
+  if (row == 0) row = 8 // I messed up and made R1 encode to 0. So now R0 encodes to 7.
   let letter = 0
   let inferredHome: typeof INFERRED_HOMING[number] | undefined = undefined
   if (p.letter && p.letter.length) {
@@ -104,7 +105,8 @@ export function encodeProfile(p: Partial<Profile>) {
 }
 
 export function decodeProfile(flags: number, overrideLetter?: string): Profile {
-  const { profile, row, letter: letterId, home } = decodeKeycap(flags)
+  let { profile, row, letter: letterId, home } = decodeKeycap(flags)
+  if (row == 7) row = -1 // I messed up and made R1 encode to 0. So now R0 encodes to 7.
 
   let letter = letterId > 0 ? String.fromCharCode(letterId >> 1) : undefined
   let inferredHoming = undefined
@@ -113,6 +115,7 @@ export function decodeProfile(flags: number, overrideLetter?: string): Profile {
     inferredHoming = INFERRED_HOMING[letterId >> 1]
   }
   letter = overrideLetter ?? letter
+  console.log('decodeProfile', row)
   return { profile: profile ?? undefined, row: row + 1, letter, home: home || inferredHoming || null }
 }
 

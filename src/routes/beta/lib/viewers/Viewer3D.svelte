@@ -910,6 +910,7 @@
                         <option value={3}>R3</option>
                         <option value={2}>R2</option>
                         <option value={1}>R1</option>
+                        <option value={0}>R0</option>
                       </Select>
                     {:else if keyIsHovered}<span class="fallback">{'R' + keyIsHovered.profile.row}</span>
                     {:else}<span class="fallback">-</span>{/if}
