@@ -354,8 +354,8 @@ export function doTrianglesIntersect(t1: Triangle, t2: Triangle, ignoreTouching 
   const n1 = new Vector().copy(N).normalize()
   const n2 = new Vector().copy(M).normalize()
 
-  // They have the same normal vector
-  if (1 - n1.dot(n2) < 1e-9) {
+  // They have the same normal vector (or opposite normal)
+  if (1 - Math.abs(n1.dot(n2)) < 1e-9) {
     // If the triangles lie on different planes, they do not intersect
     if (Math.abs(t1.a.dot(n1) - t2.a.dot(n2)) > 1e-5) {
       return false
