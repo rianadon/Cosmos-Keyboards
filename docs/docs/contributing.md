@@ -6,7 +6,7 @@ For quick instructions, refer to the [README](https://github.com/rianadon/Cosmos
 
 ### Building Documentation
 
-I've omited instructions for building docs from the README because they're all just Markdown, and submitting a PR will trigger a preview build of the site, with documentation, on Vercel. Additionally, if you are using the docker setup, the docs server will be started as well.
+I've omitted instructions for building docs from the README because they're all just Markdown, and submitting a PR will trigger a preview build of the site, with documentation, on Vercel. Additionally, if you are using the docker setup, the docs server will be started as well.
 
 To generate docs, install Python 3 and venv then run the following commands:
 
@@ -97,41 +97,98 @@ In the codebase, the part integrated into the keyboard that holds a switch, trac
 
 ![Labeled Part and Socket](../assets/socket.png){ width=550 .center }
 
-Some notes about sockets:
-
-1. They can be of any size (width, height, and depth). However, a depth of at least 4mm is recommended so that there is enough material around the socket.
-2. Try to make the width and height (top-down dimensions) as small as you can. The smaller the socket, the closer it can be placed to other parts on the keyboard!
-3. There are many steps because there are many features in Cosmos that rely on part information. A socket needs to show up in the BOM, support collision checking, have a matching part model, etc.
-
-If you're looking for some code to follow along as you complete these steps, you can refer to [this Pull Request](https://github.com/rianadon/Cosmos-Keyboards/pull/11). It also serves as good reference for when you create a PR of your changes!
+Here's how to add a new socket to the codebase:
 
 1. Give the socket a name. The standard I've been loosely following is `thing-dimensions-vendor`. The vendor & dimensions can be omitted if they are obvious. For example, `trackpad-23mm-cirque` and `oled-128x32-0.91in-adafruit`.
-2. Edit `src/lib/worker/config.ts` and add the name of your socket to the config. You'll probably be adding it under `CuttleBaseKey`. Look for a similar part.
-3. Design a STEP file for the socket with the origin located at top center. Place it at `src/assets/key-(name).step`. If you're using someone else's STEP file, make sure it is licensed for reuse.
-4. The boundary of the socket must be a rectangle, but it can be of any size. Take note of the dimensions. (You can also make it a cylinder—reference the trackpad).
-5. Edit `src/lib/geometry/socketsParts.ts`. Add your part to `PART_NAMES` so it can be correctly shown in the BOM. Also edit `socketSize` to return the size of the rectangle from step 3.
-6. The `partBottom` function returns a box describing the boundary of the part that rests in the socket, referenced from the top of the socket. This is used to raise the model high enough so that your part doesn't collide with the ground! Measure the part and modify this function.
-7. Edit `src/lib/worker/socketsLoader.ts`. Import your STEP file and add it to `KEY_URLS` so the generator can make use of it.
-8. Run `make` again to regenerate the Typescript type declarations for Expert mode.
-9. Run `make parts` to convert the STEP file to GLB so the parts preview page can efficiently display the model.
+2. Design a STEP file for both the socket and part with the origin located at the socket's top center. The Z axis should face up. Place it at `src/assets/key-(name).step`. If you're using someone else's STEP file, make sure it is licensed for reuse. Give the part the name "Part" and the socket the name "Socket" before exporting the two as a STEP assembly.
 
-At this point you should be able to visit [http://localhost:5173/parts](http://localhost:5173/parts) and see your part's socket displayed.
-You'll also likely have an STL file of the part that goes into the socket. Follow these steps add it:
+!!! tip "Socket Sizing"
 
-9. Again make sure the STL file is licensed for reuse or that it's your own. Place it under `src/assets/key-(name).stl`.
-10. Edit `src/model_gen/parts.ts` so that your STL file can be converted to a GLB.
-11. Edit `src/lib/loaders/parts.ts`and add your part.
-12. Re-run `make parts`
+    Try to make the width and height (X and Y axes) of the socket as small as you can. The smaller the socket, the closer it can be placed to other parts on the keyboard! However, try to keep the part at least 4mm thick for stability.
 
-!!! info ""
+3. The boundary of the socket must be a either a rectangle or circle, but it can be of any size. Take note of the dimensions.
+4. Edit `src/lib/geometry/socketsParts.ts`. Add an entry like the following:
+   ```typescript
+   'ec11': {
+      partName: 'EC11 Encoder',
+      bomName: 'EC11 Encoders',
+      category: 'Encoders',
+      stepFile: '/src/assets/key-ec11.step',
+      socketSize: [14.5, 14.5, 4.5],
+      partBottom: [box(12, 12, 14.5)],
+   },
+   ```
+   The part/socket pair has two names: `partName` is the name shown in the editor, whereas `bomName` is shown in the bill of materials. Unlike `partName`, `bomName` is plural. Usually these are similar, but it's helpful to include vendors and part numbers in the `bomName`, whereas `partName` should be concise.<p>
+   The field `stepFile` is the location where you saved the STEP file (`src/assets/key-(name).step`), and `socketSize` refers to the part boundary from step 3. The order of dimensions is `[x, y, z]`.</p><p>
+   Finally, `partBottom` is a box describing the boundary of the part, referenced from the top of the socket. This is used to raise the model high enough so that your part doesn't collide with the ground!</p>
 
-    The working name of Cosmos was Cuttleform, named after the Cuttlefish. Cuttlefish are pretty adaptable!
+5. Edit `src/proto/cosmosStructs.ts` and add your socket/part to the `enumeration('PART', {` declaration. You'll need to give your part a unique number used to identify it in the URL. Switches get numbers from 1–15, and everything else uses 16–109.
+
+#### Previewing Locally
+
+Assuming you've already cloned the repository and ran `make quickstart` and have just made your part changes:
+
+1. Run `make` to update the configuration parser and regenerate the Typescript type declarations for Expert mode.
+2. Run `make parts` to convert the STEP file to GLB so the parts preview page can efficiently display the model.
+
+After these steps you can visit [http://localhost:5173/parts](http://localhost:5173/parts) to see your part's socket displayed.
+
+#### Rounded Sockets
+
+For some parts like trackballs and trackpads it makes more sense for the socket boundary to be a circle instead of a square. To configure one of these, `socketSize` should be configured as follows:
+
+```typescript
+socketSize: { radius: 10, height: 3, sides: 20 }
+```
+
+The radius is the dimension in X and Y dimensions (make this slightly smaller than the model radius), height is the Z dimension, and `sides` is the default number of sides used to inscribe a polygon into the circle. It should be left at 20.
+
+#### Part Override
+
+In some cases it's more efficient to share a part model across multiple sockets (for example the MX switch part is shared by many different sockets), or you have a STL file of the part handy but not a STEP. In these cases you can design the STEP file with the socket only then specify the location of the part model:
+
+```typescript
+partOverride: '/target/switch-cherry-mx.glb'
+```
+
+This path starts with `/target` because the `.glb` file was generated from an STL file during `make parts`. It's generally best to do this as the build process generates optimized `glb` files. To use this feature place your STL file under `src/assets/switch-(name).stl` then add a line in `src/model_gen/parts.ts` like the following:
+
+```typescript
+pool.add('Cherry MX Switch', () => genPart('switch-cherry-mx'))
+```
+
+#### Parts with Variants
+
+The trackball model in Cosmos supports multiple different sizes, sensors, and bearing types. Altogether, there could be dozens of trackball models which will be way too many to configure with the syntax that's been presented. Part variants help keep these models manageable by collecting all variations under a single part name and configuration. Here's how Cirque trackpads are configured:
+
+```typescript
+'trackpad-cirque': {
+  partName: 'Cirque Flat Circle Trackpad',
+  bomName: (v: Variant) => `Cirque Flat Circle ${v.size} Trackpads`,
+  category: 'Trackballs & Trackpads',
+  stepFile: '/src/assets/key-cirque.step',
+  partOverride: '/src/assets/switch-cirque.glb',
+  socketSize: (v: Variant) => ({
+    radius: { '23mm': 12.4, '35mm': 18.4, '40mm': 20.9 }[v.size as TrackpadCirqueVariant['size']],
+    height: 3,
+    sides: 20,
+  }),
+  partBottom: () => [box(10, 10, 2)],
+  variants: {
+    size: ['23mm', '35mm', '40mm'],
+  },
+},
+```
+
+There is one new property here, `variants`, that describes the types of trackpad model. For this model the only configurable variable is `size`, which indicates the trackpad diameter. You can have as many variables as you like and name them anything you want. The values of these variables are appended to the filename, in the order that they are defined, so that one of the Cirque trackpads might be located at `/src/assets/key-cirque-23mm.step`.
+
+The `bomName`, `socketSize`, and `partBottom` fields are all functions of the variant information so that you can customize them for each variation. In this example some TypeScript casting, using the types generated after re-running `make`, are used to make the compiler happy.
 
 ### Contributing Microcontrollers
 
-There are two options to add a microcontroller. The first is to generaate it entirely parametrically. Many microcontrollers share very similar designs (a rectangle with a connector on it), so the parametric generator is capable of mocking most microcontrollers.
+There are two options to add a microcontroller. The first is to generate it entirely parametrically. Many microcontrollers share very similar designs (a rectangle with a connector on it), so the parametric generator is capable of mocking most microcontrollers.
 
-The alternative is to design a 3D model or use an open source one (Adafruit and Seeed Studio publish open source models for their micocontrollers). There are additional steps needed to prepare this 3D model for Cosmos.
+The alternative is to design a 3D model or use an open source one (Adafruit and Seeed Studio publish open source models for their microcontrollers). There are additional steps needed to prepare this 3D model for Cosmos.
 
 If you'd like to follow an example, [@semickolon's pull request](https://github.com/rianadon/Cosmos-Keyboards/pull/4) is a great reference.
 

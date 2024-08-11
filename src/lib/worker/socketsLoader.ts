@@ -1,57 +1,34 @@
-import { socketSize } from '$lib/geometry/socketsParts'
+import { PART_INFO, socketSize, variantURL } from '$lib/geometry/socketsParts'
 import { drawRoundedRectangle, importSTEP, makeBaseBox, type Solid } from 'replicad'
 import type { CuttleKey } from './config'
 import { makeAsyncCacher } from './modeling/cacher'
+import { getOC } from './modeling/index'
 import type Trsf from './modeling/transformation'
 
-let keyUrls: Record<string, string> = {}
+let keyUrls: Record<string, { default: string }> = {}
 try {
-  keyUrls = import.meta.glob(['$target/*.step', '$assets/*.step'], { as: 'url', eager: true })
+  keyUrls = import.meta.glob(['$target/*.step', '$assets/*.step'], { query: '?url', eager: true })
 } catch (e) {
   keyUrls = undefined
 }
 
-export const KEY_URLS: Record<CuttleKey['type'], string> = {
-  'old-box': '/target/key-old-box.step',
-  'old-mx': '/target/key-old-mx.step',
-  'old-mx-snap-in': '/target/key-mxSnapIn.step',
-  alps: '/src/assets/key-alps.step',
-  choc: '/src/assets/key-choc.step',
-  'mx-hotswap': '/target/key-mx-hotswap.step',
-  'old-mx-hotswap': '/target/key-old-mx-hotswap.step',
-  'old-mx-snap-in-hotswap': '/target/key-old-mxSnapIn-hotswap.step',
-  'mx-better': '/src/assets/key-mx-better.step',
-  'mx-pcb': '/src/assets/key-mx-pcb.step',
-  'mx-pcb-twist': '/src/assets/key-mx-pcb-twist.step',
-  'choc-hotswap': '/target/key-choc-hotswap.step',
-  'trackball': '/src/assets/trackball_holder.step',
-  'ec11': '/src/assets/key-ec11.step',
-  'joystick-joycon-adafruit': '/src/assets/key-joystick-joycon-adafruit.step',
-  'evqwgd001': '/src/assets/key-evqwgd001.step',
-  'oled-128x32-0.91in-adafruit': '/src/assets/key-oled-128x32-0.91in-adafruit.step',
-  'oled-128x32-0.91in-dfrobot': '/target/key-oled-128x32-0.91in-dfrobot.step',
-  'cirque-23mm': '/src/assets/key-cirque-23mm.step',
-  'cirque-35mm': '/src/assets/key-cirque-35mm.step',
-  'cirque-40mm': '/src/assets/key-cirque-40mm.step',
-  'joystick-ps2-40x45': '/src/assets/key-joystick-ps2-40x45.step',
-  'blank': '',
-}
-
 const keyCacher = makeAsyncCacher(async (key: CuttleKey) => {
   if (key.type == 'blank') return makeBaseBox(key.size?.width ?? 18.5, key.size?.height ?? 18.5, 5).translateZ(-5)
-  const url = KEY_URLS[key.type]
+  const url = 'partOverride' in PART_INFO[key.type]
+    ? PART_INFO[key.type].stepFile.replace('.step', variantURL(key) + '.step')
+    : `/target/splitsocket-${key.type}${variantURL(key)}.step`
   if (!url) throw new Error(`No model for key ${key.type}`)
   const urls = keyUrls || JSON.parse(process.env.SOCKET_URLS!)
   if (!urls[url]) throw new Error(`Model for url ${url} does not exist`)
   return keyUrls
-    ? await fetch(urls[url]).then(r => r.blob())
+    ? await fetch(urls[url].default).then(r => r.blob())
       .then(r => importSTEP(r) as Promise<Solid>)
-    : (await import(process.env.FS!)).readFile(urls[url])
+    : (await import(process.env.FS!)).readFile(urls[url].default)
       .then(r => importSTEP(new Blob([r])) as Promise<Solid>)
 })
 
 const extendedKeyCacher = makeAsyncCacher(async (key: CuttleKey) => {
-  let cacheKey = key.type
+  let cacheKey = key.type + variantURL(key)
   if (key.type == 'blank') cacheKey += `-${key.size?.width}x${key.size?.height}`
   return extendPlate(await keyCacher(cacheKey, null, key), key)
 })
@@ -59,12 +36,12 @@ const extendedKeyCacher = makeAsyncCacher(async (key: CuttleKey) => {
 function extendPlate(plate: Solid, key: CuttleKey) {
   const size = socketSize(key)
   if (key.aspect == 1) return plate
-  if ('trackball' in key) return plate
+  if ('radius' in size) return plate
 
-  const extension = drawRoundedRectangle(size.x * Math.max(key.aspect, 1), size.y * Math.max(1 / key.aspect, 1))
-    .cut(drawRoundedRectangle(size.x, size.y))
+  const extension = drawRoundedRectangle(size[0] * Math.max(key.aspect, 1), size[1] * Math.max(1 / key.aspect, 1))
+    .cut(drawRoundedRectangle(size[0], size[1]))
     .sketchOnPlane('XY')
-    .extrude(-size.z) as Solid
+    .extrude(-size[2]) as Solid
 
   const result = plate.fuse(extension)
   return result

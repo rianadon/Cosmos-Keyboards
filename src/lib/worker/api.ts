@@ -8,7 +8,6 @@ import wasmUrl from '$assets/replicad_single.wasm?url'
 // import wasmUrl from 'replicad-opencascadejs/src/replicad_single.wasm?url';
 // import loadOC from 'opencascade/dist/opencascade.full';
 // import wasmUrl from 'opencascade/dist/opencascade.full.wasm?url';
-import { ASYMMETRIC_PARTS } from '$lib/geometry/socketsParts'
 import { combinedKeyHoleMesh, keyHoleMeshes } from '$lib/loaders/sockets'
 import { wristRest } from '@pro/wristRest'
 import type { BufferAttribute, BufferGeometry } from 'three'
@@ -16,19 +15,18 @@ import { getUser } from '../../routes/beta/lib/login'
 import { ITriangle } from '../loaders/simplekeys'
 import { type ConfError, isPro, keycapIntersections, partIntersections, socketIntersections } from './check'
 import { type Cuttleform, type CuttleKey, type Geometry, newGeometry } from './config'
-import { boardHolder, cutWithConnector, keyHoles, makeConnector, makePlate, makerScrewInserts, makeWalls, type ScrewInsertTypes, webSolid } from './model'
+import { boardHolder, cutWithConnector, keyHoles, makeConnector, makePlate, makePlateMesh, makerScrewInserts, makeWalls, type ScrewInsertTypes, webSolid } from './model'
 import { Assembly } from './modeling/assembly'
 import { blobSTL, combine } from './modeling/index'
-import { supportMesh } from './modeling/supports'
+import { meshVolume, supportMesh } from './modeling/supports'
 import Trsf, { Vector } from './modeling/transformation'
+import ETrsf from './modeling/transformation-ext'
 
 let oc: OpenCascadeInstance
-let web: Solid
-let walls: Solid
 let model: Solid
 let ocTime = 0
 
-const NULL = { mesh: null, mass: 0 }
+const NULL: { mesh: ShapeMesh | null; mass: number } = { mesh: null, mass: 0 }
 
 async function ensureOC() {
   if (!oc) {
@@ -43,24 +41,6 @@ async function ensureOC() {
   else console.debug('OC memory', oc.asm.oa.buffer.byteLength / 1e6 + ' MB')
 }
 
-// export async function modelCenter(config: Cuttleform) {
-//   await ensureOC();
-//   const transforms = keyHolesTrsfs(config, new Trsf());
-//   return estimatedCenter(transforms.flat());
-// }
-
-// export async function generateKeyPos(config: Cuttleform) {
-//   await ensureOC();
-//   const transforms = keyHolesTrsfs(config, new Trsf());
-//   return transforms.map((t,i) => ({
-//     trsf: t.pretranslated(0, 0, config.keys[i].type == "trackball" ? 2.5 : 10).matrix(),
-//     type: config.keys[i].type,
-//     aspect: config.keys[i].aspect,
-//     keycap: config.keys[i].keycap,
-//     trackballRadius: config.keys[i].trackball?.radius
-//   }))
-// }
-
 const toMesh = (mesh: BufferGeometry) =>
   ({
     vertices: (mesh.attributes['position'] as BufferAttribute).array as number[],
@@ -74,8 +54,7 @@ const arrconcat = (a: Float32Array, b: Float32Array) => {
   c.set(b, a.length)
   return c
 }
-export async function generateKeys(config: Cuttleform) {
-  const geo = newGeometry(config)
+async function generateKeysQuick(config: Cuttleform, geo: Geometry) {
   const keys = await keyHoleMeshes(config, geo.keyHolesTrsfs.flat())
 
   const supports = {
@@ -91,7 +70,6 @@ export async function generateKeys(config: Cuttleform) {
     supports.volume += sups.volume
   }
   const mass = keys.mass
-  // const supports = supportMesh(mesh, geo.bottomZ)
   return { keys: keys.keys.map(k => ({ ...k, mesh: toMesh(k.mesh) })), mass, supports }
 }
 
@@ -101,18 +79,33 @@ export async function generateKeysMesh(config: Cuttleform) {
   return toMesh(mesh)
 }
 
+async function generateWebQuick(config: Cuttleform, geo: Geometry) {
+  const mesh = webSolid(config, geo).toMesh()
+  const supports = supportMesh(mesh, geo.bottomZ)
+  const mass = meshVolume(mesh)
+  return { mesh, supports, mass }
+}
+
 export async function generateWeb(config: Cuttleform) {
   await ensureOC()
   const geo = newGeometry(config)
-  web = webSolid(config, geo, false)
+  const web = webSolid(config, geo).toSolid(false, true)
   return meshWithVolumeAndSupport(web, geo.bottomZ)
 }
 
-export async function generateWalls(config: Cuttleform) {
-  await ensureOC()
-  const geo = newGeometry(config)
-  walls = makeWalls(config, geo.allWallCriticalPoints(), geo.worldZ, geo.bottomZ, false)
-  return meshWithVolume(walls)
+async function generateWallsQuick(config: Cuttleform, geo: Geometry) {
+  const mesh = makeWalls(config, geo.allWallCriticalPoints(), geo.worldZ, geo.bottomZ).toMesh()
+  const supports = supportMesh(mesh, geo.bottomZ)
+  return { mesh, supports }
+}
+
+export async function generatePlateQuick(config: Cuttleform, geo: Geometry) {
+  const { top, bottom } = makePlateMesh(config, geo)
+  const supports = supportMesh(top, geo.bottomZ)
+  return {
+    top: { mesh: top, supports },
+    bottom: { mesh: bottom, mass: 0 },
+  }
 }
 
 export async function generatePlate(config: Cuttleform, cut = false) {
@@ -124,6 +117,20 @@ export async function generatePlate(config: Cuttleform, cut = false) {
     top: topMesh,
     bottom: bottom ? meshWithVolume(bottom()) : { mesh: null, mass: 0 },
     ocTime: topMesh.ocTime,
+  }
+}
+
+export async function generateQuick(config: Cuttleform) {
+  const geo = newGeometry(config)
+  const platePromise = generatePlateQuick(config, geo)
+  const webPromise = generateWebQuick(config, geo)
+  const wallPromise = generateWallsQuick(config, geo)
+  const keysPromise = generateKeysQuick(config, geo)
+  return {
+    keys: await keysPromise,
+    web: await webPromise,
+    wall: await wallPromise,
+    plate: await platePromise,
   }
 }
 
@@ -142,8 +149,9 @@ export async function generate(config: Cuttleform, geo: Geometry, stitchWalls: b
   console.timeEnd('Calculating geometry')
 
   console.time('Creating walls')
+  let walls: Solid
   try {
-    walls = makeWalls(config, wallPts, geo.worldZ, geo.bottomZ, stitchWalls)
+    walls = makeWalls(config, wallPts, geo.worldZ, geo.bottomZ).toSolid(stitchWalls, false)
   } catch (e) {
     throw new Error('Error Generating the Walls: ' + e + "\n\nThis is caused by bad geometry. Check that the walls don't intersect themselves.")
   }
@@ -153,20 +161,20 @@ export async function generate(config: Cuttleform, geo: Geometry, stitchWalls: b
   console.time('Making web')
   let web: Solid
   try {
-    web = webSolid(config, geo, true)
+    web = webSolid(config, geo).toSolid(true, true)
   } catch (e) {
     throw new Error('Error Generating the Key Web: ' + e + "\n\nThis is caused by bad geometry. Check that the walls don't intersect the key sockets in any part of the model.")
   }
   console.timeEnd('Making web')
   console.time('Creating holes')
-  const flipper = (key: CuttleKey) => (flip && ASYMMETRIC_PARTS.includes(key.type)) ? new Trsf().scaleIsDangerous(-1, 1, 1) : new Trsf()
+  const flipper = (key: CuttleKey) => flip ? new Trsf().scaleIsDangerous(-1, 1, 1) : new Trsf()
   const holes = await keyHoles(config, transforms.map((t, i) => t.multiply(flipper(config.keys[i]))))
   console.timeEnd('Creating holes')
   console.time('Creating connector')
   // let connector = null
-  if (config.connector && connOrigin) {
+  if (connOrigin) {
     // connector = makeConnector(config, config.connector, connOrigin)
-    walls = cutWithConnector(config, walls, config.connector, connOrigin)
+    walls = cutWithConnector(config, walls, connOrigin)
   }
   console.timeEnd('Creating connector')
   console.time('Creating screw inserts')
@@ -238,10 +246,21 @@ export async function generateBoardHolder(config: Cuttleform) {
   return result
 }
 
-export async function generateWristRest(config: Cuttleform) {
+export async function generateWristRest(config: Cuttleform, flip = false) {
   await ensureOC()
-  if (!config.wristRest) return NULL
-  const rest = wristRest(config, newGeometry(config)) as Solid
+  const name = flip ? 'wristRestLeft' : 'wristRestRight'
+  if (!config[name]) return NULL
+  const rest = wristRest(config, newGeometry(config), name) as Solid
+  const result = meshWithVolume(rest)
+  rest.delete()
+  return result
+}
+
+export async function generateMirroredWristRest(config: Cuttleform) {
+  await ensureOC()
+  if (!config.wristRestLeft) return NULL
+  config.keys.forEach(k => k.position = new ETrsf(k.position.history).mirror([1, 0, 0]))
+  const rest = wristRest(config, newGeometry(config), 'wristRestLeft').mirror('YZ', [0, 0, 0])
   const result = meshWithVolume(rest)
   rest.delete()
   return result
@@ -249,12 +268,12 @@ export async function generateWristRest(config: Cuttleform) {
 
 export async function cutWall(config: Cuttleform) {
   await ensureOC()
-  const geometry = newGeometry(config)
-  await generateWalls(config)
-  if (config.connector && geometry.connectorOrigin) {
-    walls = cutWithConnector(config, walls, config.connector, geometry.connectorOrigin)
+  const geo = newGeometry(config)
+  let walls = makeWalls(config, geo.allWallCriticalPoints(), geo.worldZ, geo.bottomZ).toSolid(false, false)
+  if (geo.connectorOrigin) {
+    walls = cutWithConnector(config, walls, geo.connectorOrigin)
   }
-  const result = meshWithVolumeAndSupport(walls, geometry.bottomZ)
+  const result = meshWithVolumeAndSupport(walls, geo.bottomZ)
   // walls.delete()
   return result
 }
@@ -272,21 +291,26 @@ async function getModel(conf: Cuttleform, name: string, stitchWalls: boolean, fl
     assembly = assembly.transform(new Trsf().translate(0, 0, -geo.floorZ))
     return assembly
   } else if (name == 'plate' || name == 'platetop') {
-    return makePlate(conf, geometry, true, true).top()
+    return makePlate(conf, geometry, true, true).top().translateZ(-geometry.floorZ)
   } else if (name == 'platebottom') {
     const bot = makePlate(conf, geometry, true, true).bottom
-    return bot ? bot() : undefined
+    return bot ? bot().translateZ(-geometry.floorZ) : undefined
   } else if (name == 'holder') {
-    return boardHolder(conf, geometry)
+    return boardHolder(conf, geometry).translateZ(-geometry.floorZ)
   } else if (name == 'wristrest') {
-    return wristRest(conf, geometry)
+    return wristRest(conf, geometry, flip ? 'wristRestLeft' : 'wristRestRight').translateZ(-geometry.floorZ)
   } else {
     throw new Error("I don't know what model you want")
   }
 }
 
-export async function getSTL(conf: Cuttleform, name: string, flip: boolean) {
+export async function getSTL(conf: Cuttleform, name: string, side: 'left' | 'right' | 'unibody') {
+  const flip = side == 'left'
   let model = await getModel(conf, name, true, flip)
+  if (name == 'wristrest' && side == 'unibody' && conf.wristRestRight && model) {
+    conf.keys.forEach(k => k.position = new ETrsf(k.position.history).mirror([1, 0, 0]))
+    model = (model as Solid).fuse(wristRest(conf, newGeometry(conf), 'wristRestLeft').mirror('YZ', [0, 0, 0]))
+  }
   if (!model) throw new Error(`Model ${name} is empty`)
   if (flip) model = model.mirror('YZ', [0, 0, 0])
   return blobSTL(model, { tolerance: 1e-2, angularTolerance: 1 })
@@ -301,8 +325,8 @@ export async function getSTEP(conf: Cuttleform, flip: boolean, stitchWalls: bool
     assembly.add('Microcontroller Holder', boardHolder(conf, geometry))
   }
 
-  if (conf.wristRest && (await getUser()).sponsor) {
-    assembly.add('Wrist Rest', wristRest(conf, geometry))
+  if (conf.wristRestRight && (await getUser()).sponsor) {
+    assembly.add('Wrist Rest', wristRest(conf, geometry, flip ? 'wristRestLeft' : 'wristRestRight'))
   }
 
   assembly = assembly.transform(new Trsf().translate(0, 0, -geometry.floorZ))
@@ -335,7 +359,7 @@ export async function volume() {
   return props.Mass()
 }
 
-export async function intersections(conf: Cuttleform): Promise<ConfError | undefined> {
+export async function intersections(conf: Cuttleform, side: 'left' | 'right' | 'unibody'): Promise<ConfError | undefined> {
   try {
     const geometry = newGeometry(conf)
     const trsfs3d = geometry.keyHolesTrsfs
@@ -351,19 +375,19 @@ export async function intersections(conf: Cuttleform): Promise<ConfError | undef
         )
       )
     const tris = [...toTriangles(topReinf), ...toTriangles(botReinf)]
-    for (const intersection of keycapIntersections(conf, trsfs3d, tris)) {
+    for (const intersection of keycapIntersections(conf, trsfs3d, tris, side)) {
       return intersection
     }
-    for (const intersection of partIntersections(conf, trsfs3d)) {
+    for (const intersection of partIntersections(conf, trsfs3d, side)) {
       return intersection
     }
     // if (geometry.reinforcedTriangles.topReinf.error) return geometry.reinforcedTriangles.topReinf.error
 
-    for (const intersection of socketIntersections(conf, trsfs3d, geometry.allKeyCriticalPoints, tris)) {
+    for (const intersection of socketIntersections(conf, trsfs3d, geometry.allKeyCriticalPoints, tris, side)) {
       return intersection
     }
   } catch (e) {
     console.error(e)
-    return { type: 'exception', when: 'laying out the walls', error: e as Error }
+    return { type: 'exception', when: 'laying out the walls', error: e as Error, side }
   }
 }

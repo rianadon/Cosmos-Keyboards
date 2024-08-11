@@ -8,6 +8,7 @@
   let status = '[1/6] Connecting to signalling server'
   let wifiWarning = false
   let added = false
+  let showPairLink = false
 
   const ws = new WebSocket('wss://cosmos.ryanis.cool/signal')
   const pc = new RTCPeerConnection()
@@ -93,9 +94,9 @@
   <span slot="title">Connect Your Phone</span>
   <div slot="prose">
     <p class="mb-2">
-      Your phone likely has the best camera, so let's connect it and use your display for
-      localization. The video from your camera is sent directly from your phone to your computer
-      over an encrypted peer-to-peer channel using WebRTC.
+      Your phone likely has the best camera, so let's connect it and use your display for localization.
+      The video from your camera is sent directly from your phone to your computer over an encrypted
+      peer-to-peer channel using WebRTC.
     </p>
   </div>
   <div slot="content" class="text-center text-gray-200">
@@ -105,6 +106,8 @@
           Scan the QR code below. On most phones you can scan a code using the built-in camera app.
         </p>
         <Qrcode style="margin: 1rem auto; border-radius: 0.25rem;" value={pairURL} />
+        <button class="hover:underline" on:click={() => (showPairLink = true)}>show pairing url</button>
+        {#if showPairLink}<p>{pairURL}</p>{/if}
       {/if}
     </div>
     <br />
@@ -115,9 +118,9 @@
       <div
         class="mx-auto bg-red text-black mx-[-1rem] px-4 py-1 rounded max-w-prose shadow-lg shadow-slate-800 z-100"
       >
-        Make sure your computer and phone are connected to the same WiFi network and that VPNs are
-        turned off. The video is transmitted directly from your phone to computer so they must be
-        able to talk to each other.
+        Make sure your computer and phone are connected to the same WiFi network and that VPNs are turned
+        off. The video is transmitted directly from your phone to computer so they must be able to talk
+        to each other.
       </div>
     {/if}
   </div>

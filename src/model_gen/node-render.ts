@@ -4,16 +4,13 @@ import { keyGeometries } from '$lib/loaders/keycaps'
 import { partGeometries } from '$lib/loaders/parts'
 import type { Cuttleform, CuttleKey } from '$lib/worker/config'
 import { notNull } from '$lib/worker/util'
-import { createCanvas } from 'canvas'
-import gl from 'gl'
+import { chromium } from 'playwright'
 import sharp from 'sharp'
 import * as THREE from 'three'
 import { DEFAULT_PARTS, generate } from './node-model'
 
-export async function assembleGroup(config: Cuttleform, parts = DEFAULT_PARTS, opts: RenderOptions) {
-  const { models, center, geo } = await generate(config, parts)
-  const keys = await keyGeometries(geo.keyHolesTrsfs, config.keys)
-  const switches = await partGeometries(geo.keyHolesTrsfs, config.keys)
+export async function assembleGroup(window: Window, config: Cuttleform, parts = DEFAULT_PARTS, opts: RenderOptions) {
+  console.log(config)
 
   const group = new THREE.Group()
   const mat = new THREE.Matrix4().makeTranslation(-center[0], -center[1], -center[2]).premultiply(new THREE.Matrix4().makeRotationZ(opts.rotation ?? 0))
@@ -24,7 +21,7 @@ export async function assembleGroup(config: Cuttleform, parts = DEFAULT_PARTS, o
   if (models.walls) group.add(new THREE.Mesh(models.walls, new CaseMaterial(1, 1, opts.color)))
   if (models.plate) group.add(new THREE.Mesh(models.plate, new KeyMaterial(1, 1, opts.color)))
   group.add(
-    ...keys.map(k => mesh(k.geometry, keyMaterialLetter(0.99, 1, opts.color, k.key), k.matrix)),
+    ...keys.map(k => mesh(k.geometry, keyMaterialLetter(window, 0.99, 1, opts.color, k.key), k.matrix)),
     ...switches.map(k => mesh(k.geometry, new KeyMaterial(1, 0.7, opts.color), k.matrix)),
   )
   return { group, zoomModels: [models.holes, models.web] }
@@ -33,16 +30,7 @@ export async function assembleGroup(config: Cuttleform, parts = DEFAULT_PARTS, o
 const webglRenderer = (width: number, height: number) =>
   new THREE.WebGLRenderer({
     antialias: true,
-    canvas: {
-      width,
-      height,
-      style: {} as any,
-      addEventListener() {},
-      removeEventListener() {},
-    } as any,
-    context: gl(width, height, {
-      preserveDrawingBuffer: true,
-    }),
+    canvas: document.createElement('canvas'),
   })
 
 export interface RenderOptions {
@@ -56,23 +44,33 @@ export interface RenderOptions {
 }
 
 export async function render(config: Cuttleform, parts = DEFAULT_PARTS, width = 500, height = 500, opts: RenderOptions) {
-  const { group, zoomModels } = await assembleGroup(config, parts, opts)
-  const zoom = opts.zoom ?? modelZoom(zoomModels, width / height)
-  const cameraPos = opts.cameraPos ?? [0, 0.8, 1]
+  const browser = await chromium.launch()
+  const page = await browser.newPage()
 
-  const camera = new THREE.PerspectiveCamera(50, width / height, 1, 1000)
-  const scene = new THREE.Scene()
-  const renderer = webglRenderer(width, height)
+  const { models, center, geo } = await generate(config, parts)
+  const keys = await keyGeometries(geo.keyHolesTrsfs, config.keys)
+  const switches = await partGeometries(geo.keyHolesTrsfs, config.keys, false)
+  const data = { models, center, geo, keys, switches }
+  await page.evaluate(async (dat: typeof data) => {
+    console.log(models)
 
-  camera.position.set(...cameraPos).normalize().multiplyScalar(zoom)
-  camera.lookAt(new THREE.Vector3(0, 0, 0))
-  const viewport = new THREE.Group()
-  viewport.rotation.set(-Math.PI / 2, 0, 0)
-  scene.add(viewport)
+    const zoom = opts.zoom ?? modelZoom(zoomModels, width / height)
+    const cameraPos = opts.cameraPos ?? [0, 0.8, 1]
 
-  viewport.add(group)
-  renderer.render(scene, camera)
-  return extractPixels(renderer.getContext())
+    const camera = new THREE.PerspectiveCamera(50, width / height, 1, 1000)
+    const scene = new THREE.Scene()
+    const renderer = webglRenderer(width, height)
+
+    camera.position.set(...cameraPos).normalize().multiplyScalar(zoom)
+    camera.lookAt(new THREE.Vector3(0, 0, 0))
+    const viewport = new THREE.Group()
+    viewport.rotation.set(-Math.PI / 2, 0, 0)
+    scene.add(viewport)
+
+    viewport.add(group)
+    renderer.render(scene, camera)
+    return extractPixels(renderer.getContext())
+  }, data)
 }
 
 export async function renderMulti(configs: Cuttleform[], parts = DEFAULT_PARTS, width = 500, height = 500, opts: RenderOptions) {
@@ -105,11 +103,11 @@ const mesh = (geometry: THREE.BufferGeometry, material: THREE.Material, mat: THR
   mat.decompose(m.position, m.quaternion, m.scale)
   return m
 }
-function keyMaterialLetter(opacity: number, brightness: number, color: ColorScheme, key: CuttleKey) {
+function keyMaterialLetter(window: Window, opacity: number, brightness: number, color: ColorScheme, key: CuttleKey) {
   const letter = 'keycap' in key && key.keycap ? key.keycap.letter : undefined
   const material = new KeyMaterial(0.97, 1, color)
   if (letter) {
-    const canvas: HTMLCanvasElement = createCanvas(512, 512) as any
+    const canvas: HTMLCanvasElement = new window.OffscreenCanvas(512, 512) as any
     drawLetter(canvas, letter, false)
     material.uniforms.tLetter.value = new THREE.CanvasTexture(canvas)
   }

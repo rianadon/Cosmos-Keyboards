@@ -37,11 +37,7 @@
 </div>
 
 {#each schema.fields.filter((f) => !f.special) as key}
-  <Field
-    defl={manuform.options.shaping[key.var]}
-    schema={key}
-    bind:value={state.shaping[key.var]}
-  />
+  <Field defl={manuform.options.shaping[key.var]} schema={key} bind:value={state.shaping[key.var]} />
 {/each}
 
 <div class="w-full xs:w-[19rem] overflow-auto lg:w-full">
@@ -51,8 +47,7 @@
         <th />
         <th
           colspan="4"
-          class="text-left text-xl text-teal-500 dark:text-teal-300 font-semibold pb-1 pl-4"
-          >Stagger</th
+          class="text-left text-xl text-teal-500 dark:text-teal-300 font-semibold pb-1 pl-4">Stagger</th
         >
       </tr>
       <tr>
@@ -80,34 +75,20 @@
         <td class={staggerStyle[0]}
           ><FloatInput small bind:value={state.shaping.thumbClusterOffsetY} /></td
         >
-        <td class={staggerStyle[1]}
-          ><FloatInput small bind:value={state.shaping.staggerIndexY} /></td
-        >
-        <td class={staggerStyle[2]}
-          ><FloatInput small bind:value={state.shaping.staggerMiddleY} /></td
-        >
-        <td class={staggerStyle[3]}><FloatInput small bind:value={state.shaping.staggerRingY} /></td
-        >
-        <td class={staggerStyle[4]}
-          ><FloatInput small bind:value={state.shaping.staggerPinkyY} /></td
-        >
+        <td class={staggerStyle[1]}><FloatInput small bind:value={state.shaping.staggerIndexY} /></td>
+        <td class={staggerStyle[2]}><FloatInput small bind:value={state.shaping.staggerMiddleY} /></td>
+        <td class={staggerStyle[3]}><FloatInput small bind:value={state.shaping.staggerRingY} /></td>
+        <td class={staggerStyle[4]}><FloatInput small bind:value={state.shaping.staggerPinkyY} /></td>
       </tr>
       <tr>
         <th class="font-normal">Z</th>
         <td class={staggerStyle[0]}
           ><FloatInput small bind:value={state.shaping.thumbClusterOffsetZ} /></td
         >
-        <td class={staggerStyle[1]}
-          ><FloatInput small bind:value={state.shaping.staggerIndexZ} /></td
-        >
-        <td class={staggerStyle[2]}
-          ><FloatInput small bind:value={state.shaping.staggerMiddleZ} /></td
-        >
-        <td class={staggerStyle[3]}><FloatInput small bind:value={state.shaping.staggerRingZ} /></td
-        >
-        <td class={staggerStyle[4]}
-          ><FloatInput small bind:value={state.shaping.staggerPinkyZ} /></td
-        >
+        <td class={staggerStyle[1]}><FloatInput small bind:value={state.shaping.staggerIndexZ} /></td>
+        <td class={staggerStyle[2]}><FloatInput small bind:value={state.shaping.staggerMiddleZ} /></td>
+        <td class={staggerStyle[3]}><FloatInput small bind:value={state.shaping.staggerRingZ} /></td>
+        <td class={staggerStyle[4]}><FloatInput small bind:value={state.shaping.staggerPinkyZ} /></td>
       </tr>
     </tbody>
   </table>
@@ -131,18 +112,15 @@
 
 <style>
   .input-basic {
-    --at-apply: 'focus:border-teal-500 border border-transparent text-gray-700 focus:outline-none';
-    --at-apply: 'border-gray-200 dark:border-transparent bg-gray-100 dark:bg-gray-700 dark:text-gray-100';
+    --at-apply: 'focus:border-teal-500 border border-transparent text-gray-700 focus:outline-none border-gray-200 dark:border-transparent bg-gray-100 dark:bg-gray-700 dark:text-gray-100';
   }
 
   .input {
-    --at-apply: 'appearance-none w-[6.88rem] rounded ml-2.5';
-    --at-apply: 'input-basic text-ellipsis';
+    --at-apply: 'appearance-none w-[6.88rem] rounded ml-2.5 input-basic text-ellipsis';
   }
 
   .sinput {
-    --at-apply: 'appearance-none w-[5.45rem] rounded ml-2.5';
-    --at-apply: 'input-basic text-ellipsis';
+    --at-apply: 'appearance-none w-[5.45rem] rounded ml-2.5 input-basic text-ellipsis';
   }
 
   input:focus + div > div {

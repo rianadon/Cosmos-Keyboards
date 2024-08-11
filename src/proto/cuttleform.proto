@@ -4,7 +4,7 @@ import "proto/common.proto";
 package dactyl;
 
 enum KEYCAP { DSA = 0; MT3 = 1; OEM = 2; SA = 3; XDA = 4; KCHOC = 5; CHERRY = 6; DES = 7; }
-enum SWITCH { BOX = 0; MX = 1; MX_HOTSWAP = 2; MX_PCB = 3; CHOC = 4; MX_BETTER = 5; ALPS = 6; }
+enum SWITCH { BOX = 0; MX = 1; MX_HOTSWAP = 2; MX_PCB = 3; MX_PCB_TWIST = 7; CHOC = 4; MX_BETTER = 5; ALPS = 6; }
 enum LAST_ROW { TWO = 0; ZERO = 1; FULL = 2; }
 enum EXTRA_COLUMN { NOCOL = 0; KEYS = 1; OLED = 2; OLED_DF = 6; CIRQUE_23 = 3; CIRQUE_35 = 4; CIRQUE_40 = 5;  }
 enum CONNECTOR { /* RJ9 = 2; */ TRRS = 3; USB = 4; NONE = 0; /* EXTERNAL = 1; */ }
@@ -12,7 +12,7 @@ enum CONNECTOR_SIZE { SLIM = 0; AVERAGE = 1; BIG = 2; }
 enum SCREW_SIZE { M3 = 0; M4 = 1; I4_40 = 2; I6_32 = 3; }
 enum SCREW_TYPE { STRAIGHT_INSERT = 0; TAPERED_INSERT = 1; EXPANDING_INSERT = 2; TAPPED = 3; }
 enum KEY_SIZE { U1 = 0; U125 = 1; U15 = 2; U2 = 3; }
-enum MICROCONTROLLER { NOMC = 0; PIPICO = 1; PROMICRO = 2; PROMICRO_C = 3; ITSYBITSY = 4; ITSYBITSY_BT = 5; KB2040 = 6; RP2040_BLACK = 7; NRFMICRO = 8; XIAO = 9; XIAO_BT = 10; RP2040_ZERO = 11; WEACT_CH552T = 12; }
+enum MICROCONTROLLER { NOMC = 0; PIPICO = 1; PROMICRO = 2; PROMICRO_C = 3; ITSYBITSY = 4; ITSYBITSY_BT = 5; KB2040 = 6; RP2040_BLACK = 7; NRFMICRO = 8; XIAO = 9; XIAO_BT = 10; RP2040_ZERO = 11; WEACT_CH552T = 12; ADAFRUIT_RP2040_FEATHER = 13; }
 enum ENCODER { EC11 = 0; EVQWGD001 = 1; }
 
 message Cuttleform {
@@ -40,7 +40,8 @@ message Cuttleform {
                                      // (ndropdown) = {n: 0, name: "Box (Kailh)"},
                                      (ndropdown) = {n: 5, name: "MX-Compatible (Cherry, Kailh, Gateron...)"},
                                      (ndropdown) = {n: 2, name: "MX-Compatible with 3D-Printed Hotswap Holder"},
-                                     (ndropdown) = {n: 3, name: "MX-Compatible PCB (Amoeba King) ☆️️"},
+                                     (ndropdown) = {n: 7, name: "MX-Compatible PCB (Amoeba Twist) ☆️️"},
+                                     (ndropdown) = {n: 3, name: "MX-Compatible PCB (Amoeba King)"},
                                      (ndropdown) = {n: 4, name: "Choc (Kailh) ☆️️"},
                                      (ndropdown) = {n: 6, name: "Alps (and clones)"}];
     optional int32 horizontal_spacing = 5 [(decimal) = true, (icon) = "expand-horizontal", (name) = "Horizontal (X) Spacing", (mm) = true, (help) = "The horizontal distance between key centers when the keys are laid flat"];
@@ -147,6 +148,7 @@ message Cuttleform {
                                                    (ndropdown) = {n: 4, name: "Adafruit ItsyBitsy RP2040/M0/M4/32u4", group: "Medium Size"},
                                                    (ndropdown) = {n: 5, name: "Adafruit ItsyBitsy nRF52840 (Bluetooth)", group: "Medium Size"},
                                                    (ndropdown) = {n: 8, name: "nRFMicro or Nice!Nano (USB-C, Bluetooth)", group: "Medium Size"},
+                                                   (ndropdown) = {n: 13, name: "Adafruit RP2040 Feather (USB-C)", group: "Large Size"},
                                                    (ndropdown) = {n: 0, name: "None", group: "More"}];
     optional bool fasten_microcontroller = 27 [(name) = "Fasten Microcontroller", (help) = "Add clamps above the microcontroller to hold it inside its holder"];
     optional bool screw_inserts = 2 [(name) = "Fasten Base with Screws", (icon) = "screw", (basic) = true];

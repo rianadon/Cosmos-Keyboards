@@ -12,9 +12,7 @@
   class:flex-row-reverse={reversed}
 >
   {#if src}
-    <div
-      class="bg-slate-900 shadow-lg shadow-cyan-800/200 rounded-full w-52 h-52 p-8 mx-auto mt-[-3em]"
-    >
+    <div class="bg-slate-900 shadow-lg shadow-cyan-800/200 rounded-full w-52 h-52 p-8 mx-auto mt-[-3em]">
       <video autoplay muted loop bind:this={video} class="w-36">
         <source src={base + src.replace('mp4', 'mov')} type="video/quicktime" />
         <source src={base + src.replace('mp4', 'webm')} type="video/webm" />

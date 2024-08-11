@@ -16,28 +16,15 @@
 import { socketSize } from '$lib/geometry/socketsParts'
 import { switchInfo } from '$lib/geometry/switches'
 import { Matrix3 } from 'three/src/math/Matrix3.js'
-import type { ConfError } from './check'
 import { createTriangleMap, type TriangleMap } from './concaveman'
 import { doWallsIntersect } from './concaveman-extra'
 import type { Cuttleform, CuttleKey, Geometry } from './config'
-import { type CriticalPoints, flattenKeyCriticalPoints, type WallCriticalPoints, wallCurve, wallUpDir, webThickness } from './geometry'
-import { intersectPtPoly } from './geometry.intersections'
+import { type CriticalPoints, triangleNormTrsf, type WallCriticalPoints, wallUpDir, webThickness } from './geometry'
 import type Trsf from './modeling/transformation'
 import { Vector } from './modeling/transformation'
 
 export const DEFAULT_MWT_FACTOR = 0.8
-
-/** Find the normal of a triangle. */
-function triangleNorm(a: Vector, b: Vector, c: Vector, reverse = false) {
-  const u = b.clone().sub(a)
-  const v = c.clone().sub(b)
-  const norm = u.cross(v).normalize()
-  if (reverse) norm.negate()
-  return norm
-}
-export function triangleNormTrsf(a: Trsf, b: Trsf, c: Trsf, reverse = false) {
-  return triangleNorm(a.origin(), b.origin(), c.origin(), reverse)
-}
+const MAX_WEB_THICKNESS = 5 // Maximum web thickness used for calculating the reinforced web. Very large web thicknesses cause things to go wacky.
 
 type WallShifts = Record<number, { direction: Vector; offset: number }>
 
@@ -152,7 +139,8 @@ function calcThickness(thisTop: Trsf, thisThick: number, nextTop: Trsf, normal: 
  */
 function maxReinfMargin(key: CuttleKey) {
   const keyWidth = (key.type == 'choc') ? 17.5 : 18.5
-  const socketWidth = socketSize(key).x
+  const size = socketSize(key)
+  const socketWidth = 'radius' in size ? size.radius * 2 : size[0]
   return (keyWidth - socketWidth) / 2 + 0.25
 }
 /**
@@ -360,7 +348,7 @@ export function reinforceTriangles(c: Cuttleform, geo: Geometry, triangles: numb
   // addExtraWallsForExtremeAngles(c, geo, allPolys, walls)
 
   const keyIdx = allPolys.flatMap((p, i) => p.map(_ => i))
-  const thickness = allPolys.flatMap((p, i) => p.map(_ => webThickness(c, c.keys[i])))
+  const thickness = allPolys.flatMap((p, i) => p.map(_ => Math.min(webThickness(c, c.keys[i]), MAX_WEB_THICKNESS)))
   const trsfs = allPolys.flatMap((p, i) => p.map(_ => geo.keyHolesTrsfs[i]))
   const keys = allPolys.flatMap((p, i) => p.map(_ => c.keys[i]))
   const allPts = allPolys.flat()

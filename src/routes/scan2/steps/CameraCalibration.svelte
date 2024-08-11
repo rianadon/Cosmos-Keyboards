@@ -182,9 +182,7 @@
       const imgPoints = new this.cv.MatVector()
       for (const { ids, imageCorners } of this.detections) {
         const objectCorners = new this.cv.Mat(ids.data32S.length, 3, this.cv.CV_32F)
-        objectCorners.data32F.set(
-          [...ids.data32S].flatMap((id: number) => this.chessboardCorners[id])
-        )
+        objectCorners.data32F.set([...ids.data32S].flatMap((id: number) => this.chessboardCorners[id]))
         imgPoints.push_back(imageCorners)
         objPoints.push_back(objectCorners)
       }
@@ -305,8 +303,8 @@
          </div> -->
     <div class="relative z-5">
       {stat.history.length} / 100, {size[0]} x {size[1]}, {nDetections} -> {reprojError}<br />
-      fx={cameraMatrix.elements[0]}, fy={cameraMatrix.elements[4]}, cx={cameraMatrix.elements[6]},
-      cy={cameraMatrix.elements[7]}
+      fx={cameraMatrix.elements[0]}, fy={cameraMatrix.elements[4]}, cx={cameraMatrix.elements[6]}, cy={cameraMatrix
+        .elements[7]}
     </div>
     <div class="text-red relative z-5">
       {#if message}

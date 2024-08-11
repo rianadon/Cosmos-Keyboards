@@ -1,83 +1,63 @@
 <script lang="ts">
-  import { setup } from 'svelte-cubed/utils/context'
-  import { TransformControls } from 'three/examples/jsm/controls/TransformControls'
+  import { TransformControls } from '@threlte/extras'
+  import { Matrix4, Quaternion, Vector3, type Vector4Tuple } from 'three'
+  import { createEventDispatcher } from 'svelte'
+  import { clickedKey, protoConfig, selectMode, transformMode, view } from '$lib/store'
+  import { T } from '@threlte/core'
   import {
-    Camera,
-    DoubleSide,
-    Matrix4,
-    Mesh,
-    MeshNormalMaterial,
-    Object3D,
-    PlaneGeometry,
-    Vector3,
-  } from 'three'
-  import { createEventDispatcher, getContext, onDestroy } from 'svelte'
-  import { transformMode } from '$lib/store'
-  import type { Writable } from 'svelte/store'
+    flipMatrixX,
+    shouldFlipKey,
+    transformationCenter,
+  } from '../../routes/beta/lib/viewers/viewer3dHelpers'
+  import type { CosmosKeyboard } from '$lib/worker/config.cosmos'
 
-  export let transformation: THREE.Matrix4
-  export let center: [number, number, number]
-  export let plane: boolean | string
-  export let flip: boolean
-  export let fixed = false
-
-  const camera: Writable<Camera> = getContext('camera')
+  export let visible = true
 
   const dispatch = createEventDispatcher()
+  const pos = new Vector3()
+  const quat = new Quaternion()
+  const sca = new Vector3()
 
-  const obj =
-    plane === true
-      ? new Mesh(new PlaneGeometry(40, 64.72), new MeshNormalMaterial({ side: DoubleSide }))
-      : new Object3D()
-  const { self, parent, root } = setup(obj)
+  let position = pos.toArray()
+  let quaternion = quat.toArray() as Vector4Tuple
 
-  const controls = new TransformControls($camera, root.renderer.domElement)
-  controls.size = plane ? 1.2 : 0.8
-  controls.space = plane ? 'world' : 'local'
-  controls.attach(self)
-
-  parent.add(controls)
-  root.invalidate()
-
-  onDestroy(() => {
-    parent.remove(controls)
-    controls.dispose()
-    root.invalidate()
-  })
-
-  controls.addEventListener('change', () => {
-    root.invalidate()
-  })
-
-  controls.addEventListener('objectChange', () => {
-    dispatch('move', new Matrix4().multiplyMatrices(worldTrInverse, self.matrixWorld))
-  })
-
-  controls.addEventListener('dragging-changed', (event) => {
-    // (root.controls.object as any).enabled = ! event.value;
-    if (event.value) (root.controls.object as any).enabled = false
-    else requestAnimationFrame(() => ((root.controls.object as any).enabled = true))
-  })
-
-  controls.addEventListener('mouseUp', (event) => {
-    dispatch('change', new Matrix4().multiplyMatrices(worldTrInverse, self.matrixWorld))
-  })
-
-  $: worldTr = new Matrix4()
-    .makeTranslation(-center[0], -center[1], -center[2])
-    .premultiply(new Matrix4().makeRotationAxis(new Vector3(1, 0, 0), -Math.PI / 2))
-    .premultiply(new Matrix4().makeScale(flip ? -1 : 1, 1, 1))
-  $: worldTrInverse = worldTr.clone().invert()
-
-  $: {
-    const trsf = new Matrix4().copy(transformation).premultiply(worldTr)
-
-    trsf.decompose(self.position, self.quaternion, self.scale)
-    root.invalidate()
+  function conditionalFlip(
+    mat: Matrix4,
+    view: 'left' | 'right' | 'both',
+    n: number | null,
+    kbd: CosmosKeyboard
+  ) {
+    return shouldFlipKey(view, n, kbd) ? flipMatrixX(mat) : mat
   }
 
-  $: if (!fixed && ($transformMode == 'translate' || $transformMode == 'rotate'))
-    controls.setMode($transformMode)
+  $: if ($clickedKey != null) {
+    const transformation = conditionalFlip(
+      transformationCenter($clickedKey, $protoConfig, $selectMode).evaluate({ flat: false }).Matrix4(),
+      $view,
+      $clickedKey,
+      $protoConfig
+    )
+    transformation.decompose(pos, quat, sca)
+    position = pos.toArray()
+    quaternion = quat.toArray() as Vector4Tuple
+  }
 </script>
 
-<slot />
+{#if ($transformMode == 'rotate' || $transformMode == 'translate') && $clickedKey != null && visible}
+  <T.Object3D let:ref {position} {quaternion}>
+    <TransformControls
+      object={ref}
+      size={0.9}
+      space={$transformMode == 'translate' && $selectMode == 'cluster' ? 'world' : 'local'}
+      mode={$transformMode}
+      on:objectChange={() => {
+        ref.updateMatrix()
+        dispatch('move', conditionalFlip(ref.matrix, $view, $clickedKey, $protoConfig))
+      }}
+      on:mouseUp={(e) => {
+        ref.updateMatrix()
+        dispatch('change', conditionalFlip(ref.matrix, $view, $clickedKey, $protoConfig))
+      }}
+    />
+  </T.Object3D>
+{/if}

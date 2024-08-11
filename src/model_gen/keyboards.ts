@@ -1,9 +1,9 @@
 import cuttleform from '$assets/cuttleform.json' assert { type: 'json' }
 import { cuttleConf, type Cuttleform, type CuttleKey, orbylThumbs } from '$lib/worker/config'
+import { fromCosmosConfig } from '$lib/worker/config.cosmos'
 import ETrsf from '$lib/worker/modeling/transformation-ext'
 import { for2, range } from '$lib/worker/util'
-import { readFile } from 'fs/promises'
-import { deserialize } from 'src/routes/beta/lib/serialize'
+import { deserialize } from '../routes/beta/lib/serialize'
 import { type Part, setup } from './node-model'
 import { render, renderMulti, type RenderOptions } from './node-render'
 import { PromisePool } from './promisePool'
@@ -26,7 +26,7 @@ async function renderMult(confs: Cuttleform[], filename: string, opts?: Opts) {
 
 async function renderURL(hash: string, filename: string, opts?: Opts) {
   const proto = deserialize(hash, cuttleform).options as any
-  const conf = cuttleConf(proto)
+  const conf = fromCosmosConfig(proto).right!
   const img = await render(conf, opts?.parts, 5000, 5000, { color: COLOR, ...opts })
   await img.resize(500, 500, { fit: 'outside' }).trim().toFile(filename)
 }
@@ -158,8 +158,9 @@ export function kbOpenSource(): Cuttleform[] {
   const keys1: CuttleKey[] = [
     ...phrase('OPEN–', kb1Plane),
     {
-      type: 'cirque-23mm',
+      type: 'trackpad-cirque',
       size: { sides: 50 },
+      variant: { size: '23mm' },
       aspect: 1,
       cluster: 'fingers',
       position: new ETrsf()
@@ -180,7 +181,12 @@ export function kbOpenSource(): Cuttleform[] {
     ...phrase('SOURCE', kb2Plane),
     {
       type: 'trackball',
-      size: { radius: 20.9, sides: 10 },
+      size: { sides: 10 },
+      variant: {
+        size: '34mm',
+        bearings: 'Roller',
+        sensor: 'Joe',
+      },
       aspect: 1,
       cluster: 'fingers',
       position: new ETrsf()
@@ -243,7 +249,12 @@ export function kbCosmos(): Cuttleform {
         .translate(0, 0, 15)
         .placeOnMatrix({ ...curvature, row: 1.8, column: 1 })
         .transformBy(plane),
-      size: { radius: 20.9, sides: 20 },
+      size: { sides: 20 },
+      variant: {
+        size: '34mm',
+        bearings: 'Roller',
+        sensor: 'Joe',
+      },
     },
     {
       type: 'ec11',
@@ -267,7 +278,6 @@ function kbAdaptive() {
     type: 'mx-better',
     aspect: 1,
     keycap: { profile, row: i + 1 },
-    aspect: 1,
     cluster: 'fingers',
     position: new ETrsf().placeOnMatrix({
       curvatureOfColumn: 15,
@@ -288,12 +298,12 @@ async function main() {
   const pool = new PromisePool()
   const docs = (name: string) => 'docs/assets/target/' + name
 
-  pool.add('Sphere', () => renderTrimmed(kbSphere(), docs('sphere.png'), { parts: ['holes'] }))
-  pool.add('Matrix', () => renderTrimmed(kbMatrix(), docs('/matrix.png'), { parts: ['holes'] }))
-  pool.add('Stadium', () => renderTrimmed(kbStadium(), docs('/stadium.png'), { cameraPos: [-1, 0.5, 0] }))
-  pool.add('OpenSource', () => renderMult(kbOpenSource(), docs('/gen-opensource.png'), { zoom: 300, cameraPos: [0, 1, 0.4] }))
-  pool.add('Cosmos', () => renderMult(kbCosmos(), docs('/gen-cosmos.png'), { zoom: 350, cameraPos: [0, 1, 0.4] }))
-  pool.add('Adaptive', () => renderTrimmed(kbAdaptive(), docs('/adaptive.png'), { cameraPos: [1, 0.1, 0], parts: ['holes', 'web'] }))
+  // pool.add('Sphere', () => renderTrimmed(kbSphere(), docs('sphere.png'), { parts: ['holes'] }))
+  // pool.add('Matrix', () => renderTrimmed(kbMatrix(), docs('/matrix.png'), { parts: ['holes'] }))
+  // pool.add('Stadium', () => renderTrimmed(kbStadium(), docs('/stadium.png'), { cameraPos: [-1, 0.5, 0] }))
+  // pool.add('OpenSource', () => renderMult(kbOpenSource(), docs('/gen-opensource.png'), { zoom: 300, cameraPos: [0, 1, 0.4] }))
+  // pool.add('Cosmos', () => renderMult(kbCosmos(), docs('/gen-cosmos.png'), { zoom: 350, cameraPos: [0, 1, 0.4] }))
+  // pool.add('Adaptive', () => renderTrimmed(kbAdaptive(), docs('/adaptive.png'), { cameraPos: [1, 0.1, 0], parts: ['holes', 'web'] }))
   pool.add(
     'VerticalWeb',
     () =>

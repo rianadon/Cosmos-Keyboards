@@ -2,7 +2,7 @@
  * Like socketsLoader in the worker/ direcotry, but returns meshes instead of parts.
  */
 
-import { ASYMMETRIC_PARTS, socketSize } from '$lib/geometry/socketsParts'
+import { socketSize, variantURL } from '$lib/geometry/socketsParts'
 import masses from '$target/part-masses.json'
 import { BoxGeometry, BufferAttribute, BufferGeometry, InterleavedBufferAttribute } from 'three'
 import type { Cuttleform, CuttleKey } from '../worker/config'
@@ -73,13 +73,13 @@ const keyCacher = makeAsyncCacher(async (key: CuttleKey) => {
     }
   }
   return {
-    mesh: await loadGLTF('/target/socket-' + key.type + '.glb'),
+    mesh: await loadGLTF('/target/socket-' + key.type + variantURL(key) + '.glb'),
     mass: masses[key.type] || 0,
   }
 })
 
 const extendedKeyCacher = makeAsyncCacher(async (key: CuttleKey) => {
-  let cacheKey = key.type
+  let cacheKey = key.type + variantURL(key)
   if (key.type == 'blank') cacheKey += `-${key.size?.width}x${key.size?.height}`
   return extendPlate(await keyCacher(cacheKey, key), key)
 })
@@ -87,37 +87,37 @@ const extendedKeyCacher = makeAsyncCacher(async (key: CuttleKey) => {
 function extendPlate(plate: Mesh, key: CuttleKey) {
   const size = socketSize(key)
   if (key.aspect == 1) return plate
-  if ('trackball' in key) return plate
+  if (!Array.isArray(size)) return plate
 
   if (key.aspect > 1) {
-    const pad = size.x * (key.aspect - 1) / 2
+    const pad = size[0] * (key.aspect - 1) / 2
     return {
       mesh: mergeBufferGeometries([
         plate.mesh,
-        boxGeo(pad, size.y, size.z).translate((size.x + pad) / 2, 0, -size.z / 2),
-        boxGeo(pad, size.y, size.z).translate(-(size.x + pad) / 2, 0, -size.z / 2),
+        boxGeo(pad, size[1], size[2]).translate((size[0] + pad) / 2, 0, -size[2] / 2),
+        boxGeo(pad, size[1], size[2]).translate(-(size[0] + pad) / 2, 0, -size[2] / 2),
       ]),
-      mass: plate.mass + 2 * pad * size.z,
+      mass: plate.mass + 2 * pad * size[2],
     }
   } else {
-    const pad = size.y * (1 / key.aspect - 1) / 2
+    const pad = size[1] * (1 / key.aspect - 1) / 2
     return {
       mesh: mergeBufferGeometries([
         plate.mesh,
-        boxGeo(size.x, pad, size.z).translate(0, (size.y + pad) / 2, -size.z / 2),
-        boxGeo(size.x, pad, size.z).translate(0, -(size.y + pad) / 2, -size.z / 2),
+        boxGeo(size[0], pad, size[2]).translate(0, (size[1] + pad) / 2, -size[2] / 2),
+        boxGeo(size[0], pad, size[2]).translate(0, -(size[1] + pad) / 2, -size[2] / 2),
       ]),
-      mass: plate.mass + 2 * pad * size.z,
+      mass: plate.mass + 2 * pad * size[2],
     }
   }
 }
 
 async function keyHole(key: CuttleKey, trsf: Trsf) {
-  let cacheKey = key.type + ':' + key.aspect
+  let cacheKey = key.type + ':' + key.aspect + variantURL(key)
   if (key.type == 'blank') cacheKey += `-${key.size?.width}x${key.size?.height}`
   const model = await extendedKeyCacher(cacheKey, key)
   return {
-    flip: ASYMMETRIC_PARTS.includes(key.type),
+    flip: true,
     mesh: mergeBufferGeometries([model.mesh]),
     matrix: trsf.Matrix4(),
     mass: model.mass,

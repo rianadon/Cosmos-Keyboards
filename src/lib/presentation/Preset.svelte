@@ -18,6 +18,8 @@
   class:square
   class:gray
   on:click
+  on:focus
+  on:blur
   bind:this={button}><slot>{name}</slot></button
 >
 

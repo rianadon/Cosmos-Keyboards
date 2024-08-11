@@ -10,7 +10,7 @@ import * as tsConfigPaths from 'tsconfig-paths'
 // @ts-ignore: Tyescript doesn't recognize ts-node/esm/transpile-only
 import { resolve as resolveTs } from 'ts-node/esm/transpile-only'
 
-const config = tsConfigPaths.loadConfig()
+const config = tsConfigPaths.loadConfig('.svelte-kit')
 if (config.resultType == 'failed') throw new Error('Loading typescript config failed: ' + config.message)
 const matchPath = tsConfigPaths.createMatchPath(config.absoluteBaseUrl, config.paths)
 

@@ -43,8 +43,7 @@
   <div class="text-white mx-auto max-w-prose mt-6">
     The <span class="text-teal">teal regions</span> represent the shape of the key and are used for
     curvature-preserving alignment. The <span class="text-red">red regions</span> represent the boundaries
-    of the key and are used for detecting part intersections. They extend downwards to account for key
-    travel.
+    of the key and are used for detecting part intersections. They extend downwards to account for key travel.
   </div>
 {/if}
 

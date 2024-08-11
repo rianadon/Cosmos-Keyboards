@@ -1,18 +1,24 @@
 <script lang="ts">
   import { boardGeometries } from '$lib/loaders/boardElement'
   import type { Cuttleform, Geometry } from '$lib/worker/config'
-  import KeyboardMesh from './KeyboardMesh.svelte'
+  import { T } from '@threlte/core'
+  import KeyboardMaterial from './KeyboardMaterial.svelte'
+  import GroupMatrix from './GroupMatrix.svelte'
 
-  export let conf: Cuttleform
-  export let geometry: Geometry | null
+  export let geometry: Geometry | undefined
   export let showSupports: boolean
 
-  $: boardGeos =
-    conf?.microcontroller && geometry ? boardGeometries(conf, geometry) : Promise.resolve([])
+  $: boardGeos = geometry?.c.microcontroller
+    ? boardGeometries(geometry.c, geometry)
+    : Promise.resolve([])
 </script>
 
 {#await boardGeos then boards}
   {#each boards as board}
-    <KeyboardMesh kind="key" geometry={board} visible={!showSupports} />
+    <GroupMatrix matrix={board.matrix}>
+      <T.Mesh geometry={board.board} visible={!showSupports}>
+        <KeyboardMaterial kind="key" />
+      </T.Mesh>
+    </GroupMatrix>
   {/each}
 {/await}

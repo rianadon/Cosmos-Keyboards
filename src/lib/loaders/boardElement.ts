@@ -1,6 +1,6 @@
 import { type BoardElement, boardElements, type Connector } from '$lib/geometry/microcontrollers'
 import type { Cuttleform, Geometry } from '$lib/worker/config'
-import type { BufferGeometry } from 'three'
+import type { BufferGeometry, Matrix4 } from 'three'
 import loadGLTF from './gltfLoader'
 
 type Microcontroller = Exclude<Cuttleform['microcontroller'], null>
@@ -10,11 +10,14 @@ const MICROCONTROLLER_URLS: Record<Microcontroller, string> = {
   'promicro-usb-c': '/target/promicro-usb-c.glb',
   'promicro': '/target/promicro.glb',
   'itsybitsy-adafruit': '/src/assets/itsybitsy-adafruit.glb',
+  'itsybitsy-adafruit-nrf52840': '/src/assets/itsybitsy-adafruit.glb',
   'kb2040-adafruit': '/src/assets/kb2040-adafruit.glb',
   'nrfmicro-or-nicenano': '/src/assets/nrfmicro-or-nicenano.glb',
   'seeed-studio-xiao': '/src/assets/seeed-studio-xiao.glb',
+  'seeed-studio-xiao-nrf52840': '/src/assets/seeed-studio-xiao.glb',
   'waveshare-rp2040-zero': '/target/waveshare-rp2040-zero.glb',
   'weact-studio-ch552t': '/target/weact-studio-ch552t.glb',
+  'feather-rp2040-adafruit': '/src/assets/feather-rp2040-adafruit.glb',
 }
 
 const CONNECTOR_URLS: Record<Connector, string> = {
@@ -37,17 +40,16 @@ export async function boardGeometries(config: Cuttleform, g: Geometry) {
   if (!config) return []
   const connOrigin = g.connectorOrigin
 
-  if (!config.microcontroller) return []
+  if (!config.microcontroller || !connOrigin) return []
 
   const elements = boardElements(config, false)
-  const geo: BufferGeometry[] = []
+  const geo: { board: BufferGeometry; matrix: Matrix4 }[] = []
 
   for (const elem of elements) {
     let board = await fetchBoardElement(elem)
     if (!board) continue
     const transformation = connOrigin.pretranslated(elem.offset.xyz())
-    board = board.clone().applyMatrix4(transformation.Matrix4())
-    geo.push(board)
+    geo.push({ board, matrix: transformation.Matrix4() })
   }
 
   return geo

@@ -10,7 +10,7 @@ import { ProcessPool } from './processPool'
 
 const targetDir = fileURLToPath(new URL('../../target', import.meta.url))
 
-const UNIFORM = ['dsa', 'xda', 'choc']
+const UNIFORM = ['dsa', 'xda', 'choc', 'ma']
 
 const header = `
 include <KeyV2/includes.scad>
@@ -86,6 +86,7 @@ async function genKeys() {
     ...US.map(u => ({ profile: 'dsa', u })),
     ...US.map(u => ({ profile: 'xda', u })),
     ...US.map(u => ({ profile: 'choc', u })),
+    ...US.map(u => ({ profile: 'ma', u })),
     ...US.flatMap(u => ROWS.map(r => ({ profile: 'mt3', u, row: r }))),
     ...US.flatMap(u => ROWS.map(r => ({ profile: 'oem', u, row: r }))),
     ...US.flatMap(u => ROWS.map(r => ({ profile: 'sa', u, row: r }))),

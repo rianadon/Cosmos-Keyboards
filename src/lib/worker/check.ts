@@ -1,6 +1,6 @@
 import { BOARD_PROPERTIES } from '$lib/geometry/microcontrollers'
 import { SCREWS } from '$lib/geometry/screws'
-import { socketSize } from '$lib/geometry/socketsParts'
+import { socketHeight } from '$lib/geometry/socketsParts'
 import { switchInfo } from '$lib/geometry/switches'
 import { simpleSocketTris } from '$lib/loaders/simpleparts'
 import type { Triangle } from 'three'
@@ -8,7 +8,7 @@ import { Octree } from 'three/examples/jsm/math/Octree'
 import { Vector2 } from 'three/src/math/Vector2'
 import { calcTravel, ITriangle, simpleKey, simpleKeyPosition } from '../loaders/simplekeys'
 import type { Cuttleform, CuttleKey, Geometry } from './config'
-import type { CriticalPoints } from './geometry'
+import { type CriticalPoints, keyHolesTrsfs2D } from './geometry'
 import { intersectPolyPoly } from './geometry.intersections'
 import Trsf, { Vector } from './modeling/transformation'
 import ETrsf from './modeling/transformation-ext'
@@ -55,6 +55,14 @@ interface NanError {
 interface NoKeysError {
   type: 'nokeys'
 }
+interface WrongFormatError {
+  type: 'wrongformat'
+}
+interface SamePositionError {
+  type: 'samePosition'
+  i: number
+  j: number
+}
 interface WallBoundsError {
   type: 'wallBounds'
   i: number
@@ -62,7 +70,9 @@ interface WallBoundsError {
 
 const PROPERTIES = ['aspect', 'type', 'position']
 
-export type ConfError = IntersectionError | MissingError | WrongError | OobError | InvalidError | ExceptionError | NanError | NoKeysError | WallBoundsError
+export type ConfError = (IntersectionError | MissingError | WrongError | OobError | InvalidError | ExceptionError | NanError | NoKeysError | WallBoundsError | WrongFormatError | SamePositionError) & {
+  side: 'left' | 'right' | 'unibody'
+}
 
 export function isRenderable(e: ConfError | undefined) {
   if (!e) return true
@@ -73,38 +83,46 @@ export function isWarning(e: ConfError) {
   return e.type == 'wallBounds' || (e.type == 'intersection' && e.what == 'socket')
 }
 
-export function checkConfig(conf: Cuttleform, geometry: Geometry, check3d = true): ConfError | undefined {
-  if (!conf.keys.length) return { type: 'nokeys' }
+export function checkConfig(conf: Cuttleform, geometry: Geometry | undefined, check3d = true, side: 'left' | 'right' | 'unibody'): ConfError | undefined {
+  if (!conf.keys) return { type: 'wrongformat', side }
+  if (!conf.keys.length) return { type: 'nokeys', side }
 
   for (const key of conf.keys) {
     for (const property of PROPERTIES) {
       if (!key.hasOwnProperty(property)) {
-        return { type: 'missing', key, item: property }
-      }
-      if (key.type == 'trackball' && !key.size) {
-        return { type: 'missing', key, item: 'size' }
+        return { type: 'missing', key, item: property, side }
       }
     }
     if (!(key.position instanceof ETrsf)) {
-      return { type: 'wrong', key, item: 'position', value: key.position }
+      return { type: 'wrong', key, item: 'position', value: key.position, side }
     }
     if (key.position.evaluate({ flat: false }, new Trsf()).origin().xyz().some(isNaN)) {
-      return { type: 'nan', key }
+      return { type: 'nan', key, side }
     }
   }
 
-  if (isNaN(conf.verticalClearance)) return { type: 'missing', item: 'verticalClearance' }
+  if (isNaN(conf.verticalClearance)) return { type: 'missing', item: 'verticalClearance', side }
   if (conf.microcontroller && !BOARD_PROPERTIES[conf.microcontroller]) {
-    return { type: 'invalid', item: 'microcontroller', value: conf.microcontroller, valid: Object.keys(BOARD_PROPERTIES) }
+    return { type: 'invalid', item: 'microcontroller', value: conf.microcontroller, valid: Object.keys(BOARD_PROPERTIES), side }
   }
   if (!SCREWS[conf.screwSize]) {
-    return { type: 'invalid', item: 'screwSize', value: conf.screwSize, valid: Object.keys(SCREWS) }
+    return { type: 'invalid', item: 'screwSize', value: conf.screwSize, valid: Object.keys(SCREWS), side }
   }
   if (!SCREWS[conf.screwSize].mounting[conf.screwType]) {
-    return { type: 'invalid', item: 'screwType', value: conf.screwType, valid: Object.keys(SCREWS[conf.screwSize].mounting) }
+    return { type: 'invalid', item: 'screwType', value: conf.screwType, valid: Object.keys(SCREWS[conf.screwSize].mounting), side }
   }
   if (!['average', 'slim', 'big', undefined].includes(conf.connectorSizeUSB)) {
-    return { type: 'invalid', item: 'connectorSizeUSB', value: conf.connectorSizeUSB, valid: ['average', 'slim', 'big'] }
+    return { type: 'invalid', item: 'connectorSizeUSB', value: conf.connectorSizeUSB, valid: ['average', 'slim', 'big'], side }
+  }
+  if (!check3d || !geometry) return undefined
+
+  const positions = new Map<string, number>()
+  let i = 0
+  for (const pos of keyHolesTrsfs2D(conf, new Trsf())) {
+    const hash = pos.matrix().join(',')
+    if (positions.has(hash)) return { type: 'samePosition', side, i, j: positions.get(hash) }
+    positions.set(hash, i)
+    i++
   }
 
   const cpts = geometry.allKeyCriticalPoints2D
@@ -113,8 +131,6 @@ export function checkConfig(conf: Cuttleform, geometry: Geometry, check3d = true
   // for (const intersection of holeIntersections(pts)) {
   //   return intersection
   // }
-
-  if (!check3d) return null
 
   try {
     // const trsfs3d = geometry.keyHolesTrsfs
@@ -128,23 +144,28 @@ export function checkConfig(conf: Cuttleform, geometry: Geometry, check3d = true
     //   console.log(intersection)
     //   return intersection
     // }
-    const wallPts = geometry.allWallCriticalPointsBase()
-    for (const idx of conf.screwIndices) {
-      if (idx >= wallPts.length) return { type: 'oob', idx, item: 'screwIndices', len: wallPts.length }
+    if (conf.screwIndices.find(s => s >= 0)) {
+      const wallPts = geometry.allWallCriticalPointsBase()
+      for (const idx of conf.screwIndices) {
+        if (idx >= wallPts.length) return { type: 'oob', idx, item: 'screwIndices', len: wallPts.length, side }
+      }
     }
-    if (conf.connectorIndex >= wallPts.length) {
-      return { type: 'oob', idx: conf.connectorIndex, item: 'connectorIndex', len: wallPts.length }
+    if (conf.connectorIndex >= 0) {
+      const wallPts = geometry.allWallCriticalPointsBase()
+      if (conf.connectorIndex >= wallPts.length) {
+        return { type: 'oob', idx: conf.connectorIndex, item: 'connectorIndex', len: wallPts.length, side }
+      }
     }
   } catch (e) {
     console.error(e)
-    return { type: 'exception', when: 'laying out the walls', error: e as Error }
+    return { type: 'exception', when: 'laying out the walls', error: e as Error, side }
   }
 
   try {
-    const boardInd = geometry.boardIndices
+    const connOrigin = geometry.connectorOrigin
   } catch (e) {
     console.error(e)
-    return { type: 'exception', when: 'positioning the board', error: e as Error }
+    return { type: 'exception', when: 'positioning the board', error: e as Error, side }
   }
 }
 
@@ -181,7 +202,7 @@ function prismTriangles(facePoints: Trsf[], center: Trsf, depth: number, index: 
   })
 }
 
-export function* keycapIntersections(conf: Cuttleform, trsfs: Trsf[], web: ITriangle[]) {
+export function* keycapIntersections(conf: Cuttleform, trsfs: Trsf[], web: ITriangle[], side: 'left' | 'right' | 'unibody') {
   const tree = new Octree()
   for (const tri of web) {
     tree.addTriangle(tri)
@@ -196,10 +217,10 @@ export function* keycapIntersections(conf: Cuttleform, trsfs: Trsf[], web: ITria
     }
   }
   tree.build()
-  yield* treeIntersections(conf, tree, 'keycap')
+  yield* treeIntersections(conf, tree, 'keycap', side)
 }
 
-export function* partIntersections(conf: Cuttleform, trsfs: Trsf[]) {
+export function* partIntersections(conf: Cuttleform, trsfs: Trsf[], side: 'left' | 'right' | 'unibody') {
   const tree = new Octree()
   for (let i = 0; i < trsfs.length; i++) {
     const key = conf.keys[i]
@@ -210,23 +231,23 @@ export function* partIntersections(conf: Cuttleform, trsfs: Trsf[]) {
   }
   if (tree.triangles.length == 0) return
   tree.build()
-  yield* treeIntersections(conf, tree, 'part')
+  yield* treeIntersections(conf, tree, 'part', side)
 }
 
-export function* unsortedSocketIntersections(conf: Cuttleform, trsfs: Trsf[], critPts: CriticalPoints[], web: ITriangle[]) {
+export function* unsortedSocketIntersections(conf: Cuttleform, trsfs: Trsf[], critPts: CriticalPoints[], web: ITriangle[], side: 'left' | 'right' | 'unibody') {
   const tree = new Octree()
   for (const tri of web) {
     tree.addTriangle(tri)
   }
   for (let i = 0; i < trsfs.length; i++) {
-    const size = socketSize(conf.keys[i])
-    const prism = prismTriangles(critPts[i], trsfs[i], size.z, i)
+    const height = socketHeight(conf.keys[i])
+    const prism = prismTriangles(critPts[i], trsfs[i], height, i)
     for (const triangle of prism) {
       tree.addTriangle(triangle)
     }
   }
   tree.build()
-  yield* treeIntersections(conf, tree, 'socket', true)
+  yield* treeIntersections(conf, tree, 'socket', side, true)
 }
 
 /**
@@ -235,10 +256,10 @@ export function* unsortedSocketIntersections(conf: Cuttleform, trsfs: Trsf[], cr
  * Every socket-socket intersection will generate a socket->wall intersection as well,
  * but the socket-socket intersections are easier to debug so they should get priority.
  */
-export function* socketIntersections(conf: Cuttleform, trsfs: Trsf[], critPts: CriticalPoints[], web: ITriangle[]) {
+export function* socketIntersections(conf: Cuttleform, trsfs: Trsf[], critPts: CriticalPoints[], web: ITriangle[], side: 'left' | 'right' | 'unibody') {
   const socketSocketIntersections: ConfError[] = []
   const socketWallIntersections: ConfError[] = []
-  for (const intersection of unsortedSocketIntersections(conf, trsfs, critPts, web)) {
+  for (const intersection of unsortedSocketIntersections(conf, trsfs, critPts, web, side)) {
     if (intersection.type != 'intersection') throw new Error('Only intersection errors expected')
     if (intersection.i == -1 || intersection.j == -1) {
       socketWallIntersections.push(intersection)
@@ -250,7 +271,7 @@ export function* socketIntersections(conf: Cuttleform, trsfs: Trsf[], critPts: C
   yield* socketWallIntersections
 }
 
-function* treeIntersections(conf: Cuttleform, tree: Octree, what: 'keycap' | 'socket' | 'part', ignoreTouching = false): Generator<ConfError> {
+function* treeIntersections(conf: Cuttleform, tree: Octree, what: 'keycap' | 'socket' | 'part', side: 'left' | 'right' | 'unibody', ignoreTouching = false): Generator<ConfError> {
   const triangles = tree.triangles as ITriangle[]
   for (let i = 0; i < triangles.length; i++) {
     for (let j = 0; j < i; j++) {
@@ -266,12 +287,13 @@ function* treeIntersections(conf: Cuttleform, tree: Octree, what: 'keycap' | 'so
           i: ti,
           j: tj,
           travel: trvl,
+          side,
         }
       }
     }
   }
   for (const sub of tree.subTrees) {
-    yield* treeIntersections(conf, sub, what, ignoreTouching)
+    yield* treeIntersections(conf, sub, what, side, ignoreTouching)
   }
 }
 
@@ -332,8 +354,8 @@ export function doTrianglesIntersect(t1: Triangle, t2: Triangle, ignoreTouching 
   const n1 = new Vector().copy(N).normalize()
   const n2 = new Vector().copy(M).normalize()
 
-  // They have the same normal vector
-  if (1 - n1.dot(n2) < 1e-9) {
+  // They have the same normal vector (or opposite normal)
+  if (1 - Math.abs(n1.dot(n2)) < 1e-9) {
     // If the triangles lie on different planes, they do not intersect
     if (Math.abs(t1.a.dot(n1) - t2.a.dot(n2)) > 1e-5) {
       return false

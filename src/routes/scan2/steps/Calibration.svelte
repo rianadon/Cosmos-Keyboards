@@ -64,8 +64,8 @@
   <span slot="title">Calibrate Your Display</span>
   <div slot="prose">
     <p class="mb-2">
-      For the next step, the tool needs to know the size of your screen. Match a credit/debit/id
-      card to one shown on screen or use a ruler to confirm the gridlines are spaced by 1 cm.
+      For the next step, the tool needs to know the size of your screen. Match a credit/debit/id card to
+      one shown on screen or use a ruler to confirm the gridlines are spaced by 1 cm.
     </p>
     {#if !browser}
       <div class="absolute bg-amber text-black mx-[-0.5rem] px-2 py-1 rounded">
@@ -75,8 +75,8 @@
       <div
         class="absolute bg-red text-black mx-[-1rem] px-4 py-1 rounded max-w-prose shadow-lg shadow-slate-800 z-100"
       >
-        Your screen size is too small. Please switch to a laptop or desktop computer.<br />Don't
-        worry about camera quality! You'll connect your phone in the next step.
+        Your screen size is too small. Please switch to a laptop or desktop computer.<br />Don't worry
+        about camera quality! You'll connect your phone in the next step.
       </div>
     {/if}
     <p>
@@ -148,15 +148,11 @@
   }
 
   .input {
-    --at-apply: 'focus:border-teal-500 border border-transparent focus:outline-none';
-    --at-apply: 'border-gray-700 dark:border-transparent bg-gray-800 text-gray-100';
-    --at-apply: 'appearance-none rounded ml-2.5 text-ellipsis px-2';
+    --at-apply: 'focus:border-teal-500 border border-transparent focus:outline-none border-gray-700 dark:border-transparent bg-gray-800 text-gray-100 appearance-none rounded ml-2.5 text-ellipsis px-2';
   }
 
   .input-units {
-    --at-apply: 'pointer-events-none text-sm flex items-center';
-    --at-apply: 'border-l border-gray-700 pl-1';
-    --at-apply: 'text-gray-200';
+    --at-apply: 'pointer-events-none text-sm flex items-center border-l border-gray-700 pl-1 text-gray-200';
   }
 
   .input:focus + .input-units {

@@ -1,9 +1,10 @@
 <script lang="ts">
-  import { useFrame, T, Three, Line2, TransformableObject } from '@threlte/core'
+  import { useFrame, T } from '@threlte/core'
   import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial'
   import { FINGERS, SolvedHand } from './hand'
   import HandModel from './HandModel.svelte'
-  import { MeshStandardMaterial, type BufferGeometry, type Vector3Tuple } from 'three'
+  import { MeshStandardMaterial, Vector3, type BufferGeometry, type Vector3Tuple } from 'three'
+  import { MeshLineGeometry, MeshLineMaterial } from '@threlte/extras'
 
   const COLORS: Record<string, number> = {
     thumb: 0xff0000,
@@ -26,9 +27,15 @@
 </script>
 
 <T.Group rotation.y={rotation}>
-  <T.OrthographicCamera makeDefault position={[60, 0, 0]} zoom={width / 25} let:ref={cam}>
-    <TransformableObject object={cam} lookAt={{ y: 0 }} />
-  </T.OrthographicCamera>
+  <T.OrthographicCamera
+    makeDefault
+    position={[60, 0, 0]}
+    zoom={width / 25}
+    let:ref={cam}
+    on:create={({ ref }) => {
+      ref.lookAt(new Vector3(0, 0, 0))
+    }}
+  />
 </T.Group>
 
 <T.DirectionalLight position={[3, 10, 10]} />
@@ -45,9 +52,9 @@
     <T.Group>
       {#if pointCloud[limb]}
         <T.Mesh>
-          <Three type={pointCloud[limb]} />
-          <Three
-            type={new MeshStandardMaterial({
+          <T is={pointCloud[limb]} />
+          <T
+            is={new MeshStandardMaterial({
               color: COLORS[limb],
               transparent: true,
               opacity: 0.5,
@@ -55,10 +62,10 @@
           />
         </T.Mesh>
       {/if}
-      <Line2
-        points={degPts[limb]}
-        material={new LineMaterial({ worldUnits: true, color: COLORS[limb], linewidth: 1 })}
-      />
+      <T.Mesh>
+        <MeshLineGeometry points={degPts[limb].map((p) => new Vector3(...p))} />
+        <MeshLineMaterial attenuate={false} color={COLORS[limb]} width={20} toneMapped={false} />
+      </T.Mesh>
     </T.Group>
   {/each}
 </T.Group>

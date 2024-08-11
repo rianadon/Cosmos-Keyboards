@@ -29,10 +29,7 @@
 <style>
   .chart {
     --hole: 45%;
-    background: radial-gradient(
-        theme('colors.gray.100') var(--hole),
-        transparent calc(var(--hole) + 1%)
-      ),
+    background: radial-gradient(theme('colors.gray.100') var(--hole), transparent calc(var(--hole) + 1%)),
       conic-gradient(transparent 0deg var(--angle), theme('colors.purple.400') var(--angle) 360deg),
       theme('colors.teal.400');
   }
@@ -43,10 +40,7 @@
           theme('colors.gray.700') var(--hole),
           transparent calc(var(--hole) + 1%)
         ),
-        conic-gradient(
-          transparent 0deg var(--angle),
-          theme('colors.purple.400') var(--angle) 360deg
-        ),
+        conic-gradient(transparent 0deg var(--angle), theme('colors.purple.400') var(--angle) 360deg),
         theme('colors.teal.500');
     }
   }

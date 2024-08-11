@@ -19,8 +19,11 @@ jobs:
         with:
           node-version: 21
 
+      - name: Just make npm work
+        run: npm i @rollup/rollup-linux-x64-gnu
+
       - name: Install npm dependencies
-        run: npm ci --omit=optional
+        run: npm install --omit=optional
 
       - name: Install openscad
         run: sudo apt-get update && sudo apt-get install -y openscad
@@ -31,14 +34,14 @@ jobs:
       - name: Build simple keycaps
         run: OPENSCAD=$(which openscad) make keycaps-simple
   openscad-bun:
-    name: Verify that OpenSCAD keycap scripts work (Bun)
+    name: Verify that OpenSCAD keycap scripts work (Bun/Linux)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: oven-sh/setup-bun@v1
+      - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: canary
 
       - name: Install npm dependencies
         run: bun install # --frozen-lockfile
@@ -51,3 +54,58 @@ jobs:
 
       - name: Build simple keycaps
         run: OPENSCAD=$(which openscad) make keycaps-simple
+
+  setup-linux-bun:
+    name: Verify Set up (Bun/Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: canary
+
+      - name: Quickstart
+        # Give the process 3 chances to work
+        run: make quickstart || make quickstart || make quickstart
+
+  # setup-windows-bun:
+  #   name: Verify Set up (Bun/Windows)
+  #   runs-on: windows-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+
+  #     - uses: oven-sh/setup-bun@v1
+  #       with:
+  #         bun-version: latest
+
+  #     - name: Install npm dependencies
+  #       run: bun install
+
+  #     - name: Install make
+  #       run: choco install make
+
+  #     - name: Quickstart
+  #       run: make quickstart
+
+  setup-node-bun:
+    name: Verify Set up (Node/Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 21
+
+      - name: Install npm dependencies
+        run: npm install
+
+      - name: Install make
+        run: choco install make
+    
+      - name: Parts
+        run: make ci-setup parts
+
+      - name: Quickstart
+        run: make quickstart

@@ -1,12 +1,12 @@
 <script lang="ts">
   import { modelName, user } from '$lib/store'
   import { isPro } from '$lib/worker/check'
-  import { newGeometry, type Cuttleform } from '$lib/worker/config'
+  import { newGeometry, setBottomZ, type Cuttleform, type FullCuttleform } from '$lib/worker/config'
   import Dialog from '$lib/presentation/Dialog.svelte'
   import * as flags from '$lib/flags'
   import { createEventDispatcher } from 'svelte'
   import Icon from '$lib/presentation/Icon.svelte'
-  import { mdiHandBackLeft, mdiHandBackRight, mdiStarShooting } from '@mdi/js'
+  import { mdiHandBackLeft, mdiHandBackRight, mdiKeyboard, mdiStarShooting } from '@mdi/js'
   import type { WorkerPool } from '../workerPool'
   import { download } from '$lib/browser'
   import { trackEvent } from '$lib/telemetry'
@@ -17,10 +17,11 @@
   import { keyGeometries } from '$lib/loaders/keycaps'
   import { partGeometries } from '$lib/loaders/parts'
   import { drawLetter } from '$lib/3d/materials'
+  import { objKeys } from '$lib/worker/util'
 
   const dispatch = createEventDispatcher()
 
-  export let config: Cuttleform
+  export let config: FullCuttleform
   export let pool: WorkerPool<typeof import('$lib/worker/api')>
 
   let showAllFormats = false
@@ -28,11 +29,18 @@
   let generatingSTL = false
   let generatingError: Error | undefined
 
-  function downloadSTEP(flip: boolean) {
+  function downloadSTEP(side: 'left' | 'right' | 'unibody') {
+    if (!config) {
+      generatingError = new Error('Configuration has not yet been evaluated')
+      return
+    }
+    if (side != 'unibody' && !config[side!]?.bottomZ) {
+      setBottomZ(config)
+    }
     const begin = window.performance.now()
     generatingSTEP = true
     pool
-      .executeNow((w) => w.getSTEP(config, flip, true) as Promise<Blob>)
+      .executeNow((w) => w.getSTEP(config[side]!, side == 'left', true) as Promise<Blob>)
       .then(addMetadataToSTEP)
       .then(
         (blob) => {
@@ -40,7 +48,7 @@
             model: 'keyboard',
             time: window.performance.now() - begin,
           })
-          download(blob, $modelName + (flip ? '-left' : '-right') + '.step')
+          download(blob, $modelName + side + '.step')
           generatingError = undefined
           generatingSTEP = false
         },
@@ -52,17 +60,24 @@
       )
   }
 
-  function downloadSTL(model: string, flip: boolean) {
+  function downloadSTL(model: string, side: 'left' | 'right' | 'unibody') {
+    if (!config) {
+      generatingError = new Error('Configuration has not yet been evaluated')
+      return
+    }
+    if (side != 'unibody' && !config[side!]?.bottomZ) {
+      setBottomZ(config)
+    }
     const begin = window.performance.now()
     generatingSTL = true
     pool
-      .executeNow((w) => w.getSTL(config, model, flip) as Promise<Blob>)
+      .executeNow((w) => w.getSTL(config[side]!, model, side) as Promise<Blob>)
       .then(addMetadataToSTL)
       .then(
         (blob) => {
           trackEvent('cosmos-stl', { model, time: window.performance.now() - begin })
           if (model == 'model') model = 'case'
-          download(blob, $modelName + '-' + model + (flip ? '-left' : '-right') + '.stl')
+          download(blob, $modelName + '-' + model + side + '.stl')
           generatingError = undefined
           generatingSTL = false
         },
@@ -100,15 +115,16 @@
     return new Blob([contents], { type: blob.type })
   }
 
-  async function downloadGLB(flip: boolean) {
-    const wall = pool.execute((p) => p.generateWalls(config))
-    const web = pool.execute((p) => p.generateWeb(config))
-    const key = pool.execute((p) => p.generateKeysMesh(config))
-    const plate = pool.execute((p) => p.generatePlate(config))
+  async function downloadGLB(side: 'left' | 'right' | 'unibody') {
+    const conf = config[side]!
+    const wall = pool.execute((p) => p.cutWall(conf))
+    const web = pool.execute((p) => p.generateWeb(conf))
+    const key = pool.execute((p) => p.generateKeysMesh(conf))
+    const plate = pool.execute((p) => p.generatePlate(conf))
 
-    const geo = newGeometry(config)
-    const keys = keyGeometries(geo.keyHolesTrsfs, config.keys)
-    const switches = partGeometries(geo.keyHolesTrsfs, config.keys, false)
+    const geo = newGeometry(conf)
+    const keys = keyGeometries(geo.keyHolesTrsfs, conf.keys)
+    const switches = partGeometries(geo.keyHolesTrsfs, conf.keys, false)
 
     function node(name: string, geometry: THREE.BufferGeometry, material: THREE.Material) {
       const mesh = new THREE.Mesh(geometry, material)
@@ -160,17 +176,36 @@
     const exporter = new GLTFExporter()
     const result = await exporter.parseAsync(scene, { binary: true })
     const blob = new Blob([result as any], { type: 'model/gltf-binary' })
-    download(blob, $modelName + '.glb')
+    download(blob, $modelName + side + '.glb')
   }
+
+  function iconPath(kbdName: 'left' | 'right' | 'unibody') {
+    if (kbdName == 'left') return mdiHandBackLeft
+    if (kbdName == 'right') return mdiHandBackRight
+    return mdiKeyboard
+  }
+
+  function kbdName(kbdName: 'left' | 'right' | 'unibody', name = '') {
+    if (name) {
+      if (kbdName == 'left') return 'L / ' + name
+      if (kbdName == 'right') return 'R / ' + name
+      return name
+    }
+    if (kbdName == 'left') return 'Left'
+    if (kbdName == 'right') return 'Right'
+    return 'Unibody'
+  }
+
+  $: configKeys = objKeys(config).sort()
 </script>
 
 <Dialog on:close>
   <span slot="title">Download Your Model</span>
   <div slot="content" class="text-center">
-    {#if isPro(config) && !($user.success && $user.sponsor)}
+    {#if Object.values(config).some(isPro) && !($user.success && $user.sponsor)}
       <p class="mb-2">
-        You're using some <span class="text-teal-500 dark:text-teal-400 font-bold">PRO</span> features
-        in this model.
+        You're using some <span class="text-teal-500 dark:text-teal-400 font-bold">PRO</span> features in
+        this model.
       </p>
       <p>To download this model, sign up for a Pro account.</p>
       {#if flags.login}
@@ -183,8 +218,8 @@
         </button>
       {:else}
         <p class="mt-2">
-          Since I have not rolled out Pro accounts, please ping me on Discord with a link to your
-          model and I'll send you the files.
+          Since I have not rolled out Pro accounts, please ping me on Discord with a link to your model
+          and I'll send you the files.
         </p>{/if}
     {:else}
       <div class="mt-[-0.5rem] mb-4 text-gray-500 dark:text-gray-200">
@@ -194,8 +229,8 @@
         STL Files: For 3D Printing
       </h2>
       <p class="mb-4 text-gray-500 dark:text-gray-200 max-w-lg mx-auto text-sm">
-        Send these to a 3D printing service or use PrusaSlicer or Cura for slicing. If you're using
-        a different slicer, ask in the <a
+        Send these to a 3D printing service or use PrusaSlicer or Cura for slicing. If you're using a
+        different slicer, ask in the <a
           class="text-teal-500 dark:text-teal-300 hover:underline"
           href="https://discord.gg/nXjqkfgtGy">Discord server</a
         > if it's been tested!
@@ -204,79 +239,58 @@
         <div class="break-inside-avoid">
           <h3 class="mb-2 text-lg semibold text-black dark:text-white">Case/Shell</h3>
           <div class="inline-flex items-center gap-2">
-            <button
-              class="button flex items-center gap-2"
-              on:click={() => downloadSTL('model', true)}
-              ><Icon path={mdiHandBackLeft} />Left</button
-            >
-            <button
-              class="button flex items-center gap-2"
-              on:click={() => downloadSTL('model', false)}
-              ><Icon path={mdiHandBackRight} />Right</button
-            >
+            {#each configKeys as kbd}
+              <button class="button flex items-center gap-2" on:click={() => downloadSTL('model', kbd)}
+                ><Icon path={iconPath(kbd)} />{kbdName(kbd)}</button
+              >
+            {/each}
           </div>
         </div>
         <div class="break-inside-avoid">
           <h3 class="mb-2 mt-4 text-lg semibold text-black dark:text-white">Plate</h3>
-          {#if config.shell.type == 'tilt' || config.shell.type == 'stilts'}
+          {#if Object.values(config).some((c) => c.shell.type == 'tilt' || c.shell.type == 'stilts')}
             <div class="inline-flex items-center gap-2">
-              <button
-                class="button flex items-center gap-2"
-                on:click={() => downloadSTL('platetop', true)}
-                ><Icon path={mdiHandBackLeft} />L / Top</button
-              >
-              <button
-                class="button flex items-center gap-2"
-                on:click={() => downloadSTL('platetop', false)}
-                ><Icon path={mdiHandBackRight} />R / Top</button
-              >
+              {#each configKeys as kbd}
+                <button
+                  class="button flex items-center gap-2"
+                  on:click={() => downloadSTL('platetop', kbd)}
+                  ><Icon path={iconPath(kbd)} />{kbdName(kbd, 'Top')}</button
+                >
+              {/each}
             </div>
             <div class="inline-flex items-center gap-2 mt-2">
-              <button
-                class="button flex items-center gap-2"
-                on:click={() => downloadSTL('platebottom', true)}
-                ><Icon path={mdiHandBackLeft} />L / Bot</button
-              >
-              <button
-                class="button flex items-center gap-2"
-                on:click={() => downloadSTL('platebottom', false)}
-                ><Icon path={mdiHandBackRight} />R / Bot</button
-              >
+              {#each configKeys as kbd}
+                <button
+                  class="button flex items-center gap-2"
+                  on:click={() => downloadSTL('platebottom', kbd)}
+                  ><Icon path={iconPath(kbd)} />{kbdName(kbd, 'Bot')}</button
+                >
+              {/each}
             </div>
             <div class="text-sm opacity-70 text-center mt-2 pb-1">
-              Download both the Top and Bot models
+              Download both the Top and Bot models.
             </div>
           {:else}
             <div class="inline-flex items-center gap-2">
-              <button
-                class="button flex items-center gap-2"
-                on:click={() => downloadSTL('plate', true)}
-                ><Icon path={mdiHandBackLeft} />Left</button
-              >
-              <button
-                class="button flex items-center gap-2"
-                on:click={() => downloadSTL('plate', false)}
-                ><Icon path={mdiHandBackRight} />Right</button
-              >
+              {#each configKeys as kbd}
+                <button class="button flex items-center gap-2" on:click={() => downloadSTL('plate', kbd)}
+                  ><Icon path={iconPath(kbd)} />{kbdName(kbd)}</button
+                >
+              {/each}
             </div>
           {/if}
         </div>
-        {#if config.microcontroller}
+        {#if Object.values(config).some((c) => c.microcontroller)}
           <div class="break-inside-avoid">
-            <h3 class="mb-2 mt-4 text-lg semibold text-black dark:text-white">
-              Microcontroller Holder
-            </h3>
+            <h3 class="mb-2 mt-4 text-lg semibold text-black dark:text-white">Microcontroller Holder</h3>
             <div class="inline-flex items-center gap-2">
-              <button
-                class="button flex items-center gap-2"
-                on:click={() => downloadSTL('holder', true)}
-                ><Icon path={mdiHandBackLeft} />Left</button
-              >
-              <button
-                class="button flex items-center gap-2"
-                on:click={() => downloadSTL('holder', false)}
-                ><Icon path={mdiHandBackRight} />Right</button
-              >
+              {#each configKeys as kbd}
+                <button
+                  class="button flex items-center gap-2"
+                  on:click={() => downloadSTL('holder', kbd)}
+                  ><Icon path={iconPath(kbd)} />{kbdName(kbd)}</button
+                >
+              {/each}
             </div>
           </div>
         {/if}
@@ -284,26 +298,23 @@
           <div class="break-inside-avoid">
             <h3 class="mb-2 mt-4 text-lg semibold text-black dark:text-white">Wrist Rest</h3>
             {#if $user.success && $user.sponsor}
-              {#if config?.wristRest}
+              {#if Object.values(config).some((c) => c.wristRestRight)}
                 <div class="inline-flex items-center gap-2">
-                  <button
-                    class="button flex items-center gap-2"
-                    on:click={() => downloadSTL('wristrest', true)}
-                    ><Icon path={mdiHandBackLeft} />Left</button
-                  >
-                  <button
-                    class="button flex items-center gap-2"
-                    on:click={() => downloadSTL('wristrest', false)}
-                    ><Icon path={mdiHandBackRight} />Right</button
-                  >
+                  {#each configKeys as kbd}
+                    <button
+                      class="button flex items-center gap-2"
+                      on:click={() => downloadSTL('wristrest', kbd)}
+                      ><Icon path={iconPath(kbd)} />{kbdName(kbd)}</button
+                    >
+                  {/each}
                 </div>
               {:else}
                 None configured
               {/if}
             {:else}
               <p class="mb-2">
-                You need a <span class="text-teal-500 dark:text-teal-400 font-bold">PRO</span> account
-                to download wrist rests.
+                You need a <span class="text-teal-500 dark:text-teal-400 font-bold">PRO</span> account to
+                download wrist rests.
               </p>
             {/if}
           </div>
@@ -313,30 +324,29 @@
         STEP Files: For CAD Programs
       </h2>
       <p class="mb-4 text-gray-500 dark:text-gray-200 max-w-lg mx-auto text-sm">
-        These models are editable in Fusion and Onshape and include all parts. Unlike STL, these
-        have infinite resolution and face info. <a
+        These models are editable in Fusion and Onshape and include all parts. Unlike STL, these have
+        infinite resolution and face info. <a
           class="text-teal-500 dark:text-teal-300 hover:underline"
           href="docs/cad/">[Importing Guide]</a
         >
       </p>
       <div class="inline-flex items-center gap-2">
-        <button class="button flex items-center gap-2" on:click={() => downloadSTEP(true)}
-          ><Icon path={mdiHandBackLeft} />Left</button
-        >
-        <button class="button flex items-center gap-2" on:click={() => downloadSTEP(false)}
-          ><Icon path={mdiHandBackRight} />Right</button
-        >
+        {#each configKeys as kbd}
+          <button class="button flex items-center gap-2" on:click={() => downloadSTEP(kbd)}>
+            <Icon path={iconPath(kbd)} />{kbdName(kbd)}
+          </button>
+        {/each}
       </div>
       {#if hasPro}
         {#if !($user.success && $user.sponsor)}
           <p class="mt-2">
-            A <span class="text-teal-500 dark:text-teal-400 font-bold">PRO</span> account will add wrist
-            rests will to this file.
+            A <span class="text-teal-500 dark:text-teal-400 font-bold">PRO</span> account will add wrist rests
+            will to this file.
           </p>
-        {:else if !config?.wristRest}
+        {:else if !Object.values(config).some((c) => c.wristRestRight)}
           <p class="mt-2">
-            Wrist rests will not be added to this assembly. Check "Show Wrists" rests in
-            basic/advanced view to enable them or add them to your expert mode configuration.
+            Wrist rests will not be added to this assembly. Check "Show Wrists" rests in basic/advanced
+            view to enable them or add them to your expert mode configuration.
           </p>
         {/if}
       {/if}
@@ -351,12 +361,11 @@
           <!-- svelte-ignore a11y-label-has-associated-control-->
         </div>
         <div class="inline-flex items-center gap-2">
-          <button class="button flex items-center gap-2" on:click={() => downloadGLB(true)}
-            ><Icon path={mdiHandBackLeft} />Left</button
-          >
-          <button class="button flex items-center gap-2" on:click={() => downloadGLB(false)}
-            ><Icon path={mdiHandBackRight} />Right</button
-          >
+          {#each configKeys as kbd}
+            <button class="button flex items-center gap-2" on:click={() => downloadGLB(kbd)}>
+              <Icon path={iconPath(kbd)} />{kbdName(kbd)}
+            </button>
+          {/each}
         </div>
       {:else}
         <p class="mt-6 mb-[-1rem]">
@@ -387,9 +396,6 @@
   }
 
   .input {
-    --at-apply: 'focus:border-teal-500 border border-transparent text-gray-700 focus:outline-none';
-    --at-apply: 'border-gray-200 dark:border-transparent bg-gray-100 dark:bg-gray-700 dark:text-gray-100';
-    --at-apply: 'appearance-none w-44 rounded mx-2';
-    --at-apply: 'text-ellipsis';
+    --at-apply: 'focus:border-teal-500 border border-transparent text-gray-700 focus:outline-none border-gray-200 dark:border-transparent bg-gray-100 dark:bg-gray-700 dark:text-gray-100 appearance-none w-44 rounded mx-2 text-ellipsis';
   }
 </style>

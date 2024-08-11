@@ -5,15 +5,25 @@ import { Manuform } from '../../../../target/proto/manuform'
 import cuttleform from '$assets/cuttleform.json' assert { type: 'json' }
 import lightcycle from '$assets/lightcycle.json' assert { type: 'json' }
 import manuform from '$assets/manuform.json' assert { type: 'json' }
+import { cuttleConf, type CuttleformProto } from '$lib/worker/config'
+import { toCosmosConfig } from '$lib/worker/config.cosmos'
+import { decodeConfigIdk, encodeCosmosConfig, serializeCosmosConfig } from '$lib/worker/config.serialize'
 import * as pako from 'pako'
 
-interface State {
+export interface State {
   keyboard: string
   options: object
   content?: string
+  upgradedFrom?: string
+  error?: Error
 }
 
 const SPLIT_CHAR = ':'
+
+// The default model
+const DEFAULT_CM =
+  // 'Cn8KDxIFEIA/ICcSABIAEgA4MQoPEgUQgEsgJxIAEgASADgdChwSBRCAVyAnEgASABIDELAvEgMQsF84CUCE8LwCChcSBRCAYyAnEgASABIDELA7EgMQsGs4CgoVEgUQgG8gJxIAEgASADgeQJCGirAHGABA6IWgrvBVSNzwoqABCooBCisSExDAgAJAgICYAkjCmaCVkLwBUEMSEkCAgMwCSMKZoJWQvAFQhgFYOjgIChUSEBBAQICAIEjQlYDdkPUDUAtQngIKJxIQEEBAgID4AUjmmfynkAtQVxIRQICApANI8JnEtdAwUHRYlQFQfxgCIgoIyAEQyAEYACAAQMuL/J/QMUitkdyNwZMG'
+  'CoUBChESBRCAPyAnEgASABIAODFAAAoREgUQgEsgJxIAEgASADgdQAAKHBIFEIBXICcSABIAEgMQsC8SAxCwXzgJQIDwvAIKGRIFEIBjICcSABIAEgMQsDsSAxCwazgKQAAKFRIFEIBvICcSABIAEgA4HkCAhorABxgAQOiFoK7wVUjc8KKgAQqKAQorEhMQwIACQICAmAJIwpmglZC8AVBDEhJAgIDMAkjCmaCVkLwBUIYBWDo4CAoVEhAQQECAgCBI0JWA3ZD1A1ALUJ4CCicSEBBAQICA+AFI5pn8p5ALUFcSEUCAgKQDSPCZxLXQMFB0WJUBUH8YAiIKCMgBEMgBGAAgAEDLi/yf0DFIrZHcjcGTBg=='
 
 /** Return true if there is a difference between the two objects */
 function areDifferent(data, reference) {
@@ -50,6 +60,7 @@ function recreate2(data, reference) {
 }
 
 export function serialize(state: State) {
+  console.log('ENCODE CM', state)
   let data
   if (state.keyboard === 'manuform') {
     const diff = {}
@@ -65,6 +76,10 @@ export function serialize(state: State) {
     diff = { thumbCluster: {}, shell: {}, ...diff } // Avoids errors in toBinary
     console.log('ser', state, diff)
     data = Cuttleform.toBinary(diff)
+  } else if (state.keyboard == 'cm') {
+    const ser = serializeCosmosConfig(encodeCosmosConfig(state.options as any))
+    if (ser == DEFAULT_CM) return 'cm'
+    return 'cm' + SPLIT_CHAR + ser
   } else {
     throw new Error(`Unknown keyboard type ${state.keyboard}`)
   }
@@ -75,34 +90,58 @@ function clone(a: any) {
   return JSON.parse(JSON.stringify(a))
 }
 
-export function deserialize(str: string, fallback: State): State {
-  if (str === 'manuform') return clone(manuform)
-  if (str === 'lightcycle') return clone(lightcycle)
+export function deserialize(str: string, fallback: () => State): State {
+  try {
+    if (str === 'manuform') return clone(manuform)
+    if (str === 'lightcycle') return clone(lightcycle)
+    if (str == 'cm') {
+      return {
+        keyboard: 'cm',
+        options: decodeConfigIdk(DEFAULT_CM),
+        // options: toCosmosConfig(cuttleConf(cuttleform.options), 'right', true),
+      }
+    }
 
-  const split = str.split(SPLIT_CHAR)
-  if (split.length != 2) return clone(fallback)
+    const split = str.split(SPLIT_CHAR)
+    if (split.length != 2) return fallback()
 
-  const [keyboard, b64] = split
+    const [keyboard, b64] = split
+    const data = Uint8Array.from(atob(b64), c => c.charCodeAt(0))
+
+    let options: object | null = null
+    let content: string | undefined = undefined
+    let upgradedFrom: string | undefined = undefined
+    console.log('DECODE CM', keyboard)
+    if (keyboard === 'manuform') {
+      options = recreate2(Manuform.fromBinary(data), clone(manuform.options))
+    }
+    if (keyboard === 'lightcycle') {
+      options = recreate2(Lightcycle.fromBinary(data), clone(lightcycle.options))
+    }
+    if (keyboard === 'cf') {
+      options = toCosmosConfig(cuttleConf(recreate2(Cuttleform.fromBinary(data), clone(cuttleform.options)) as CuttleformProto), 'right', true)
+      upgradedFrom = 'cf'
+    }
+    if (keyboard == 'cm') {
+      options = decodeConfigIdk(
+        b64,
+      )
+    }
+    if (keyboard == 'expert') {
+      options = fallback().options
+      content = deserializeEditor(data)
+    }
+    if (!options) return fallback()
+
+    return { keyboard, options, content, upgradedFrom }
+  } catch (e) {
+    return { keyboard: 'error', options: null, error: e as Error }
+  }
+}
+
+export function toCuttleformProto(b64: string): CuttleformProto {
   const data = Uint8Array.from(atob(b64), c => c.charCodeAt(0))
-
-  let options: object | null = null
-  let content: string | undefined = undefined
-  if (keyboard === 'manuform') {
-    options = recreate2(Manuform.fromBinary(data), clone(manuform.options))
-  }
-  if (keyboard === 'lightcycle') {
-    options = recreate2(Lightcycle.fromBinary(data), clone(lightcycle.options))
-  }
-  if (keyboard === 'cf') {
-    options = recreate2(Cuttleform.fromBinary(data), clone(cuttleform.options))
-  }
-  if (keyboard == 'expert') {
-    options = clone(fallback).options
-    content = deserializeEditor(data)
-  }
-  if (!options) return clone(fallback)
-
-  return { keyboard, options, content }
+  return recreate2(Cuttleform.fromBinary(data), clone(cuttleform.options)) as CuttleformProto
 }
 
 export function serializeEditor(content: string) {

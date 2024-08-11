@@ -24,11 +24,30 @@ function main() {
     addIfModified(pool, image, '.webp', () => compressWebp(image))
     addIfModified(pool, image, '.avif', () => compressAvif(image))
   }
+  for (const image of fg.sync('src/routes/showcase/assets/kbd-*.jpg')) {
+    addIfModified(pool, image, '.thumb.jpg', () => compressThumbJpg(image, preprocessKeyboard(false)))
+    // addIfModified(pool, image, '.thumb.webp', () => compressThumbWebp(image, preprocessKeyboard(false)))
+    // addIfModified(pool, image, '.thumb.avif', () => compressThumbAvif(image, preprocessKeyboard(false)))
+    addIfModified(pool, image, '.jpg', () => compressJpg(image, preprocessKeyboard(true)))
+    // addIfModified(pool, image, '.webp', () => compressWebp(image, preprocessKeyboard(true)))
+    // addIfModified(pool, image, '.avif', () => compressAvif(image, preprocessKeyboard(true)))
+  }
   for (const video of fg.sync('docs/assets/*.(mp4)')) {
     addIfModified(pool, video, '.mp4', () => compressMp4(video))
     addIfModified(pool, video, '.webm', () => compressWebm(video))
   }
   pool.run().then(() => console.log('Done optimizing!'))
+}
+
+/** Fit keyboard to 19:10 aspect ratio and reduce size */
+function preprocessKeyboard(large: boolean) {
+  return (img: sharp.Sharp) => {
+    const [width, height] = large ? [1900, 1000] : [668, 352]
+    return img.resize(width, height, {
+      fit: 'cover',
+      withoutEnlargement: true,
+    })
+  }
 }
 
 /** Only add the task if the input file was modified after the last optimization */
@@ -55,10 +74,10 @@ const formatSize = (begin: number, end: number) => inKB(begin) + ' ⭢  ' + inKB
 
 /** Compress images using the sharp library */
 function compressSharp(fn: (inp: sharp.Sharp) => sharp.Sharp, ext: string) {
-  return async (image: string) => {
+  return async (image: string, preprocess?: (inp: sharp.Sharp) => sharp.Sharp) => {
     const input = sharp(await sharp(image).toBuffer())
     const meta = await input.metadata()
-    const output = await fn(input).toFile(target(image, ext))
+    const output = await fn(preprocess ? preprocess(input) : input).toFile(target(image, ext))
     return formatSize(meta.size!, output.size)
   }
 }
@@ -66,6 +85,9 @@ function compressSharp(fn: (inp: sharp.Sharp) => sharp.Sharp, ext: string) {
 const compressJpg = compressSharp(img => img.jpeg({ mozjpeg: true, quality: 90 }), '.jpg')
 const compressWebp = compressSharp(img => img.webp({ quality: 90, effort: 6 }), '.webp')
 const compressAvif = compressSharp(img => img.avif({ quality: 90, effort: 6 }), '.avif')
+const compressThumbJpg = compressSharp(img => img.jpeg({ mozjpeg: true, quality: 90 }), '.thumb.jpg')
+const compressThumbWebp = compressSharp(img => img.webp({ quality: 90, effort: 6 }), '.thumb.webp')
+const compressThumbAvif = compressSharp(img => img.avif({ quality: 90, effort: 6 }), '.thumb.avif')
 
 const run = promisify(execFile)
 /** Compress videos using the ffmpeg process */

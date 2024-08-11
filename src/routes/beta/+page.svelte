@@ -2,6 +2,10 @@
   import { base } from '$app/paths'
   import { browser } from '$app/environment'
   import App from './App.svelte'
+  // import { hasPro } from '@pro/index'
+  // import { getUser } from './lib/login'
+  // import V3Dialog from './lib/dialogs/V3Dialog.svelte'
+  // import { user } from '$lib/store'
 </script>
 
 <svelte:head>

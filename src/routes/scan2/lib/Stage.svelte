@@ -1,11 +1,10 @@
 <script lang="ts">
   import { FINGERS, type Hand, type Joints } from './hand'
-  import { Canvas, TransformableObject, T } from '@threlte/core'
+  import { Canvas, T } from '@threlte/core'
   import { DEG2RAD } from 'three/src/math/MathUtils'
-  import { Line2 } from '@threlte/core'
+  import { HTML, MeshLineGeometry, MeshLineMaterial } from '@threlte/extras'
   import { Vector3, type Vector3Tuple, Matrix4 } from 'three'
   import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial'
-  import { HTML } from '@threlte/extras'
 
   export let hand: Hand | undefined = undefined
   export let otherHand: Hand | undefined = undefined
@@ -108,16 +107,17 @@
     position={[100, 0, 0]}
     zoom={width / (maxSize + 2)}
     let:ref={cam}
-  >
-    <TransformableObject object={cam} lookAt={{ y: 0 }} />
-  </T.OrthographicCamera>
+    on:create={({ ref }) => {
+      ref.lookAt(new Vector3(0, 0, 0))
+    }}
+  />
 
   <T.Group>
     {#each lines2D as line}
-      <Line2
-        points={line}
-        material={new LineMaterial({ color: 0x1e293b, worldUnits: true, linewidth: 0.5 })}
-      />
+      <T.Mesh>
+        <MeshLineGeometry points={line.map((p) => new Vector3(...p))} />
+        <MeshLineMaterial color="#3b4f70" width={5} attenuate={false} />
+      </T.Mesh>
     {/each}
     {#each points2D as pt}
       <T.Mesh position={pt}>
@@ -126,10 +126,8 @@
       </T.Mesh>
     {/each}
     {#each info as inf}
-      <HTML position={inf.position} rotation={{ y: DEG2RAD * 90 }} transform>
-        <div
-          style="height: 1em; font-size: 1.8em; text-align: center; text-shadow: 1px 0 1px black"
-        >
+      <HTML position={inf.position.toArray()} rotation.y={DEG2RAD * 90} transform>
+        <div style="height: 1em; font-size: 1.8em; text-align: center; text-shadow: 1px 0 1px black">
           {inf.text}
         </div>
       </HTML>

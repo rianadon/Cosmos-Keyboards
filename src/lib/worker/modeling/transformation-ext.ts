@@ -26,7 +26,7 @@ function pointToString(p: number[]) {
   return '[' + p.join(', ') + ']'
 }
 
-interface MatrixOptions {
+export interface MatrixOptions {
   column: number
   row: number
   curvatureOfColumn: number
@@ -36,7 +36,21 @@ interface MatrixOptions {
   arc?: number
 }
 
-interface SphereOptions {
+export interface ColumnOptions {
+  column: number
+  curvatureOfRow: number
+  spacingOfColumns: number
+}
+
+export interface RowOptions {
+  row: number
+  spacingOfRows: number
+  curvatureOfColumn: number
+  arc?: number
+  columnForArc?: number
+}
+
+export interface SphereOptions {
   angle: number
   row: number
   curvature: number
@@ -59,6 +73,8 @@ type Operation =
   | { name: 'translateBy'; args: [ETrsf] }
   | { name: 'placeOnMatrix'; args: [Unmerged<MatrixOptions>] }
   | { name: 'placeOnSphere'; args: [Unmerged<SphereOptions>] }
+  | { name: 'placeRow'; args: [Unmerged<RowOptions>] }
+  | { name: 'placeColumn'; args: [Unmerged<ColumnOptions>] }
   | { name: 'rotateTowards'; args: [Point, number] }
 
 export function stringifyObj(a: any, indent: number) {
@@ -125,10 +141,10 @@ export default class ETrsf {
   }
 
   /** Rotates through an axis about some position by some number of degrees. */
-  rotate(angle: number, position?: Point, direction?: Point, inFlat = true) {
+  rotate(angle: number, position: Point, direction: Point, inFlat = true) {
     return this.apply({ name: 'rotate', args: [angle, position, direction, inFlat] })
   }
-  rotated(angle: number, position?: Point, direction?: Point, inFlat = true) {
+  rotated(angle: number, position: Point, direction: Point, inFlat = true) {
     return this.applied({ name: 'rotate', args: [angle, position, direction, inFlat] })
   }
   /** Rotates the z axis towards a new z axis by some fraction. */
@@ -179,14 +195,26 @@ export default class ETrsf {
     return this.apply({ name: 'placeOnMatrix', args: [opts] })
   }
   /**
+   * Apply a transformation for a key on a specified matrix, but just for the row.
+   */
+  placeRow(opts: RowOptions) {
+    return this.apply({ name: 'placeRow', args: [opts] })
+  }
+  /**
+   * Apply a transformation for a key on a specified matrix, but just for the column.
+   */
+  placeColumn(opts: ColumnOptions) {
+    return this.apply({ name: 'placeColumn', args: [opts] })
+  }
+  /**
    * Apply a transformation for a key on a specified sphere.
    */
   placeOnSphere(opts: SphereOptions) {
     return this.apply({ name: 'placeOnSphere', args: [opts] })
   }
 
-  evaluate(context: EvaluationContext, t: Trsf): Trsf {
-    return this.history.reduce((t, op) => impl(t, context, op), t)
+  evaluate(context: EvaluationContext, t?: Trsf): Trsf {
+    return this.history.reduce((t, op) => impl(t, context, op), t || new Trsf())
   }
 
   toString(indent: number): string {
@@ -221,6 +249,12 @@ function impl(trsf: Trsf, context: EvaluationContext, operation: Operation): Trs
       return placeOnSphereImpl(trsf, operation.args[0], context)
     case 'rotateTowards':
       return rotateTowardsImpl(trsf, operation.args[0], operation.args[1])
+    case 'placeColumn':
+      const colArgs = 'merged' in operation.args[0] ? operation.args[0].merged : operation.args[0]
+      return placeOnMatrixImpl(trsf, { ...colArgs, row: 0, curvatureOfColumn: 0, spacingOfRows: 0 }, context)
+    case 'placeRow':
+      const rowArgs = 'merged' in operation.args[0] ? operation.args[0].merged : operation.args[0]
+      return placeOnMatrixImpl(trsf, { ...rowArgs, column: rowArgs.columnForArc ?? 0, curvatureOfRow: 0, spacingOfColumns: 0 }, context)
   }
 }
 
@@ -305,19 +339,18 @@ function placeOnSphereImpl(t: Trsf, opts: Unmerged<SphereOptions>, c: Evaluation
     }
   }
   const radius = (options.spacing) / 2 / sin(options.curvature / 2) + capTopHeight(c)
-  t.rotate(-90)
   if (options.curvature == 0) {
-    t.translate(options.row * (options.spacing), 0, 0)
+    t.translate(0, options.row * (options.spacing), 0)
   } else {
-    t.rotate(-options.curvature * options.row, [0, 0, radius], Y)
+    t.rotate(-options.curvature * options.row, [0, 0, -radius], X)
   }
-  t.rotate(options.angle)
+  t.rotate(-options.angle)
   return t
 }
 
 export class Constant extends ETrsf {
-  constructor(public name: string) {
-    super()
+  constructor(public name: string, history: Operation[] = []) {
+    super(history)
   }
 }
 
@@ -347,13 +380,56 @@ function rotate(keys: CuttleKey[], angle: number, position: [number, number, num
   }))
 }
 
+export function fullMirrorETrsf(e: ETrsf) {
+  const newHistory = JSON.parse(JSON.stringify(e.history)) as typeof e.history
+  for (const h of newHistory) {
+    if (h.name == 'placeOnMatrix') {
+      const args: MatrixOptions = (h.args[0] as any).merged ?? h.args[0]
+      args.column = -args.column
+    } else if (h.name == 'placeColumn') {
+      const args: MatrixOptions = (h.args[0] as any).merged ?? h.args[0]
+      args.column = -args.column
+    } else if (h.name == 'placeRow') {
+      const args: RowOptions = (h.args[0] as any).merged ?? h.args[0]
+      if (args.columnForArc) args.columnForArc = -args.columnForArc
+    } else if (h.name == 'placeOnSphere') {
+      const args: SphereOptions = (h.args[0] as any).merged ?? h.args[0]
+      args.angle = -args.angle
+    } else if (h.name == 'translate') {
+      h.args[0] = -h.args[0]
+    } else if (h.name == 'rotate') {
+      if (!h.args[2] || h.args[2][0] != 1) h.args[0] *= -1
+    } else if (h.name == 'transformBy') {
+      h.args[0] = fullMirrorETrsf(h.args[0])
+    } else if (h.name == 'translateBy') {
+      h.args[0] = fullMirrorETrsf(h.args[0])
+    }
+  }
+  return new ETrsf(newHistory)
+}
+
+/** Mirror a set of keys and return the mirrored keys. */
+export function mirror(keys: CuttleKey[], flipKeys = true): CuttleKey[] {
+  const mirroredKeys = keys.map(k => {
+    const newK = {
+      ...k,
+      position: fullMirrorETrsf(k.position),
+    }
+    if (flipKeys && 'keycap' in newK && newK.keycap && newK.keycap.letter) {
+      newK.keycap = { ...newK.keycap, letter: flippedKey(newK.keycap.letter) }
+    }
+    return newK
+  })
+  return mirroredKeys
+}
+
 /**
  * Mirror a set of keys, with a given minimum X gap between them.
  *
  * Both the original keys and the mirrored keys will be returned.
  * This is useful for creating full keyboards instead of ones split in half.
  */
-export function mirror(keys: CuttleKey[], gap = 30, angle = 0) {
+export function unibody(keys: CuttleKey[], gap = 30, angle = 0): CuttleKey[] {
   const minX = Math.min(...keys.map(k => keyPosition({} as any, k, false).origin().x))
   const axisX = minX - gap / 2 - 10
   const mirroredKeys = keys.map(k => {
@@ -361,10 +437,28 @@ export function mirror(keys: CuttleKey[], gap = 30, angle = 0) {
       ...k,
       position: k.position.mirrored([1, 0, 0], [axisX, 0, 0]),
     }
-    if ('keycap' in newK && newK.keycap.letter) {
+    if ('keycap' in newK && newK.keycap && newK.keycap.letter) {
       newK.keycap = { ...newK.keycap, letter: flippedKey(newK.keycap.letter) }
     }
     return newK
   })
   return [...rotate(keys, angle, [axisX, 0, 0]), ...rotate(mirroredKeys, -angle, [axisX, 0, 0])]
+}
+
+/**
+ * Change the key labels to reflect what they should be on the mirrored side of the keyboard.
+ *
+ * This function returns copies of the keys that are passed in.
+ */
+export function flipKeyLabels(keys: CuttleKey[]): CuttleKey[] {
+  return keys.map(k => {
+    const newK = {
+      ...k,
+      position: new ETrsf([...k.position.history]),
+    }
+    if ('keycap' in newK && newK.keycap && newK.keycap.letter) {
+      newK.keycap = { ...newK.keycap, letter: flippedKey(newK.keycap.letter) }
+    }
+    return newK
+  })
 }

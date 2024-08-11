@@ -1,9 +1,9 @@
 <script lang="ts">
   import type { SolvedHand } from '../hand'
-  import * as SC from 'svelte-cubed'
   import { type GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
   import handModel from '$assets/hand.glb?url'
   import { Euler, Matrix4, Mesh, MeshNormalMaterial, Object3D, type Vector3Tuple } from 'three'
+  import { T } from '@threlte/core'
 
   export let scale = 66.7
   export let reverse = false
@@ -30,14 +30,12 @@
     const baseMatrix = new Matrix4().makeRotationFromEuler(new Euler(-Math.PI / 2, 0, -Math.PI / 2))
     if (reverse) baseMatrix.premultiply(new Matrix4().makeScale(1, 1, -1))
 
-    Object.entries(hand.localTransforms(baseMatrix, 1000 / scale)).forEach(
-      ([finger, transforms]) => {
-        transforms.forEach((matrix, i) => {
-          const node = handNodes[finger + i]
-          matrix.decompose(node.position, node.quaternion, node.scale)
-        })
-      }
-    )
+    Object.entries(hand.localTransforms(baseMatrix, 1000 / scale)).forEach(([finger, transforms]) => {
+      transforms.forEach((matrix, i) => {
+        const node = handNodes[finger + i]
+        matrix.decompose(node.position, node.quaternion, node.scale)
+      })
+    })
   }
 
   $: if (handNodes) {
@@ -46,9 +44,5 @@
 </script>
 
 {#if handNodes}
-  <SC.Primitive
-    object={handNodes['Hand_Armature']}
-    scale={[scale, scale, reverse ? -scale : scale]}
-    {position}
-  />
+  <T is={handNodes['Hand_Armature']} scale={[scale, scale, reverse ? -scale : scale]} {position} />
 {/if}

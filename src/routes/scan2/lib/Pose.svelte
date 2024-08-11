@@ -1,15 +1,8 @@
 <script lang="ts">
   import { FINGERS, SolvedHand, type Hand, type Joints } from './hand'
   import { Canvas } from '@threlte/core'
-  import {
-    Vector3,
-    type Vector3Tuple,
-    Matrix4,
-    SphereGeometry,
-    BufferGeometry,
-    Vector4,
-  } from 'three'
-  import { mergeBufferGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils'
+  import { Vector3, type Vector3Tuple, Matrix4, SphereGeometry, BufferGeometry, Vector4 } from 'three'
+  import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils'
   import PoseCanvas from './PoseCanvas.svelte'
   import { recording } from './state'
 
@@ -48,7 +41,7 @@
 
         const geometry = pointCloudGeo(solvedJ.worldPositions(finger, 0.1)[4])
         const prevCloud = pointCloud[finger]
-        pointCloud[finger] = prevCloud ? mergeBufferGeometries([prevCloud, geometry]) : geometry
+        pointCloud[finger] = prevCloud ? mergeGeometries([prevCloud, geometry]) : geometry
 
         solvedJ.fromLimbs(finger, hand.limbs[finger], true)
         averageRotations[finger].add(new Vector4(...solvedJ.deg1Angles(finger)))

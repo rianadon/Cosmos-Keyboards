@@ -1,34 +1,22 @@
 <script lang="ts">
-  import {
-    BufferAttribute,
-    BufferGeometry,
-    DoubleSide,
-    Group,
-    Mesh,
-    MeshBasicMaterial,
-    Vector3,
-    Color,
-  } from 'three'
-  import * as SC from 'svelte-cubed'
-  import type { Cuttleform, Geometry } from '$lib/worker/config'
+  import { BufferAttribute, Mesh, MeshBasicMaterial, Color } from 'three'
+  import type { Center, Geometry } from '$lib/worker/config'
   import Viewer from './Viewer.svelte'
-  import { allKeyCriticalPoints, webThickness } from '$lib/worker/geometry'
-  import { thickness } from '$lib/worker/thickness'
+  import { T } from '@threlte/core'
+  import type { FullGeometry } from './viewer3dHelpers'
+  import { objEntries } from '$lib/worker/util'
+  import { fromGeometry } from '$lib/loaders/geometry'
+  import { webSolid } from '$lib/worker/model'
 
   export let style: string = ''
-  export let center: [number, number, number]
-  export let size: THREE.Vector3
-  export let cameraPosition: [number, number, number] = [0, 0.8, 1]
+  export let center: Center
+  export let size: [number, number, number]
+  export let cameraPosition: [number, number, number] = [0.16, -0.96, 0.56]
   export let enableRotate = true
   export let enableZoom = false
-  export let is3D = false
-  export let flip = true
   export let darkMode: boolean
 
-  export let conf: Cuttleform | undefined
-  export let geometry: Geometry | null
-
-  let pressedLetter: string | null = null
+  export let geometry: FullGeometry | undefined
 
   const hue = (t: number) => Math.min(Math.max(0, t - 1) / 4, 1) * 240
 
@@ -40,24 +28,15 @@
     return ind
   }
 
-  function webMesh(c: Cuttleform | undefined, geo: Geometry | null, darkMode: boolean) {
-    if (!c || !geo) return { group: null, minThickness: 0, maxThickness: 0, thicknessRange: 0 }
+  function webMesh(geo: Geometry | undefined, darkMode: boolean) {
+    if (!geo) return { topMesh: null, minThickness: 0, maxThickness: 0, thicknessRange: 0 }
 
     const { topReinf, botReinf } = geo.reinforcedTriangles
 
-    const topGeo = new Float32Array(topReinf.triangles.length * 9)
-    const botGeo = new Float32Array(botReinf.triangles.length * 9)
     const thicknesses: number[] = []
-    const colors = new Float32Array(topGeo.length + botGeo.length)
     const nTri = geo.solveTriangularization.triangles.length
 
     topReinf.triangles.forEach((triangle, i) => {
-      const pta = topReinf.allPts[triangle[0]].origin()
-      const ptb = topReinf.allPts[triangle[1]].origin()
-      const ptc = topReinf.allPts[triangle[2]].origin()
-      topGeo.set(pta.xyz(), i * 9)
-      topGeo.set(ptb.xyz(), i * 9 + 3)
-      topGeo.set(ptc.xyz(), i * 9 + 6)
       let th = topReinf.thickness[i].thickness
       if (th < 0) {
         const eq = eqIndices(topReinf.thickness, topReinf.thickness[i])
@@ -69,12 +48,6 @@
     })
 
     botReinf.triangles.forEach((triangle, i) => {
-      const pba = botReinf.allPts[triangle[0]].origin()
-      const pbb = botReinf.allPts[triangle[1]].origin()
-      const pbc = botReinf.allPts[triangle[2]].origin()
-      botGeo.set(pbc.xyz(), i * 9)
-      botGeo.set(pbb.xyz(), i * 9 + 3)
-      botGeo.set(pba.xyz(), i * 9 + 6)
       let th = botReinf.thickness[i].thickness
       if (th < 0) {
         const eq = eqIndices(botReinf.thickness, botReinf.thickness[i])
@@ -90,38 +63,54 @@
     const maxThickness = Math.max(...posThickness)
     const thicknessRange = maxThickness - minThickness
 
+    const mesh = webSolid(geo.c, geo).toMesh()
+    const colors = new Float32Array(mesh.vertices.length)
+
+    console.log(thicknesses.length, mesh.triangles.length / 3, mesh.faceGroups.length)
     thicknesses.forEach((t, i) => {
       let color: number[]
       if (t < 0) {
-        color = darkMode ? [31 / 255, 41 / 255, 55 / 255] : [226 / 255, 232 / 255, 240 / 255]
+        color = (darkMode ? new Color('#1F2937') : new Color('#E2E8F0')).convertSRGBToLinear().toArray()
       } else {
-        color = new Color().setHSL(hue(t) / 360, 1, 0.5).toArray()
+        color = new Color()
+          .setHSL(hue(t) / 360, 1, 0.5)
+          .convertSRGBToLinear()
+          .toArray()
         // color = new Vector3(1, 0.15, 0.15).lerp(new Vector3(0.15, 0.39, 1), scaled).toArray()
       }
-      colors.set(color, i * 9)
-      colors.set(color, i * 9 + 3)
-      colors.set(color, i * 9 + 6)
+      const face = mesh.faceGroups[i]
+      console.log(face)
+      for (let j = face.start; j < face.start + face.count; j++) {
+        colors.set(color, mesh.triangles[j * 3] * 3)
+        colors.set(color, mesh.triangles[j * 3 + 1] * 3)
+        colors.set(color, mesh.triangles[j * 3 + 2] * 3)
+      }
     })
 
-    const topMesh = new Mesh()
-    topMesh.geometry = new BufferGeometry()
-    topMesh.geometry.setAttribute('position', new BufferAttribute(topGeo, 3))
-    topMesh.geometry.setAttribute('color', new BufferAttribute(colors.slice(0, topGeo.length), 3))
-    topMesh.material = new MeshBasicMaterial({ vertexColors: true, side: DoubleSide })
+    const theMesh = new Mesh()
+    theMesh.geometry = fromGeometry(mesh)!
+    theMesh.geometry.setAttribute('color', new BufferAttribute(colors, 3))
+    theMesh.material = new MeshBasicMaterial({ vertexColors: true, toneMapped: false })
 
-    const botMesh = new Mesh()
-    botMesh.geometry = new BufferGeometry()
-    botMesh.geometry.setAttribute('position', new BufferAttribute(botGeo, 3))
-    botMesh.geometry.setAttribute('color', new BufferAttribute(colors.slice(topGeo.length), 3))
-    botMesh.material = new MeshBasicMaterial({ vertexColors: true })
-
-    const group = new Group()
-    group.add(topMesh)
-    group.add(botMesh)
-    return { group, minThickness, maxThickness, thicknessRange }
+    return { theMesh, minThickness, maxThickness, thicknessRange }
   }
 
-  $: meshResult = webMesh(conf, geometry, darkMode)
+  function webMeshAll(geometry: FullGeometry | undefined, darkMode: boolean) {
+    if (!geometry) return { meshes: {}, minThickness: 0, maxThickness: 0, thicknessRange: 0 }
+    if (geometry.unibody) {
+      const result = webMesh(geometry.unibody, darkMode)
+      return { meshes: { unibody: result }, ...result }
+    } else {
+      const left = webMesh(geometry.left, darkMode)
+      const right = webMesh(geometry.right, darkMode)
+      const minThickness = Math.min(left.minThickness, right.minThickness)
+      const maxThickness = Math.max(left.maxThickness, right.maxThickness)
+      const thicknessRange = maxThickness - minThickness
+      return { meshes: { left, right }, minThickness, maxThickness, thicknessRange }
+    }
+  }
+
+  $: meshResult = webMeshAll(geometry, darkMode)
 
   $: mmin = meshResult.minThickness
   $: mmax = meshResult.maxThickness
@@ -147,27 +136,18 @@
     </div>
   </div>
 </div>
-<Viewer
-  geometries={[]}
-  {style}
-  {center}
-  {size}
-  {cameraPosition}
-  {flip}
-  {enableRotate}
-  {enableZoom}
-  enablePan={true}
-  {is3D}
->
-  <svelte:fragment slot="geometry">
-    <SC.Group position={[-center[0], -center[1], -center[2]]}>
-      {#if meshResult.group}
-        <SC.Primitive object={meshResult.group} />
+<Viewer {style} suggestedSize={size} {cameraPosition} {enableRotate} {enableZoom} enablePan={true}>
+  <T.Group>
+    {#each objEntries(meshResult.meshes) as [kbd, result] (kbd)}
+      {@const cent = center[kbd]}
+      {#if result && result.theMesh && cent}
+        <T.Group position={[-cent[0], -cent[1], -cent[2]]} scale.x={kbd == 'left' ? -1 : 1}>
+          <T is={result.theMesh} />
+        </T.Group>
       {/if}
-      <slot />
-    </SC.Group>
-  </svelte:fragment>
-  <svelte:fragment slot="controls" />
+    {/each}
+    <slot />
+  </T.Group>
 </Viewer>
 
 <style>

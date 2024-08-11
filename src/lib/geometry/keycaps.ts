@@ -1,6 +1,6 @@
 import type { CuttleKey } from '$lib/worker/config'
 
-export const UNIFORM = ['xda', 'dsa', 'choc']
+export const UNIFORM = ['xda', 'dsa', 'choc', 'ma']
 
 export function closestAspect(aspect: number) {
   if (aspect < 1) aspect = 1 / aspect
@@ -24,6 +24,9 @@ export const KEY_INFO: Record<string, Record<number, { depth: number; tilt: numb
   },
   xda: {
     0: { depth: 9.9, tilt: 0 },
+  },
+  ma: {
+    0: { depth: 11.9, tilt: 0 },
   },
   choc: {
     0: { depth: 4, tilt: 0 },
@@ -71,6 +74,7 @@ export const KEY_NAMES: Record<string, string> = {
   oem: 'OEM',
   cherry: 'Cherry',
   des: 'DES',
+  ma: 'MA',
 }
 
 export function keyInfo(k: CuttleKey) {
@@ -85,10 +89,38 @@ export function keyInfo(k: CuttleKey) {
   return KEY_INFO[k.keycap.profile][k.keycap.row]
 }
 
-const FLIPPED_KEY = { 0: 1, 9: 2, 8: 3, 7: 4, 6: 5, p: 'q', o: 'w', i: 'e', u: 'r', y: 't', ';': 'a', l: 's', k: 'd', j: 'f', h: 'g', '/': 'z', '.': 'x', ',': 'c', 'm': 'v', n: 'b' }
+// dprint-ignore
+const FLIPPED_KEY: Record<string, string> = {
+  0: '1', 9: '2', 8: '3', 7: '4', 6: '5',
+  p: 'q', o: 'w', i: 'e', u: 'r', y: 't',
+  ';': 'a', l: 's', k: 'd', j: 'f', h: 'g',
+  '/': 'z', '.': 'x', ',': 'c', 'm': 'v', n: 'b',
+  'F10': 'F1', 'F9': 'F2', 'F8': 'F3', 'F7': 'F4', 'F6': 'F5'
+}
 for (const k of Object.keys(FLIPPED_KEY)) FLIPPED_KEY[FLIPPED_KEY[k]] = k
 
 export function flippedKey(letter: string | undefined) {
   if (!letter) return letter
   return FLIPPED_KEY[letter] ?? letter
+}
+
+const KEY_MATRIX = [
+  '1234567890',
+  'qwertyuiop',
+  'asdfghjkl;',
+  'zxcvbnm,./',
+]
+
+export function adjacentKeycapLetter(letter: string | undefined, dx: number, dy: number) {
+  if (!letter) return undefined
+  if (letter.length > 1) return undefined
+  const row = KEY_MATRIX.findIndex(r => r.includes(letter))
+  if (row == -1) return undefined
+  const column = KEY_MATRIX[row].indexOf(letter)
+  const newRow = row + dy
+  if (newRow < 0 || newRow >= KEY_MATRIX.length) return undefined
+  const newColumn = column + dx
+  if (newColumn < 0 || newColumn >= KEY_MATRIX[newRow].length) return undefined
+  if ((column < 5) != (newColumn < 5)) return undefined
+  return KEY_MATRIX[newRow][newColumn]
 }

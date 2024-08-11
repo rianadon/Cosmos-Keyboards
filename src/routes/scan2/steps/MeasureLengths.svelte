@@ -128,10 +128,7 @@
       if (hands.Left) drawKeypoints(canvas, context, hands.Left.keypoints, 'Left')
       if (hands.Right) drawKeypoints(canvas, context, hands.Right.keypoints, 'Right')
       if ($developer && (hands.Left || hands.Right))
-        $debugImgs = [
-          ...$debugImgs,
-          { img: context.canvas.toDataURL(), data: detector.debugData() },
-        ]
+        $debugImgs = [...$debugImgs, { img: context.canvas.toDataURL(), data: detector.debugData() }]
     }
 
     timeSinceLastUpdate = performance.now() - lastUpdate
@@ -215,7 +212,9 @@
     <!-- </div> -->
     <div class="pointer-events-none">
       <div class="fixed top-0 bottom-0 left-0 right-0 flex items-center justify-center">
-        <!-- <SVGHand side={desiredHand} /> -->
+        {#if nLeft < 5}
+          <SVGHand side={desiredHand} />
+        {/if}
       </div>
       <BigHand {detector} {handPts} {size} {camera2AR} arTag={arTag1} tslu={timeSinceLastUpdate} />
     </div>
