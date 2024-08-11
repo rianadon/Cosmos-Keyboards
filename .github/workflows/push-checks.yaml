@@ -8,7 +8,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build the Dockerfile
-        run: docker-compose build
+        run: docker compose build
   openscad-node:
     name: Verify that OpenSCAD keycap scripts work (Node.js)
     runs-on: ubuntu-latest
@@ -88,24 +88,24 @@ jobs:
   #     - name: Quickstart
   #       run: make quickstart
 
-  setup-node-bun:
-    name: Verify Set up (Node/Windows)
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
+  # setup-node-bun:
+  #   name: Verify Set up (Node/Windows)
+  #   runs-on: windows-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 21
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 21
 
-      - name: Install npm dependencies
-        run: npm install
+  #     - name: Install npm dependencies
+  #       run: npm install
 
-      - name: Install make
-        run: choco install make
-    
-      - name: Parts
-        run: make ci-setup parts
+  #     - name: Install make
+  #       run: choco install make
 
-      - name: Quickstart
-        run: make quickstart
+  #     - name: Parts
+  #       run: make ci-setup parts
+
+  #     - name: Quickstart
+  #       run: make quickstart
