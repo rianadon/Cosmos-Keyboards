@@ -45,7 +45,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     category: 'Sockets',
     stepFile: '/src/assets/key-mx-pcb-twist.step',
     partOverride: MX_PART,
-    socketSize: [18.7, 18.7, 9.52],
+    socketSize: [18.7, 18.7, 8],
     partBottom: [MX_BOTTOM, box(19.4, 19.4, 6.6)],
     keycap: true,
   },
@@ -188,8 +188,8 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     }),
     partBottom: (v: Variant) => {
       // box = pcb then chip
-      if (v.size == '25mm') return [box(28.5, 21.3, 22.5), box(16, 11, 25)]
-      return [box(28.5, 21.3, 27), box(16, 11, 29.5)] // 34mm variant
+      if (v.size == '25mm') return [box(28.5, 21.3, 23.8), box(16, 11, 26.3)]
+      return [box(28.5, 21.3, 28.3), box(16, 11, 30.8)] // 34mm variant
     },
     variants: {
       size: ['25mm', '34mm'],
