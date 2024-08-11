@@ -23,7 +23,7 @@ export const KEY_INFO: Record<string, Record<number, { depth: number; tilt: numb
     0: { depth: 7.9, tilt: 0 },
   },
   xda: {
-    0: { depth: 11, tilt: 0 },
+    0: { depth: 9.9, tilt: 0 },
   },
   ma: {
     0: { depth: 11.9, tilt: 0 },
