@@ -11,7 +11,8 @@ message Keyboard {
   optional int32 wall_shrouding = 5;
   optional int32 wall_thickness = 6;
   optional uint32 key_basis = 7;
-  optional uint32 connector = 8; // Bitmask for the connector size + type
+  optional uint32 connector = 8; //DEPRECATED: Bitmask for the connector size + type
+  optional bytes connectors = 16; // Custom connector encoding
   optional int32 n_screws = 9;
   optional uint32 screw_flags = 10; // screw type (3bit), size (3bit), countersink (1bit), clear screws (1bit)
   optional uint32 microcontroller = 11;

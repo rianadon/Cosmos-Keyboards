@@ -4,10 +4,12 @@
 
 import ETrsf from '$lib/worker/modeling/transformation-ext'
 // import { deserialize } from 'src/routes/beta/lib/serialize'
+import { BinaryReader, BinaryWriter } from '@protobuf-ts/runtime'
 import {
   decodeBasicShellFlags,
   decodeClusterFlags,
   decodeConnector,
+  decodeConnectorPreset,
   decodeKeyboardFlags,
   decodeKeycap,
   decodeMicrocontroller,
@@ -18,7 +20,7 @@ import {
   decodeTiltShellFlags,
   encodeBasicShellFlags,
   encodeClusterFlags,
-  encodeConnector,
+  encodeConnectorPreset,
   encodeKeyboardFlags,
   encodeKeycap,
   encodeMicrocontroller,
@@ -29,8 +31,20 @@ import {
   encodeTiltShellFlags,
 } from '../../../target/cosmosStructs'
 import { Cluster, Curvature, Key, Keyboard, KeyboardExtra, TiltShell } from '../../../target/proto/cosmos'
-import { type Cuttleform, type CuttleKey, type CuttleKeycapKey, decodeTuple, encodeTuple, type Keycap, tupleToRot, tupletoRotOnly, tupleToXYZ, tupleToXYZA } from './config'
-import { type CosmosCluster, type CosmosKey, type CosmosKeyboard, type PartType, type Profile, toCosmosConfig } from './config.cosmos'
+import {
+  convertToMaybeCustomConnectors,
+  type Cuttleform,
+  type CuttleKey,
+  type CuttleKeycapKey,
+  decodeTuple,
+  encodeTuple,
+  type Keycap,
+  tupleToRot,
+  tupletoRotOnly,
+  tupleToXYZ,
+  tupleToXYZA,
+} from './config'
+import { type ConnectorMaybeCustom, type CosmosCluster, type CosmosKey, type CosmosKeyboard, type CustomConnector, type PartType, type Profile, toCosmosConfig } from './config.cosmos'
 import { DEFAULT_MWT_FACTOR } from './geometry.thickWebs'
 import { objKeys } from './util'
 
@@ -57,6 +71,68 @@ export function decodePartType(type: number): PartType {
     aspect: ((aspect & 0x80) ? -(aspect & 0x7F) / 32 : aspect / 32) || undefined,
     variant: variant == 0 ? undefined : variant - 1,
   }
+}
+
+export function encodeConnectors(connectors: ConnectorMaybeCustom[]) {
+  const writer = new BinaryWriter()
+  for (const conn of connectors) {
+    if (typeof conn.preset == 'undefined') {
+      writer.uint32(encodeConnectorPreset('custom'))
+      writer.sint32(Math.round(conn.x * 10))
+      writer.sint32(Math.round(conn.y * 10))
+      writer.uint32(Math.round(conn.width * 10))
+      writer.uint32(Math.round(conn.height * 10))
+      writer.uint32(Math.round(conn.radius * 10))
+    } else {
+      let preset = 0
+      if (conn.preset == 'usb') {
+        if (conn.size == 'slim') preset = encodeConnectorPreset('usb-slim')
+        if (conn.size == 'average') preset = encodeConnectorPreset('usb-average')
+        if (conn.size == 'big') preset = encodeConnectorPreset('usb-big')
+      } else preset = encodeConnectorPreset(conn.preset)
+      if (typeof conn.x != 'undefined') {
+        writer.uint32(preset | 0x80)
+        writer.sint32(Math.round(conn.x * 10))
+      } else {
+        writer.uint32(preset)
+      }
+    }
+  }
+  return writer.finish()
+}
+
+export function decodeConnectors(arr: Uint8Array) {
+  const reader = new BinaryReader(arr)
+  const connectors: ConnectorMaybeCustom[] = []
+  while (reader.pos < reader.len) {
+    const presetEncoded = reader.uint32()
+    const presetDecoded = decodeConnectorPreset(presetEncoded & 0x7F)
+    if (presetDecoded == 'custom') {
+      connectors.push({
+        x: reader.sint32() / 10,
+        y: reader.sint32() / 10,
+        width: reader.uint32() / 10,
+        height: reader.uint32() / 10,
+        radius: reader.uint32() / 10,
+      })
+    } else {
+      let connector: ConnectorMaybeCustom
+      if (presetDecoded == 'usb-slim') connector = { preset: 'usb', size: 'slim' }
+      else if (presetDecoded == 'usb-average') connector = { preset: 'usb', size: 'average' }
+      else if (presetDecoded == 'usb-big') connector = { preset: 'usb', size: 'big' }
+      else connector = { preset: presetDecoded }
+      if (presetEncoded & 0x80) connector.x = reader.sint32() / 10
+      connectors.push(connector)
+    }
+  }
+  return connectors
+}
+
+function decodeConnectorsCompatible(connectors: Uint8Array, connector: number | undefined) {
+  if (typeof connector !== 'undefined') {
+    return convertToMaybeCustomConnectors(decodeConnector(connector) as any)
+  }
+  return decodeConnectors(connectors)
 }
 
 // ----------  PROFILES ----------
@@ -115,7 +191,6 @@ export function decodeProfile(flags: number, overrideLetter?: string): Profile {
     inferredHoming = INFERRED_HOMING[letterId >> 1]
   }
   letter = overrideLetter ?? letter
-  console.log('decodeProfile', row)
   return { profile: profile ?? undefined, row: row + 1, letter, home: home || inferredHoming || null }
 }
 
@@ -132,7 +207,7 @@ export const KEYBOARD_DEFAULTS: Keyboard = {
   wallShrouding: 0,
   wallThickness: 40,
   keyBasis: encodeProfile({ profile: 'xda' }),
-  connector: encodeConnector({ connector: 'trrs', connectorSizeUSB: 'average' }),
+  connectors: encodeConnectors([{ preset: 'trrs' }, { preset: 'usb', size: 'average' }]),
   nScrews: 7,
   screwFlags: encodeScrewFlags({ screwSize: 'M3', screwType: 'screw insert', screwCountersink: true, clearScrews: true }),
   microcontroller: encodeMicrocontroller({ microcontroller: 'kb2040-adafruit', fastenMicrocontroller: true }),
@@ -405,7 +480,7 @@ export function decodeConfigIdk(b64: string): CosmosKeyboard {
       side: roundedFlags.side ? { divisor: keebExtra.roundedSideDivisor / 10, concavity: keebExtra.roundedSideConcavity / 10 } : undefined,
     },
     curvature: decodeCurvature(keeb.curvature || {}),
-    ...decodeConnector(keeb.connector),
+    connectors: decodeConnectorsCompatible(keeb.connectors, keeb.connector),
     ...decodeMicrocontroller(keeb.microcontroller),
     microcontrollerAngle: keebExtra.microcontrollerAngle / 45,
     shell: decodeShell(keeb.shell),
@@ -588,7 +663,7 @@ export function encodeCosmosConfig(conf: CosmosKeyboard): Keyboard {
     wallShrouding: Math.round(conf.wallShrouding * 10),
     wallThickness: Math.round(conf.wallThickness * 10),
     keyBasis: encodeProfile({ profile: (conf.keyBasis || null), row: 1 }),
-    connector: encodeConnector(conf),
+    connectors: encodeConnectors(conf.connectors),
     nScrews: conf.screwIndices.length,
     screwFlags: encodeScrewFlags(conf),
     microcontroller: encodeMicrocontroller(conf),

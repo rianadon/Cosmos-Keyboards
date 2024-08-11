@@ -1112,7 +1112,7 @@ export interface LabeledBoardInd {
 }
 
 interface ScoreParams {
-  kiMax: number
+  heightMax: number
   insertHeight: number
   minDisplacement: number
   minHolderDisp: number
@@ -1124,7 +1124,7 @@ interface ScoreParams {
 }
 
 function screwScoreStilts(c: Cuttleform, walls: WallCriticalPoints[], s: number, params: ScoreParams) {
-  const { kiMax, insertHeight, minDisplacement, minHolderDisp, boardInd, holderBnd, worldZ, bottomZ } = params
+  const { heightMax, insertHeight, minDisplacement, minHolderDisp, boardInd, holderBnd, worldZ, bottomZ } = params
   // The score is based on how high the key is and displacement from the nearest
   // neighboring screw insert
   const idx = Math.floor(s)
@@ -1228,14 +1228,14 @@ function maxTip(c: Cuttleform, screwIndices: number[], walls: WallCriticalPoints
 }
 
 function screwScore(c: Cuttleform, walls: WallCriticalPoints[], s: number, params: ScoreParams) {
-  const { kiMax, insertHeight, minDisplacement, boardInd, holderBnd, bottomZ, worldZ } = params
+  const { heightMax, insertHeight, minDisplacement, boardInd, holderBnd, bottomZ, worldZ } = params
   // The score is based on how high the key is and displacement from the nearest
   // neighboring screw insert
   const idx = Math.floor(s)
   const avgKi = walls[idx].ki.origin().lerp(walls[(idx + 1) % walls.length].ki.origin(), s - idx)
   const avgHeight = avgKi.dot(worldZ) - bottomZ
   if (avgHeight < insertHeight) return -Infinity
-  const height = Math.sqrt(avgHeight / kiMax)
+  const height = Math.sqrt(avgHeight / heightMax)
   let nearestDispl = Infinity
   for (const i of params.otherPositions) {
     const diff = Math.abs(i - s)
@@ -1305,7 +1305,7 @@ export function* allScrewIndices(
       if (positions.has(iCenter)) continue
       const fn = c.shell.type == 'stilts' ? screwScoreStilts : screwScore
       const sc = fn(c, walls, iCenter, {
-        kiMax,
+        heightMax: kiMax - bottomZ,
         insertHeight,
         minDisplacement,
         boardInd,

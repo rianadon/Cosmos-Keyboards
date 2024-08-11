@@ -1,11 +1,11 @@
 import defaultConfig from '$assets/cuttleform.json' assert { type: 'json' }
-import { decodeConfigIdk, encodeCosmosConfig, serializeCosmosConfig } from '$lib/worker/config.serialize'
+import { decodeConfigIdk, decodeConnectors, encodeConnectors, encodeCosmosConfig, serializeCosmosConfig } from '$lib/worker/config.serialize'
 import { expect, test } from 'bun:test'
-import { toCode } from 'src/routes/beta/lib/editor/toCode'
-import { toCuttleformProto } from 'src/routes/beta/lib/serialize'
 import { Quaternion } from 'three'
+import { toCode } from '../../../src/routes/beta/lib/editor/toCode'
+import { toCuttleformProto } from '../../../src/routes/beta/lib/serialize'
 import { cuttleConf, type Cuttleform, decodeTuple, type FullCuttleform } from './config'
-import { type CosmosCluster, type CosmosKey, type CosmosKeyboard, fromCosmosConfig, toCosmosConfig, toFullCosmosConfig } from './config.cosmos'
+import { type ConnectorMaybeCustom, type CosmosCluster, type CosmosKey, type CosmosKeyboard, fromCosmosConfig, toCosmosConfig, toFullCosmosConfig } from './config.cosmos'
 import Trsf from './modeling/transformation'
 import ETrsf, { flipKeyLabels, mirror } from './modeling/transformation-ext'
 import { trimUndefined } from './util'
@@ -101,6 +101,21 @@ test('Ensure long letters are saved', () => {
   const encoded = serializeCosmosConfig(encodeCosmosConfig(cosmos))
   const decoded = decodeConfigIdk(encoded)
   expect(decoded.clusters[0].clusters[0].keys[0].profile.letter).toEqual('LOOOONG')
+})
+
+test('Encoding connectors', () => {
+  const connectors: ConnectorMaybeCustom[] = [
+    { preset: 'trrs' },
+    { preset: 'usb', size: 'slim' },
+    { preset: 'usb', size: 'average' },
+    { preset: 'usb', size: 'big' },
+    { width: 10, height: 7, x: 0, y: 10, radius: 2 },
+    { preset: 'trrs', x: 30 },
+    { preset: 'usb', size: 'slim', x: 30 },
+    { preset: 'usb', size: 'average', x: 30 },
+    { preset: 'usb', size: 'big', x: 30 },
+  ]
+  expect(decodeConnectors(encodeConnectors(connectors))).toMatchObject(connectors)
 })
 
 // HELPER FUNCTIONS  HELPER FUNCTIONS  HELPER FUNCTIONS  HELPER FUNCTIONS  HELPER FUNCTIONS  HELPER

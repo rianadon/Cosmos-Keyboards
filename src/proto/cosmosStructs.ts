@@ -43,8 +43,11 @@ enumeration('PART', {
 enumeration('PROFILE', [null, 'xda', 'dsa', 'choc', 'sa', 'mt3', 'oem', 'des', 'cherry', 'ma'])
 enumeration('HOMING', [null, 'thumb', 'index', 'middle', 'ring', 'pinky'])
 
+// These two are deprecated
 enumeration('CONNECTOR_TYPE', [null, 'usb', 'trrs'])
 enumeration('CONNECTOR_SIZE', ['slim', 'average', 'big'])
+
+enumeration('CONNECTOR_PRESET', ['custom', 'usb-slim', 'usb-average', 'usb-big', 'trrs'], true)
 
 enumeration('SCREW_TYPE', ['screw insert', 'tapered screw insert', 'expanding screw insert', 'tapped hole'])
 enumeration('SCREW_SIZE', ['M3', 'M4', '#4-40', '#6-32'])

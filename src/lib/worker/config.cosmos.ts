@@ -115,9 +115,9 @@ export type CosmosKeyboard =
     wristRestPosition: bigint
     connectorLeftIndex: number
     connectorRightIndex: number
+    connectors: ConnectorMaybeCustom[]
   }
   & ScrewFlags
-  & Connector
 
 export const ROUND_PARTS = objKeys(PART_INFO).filter(p => 'radius' in socketSize({ type: p, variant: {} } as any))
 export const PARTS_WITH_KEYCAPS = objKeys(PART_INFO).filter(p => PART_INFO[p].keycap)
@@ -323,8 +323,7 @@ export function toCosmosConfig(conf: Cuttleform, side: 'left' | 'right' | 'unibo
     wallThickness: conf.wallThickness,
     webMinThicknessFactor: conf.webMinThicknessFactor,
     keyBasis: conf.keyBasis,
-    connector: conf.connector,
-    connectorSizeUSB: conf.connectorSizeUSB,
+    connectors: conf.connectors,
     screwIndices: conf.screwIndices,
     screwSize: conf.screwSize,
     screwType: conf.screwType,
@@ -438,8 +437,7 @@ export function sideFromCosmosConfig(c: CosmosKeyboard, side: 'left' | 'right' |
     screwType: c.screwType,
     clearScrews: c.clearScrews,
     rounded: JSON.parse(JSON.stringify(c.rounded)),
-    connector: c.connector,
-    connectorSizeUSB: c.connectorSizeUSB,
+    connectors: c.connectors,
     connectorIndex: side == 'left' ? c.connectorLeftIndex : c.connectorRightIndex,
     microcontroller: c.microcontroller,
     microcontrollerAngle: c.microcontrollerAngle,

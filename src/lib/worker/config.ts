@@ -313,8 +313,10 @@ export function cuttleConf(c: DeepRequired<CuttleformProto>): Cuttleform {
       top: c.wall.roundedTop ? { horizontal: 1 / 4, vertical: 2 / 3 } : undefined,
       side: c.wall.roundedSide ? { divisor: 3, concavity: 1.5 } : undefined,
     },
-    connector: MAP_CONNECTOR[c.wall.connector],
-    connectorSizeUSB: MAP_CONNECTOR_SIZE[c.wall.connectorSizeUsb],
+    connectors: convertToMaybeCustomConnectors({
+      connector: MAP_CONNECTOR[c.wall.connector],
+      connectorSizeUSB: MAP_CONNECTOR_SIZE[c.wall.connectorSizeUsb],
+    } as any),
     connectorIndex: -1,
     wristRestRight: c.wall.wristRest
       ? {

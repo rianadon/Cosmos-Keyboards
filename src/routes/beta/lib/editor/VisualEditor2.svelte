@@ -38,6 +38,7 @@
     fromCosmosConfig,
     mirrorCluster,
     toCosmosConfig,
+    type ConnectorMaybeCustom,
     type CosmosKeyboard,
     type PartType,
   } from '$lib/worker/config.cosmos'
@@ -52,6 +53,8 @@
   import {
     clusterAngle,
     clusterSeparation,
+    connectorsString,
+    getNKeys,
     getSize,
     getThumbN,
     isThumb,
@@ -62,10 +65,14 @@
   } from './visualEditorHelpers'
   import { mdiCodeJson, mdiPencil } from '@mdi/js'
   import Icon from '$lib/presentation/Icon.svelte'
+  import Dialog from '$lib/presentation/Dialog.svelte'
+  import ConnectorsView from '../dialogs/ConnectorsView.svelte'
 
   export let cosmosConf: CosmosKeyboard
   export let conf: FullCuttleform
   export let basic: boolean
+
+  let connectorView = false
 
   $: protoConfig.set(cosmosConf)
   $: conf = fromCosmosConfig($protoConfig)
@@ -77,7 +84,7 @@
   }
 
   let lastMicrocontroller: MicrocontrollerName = 'kb2040-adafruit'
-  let lastConnector: ConnectorType = 'trrs'
+  let lastConnectors: ConnectorMaybeCustom[] = [{ preset: 'trrs' }, { preset: 'usb', size: 'average' }]
   let lastScrews: number[] = [-1, -1, -1, -1, -1, -1, -1]
 
   function setSize(rows: number, cols: number) {
@@ -90,17 +97,17 @@
     if (originalSize.rows == 0) {
       $protoConfig.wristRestEnable = true
       $protoConfig.microcontroller = lastMicrocontroller
-      $protoConfig.connector = lastConnector
+      $protoConfig.connectors = lastConnectors
       $protoConfig.screwIndices = lastScrews
     } else {
       lastMicrocontroller = $protoConfig.microcontroller
-      lastConnector = $protoConfig.connector
+      lastConnectors = $protoConfig.connectors
       lastScrews = $protoConfig.screwIndices
     }
     if (rows == 0) {
       $protoConfig.wristRestEnable = false
       $protoConfig.microcontroller = null
-      $protoConfig.connector = null
+      $protoConfig.connectors = []
       $protoConfig.screwIndices = []
     }
   }
@@ -143,9 +150,9 @@
       $protoConfig.microcontroller != null &&
       BOARD_PROPERTIES[$protoConfig.microcontroller].extraName?.toLowerCase().includes('bluetooth')
 
-    if ($protoConfig.microcontroller == null) $protoConfig.connector = null
-    else if (isBluetooth) $protoConfig.connector = 'usb'
-    else $protoConfig.connector = 'trrs'
+    if ($protoConfig.microcontroller == null) $protoConfig.connectors = []
+    else if (isBluetooth) $protoConfig.connectors = [{ preset: 'usb', size: 'average' }]
+    else $protoConfig.connectors = [{ preset: 'trrs' }, { preset: 'usb', size: 'average' }]
   }
 
   let lastSwitch: PartType['type'] = 'mx-better'
@@ -383,6 +390,32 @@
       <DecimalInput bind:value={$protoConfig.curvature.verticalSpacing} units="mm" />
     </Field>
   {/if}
+  {#if $protoConfig.partType.type == 'mx-pcb'}
+    <InfoBox>
+      <p class="mb-1">
+        This variant requires the Amoeba King PCB. The board should fit snug within the guides. Friction
+        holds the sockets onto the switch, but you can reinforce using glue/epoxy. I don't recommend it,
+        but you can also use two 3/16 in #0-80 screws or two 4–5 mm M1.6 screws for each key ({getNKeys(
+          $protoConfig,
+          'mx-pcb'
+        ) * 2} screws total).
+      </p>
+      <p>
+        To fasten, screw down forcefully so the screws carve threads into the plastic. For hard plastics,
+        you'll need to tap the holes.
+      </p>
+    </InfoBox>
+  {:else if $protoConfig.partType.type == 'mx-hotswap'}
+    <InfoBox>
+      <p>
+        This variant requires Kailh MX hotswap sockets and a well-tuned 3D printer. Alternatives are <a
+          class="text-pink-600 underline"
+          href="https://www.printables.com/model/158559">these printable hotswap sockets</a
+        >, together with the MX-Compatible (no hotswap) setting, but they don't grip as well as the Kailh
+        MX sockets.
+      </p>
+    </InfoBox>
+  {/if}
 </Section>
 <!---<svelte:fragment slot="content">
     {#each schema.upperKeys.fields as key}
@@ -394,30 +427,6 @@
         />
       {/if}
     {/each}
-    {#if cosmosConf.upperKeys.switchType == SWITCH.MX_PCB}
-      <InfoBox>
-        <p class="mb-1">
-          This variant requires the Amoeba King PCB. The board should fit snug within the guides.
-          Friction holds the sockets onto the switch, but you can reinforce using glue/epoxy, two
-          3/16 in #0-80 screws or two 4–5 mm M1.6 screws for each key ({conf.keys.length * 4} screws
-          total).
-        </p>
-        <p>
-          To fasten, screw down forcefully so the screws carve threads into the plastic. For hard
-          plastics, you'll need to tap the holes.
-        </p>
-      </InfoBox>
-    {:else if cosmosConf.upperKeys.switchType == SWITCH.MX_HOTSWAP}
-      <InfoBox>
-        <p>
-          This variant requires Kailh MX hotswap sockets and a well-tuned 3D printer. Alternatives
-          are <a class="text-pink-600 underline" href="https://www.printables.com/model/158559"
-            >these printable hotswap sockets</a
-          >, together with the MX-Compatible (no hotswap) setting, but they don't grip as well as
-          the Kailh MX sockets.
-        </p>
-      </InfoBox>
-    {/if}
   </svelte:fragment>
 </Section>
 -->
@@ -827,18 +836,14 @@
   {/if}
   {#if !basic}
     <Field name="Connectivity" icon="usb-port">
-      <Select bind:value={$protoConfig.connector}>
+      <!-- <Select bind:value={$protoConfig.connector}>
         <option value="trrs">TRRS and USB</option>
         <option value="usb">USB only</option>
         <option value={null}>None</option>
-      </Select>
-    </Field>
-    <Field name="USB Connector Size">
-      <Select bind:value={$protoConfig.connectorSizeUSB}>
-        <option value="slim">Slim (Apple cables)</option>
-        <option value="average">Average (most cables)</option>
-        <option value="big">Big (fits everything)</option>
-      </Select>
+      </Select> -->
+      <button class="button my-0! py-0.5! mx-2! w-44" on:click={() => (connectorView = true)}>
+        {connectorsString($protoConfig.connectors)}
+      </button>
     </Field>
     {#if $protoConfig.unibody}
       <Field
@@ -1081,6 +1086,13 @@
     </Field>
   {/if}
 </Section>
+
+{#if connectorView}
+  <Dialog on:close={() => (connectorView = false)}>
+    <span slot="title">Edit Connectors</span>
+    <div slot="content"><ConnectorsView bind:connectors={$protoConfig.connectors} /></div>
+  </Dialog>
+{/if}
 
 <style>
   .button {

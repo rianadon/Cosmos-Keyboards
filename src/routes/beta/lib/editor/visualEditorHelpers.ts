@@ -1,6 +1,6 @@
 import cuttleform from '$assets/cuttleform.json'
 import { approximateCosmosThumbOrigin, cosmosFingers, cuttleConf, decodeTuple, encodeTuple, newGeometry } from '$lib/worker/config'
-import { type CosmosKey, type CosmosKeyboard, fromCosmosConfig, mirrorCluster, sideFromCosmosConfig, toCosmosConfig } from '$lib/worker/config.cosmos'
+import { type ConnectorMaybeCustom, type CosmosKey, type CosmosKeyboard, fromCosmosConfig, mirrorCluster, type PartType, sideFromCosmosConfig, toCosmosConfig } from '$lib/worker/config.cosmos'
 import { decodeCosmosCluster } from '$lib/worker/config.serialize'
 import { estimatedBB } from '$lib/worker/geometry'
 import { Vector } from '$lib/worker/modeling/transformation'
@@ -226,4 +226,34 @@ export function isThumb(c: CosmosKeyboard, type: Thumb, side: 'left' | 'right') 
       )
     )
   )
+}
+
+function connnectorString(connector: ConnectorMaybeCustom) {
+  if (!connector.preset) return 'Custom'
+  if (connector.preset == 'trrs') return 'TRRS'
+  if (connector.preset == 'usb') {
+    return { slim: 'Sm', average: 'M', big: 'Lg' }[connector.size] + '. USB'
+  }
+}
+
+export function connectorsString(connectors: ConnectorMaybeCustom[]) {
+  if (!connectors.length) return 'None'
+  return connectors.map(connnectorString).join(', ')
+}
+
+export function getNKeys(kbd: CosmosKeyboard, type: PartType['type']) {
+  let nKeys = 0
+  for (const name of ['fingers', 'thumbs']) {
+    const rightSide = kbd.clusters.find(c => c.side == 'right' && c.name == name)
+    const leftSide = kbd.clusters.find(c => c.side == 'left' && c.name == name)
+
+    const nRight = rightSide
+      ? sum(rightSide.clusters.map(c => c.keys.filter(k => !type || (k.partType.type || c.partType.type || kbd.partType.type) == type).length))
+      : 0
+    const nLeft = leftSide
+      ? sum(rightSide!.clusters.map(c => c.keys.filter(k => !type || (k.partType.type || c.partType.type || kbd.partType.type) == type).length))
+      : nRight
+    nKeys += nRight + nLeft
+  }
+  return nKeys
 }
