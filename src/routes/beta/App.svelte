@@ -1129,7 +1129,7 @@
   <Dialog big on:close={() => (kleView = false)}>
     <span slot="title">KLE Export</span>
     <div slot="content">
-      <KleView conf={config?.right ?? config?.unibody} />
+      <KleView conf={config} />
     </div>
   </Dialog>
 {/if}

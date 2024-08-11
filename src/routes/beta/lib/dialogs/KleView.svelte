@@ -1,11 +1,11 @@
 <script lang="ts">
-  import type { Cuttleform } from '$lib/worker/config'
+  import type { Cuttleform, FullCuttleform } from '$lib/worker/config'
   import { download } from '$lib/browser'
   import { toKLE } from '../kle'
   import { bomMultiplier as multiplier } from '$lib/store'
   import MultiplierDropdown from './MultiplierDropdown.svelte'
 
-  export let conf: Cuttleform
+  export let conf: FullCuttleform
 
   function downloadKLE() {
     const blob = new Blob([toKLE(conf, $multiplier == '2')], { type: 'application/json' })

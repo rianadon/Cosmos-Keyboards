@@ -1,15 +1,17 @@
-import type { Cuttleform } from '$lib/worker/config'
+import type { Cuttleform, FullCuttleform } from '$lib/worker/config'
 import Trsf from '$lib/worker/modeling/transformation'
 import { Vector } from '$lib/worker/modeling/transformation'
-import { mirror } from '$lib/worker/modeling/transformation-ext'
+import { mirror, unibody } from '$lib/worker/modeling/transformation-ext'
+import { clusterSeparation } from './editor/visualEditorHelpers'
 
 const TRANSFORM = new Vector(1 / 19, -1 / 19, 0)
 
-export function toKLE(c: Cuttleform, mir = true) {
-  const rawKeys = mir ? mirror(c.keys) : c.keys
+export function toKLE(fc: FullCuttleform, mir = true) {
+  const c = fc.right || fc.unibody!
+  const rawKeys = mir ? unibody(c.keys) : c.keys
 
   const keys = rawKeys
-    .filter(k => 'keycap' in k)
+    .filter(k => 'keycap' in k && k.type != 'blank')
     .map(k => {
       const position = k.position.evaluate({ flat: false }, new Trsf())
       const x = position.axis(1, 0, 0)
