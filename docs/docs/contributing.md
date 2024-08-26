@@ -177,12 +177,22 @@ The trackball model in Cosmos supports multiple different sizes, sensors, and be
   variants: {
     size: ['23mm', '35mm', '40mm'],
   },
+  encodeVariant: (variant: Variant) => {
+    return ['23mm', '35mm', '40mm'].indexOf(variant.size)
+  },
+  decodeVariant: (variant: number) => {
+    return {
+      size: ['23mm', '35mm', '40mm'][variant] || '23mm',
+    }
+  },
 },
 ```
 
 There is one new property here, `variants`, that describes the types of trackpad model. For this model the only configurable variable is `size`, which indicates the trackpad diameter. You can have as many variables as you like and name them anything you want. The values of these variables are appended to the filename, in the order that they are defined, so that one of the Cirque trackpads might be located at `/src/assets/key-cirque-23mm.step`.
 
 The `bomName`, `socketSize`, and `partBottom` fields are all functions of the variant information so that you can customize them for each variation. In this example some TypeScript casting, using the types generated after re-running `make`, are used to make the compiler happy.
+
+The `encodeVariant` and `decodeVariant` functions determine how to map between the variant configurations and nonnegative integers. This mapping should be 1:1. If the part has two configurable variables in its variants and each variable has three possible values, then you'll need to map to 2 × 3 = 6 integers, `0`–`5`. By convention `0` is mapped to the default configuration.
 
 ### Contributing Microcontrollers
 

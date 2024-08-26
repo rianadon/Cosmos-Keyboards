@@ -64,7 +64,6 @@
     isNthLastColumn,
     type CosmosKeyboard,
     nthPartVariant,
-    encodeVariant,
     ROUND_PARTS,
     clusterName,
     cosmosKeyPosition,
@@ -95,7 +94,7 @@
   import { TupleStore } from '../editor/tuple'
   import DecimalInputInherit from '../editor/DecimalInputInherit.svelte'
   import SelectInherit from '$lib/presentation/SelectInherit.svelte'
-  import { PART_INFO, sortedCategories } from '$lib/geometry/socketsParts'
+  import { encodeVariant, PART_INFO, sortedCategories } from '$lib/geometry/socketsParts'
   import AngleInput from '../editor/AngleInput.svelte'
   import AngleInputInherit from '../editor/AngleInputInherit.svelte'
   import { browser } from '$app/environment'

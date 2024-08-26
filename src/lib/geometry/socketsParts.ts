@@ -182,19 +182,36 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     stepFile: '/target/key-trackball.step',
     partOverride: '/target/switch-trackball.glb',
     socketSize: (v: Variant) => ({
-      radius: { '25mm': 16.4, '34mm': 20.9 }[v.size as TrackballVariant['size']],
+      radius: { '25mm': 16.4, '34mm': 20.9, '55mm': 31.4 }[v.size as TrackballVariant['size']],
       height: 4,
       sides: 20,
     }),
     partBottom: (v: Variant) => {
       // box = pcb then chip
       if (v.size == '25mm') return [box(28.5, 21.3, 23.8), box(16, 11, 26.3)]
+      if (v.size == '55mm') return [box(28.5, 21.3, 38.8), box(16, 11, 41.3)]
       return [box(28.5, 21.3, 28.3), box(16, 11, 30.8)] // 34mm variant
     },
     variants: {
-      size: ['25mm', '34mm'],
+      size: ['25mm', '34mm', '55mm'],
       bearings: ['Roller', 'Ball', 'BTU (7.5mm)', 'BTU (9mm)'],
       sensor: ['Joe'],
+    },
+    encodeVariant: (variant: Variant) => {
+      const size = ['34mm', '25mm', '55mm'].indexOf(variant.size)
+      const bearings = ['Roller', 'Ball', 'BTU (7.5mm)', 'BTU (9mm)'].indexOf(variant.bearings)
+      const sensor = ['Joe'].indexOf(variant.sensor)
+      return size + (bearings << 3) + (sensor << 6)
+    },
+    decodeVariant: (variant: number) => {
+      const size = variant & 0x7
+      const bearings = (variant >> 3) & 0x7
+      const sensor = (variant >> 6) & 0x3
+      return {
+        size: ['34mm', '25mm', '55mm'][size] || '34mm',
+        bearings: ['Roller', 'Ball', 'BTU (7.5mm)', 'BTU (9mm)'][bearings] || 'Roller',
+        sensor: ['Joe'][sensor] || 'Joe',
+      }
     },
   },
   'trackpad-cirque': {
@@ -211,6 +228,14 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     partBottom: () => [box(10, 10, 2)],
     variants: {
       size: ['23mm', '35mm', '40mm'],
+    },
+    encodeVariant: (variant: Variant) => {
+      return ['23mm', '35mm', '40mm'].indexOf(variant.size)
+    },
+    decodeVariant: (variant: number) => {
+      return {
+        size: ['23mm', '35mm', '40mm'][variant] || '23mm',
+      }
     },
   },
   'joystick-joycon-adafruit': {
@@ -261,6 +286,8 @@ type PartInfoVariant = {
   socketSize: (v: Variant, k: CuttleKey) => PartSize
   partBottom: (v: Variant) => [number, number, number][][]
   variants: Record<string, string[]>
+  decodeVariant: (n: number) => Variant
+  encodeVariant: (v: Variant) => number
 }
 type PartInfo = (PartInfoNonVariant | PartInfoVariant) & {
   partName: string
@@ -306,6 +333,17 @@ export function bomName(k: CuttleKey): string {
   const info = PART_INFO[k.type]
   if ('variants' in info) return info.bomName(k.variant!)
   return info.bomName
+}
+
+export function decodeVariant(t: CuttleKey['type'], variant: number) {
+  const info = PART_INFO[t]
+  if (!('variants' in info)) return {}
+  return info.decodeVariant(variant)
+}
+export function encodeVariant(t: CuttleKey['type'], variant: Variant) {
+  const info = PART_INFO[t]
+  if (!('variants' in info)) return 0
+  return info.encodeVariant(variant)
 }
 
 /** [[a, [1,2]], [b, [3, 4]]] -> [{a: 1, b: 3}, {a: 1, b: 4}, {a: 2, b: 3}, {a: 3, b: 4}] */

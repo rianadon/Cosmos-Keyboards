@@ -1,7 +1,7 @@
 import ETrsf, { Constant, fullMirrorETrsf, type MatrixOptions, mirror } from '$lib/worker/modeling/transformation-ext'
 // import { deserialize } from 'src/routes/beta/lib/serialize'
 import { flippedKey } from '$lib/geometry/keycaps'
-import { PART_INFO, socketSize } from '$lib/geometry/socketsParts'
+import { decodeVariant, PART_INFO, socketSize } from '$lib/geometry/socketsParts'
 import { type ClusterName, type ClusterSide, type ClusterType, type Connector, decodeClusterFlags, encodeClusterFlags, type ScrewFlags } from '$target/cosmosStructs'
 import type { Curvature } from '$target/proto/cosmos'
 import { Matrix4, Vector3 } from 'three'
@@ -513,36 +513,6 @@ export function fromCosmosConfig(c: CosmosKeyboard, flipLeft = true): FullCuttle
     }
 }
 
-export function decodeVariant(type: CuttleKey['type'], variant: number): Record<string, any> | undefined {
-  if (type == 'trackpad-cirque') {
-    return {
-      size: ['23mm', '35mm', '40mm'][variant] || '23mm',
-    }
-  } else if (type == 'trackball') {
-    const size = variant & 0x7
-    const bearings = (variant >> 3) & 0x7
-    const sensor = (variant >> 6) & 0x3
-    return {
-      size: ['34mm', '25mm'][size] || '34mm',
-      bearings: ['Roller', 'Ball', 'BTU (7.5mm)', 'BTU (9mm)'][bearings] || 'Roller',
-      sensor: ['Joe'][sensor] || 'Joe',
-    }
-  }
-  return undefined
-}
-
-export function encodeVariant(type: CuttleKey['type'], variant: Record<string, any>) {
-  if (type == 'trackpad-cirque') {
-    return ['23mm', '35mm', '40mm'].indexOf(variant.size)
-  } else if (type == 'trackball') {
-    const size = ['34mm', '25mm'].indexOf(variant.size)
-    const bearings = ['Roller', 'Ball', 'BTU (7.5mm)', 'BTU (9mm)'].indexOf(variant.bearings)
-    const sensor = ['Joe'].indexOf(variant.sensor)
-    return size + (bearings << 3) + (sensor << 6)
-  }
-  return undefined
-}
-
 // /** Determines how much the thumb cluster shifts when the thumb origin is moved from  */
 // function clusterFlatAdjustment(cluster: CosmosCluster, keeb: CosmosKeyboard) {
 
@@ -814,7 +784,7 @@ export function nthPartVariant(conf: CosmosKeyboard, n: number) {
   const { key, column, cluster } = nthKey(conf, n)
   const type = key.partType.type || column.partType.type || cluster.partType.type || conf.partType.type!
   const variant = key.partType.variant ?? column.partType.variant ?? cluster.partType.variant ?? conf.partType.variant!
-  return decodeVariant(type, variant) ?? {}
+  return decodeVariant(type, variant)
 }
 
 export function nthPartAspect(conf: CosmosKeyboard, n: number, mode: 'key' | 'column' | 'cluster') {

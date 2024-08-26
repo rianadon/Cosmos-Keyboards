@@ -31,19 +31,7 @@ import {
   encodeTiltShellFlags,
 } from '../../../target/cosmosStructs'
 import { Cluster, Curvature, Key, Keyboard, KeyboardExtra, TiltShell } from '../../../target/proto/cosmos'
-import {
-  convertToMaybeCustomConnectors,
-  type Cuttleform,
-  type CuttleKey,
-  type CuttleKeycapKey,
-  decodeTuple,
-  encodeTuple,
-  type Keycap,
-  tupleToRot,
-  tupletoRotOnly,
-  tupleToXYZ,
-  tupleToXYZA,
-} from './config'
+import { convertToMaybeCustomConnectors, type Cuttleform, type CuttleKey, decodeTuple, encodeTuple, type Keycap, tupleToRot, tupletoRotOnly, tupleToXYZ, tupleToXYZA } from './config'
 import { type ConnectorMaybeCustom, type CosmosCluster, type CosmosKey, type CosmosKeyboard, type CustomConnector, type PartType, type Profile, toCosmosConfig } from './config.cosmos'
 import { DEFAULT_MWT_FACTOR } from './geometry.thickWebs'
 import { objKeys } from './util'
