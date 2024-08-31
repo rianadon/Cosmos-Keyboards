@@ -62,7 +62,7 @@ def create_repl_tag(tag):
         repl_tag.set("style", css_style)
 
         if is_video:
-            if VIDEO_CONTROLS:
+            if VIDEO_CONTROLS and not "autoplay" in tag.attrib:
                 repl_tag.set("controls")
             if VIDEO_AUTOPLAY:
                 repl_tag.set("autoplay")
@@ -74,8 +74,14 @@ def create_repl_tag(tag):
 
     # Duplicate everything from original tag (except 2)
     for attr, val in tag.attrib.items():
-        if "src" != attr:
+        if "src" != attr and "controls" != attr:
             repl_tag.set(attr, val if val else None)
+
+    # Add extra attributes for autoplay
+    if "autoplay" in tag.attrib:
+        repl_tag.set("loop")
+        repl_tag.set("muted")
+        repl_tag.set("playsinline")
 
     div = lxml.html.Element("div")
     div.set("class", "video-container")

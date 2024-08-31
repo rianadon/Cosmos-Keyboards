@@ -323,6 +323,69 @@ Inside the [Square Braces] give the image a brief description. This description 
 
 When the site is deployed, all images are compressed to several different formats (avif, webp, and jpg) and served depending on what the browser supports. Therefore, saving your images as uncompressed `.png` files is perfectly acceptable. However, do ensure that your image's dimensions are not excessively large.
 
+??? tip "Screen Shot Workflow"
+
+    If you're inserting a lot of screenshots, it's good to have a workflow that makes saving them easy. This is different for every person and every system, but you primarily want to configure your screen capture app to save screenshots in the `docs/assets` folder and to keep this folder open so you can rename the images.
+
+    An alternative is to copy images to the clipboard then have a script that can save images from your clipboard to a file. When paired with an app that saves clipboard history, this is super powerful.
+
+    I personally use the built-in MacOS screen capture and Alfred for clipboard history. I have this bash script [[source](https://apple.stackexchange.com/a/309800)] saved on my path:
+
+    ```bash title="~/.local/bin/pss"
+    #!/bin/bash
+
+    folder=$(pwd)
+    filename="Screen Shot $(date +%Y-%m-%d\ at\ %H.%M.%S).png"
+
+    if [ $# -ne 0 ]; then
+        if [[ -d $1 ]]; then
+            if [ "$1" != "." ]; then folder=$1; fi
+        else
+            a=$(dirname "$1")
+            b=$(basename "$1" .png)
+
+            if [ "$b" != "" ]; then filename=$b.png; fi
+
+            if [ "$a" != "." ]; then folder=$a; fi
+        fi
+    fi
+
+    osascript -e "tell application \"System Events\" to ¬
+            write (the clipboard as «class PNGf») to ¬
+            (make new file at folder \"$folder\" ¬
+            with properties {name:\"$filename\"})"
+    ```
+
+    I copy screenshots to the clipboard and keep a terminal window at `docs/assets` open. When it's time to save a screenshot, I run `pss name-of-image`.
+
+### Adding Videos and Animated Images (GIFs)
+
+Videos use the same syntax as images, except that their title is set to `type:video`:
+
+```markdown
+![type:video](../assets/fusion.mp4)
+```
+
+For animated images (GIFs), you should also save them as mp4 files. Compared to animated GIFs, videos are smaller and have much higher quality. GIFs are compessed using pre-jpg compression algorithms (they're a super old format!). Now that [video compression algorithms can compress a single frame even better than jpg](https://en.wikipedia.org/wiki/AVIF), the only reason to keep using GIFs is for compatibility. Even imgur, which we all know for its GIFs, [switched to videos](https://web.archive.org/web/20151028170805/http://imgur.com/blog/2014/10/09/introducing-GIFv/?forcedesktop=1).
+
+To embed videos that are meant to behave like animated GIFs (i.e. they autoplay and loop), use this syntax:
+
+```markdown
+![type:video](../assets/animated.mp4){ autoplay }
+```
+
+When the docs are built, all the videos are transcoded to mp4 and webm. All you should worry about is that the dimensions of the video are not excessively large.
+
+### Adding Pages
+
+This works pretty much as you would expect. The name of the markdown file determines the URL, and the title of the `# First Heading` is used as the page title and is what shows up in the list of pages on the left.
+
+As you may have noticed, the list of pages on the left is now sorted alphabetically. In fact, only everything up to "Hand Scans" is alphabetical, then from there on the order is manual. You can change this order by editing `docs/docs/.pages`.
+
 ### Reference
 
-Cosmos uses [Material for Mkdocs](https://squidfunk.github.io/mkdocs-material/) for rendering documentation. Therefore, you can consult their [Reference](https://squidfunk.github.io/mkdocs-material/reference/) guide to see all the extensions to Markdown they support. I frequently use [admonitions](https://squidfunk.github.io/mkdocs-material/reference/admonitions/) when writing guides.
+Cosmos uses [Material for Mkdocs](https://squidfunk.github.io/mkdocs-material/) for rendering documentation. Therefore, you can consult their [Reference](https://squidfunk.github.io/mkdocs-material/reference/) guide to see all the extensions to Markdown they support. I frequently use [admonitions](https://squidfunk.github.io/mkdocs-material/reference/admonitions/) when writing guides, specifically the `tip` and `info` types. They look like this:
+
+!!! tip "This is a `tip` Admonition"
+
+    They're useful for providing further explanation that needs to be highlighted. You can also make them collapsible if their content is applicable to only some situations.
