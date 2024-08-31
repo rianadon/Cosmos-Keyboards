@@ -1,4 +1,4 @@
-# Documentation
+# Getting Started
 
 ## Getting Help
 
