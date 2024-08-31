@@ -360,7 +360,7 @@ export function boardConnectorOffset(config: Cuttleform): Vector {
 const sizePlusRails = (b: BoardElement) => b.size.x + (b.rails?.width || 0) * 2
 export function localHolderBounds(c: Cuttleform, layout: boolean) {
   const elements = boardElements(c, layout)
-  const connectors = layout ? [] : convertToMaybeCustomConnectors(c).map(conn => convertToCustomConnectors(c, conn))
+  const connectors = convertToMaybeCustomConnectors(c).map(conn => convertToCustomConnectors(c, conn))
   return {
     minx: Math.min(
       ...elements.map(conn => conn.offset.x - sizePlusRails(conn) / 2),
