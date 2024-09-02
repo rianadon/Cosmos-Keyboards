@@ -341,6 +341,60 @@ led_config_t g_led_config = { {
 #endif
 ```
 
+## Setting up Via
+
+Instead of reading your keyboard configuration over USB like Vial does, Via needs to be told how your keyboard is laid out. In order to do this you'll need to recreate your keyboard in the [Keyboard Layout Editor](http://www.keyboard-layout-editor.com/) website.
+
+You can skip recreating the layout by exporting to KLE directly from Cosmos. Head to the programming page then click **Download KLE Layout**. However, this layout will not look as nice as one created by hand, so you may still wish to create the layout yourself.
+
+In the top legends of the keyboard you'll need to enter the matrix positions, for example `0,0`. If you have any encoders, in the center legend (the center textbox) enter `e0` for the first encoder, `e1` for the second, etc. Here's what the finished layout might look like:
+
+![A keyboard in Cosmos shown in the keyboard layout editor, with labels replaced with matrix positions and two encoders with centered labels.](../assets/via-matrix.png){ width=550 .center }
+
+Once you're done, click the Raw Data tab in the Keyboard Layout Editor and copy the data. Then create a JSON file with the following content, in any folder you like (you can keep this file outside the firmware folder):
+
+```javascript title="cosmotyl-via.json"
+{
+  "name": "Cosmotyl",
+  "vendorId": "0x444D",
+  "productId": "0x3435",
+  "matrix": {
+    "rows": 10,
+    "cols": 8
+  },
+  "keycodes": [
+    "qmk_lighting"
+  ],
+  "menus": [
+    "qmk_rgblight"
+  ],
+  "layouts": {
+    "keymap": [
+      # PASTE YOUR RAW DATA FROM KLE HERE
+    ]
+  }
+}
+```
+
+There are a few items to edit:
+
+1. Make sure that `vendorId` and `productId` match the `vid` and `pid` from your `info.json`.
+2. `rows` should be set to double the number of rows in your keyboard (remember that the matrix coordinates share columns but not rows).
+3. `columns` should be set to the number of columns in one side of your keyboard.
+4. Make sure to paste in your KLE data under `keymap`.
+
+For more information on the options for this JSON file, refer to the [Via documentation](https://www.caniusevia.com/docs/layouts).
+
+Once you're done, open Via and click the settings gear. Make sure that "Show Design tab" is enabled.
+
+![Show Design tab setting in Via](../assets/via-design.png){ width=500 .center }
+
+Then open the design tab and click **Load** next to "Load Draft Definition".
+
+![Load button in Via Design tab](../assets/via-load.png){ width=600 .center }
+
+Select the JSON file you created, and if all goes well your keyboard design will now be imported into Via. You can preview it by selecting it next to "Show Keyboard Definition".
+
 ## Compiling and Flashing
 
 I compile and flash all in one command:
