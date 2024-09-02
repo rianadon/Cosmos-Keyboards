@@ -2,13 +2,12 @@
 
 ## Building the Project
 
-For quick instructions, refer to the [README](https://github.com/rianadon/Cosmos-Keyboards/blob/main/README.md#start-of-content). If you're not a programmer but would still like to contribute CAD designs, skip to the [Super SImple Contributing](#super-simple-contributing) section. If you'd like more details on the build system, here you go:
+For quick instructions, refer to the [README](https://github.com/rianadon/Cosmos-Keyboards/blob/main/README.md#start-of-content). If you're not a programmer but would still like to contribute, check out the [Contributing CAD Models](#contributing-cad-models) section and the [Contributing Docs](#contributing-docs) section. If you'd like more details on the build system, here you go:
 
 ### Building Documentation
 
-I've omitted instructions for building docs from the README because they're all just Markdown, and submitting a PR will trigger a preview build of the site, with documentation, on Vercel. Additionally, if you are using the docker setup, the docs server will be started as well.
-
-To generate docs, install Python 3 and venv then run the following commands:
+If you are using the docker setup, the docs server will be started as well.
+Otherwise, install Python&nbsp;3 then run the following commands:
 
 ```bash
 npm install --include=optional # Make sure optional dependencies are installed
@@ -55,7 +54,9 @@ Everything except `make` (i.e. running `make` by itself which triggers the defau
 
 You'll probably find yourself needing to run `make` (the default target) once in a while, which is intelligent enough to only re-compile things that have changed.
 
-## Super Simple Contributing
+## Contributing CAD Models
+
+### Super Simple Contributing
 
 _(relative to the other methods of contributing)_
 
@@ -88,8 +89,6 @@ The end goal is that you'll be able to create a pull request [like these](https:
 9. This button will be replaced with a new button to create a Pull Request with your changes. Write up what work you've done, and we'll discuss the changes in the comments section in the Pull Request!
 
    When you create the Pull Request, the Vercel bot will deploy a preview of the entire Cosmos website, with your changes applied. You don't have install any additional software to preview your changes; it's all managed in the cloud. ☁️
-
-## Contributing Guides
 
 ### Contributing Parts
 
@@ -194,6 +193,39 @@ The `bomName`, `socketSize`, and `partBottom` fields are all functions of the va
 
 The `encodeVariant` and `decodeVariant` functions determine how to map between the variant configurations and nonnegative integers. This mapping should be 1:1. If the part has two configurable variables in its variants and each variable has three possible values, then you'll need to map to 2 × 3 = 6 integers, `0`–`5`. By convention `0` is mapped to the default configuration.
 
+#### OLED/LCD Displays
+
+Because there are many models of displays but very few differences between the sockets, Cosmos includes a parametric socket generator for displays. This means **you do not have to create STEP files for displays**. Instead, generate the sockets in `src/model_gen/parts.ts` using code like this:
+
+```typescript
+const dfDisplayProps: DisplayProps = {
+  pcbLongSideWidth: 41.08,
+  pcbShortSideWidth: 11.5,
+  offsetFromLongSide: 0.29,
+  offsetFromTopShortSide: 4.85,
+  offsetFromBottomShortSide: 5.23,
+  displayThickness: 1.71,
+  pcbThickness: 1.13,
+}
+
+poolDisplayModel('oled-128x32-0.91in-dfrobot', dfDisplayProps, 0.5)
+poolDisplaySocket('oled-128x32-0.91in-dfrobot', dfDisplayProps)
+```
+
+Rename `dfDisplayProps` to `<yourdisplay>DisplayProps` and change `oled-128x32-0.91in-dfrobot` to the name you've given your socket. Because the code generates the display and socket separately, you'll need to specify both `stepFile` and `partOverride` when you configure the pair in `socketsParts.ts`.
+
+The numbers listed within `DisplayProps` are measurements of the display taken with calipers. All measurements are in millimeters.
+
+- `pcbLongSideWidth`: Length of the long side of the PCB
+- `pcbShortSideWidth`: Length of the short side of the PCB
+- `offsetFromLongSide`: How much the display is offset from the long side of the PCB
+- `offsetFromTopShortSide`: How much the display is offset from the top short side of the PCB.
+- `offsetFromBottomShortSide`: How much the display is offset from the bottom short side of the PCB.
+- `displayThickness`: How thick the display part is (excluding PCB)
+- `pcbThickness`: How thick the PCB is
+
+The `0.5` passed to `poolDisplayModel` describes how much the corners of the display are rounded.
+
 ### Contributing Microcontrollers
 
 There are two options to add a microcontroller. The first is to generate it entirely parametrically. Many microcontrollers share very similar designs (a rectangle with a connector on it), so the parametric generator is capable of mocking most microcontrollers.
@@ -219,3 +251,141 @@ If you'd like to follow an example, [@semickolon's pull request](https://github.
 4. Edit `src/lib/loaders/boardElement.ts` and add the model url to `MICROCONTROLLER_URLS`. The glb file will be placed in `target` or `src/assets` depending on whether you autogenerated the board or not.
 5. Edit `src/proto/cuttleform.proto` to add the microcontroller to the UI. You'll also need to edit `MAP_MICROCONTROLLER` in `src/lib/worker/config.ts` as well as the `microcontroller = 15` field.
 6. To auto-assign a specific connector when choosing the microcontroller in basic mode, edit `caseChange` in `src/routes/beta/lib/editor/VisualEditor.svelte`.
+
+## Contributing Documentation
+
+Before describing some of the advanced parts of documentation editing I'll walk through 3 different ways of contributing. They get progressively harder but also progressively more capable, so choose whichever one suits you the best.
+
+### Via GitHub (easiest)
+
+You can make simple changes to the documentation (such as fixing a typo, rephasing things, or correcting a sentence) directly on the [Cosmos GitHub repository](https://github.com/rianadon/Cosmos-Keyboards).
+
+All the documentation lives in the [`docs/docs`](https://github.com/rianadon/Cosmos-Keyboards/blob/main/docs/docs) folder, and the names of the files are the same as the page you see in the URL. This page, [https://ryanis.cool/cosmos/docs/contributing/](https://ryanis.cool/cosmos/docs/contributing/), is located at [`docs/docs/contributing.md`](https://github.com/rianadon/Cosmos-Keyboards/blob/main/docs/docs/contributing.md).
+
+1. Click the file on GitHub to open it, and you'll see a pencil icon on the top. Click it to edit the documentation on GitHub
+
+![Pencil icon for editing file on GitHub](../assets/docs-edit.png){ width=550 .center }
+
+2. When you're done, click **Commit changes...** and succinctly describe what you've changed in the "Commit message" field. Commit messages are written like instructions, such as "Correct typo in contributing guide".
+
+3. Click **Propose Changes**. GitHub will open a new _pull request_, which is an online ticket that describes the changes you've made and allows for public comments. You can change the title and message of the pull request if you'd like.
+
+4. Click **Create Pull Request**.
+
+### Via GitHub.dev
+
+If you'd like to upload new images to the documentation or edit multiple files at once, you can use [github.dev](https://docs.github.com/en/codespaces/the-githubdev-web-based-editor) to make your changes through a web browser, using an online vesion of Visual Studio Code.
+
+1. Open [https://github.dev/rianadon/Cosmos-Keyboards](https://github.dev/rianadon/Cosmos-Keyboards) or press the ++"."++ key on the Cosmos GitHub page.
+
+2. Navigate to the documentation using the file explorer.
+
+![File Explorer on GitHub.dev](../assets/docs-ghdev-files.png){ width=250 .center }
+
+3. Edit as many files as you like. You can also [add images](#adding-images) by dragging them into the `assets` folder in the explorer, but be aware that the built-in preview on GitHub.dev (Right-click file > Open Preview) does not render images the same as the docs website.
+
+4. Click the source control button in the toolbar on the left, then write a commit mesage and click **Commit and Push**. GitHub will create a pull request with your changes.
+
+![Source Control Panel on GitHub.dev](../assets/docs-ghdev-git.png){ width=250 .center }
+
+### Using Git on your Computer with Local Preview (hardest)
+
+Use this method if you'd like to preview documentation just as it will display on the website when published. It requires using git on your computer to sync changes (through the command line, your IDE, or through GitHub desktop as described in the [CAD section](#super-simple-contributing)), as well as Python 3.
+
+If you're already running Cosmos locally through docker of have fully followed the [build instructions](#building-documentation), you're already set up to start editing the documentation and preview it through your local site.
+
+If you wish to only preview documentation instead of the entire site, you can follow these steps:
+
+1. Install the required Python libraries either globally or in a virtual environment:
+
+   ```bash
+   pip install mkdocs-material[imaging]==9.5.17 \
+               mkdocs-awesome-pages-plugin==2.9.2 \
+               mkdocs-rss-plugin==1.9.0 \
+               lxml==4.9.3
+   ```
+
+2. Run `mkdocs serve` from inside the `Cosmos-Keyboards` folder you have cloned.
+
+3. Visit [http://localhost:8000/cosmos/docs/](http://localhost:8000/cosmos/docs/).
+
+4. Edit the documentation in the `docs/docs` folder.
+
+### Adding Images
+
+All images for the documentation are placed in the `docs/assets` folder. To embed an image in Markdown, use the format
+
+```markdown
+![Labeled Part and Socket](../assets/socket.png){ width=550 .center }
+```
+
+Inside the [Square Braces] give the image a brief description. This description is used as the Alt Text. The `{ width=550 .center }` is optional and sets the image's width and centers it.
+
+When the site is deployed, all images are compressed to several different formats (avif, webp, and jpg) and served depending on what the browser supports. Therefore, saving your images as uncompressed `.png` files is perfectly acceptable. However, do ensure that your image's dimensions are not excessively large.
+
+??? tip "Screen Shot Workflow"
+
+    If you're inserting a lot of screenshots, it's good to have a workflow that makes saving them easy. This is different for every person and every system, but you primarily want to configure your screen capture app to save screenshots in the `docs/assets` folder and to keep this folder open so you can rename the images.
+
+    An alternative is to copy images to the clipboard then have a script that can save images from your clipboard to a file. When paired with an app that saves clipboard history, this is super powerful.
+
+    I personally use the built-in MacOS screen capture and Alfred for clipboard history. I have this bash script [[source](https://apple.stackexchange.com/a/309800)] saved on my path:
+
+    ```bash title="~/.local/bin/pss"
+    #!/bin/bash
+
+    folder=$(pwd)
+    filename="Screen Shot $(date +%Y-%m-%d\ at\ %H.%M.%S).png"
+
+    if [ $# -ne 0 ]; then
+        if [[ -d $1 ]]; then
+            if [ "$1" != "." ]; then folder=$1; fi
+        else
+            a=$(dirname "$1")
+            b=$(basename "$1" .png)
+
+            if [ "$b" != "" ]; then filename=$b.png; fi
+
+            if [ "$a" != "." ]; then folder=$a; fi
+        fi
+    fi
+
+    osascript -e "tell application \"System Events\" to ¬
+            write (the clipboard as «class PNGf») to ¬
+            (make new file at folder \"$folder\" ¬
+            with properties {name:\"$filename\"})"
+    ```
+
+    I copy screenshots to the clipboard and keep a terminal window at `docs/assets` open. When it's time to save a screenshot, I run `pss name-of-image`.
+
+### Adding Videos and Animated Images (GIFs)
+
+Videos use the same syntax as images, except that their title is set to `type:video`:
+
+```markdown
+![type:video](../assets/fusion.mp4)
+```
+
+For animated images (GIFs), you should also save them as mp4 files. Compared to animated GIFs, videos are smaller and have much higher quality. GIFs are compessed using pre-jpg compression algorithms (they're a super old format!). Now that [video compression algorithms can compress a single frame even better than jpg](https://en.wikipedia.org/wiki/AVIF), the only reason to keep using GIFs is for compatibility. Even imgur, which we all know for its GIFs, [switched to videos](https://web.archive.org/web/20151028170805/http://imgur.com/blog/2014/10/09/introducing-GIFv/?forcedesktop=1).
+
+To embed videos that are meant to behave like animated GIFs (i.e. they autoplay and loop), use this syntax:
+
+```markdown
+![type:video](../assets/animated.mp4){ autoplay }
+```
+
+When the docs are built, all the videos are transcoded to mp4 and webm. All you should worry about is that the dimensions of the video are not excessively large.
+
+### Adding Pages
+
+This works pretty much as you would expect. The name of the markdown file determines the URL, and the title of the `# First Heading` is used as the page title and is what shows up in the list of pages on the left.
+
+As you may have noticed, the list of pages on the left is now sorted alphabetically. In fact, only everything up to "Hand Scans" is alphabetical, then from there on the order is manual. You can change this order by editing `docs/docs/.pages`.
+
+### Reference
+
+Cosmos uses [Material for Mkdocs](https://squidfunk.github.io/mkdocs-material/) for rendering documentation. Therefore, you can consult their [Reference](https://squidfunk.github.io/mkdocs-material/reference/) guide to see all the extensions to Markdown they support. I frequently use [admonitions](https://squidfunk.github.io/mkdocs-material/reference/admonitions/) when writing guides, specifically the `tip` and `info` types. They look like this:
+
+!!! tip "This is a `tip` Admonition"
+
+    They're useful for providing further explanation that needs to be highlighted. You can also make them collapsible if their content is applicable to only some situations.

@@ -1295,7 +1295,7 @@ export function* allScrewIndices(
   const insertHeight = insertDim.height
 
   const positions = new Set(initialPositions)
-  const holderBnd = (c.microcontroller || c.connector) && connOrigin ? holderBoundsOrigin(c, connOrigin.origin(), true) : undefined
+  const holderBnd = (c.microcontroller || c.connectors.length || c.connector) && connOrigin ? holderBoundsOrigin(c, connOrigin.origin(), true) : undefined
   while (true) {
     // Find position with the highest score
     let highestScore = -Infinity

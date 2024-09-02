@@ -33,6 +33,7 @@
 
   function addConnector() {
     const newConnector: ConnectorMaybeCustom = { preset: 'usb', size: 'average' }
+    if (connectors.find((c) => c.preset == 'usb')) newConnector.x = 20
     connectors = [...connectors, newConnector].sort(sortConnectors)
   }
 
@@ -52,7 +53,10 @@
     if (newPreset == 'custom') newPreset = undefined
 
     updateConnector(c, (newConn) => {
-      if (newPreset == 'usb') return { preset: 'usb', size: 'average' }
+      if (newPreset == 'usb') {
+        if (connectors.find((c) => c.preset == 'usb')) return { preset: 'usb', size: 'average', x: 20 }
+        return { preset: 'usb', size: 'average' }
+      }
       if (!newPreset) return { width: 12, height: 7, x: 0, y: 5, radius: 0 }
       return { preset: newPreset }
     })
