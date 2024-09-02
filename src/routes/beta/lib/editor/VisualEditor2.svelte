@@ -415,6 +415,17 @@
         MX sockets.
       </p>
     </InfoBox>
+  {:else if $protoConfig.partType.type == 'mx-klavgen'}
+    <InfoBox>
+      <p>
+        This variant requires Kailh MX hotswap sockets and a well-tuned 3D printer. You'll need to
+        separately print one <a
+          class="text-pink-600 underline"
+          href="https://github.com/klavgen/klavgen/blob/main/example_stls/switch_holder.stl"
+          >Klavgen switch holder</a
+        > for every key. These hold in the sockets better than the 3DP hotswap option but require extra printing.
+      </p>
+    </InfoBox>
   {/if}
 </Section>
 <!---<svelte:fragment slot="content">

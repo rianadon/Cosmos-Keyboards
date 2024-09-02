@@ -39,6 +39,16 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     partBottom: [box(16.9, 16.8, 8)],
     keycap: true,
   },
+  'mx-klavgen': {
+    partName: 'MX-Compatible with Klavgen Hotswap',
+    bomName: 'MX-Compatible Switches',
+    category: 'Sockets',
+    stepFile: '/src/assets/key-mx-klavgen.step',
+    partOverride: MX_PART,
+    socketSize: [18.75, 18.75, 2.2],
+    partBottom: [MX_BOTTOM, box(18.55, 18.55, 8)],
+    keycap: true,
+  },
   'mx-pcb-twist': {
     partName: 'MX-Compatible PCB (EXPERIMENTAL TWISTY)',
     bomName: 'MX-Compatible Switches',
