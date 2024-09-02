@@ -20,6 +20,7 @@ enumeration('PART', {
   6: 'choc',
   7: 'choc-hotswap',
   8: 'blank',
+  9: 'mx-klavgen',
 
   // You wouldn't put many of these on a keyboard.
   16: 'ec11',

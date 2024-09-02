@@ -41,7 +41,7 @@
   import { componentBoxes, componentGeometry } from '$lib/worker/geometry'
   import * as mdi from '@mdi/js'
   import Icon from '$lib/presentation/Icon.svelte'
-  import { diff, notNull, objEntriesNotNull } from '$lib/worker/util'
+  import { diff, notNull, objEntriesNotNull, objKeys } from '$lib/worker/util'
   import { readHands, type HandData } from '$lib/handhelpers'
   import { simpleSocketGeos } from '$lib/loaders/simpleparts'
   import GroupMatrix from '$lib/3d/GroupMatrix.svelte'
@@ -718,7 +718,7 @@
             >
               {#each sortedCategories as cat}
                 <optgroup label={cat}>
-                  {#each notNull(Object.values(PART)).filter((v) => PART_INFO[v].category == cat) as part}
+                  {#each notNull(objKeys(PART_INFO)).filter((v) => PART_INFO[v].category == cat) as part}
                     <option value={part}>{PART_INFO[part].partName}</option>
                   {/each}
                 </optgroup>
