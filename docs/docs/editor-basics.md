@@ -50,3 +50,57 @@ This slider changes the opacity of the keys and the baseplate. You can check, ho
 
 ## Hand scanning
 Allows you to [scan your hand](hand-scans.md), to show or hide your hand scan and to [fit the keyboard to your hand](hand-fitting.md).
+
+**Todo** describe how to scan the hand in greater detail
+
+## Settings
+![Settings](../assets/settings.png)
+
+### Keyboard visibility
+The buttons allow you to show the left, right or both halves.
+
+### Show grid
+Shows a grid. Each line is 1cm from the next. **Todo confirm spacing**
+
+### Hide wall
+Hides the walls of the keyboard, but not the top plate.
+
+### Hide base
+Hides the base plate and the microcontroller-holder.
+
+### Hide labels
+Hides the letters on the keycaps.
+
+### Hide shapers
+**Todo**
+
+## Edit key
+![edit key](../assets/edit-key.png)
+
+### Switch and keycap size
+With the bar at the top, you can select which switch you are using, and the keycap size. You can also delete the key here.
+
+### Keycap
+#### Profile
+Allows you to select, what profile the keycap uses.
+
+#### Row
+Some keycap profiles have different keycaps for different rows to be more comfortable.
+
+#### Homing
+**Todo** doesn't seem to make any visual difference?
+
+#### Letter
+The letter to be shown on this keycap
+
+### Key position
+The row and column allow you to align the keys to the grid.
+The offset offsetts the keys from the position given by the row and column.
+The rotation rotates the key in it's position. The rotation set in the curvature panel is not shown here.
+**Todo link to the curvature panel**
+
+## Filament information
+![filament info](../assets/filament-info.png)
+
+Shows you how much filament printing your keyboard would take.
+The cost estimation seems to be based on a price of about 40$ per kilogram.
