@@ -4,6 +4,9 @@
 
 You'll get the most help in the [Discord Server](https://discord.gg/nXjqkfgtGy), especially if you have questions related to using the generator or ergonomics. You may also report bugs through GitHub Issues, but I recommend you ask in the Discord Server first if you encouter problems.
 
+## Basics
+The basics of the editor can be found [here](editor-basics.md).
+
 ## Contributing
 
 Are you good at CAD and have a part you'd like to integrate into the generator? Or are you interested in improving the website? There are surely many people who would benefit from your contributions.
