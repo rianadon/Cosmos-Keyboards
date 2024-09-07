@@ -104,3 +104,9 @@ The rotation rotates the key in it's position. The rotation set in the curvature
 
 Shows you how much filament printing your keyboard would take.
 The cost estimation seems to be based on a price of about 40$ per kilogram.
+
+## Adding keys
+![type:video](../assets/videos/adding-keys.mp4){ autoplay }
+
+## Removingd keys
+![type:video](../assets/videos/removing-keys.mp4){ autoplay }
