@@ -1,7 +1,7 @@
 # Configuration
 
 ## Modes
-There are three modes for the configuration. This documentation is written for the Advanced mode.
+There are three modes for the configuration. This documentation is written for the Advanced mode. When you refresh the page, you might have to select the advanced mode again.
 
 ### Basic
 Only shows the most used configuration options.
@@ -31,6 +31,8 @@ The horizontal and vertical spacing do the following:
 
 ![outwards arc](../assets/outwards-arc.png)
 
+!!! info "The tenting angle only changes the angle of the keywell, and not of the thumb cluster."
+
 ![tenting angle](../assets/tenting-angle.png)
 
 ## Thumb cluster
@@ -40,3 +42,43 @@ If you want to make a custom thumb cluster, choose one of the presets and then e
 The curvature can be adjusted and changes the angle of the keys like with the keywell. This option only changes some thumb clusters, other presets are unaffected.
 
 ![thumb cluster curvature](../assets/thumb-cluster-curvature.png)
+
+## Case
+### Case modes
+#### Default
+The default mode creates the outer walls and a base. This can be subobtimal for high tenting angles, as there is a lot of unnecessary material (and a lot of supports).
+
+The add lip options creates a little lip around the base. This hides warping and can create a cleaner look.
+
+![default case with lip](../assets/default-case-with-lip.png)
+![default case without lip](../assets/default-case-without-lip.png)
+
+![default case mode](../assets/default-case-mode.png)
+
+#### Stilts
+The stilts case mode creates stilts for the keyboard to sit on. This works better for high tenting angles. This feature is experimental as of now, so not everything might behave as it is expected.
+
+The tuck in bottom plate option seems to push in the bottom plate a bit further.
+
+![stilts case mode](../assets/stilts-case-mode.png)
+
+#### Tilting base
+The tilting base case mode separates the base into two pieces. There is a tenting part (the one with the slits) and the normal base. This enables you to print that part with less / without supports, and the top part with less supports. This setting also makes your keyboard a bit higher, so be aware of that.
+
+The case tenting angle setting allows you to controll how much the bottom is tented, and how much is tented in the top.
+
+The use pillars option allows you to remove the pillars, makin a solid base. You can also adjust how spaced out the pillars are. The first number specifies how thick the pillars are, the second number how much space there is in between the pillars.
+
+![pillar size](../assets/pillar-size.png)
+
+The raise case by option allows you to specify, by how much the upper case should be raised.
+
+![tilting base case mode](../assets/tilting-base-case-mode.png)
+
+### Other case settings
+The microcontroller setting changes, for which microcontroller the holder is generated.
+
+If you want to glue your base on (or fix it in any other way), turn off the fasten the base with screws setting. Below that you can choose what screws you want to use (check [screws and inserts for that](screws.md).
+
+The rounded edge settings rounds off all of the "sharp" edges that were generated.
+
