@@ -76,9 +76,58 @@ The raise case by option allows you to specify, by how much the upper case shoul
 ![tilting base case mode](../assets/tilting-base-case-mode.png)
 
 ### Other case settings
+#### Connectors
+You can add more / less connectors in the edit connectors dialog.
+
+The bigger the X value for the custom position, the further away from the middle that connector is. The microcontroller holder will be generated for the values that you put in.
+
+If you choose the type custom, you can specify what width and height you want. If you want to create a circle, set the width and height to the diameter and the radius to the radius. You can also set the X and Y position here.
+
+For the connector index (L/R) see [the expert documentation](expert.md#microcontrollers-and-screw-inserts)
+
+#### Microcontroller holder
 The microcontroller setting changes, for which microcontroller the holder is generated.
 
-If you want to glue your base on (or fix it in any other way), turn off the fasten the base with screws setting. Below that you can choose what screws you want to use (check [screws and inserts for that](screws.md).
+You can set the angle for the microcontroller. Be careful, too high values will mess the holder up.
+
+Here you can see the holders for the microcontrollers.
+
+![Microcontroller with holders](../assets/microcontroller-with-holders.png)
+vs the microcontroller without holders
+
+![Microcontroller without holders](../assets/microcontroller-without-holders.png)
+
+#### Base settings
+If you want to glue your base on (or fix it in any other way), turn off the fasten the base with screws setting. Below that you can choose how many, what screws and what fasteners you want to use (check [screws and inserts for that](screws.md).
+
+You can also choose to not countersink the screws, but you will have screw heads sticking out of the bottom with this setting.
+
+#### Wall settings
 
 The rounded edge settings rounds off all of the "sharp" edges that were generated.
 
+Normal walls
+
+![normal walls](../assets/normal-walls.png)
+
+vs smooth walls
+
+![smooth walls](../assets/smooth-walls.png)
+
+With these settings enabled you get another pair of settings to controll the smoothing. TODO explain these settings
+
+No wall shrouding
+
+![no wall shrouding](../assets/no-wall-shrouding.png)
+
+vs wall shrouding
+
+![wall-shrouding](../assets/wall-shrouding.png)
+
+The wall thickness controlls the tickness of the wall. If you make it thicker the footprint will get larger, as the additional wall is added on the ouside.
+
+Minimum web thickness TODO
+
+The vertical part clearance adds clearance on the bottom so you have more space for wiring or other stuff.
+
+The auto clear screw inserts adds additional height so all scre inserts fit in there. TODO
