@@ -200,7 +200,7 @@ export const KEYBOARD_DEFAULTS: Keyboard = {
   screwFlags: encodeScrewFlags({ screwSize: 'M3', screwType: 'screw insert', screwCountersink: true, clearScrews: true }),
   microcontroller: encodeMicrocontroller({ microcontroller: 'kb2040-adafruit', fastenMicrocontroller: true }),
   roundedFlags: encodeRoundedFlags({ side: false, top: false }),
-  keyboardFlags: encodeKeyboardFlags({ wrEnable: true, unibody: false }),
+  keyboardFlags: encodeKeyboardFlags({ wrEnable: true, unibody: false, noMirrorConnectors: false }),
   wristRestPosition: encodeTuple([100, -1100, 0]),
   cluster: [],
   shell: {
@@ -474,6 +474,7 @@ export function decodeConfigIdk(b64: string): CosmosKeyboard {
     shell: decodeShell(keeb.shell),
     wristRestEnable: decodeKeyboardFlags(keeb.keyboardFlags).wrEnable,
     unibody: decodeKeyboardFlags(keeb.keyboardFlags).unibody,
+    mirrorConnectors: !decodeKeyboardFlags(keeb.keyboardFlags).noMirrorConnectors,
     wristRestProps: {
       angle: keebExtra.wristRestAngle / 45,
       taper: keebExtra.wristRestTaper / 45,
@@ -656,7 +657,7 @@ export function encodeCosmosConfig(conf: CosmosKeyboard): Keyboard {
     screwFlags: encodeScrewFlags(conf),
     microcontroller: encodeMicrocontroller(conf),
     roundedFlags: encodeRoundedFlags({ side: !!conf.rounded.side, top: !!conf.rounded.top }),
-    keyboardFlags: encodeKeyboardFlags({ wrEnable: conf.wristRestEnable, unibody: conf.unibody }),
+    keyboardFlags: encodeKeyboardFlags({ wrEnable: conf.wristRestEnable, unibody: conf.unibody, noMirrorConnectors: !conf.mirrorConnectors }),
     wristRestPosition: conf.wristRestPosition,
     cluster: conf.clusters.map(encodeCosmosCluster),
     shell: encodeShell(conf.shell),

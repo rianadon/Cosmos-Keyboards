@@ -33,7 +33,11 @@ interface BoardProperties {
   boundingBoxZ: number
   holes: Vector[]
   cutouts: { origin: Vector; size: Vector }[]
+  /** Amount to carve into the side to create the cutouts for pins */
   sidecutout: number
+  /** (optional) to how far in the positive Y direction the side cutout goes. */
+  sidecutoutMaxY?: number
+  /** Diameter of holes cut into the board holder used to attach the microcontroller. These should be tapped. */
   tappedHoleDiameter?: number
   /** Names of pins each on the sides of the microcontroller.
    * If it could be side OR rear, it's a side pin. */
@@ -45,6 +49,8 @@ interface BoardProperties {
   castellated?: boolean
   /** Override height of the backstop. */
   backstopHeight?: number
+  /** Only enabled when ?draftuc is added to the url */
+  draft?: boolean
 }
 
 type Microcontroller = Exclude<Cuttleform['microcontroller'], null>
@@ -220,6 +226,22 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     sidePins: 16, // asymmetrical; only 12 on the I2C connector side
     backstopHeight: 0,
   },
+  'cyboard-assimilator': {
+    name: 'Cyboard Assimilator',
+    extraName: '(Flex PCB)',
+    size: new Vector(29.9, 31.13, 1.57),
+    sizeName: 'Large',
+    boundingBoxZ: 5,
+    offset: new Vector(0, 0, 5 - 3.21),
+    tappedHoleDiameter: 2.5,
+    holes: [new Vector(-11.45, -9.09, 0), new Vector(11.45, -9.09, 0)],
+    cutouts: [],
+    sidecutout: 2,
+    sidecutoutMaxY: -13,
+    sidePins: 3, // asymmetrical; only 6 on one side
+    backstopHeight: 0,
+    draft: true,
+  },
 }
 
 export function sortMicrocontrollers(a: Microcontroller, b: Microcontroller) {
@@ -278,12 +300,13 @@ interface BoardOffset {
 export type Connector = 'trrs'
 
 export function convertToCustomConnectors(c: Cuttleform, conn: ConnectorMaybeCustom): CustomConnector {
+  const flip = c.flipConnectors ? -1 : 1
   if (conn.preset == 'trrs') {
     return {
       width: 6.4,
       height: 6.4,
       radius: 3.2,
-      x: conn.x ?? (c.microcontroller && BOARD_PROPERTIES[c.microcontroller].sizeName == 'Large' ? -16.5 : -14.5),
+      x: flip * (conn.x ?? (c.microcontroller && BOARD_PROPERTIES[c.microcontroller].sizeName == 'Large' ? -16.5 : -14.5)),
       y: 5,
     }
   }
@@ -292,11 +315,14 @@ export function convertToCustomConnectors(c: Cuttleform, conn: ConnectorMaybeCus
       width: { slim: 10.5, average: 12, big: 13 }[conn.size],
       height: { slim: 6.5, average: 7, big: 8 }[conn.size],
       radius: 3,
-      x: conn.x ?? 0,
+      x: flip * (conn.x ?? 0),
       y: 5,
     }
   }
-  return conn
+  return {
+    ...conn,
+    x: flip * conn.x,
+  }
 }
 
 export function boardOffsetInfo(config: Cuttleform): BoardOffset {
@@ -329,10 +355,12 @@ export function boardOffsetInfo(config: Cuttleform): BoardOffset {
 export function boardElements(config: Cuttleform, layout: boolean): BoardElement[] {
   const offset = boardOffsetInfo(config)
 
-  if (layout) return [boardElementLayout(config), ...offset.connectors]
+  const maybeFlip = (b: BoardElement) => config.flipConnectors ? { ...b, offset: new Vector(-b.offset.x, b.offset.y, b.offset.z) } : b
+
+  if (layout) return [boardElementLayout(config), ...offset.connectors].map(maybeFlip)
   if (!config.microcontroller) return []
 
-  return [
+  return ([
     {
       model: config.microcontroller,
       offset: BOARD_PROPERTIES[config.microcontroller].offset,
@@ -348,7 +376,7 @@ export function boardElements(config: Cuttleform, layout: boolean): BoardElement
       },
     },
     ...offset.connectors,
-  ]
+  ] as BoardElement[]).map(maybeFlip)
 }
 
 export function holderThickness(elements: BoardElement[]) {

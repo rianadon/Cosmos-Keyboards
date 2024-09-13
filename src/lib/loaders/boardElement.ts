@@ -18,6 +18,7 @@ const MICROCONTROLLER_URLS: Record<Microcontroller, string> = {
   'waveshare-rp2040-zero': '/target/waveshare-rp2040-zero.glb',
   'weact-studio-ch552t': '/target/weact-studio-ch552t.glb',
   'feather-rp2040-adafruit': '/src/assets/feather-rp2040-adafruit.glb',
+  'cyboard-assimilator': '/src/assets/cyboard-assimilator.glb',
 }
 
 const CONNECTOR_URLS: Record<Connector, string> = {

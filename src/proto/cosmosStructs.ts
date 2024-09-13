@@ -72,6 +72,7 @@ enumeration('MICROCONTROLLER_NAME', [
   'waveshare-rp2040-zero',
   'weact-studio-ch552t',
   'feather-rp2040-adafruit',
+  'cyboard-assimilator',
 ])
 
 struct('PartVariant', {
@@ -111,7 +112,7 @@ struct('Microcontroller', {
 })
 
 struct('RoundedFlags', { side: 'bool,1', top: 'bool,1' })
-struct('KeyboardFlags', { wrEnable: 'bool,1', unibody: 'bool,1' })
+struct('KeyboardFlags', { wrEnable: 'bool,1', unibody: 'bool,1', noMirrorConnectors: 'bool,1' })
 struct('BasicShellFlags', { lip: 'bool,1' })
 struct('StiltsShellFlags', { inside: 'bool,1' })
 struct('TiltShellFlags', { usePattern: 'bool,1' })

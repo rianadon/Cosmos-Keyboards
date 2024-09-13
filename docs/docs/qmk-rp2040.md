@@ -123,9 +123,9 @@ Navigate to the qmk home folder that `qmk setup` generated. We'll be creating a 
 
    1. Unless you plan to sell your keyboard, the `vid` and `pid` settings are arbitrary. Just try to make sure they are unique for your keyboard. I've never seen `device_version` matter in practice: it's simply a way for you to specify the version of your firmware through usb.
 
-   2. Make sure to set `diode_direction` to whichever way you've wired your diodes. Remember that the bar printed on the diode is the cathode, so it's where the "current flows to". An easy way to remember this is remembering the symbol for a diode, in which the arrow is pointing to the cathode bar.
+   2. Make sure to set `diode_direction` to whichever way the current flows in your diode wiring. Remember that the bar printed on the diode is the cathode, so it's where the "current flows to". An easy way to remember this is remembering the symbol for a diode, in which the arrow is pointing to the cathode bar. If this picture doesn't make sense, just try both! Only one of these directions will work.
 
-   ![Diode symbol showing a vertical bar with an arrow pointing towards it](../assets/cathodeanode.png){ width=300 .center }
+   ![The diode directions, illustrated](../assets/wiring-row2col.png){ width=400 .center }
 
    3. I recommend keeping the `split` settings as I wrote them here. I use `GP1` as the serial data line (so don't connect it to any switches!) The `[0,0]` in the `matrix` option refers to the top-left key in the left side of your keyboard. Holding it down when plugging in the keyboard will make it enter bootloader mode.
 

@@ -840,7 +840,7 @@ export function cutWithConnector(c: Cuttleform, wall: Solid, origin: Trsf) {
   if (connectors.length == 0) return wall
 
   const connectorSketches = connectors.map(k =>
-    (k.width == k.radius * 2 && k.height == k.radius * 2 ? drawCircle(k.radius) : drawRoundedRectangle(k.width, k.height, k.radius))
+    (k.width <= k.radius * 2 && k.height <= k.radius * 2 ? drawCircle(Math.min(k.width, k.height) / 2) : drawRoundedRectangle(k.width, k.height, k.radius))
       .translate(k.x, k.y)
   )
   const fusedSketch = connectorSketches.reduce((a, b) => a.fuse(b))
@@ -1022,7 +1022,7 @@ export function boardHolder(c: Cuttleform, geo: Geometry): Solid {
     const minx = elements[0].offset.x - elements[0].size.x / 2
     const maxx = elements[0].offset.x + elements[0].size.x / 2
     const miny = elements[0].offset.y - elements[0].size.y + 5 // +5 so the parts are still connected
-    const maxy = elements[0].offset.y - 5 // -5 so the parts are still connected
+    const maxy = Math.min(elements[0].offset.y - 5, boardProps.sidecutoutMaxY ?? Infinity) // -5 so the parts are still connected
     const miny12 = boardPos.bottomLeft ? Math.max(boardPos.bottomLeft.origin().y + outerRadius, miny) : miny
 
     const maxy1 = boardPos.topLeft ? Math.min(maxy, boardPos.topLeft.origin().y - outerRadius) : maxy

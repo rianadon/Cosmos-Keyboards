@@ -7,6 +7,7 @@
 
   export let geometry: Geometry | undefined
   export let showSupports: boolean
+  export let flip = false
 
   $: boardGeos = geometry?.c.microcontroller
     ? boardGeometries(geometry.c, geometry)
@@ -16,7 +17,7 @@
 {#await boardGeos then boards}
   {#each boards as board}
     <GroupMatrix matrix={board.matrix}>
-      <T.Mesh geometry={board.board} visible={!showSupports}>
+      <T.Mesh geometry={board.board} visible={!showSupports} scale={flip ? [-1, 1, 1] : [1, 1, 1]}>
         <KeyboardMaterial kind="key" />
       </T.Mesh>
     </GroupMatrix>

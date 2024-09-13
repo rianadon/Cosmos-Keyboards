@@ -97,6 +97,8 @@ export interface SpecificCuttleform<S> {
   /* Angle at which microcontroller should be placed */
   microcontrollerAngle: number
   fastenMicrocontroller: boolean
+  /** Flip connectors positions if true. */
+  flipConnectors: boolean
   /** Additional height to add to the model. */
   verticalClearance: number
   /* (Internal use only) Coordinate of the keyboard's bottom. */
