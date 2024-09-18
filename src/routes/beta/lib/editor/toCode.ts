@@ -66,6 +66,7 @@ export function toCode(proto: CosmosKeyboard) {
       '    ...options,',
       ...(kbd!.connectorIndex != -1 ? [`    connectorIndex: ${kbd!.connectorIndex},`] : []),
       `    keys: [...fingers${capitalize(name)}, ...thumbs${capitalize(name)}],`,
+      ...(name == 'left' && !proto.mirrorConnectors ? ['    flipConnectors: true'] : []),
       '  },',
     )
     for (const side of ['fingers', 'thumbs']) {

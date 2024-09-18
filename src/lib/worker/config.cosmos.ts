@@ -116,6 +116,7 @@ export type CosmosKeyboard =
     connectorLeftIndex: number
     connectorRightIndex: number
     connectors: ConnectorMaybeCustom[]
+    mirrorConnectors: boolean
   }
   & ScrewFlags
 
@@ -290,6 +291,9 @@ export function toFullCosmosConfig(conf: FullCuttleform, flipLeft = false): Cosm
     }
   }
   if (!kbd) throw new Error('No configuration for keyboard')
+  if (conf.right && conf.left) {
+    kbd.mirrorConnectors = conf.right.flipConnectors == conf.left.flipConnectors
+  }
 
   // If the clusters are exactly mirrored, make them mirrored in the configuration
   // This halves the URL size and gives better editing experience
@@ -332,6 +336,7 @@ export function toCosmosConfig(conf: Cuttleform, side: 'left' | 'right' | 'unibo
     microcontroller: conf.microcontroller,
     microcontrollerAngle: conf.microcontrollerAngle || 0,
     fastenMicrocontroller: conf.fastenMicrocontroller,
+    mirrorConnectors: true,
     verticalClearance: conf.verticalClearance,
     rounded: conf.rounded,
     shell: conf.shell,
@@ -442,6 +447,7 @@ export function sideFromCosmosConfig(c: CosmosKeyboard, side: 'left' | 'right' |
     microcontroller: c.microcontroller,
     microcontrollerAngle: c.microcontrollerAngle,
     fastenMicrocontroller: c.fastenMicrocontroller,
+    flipConnectors: side == 'left' && !c.mirrorConnectors,
     wristRestLeft: c.wristRestEnable
       ? {
         angle: c.wristRestProps.angle,

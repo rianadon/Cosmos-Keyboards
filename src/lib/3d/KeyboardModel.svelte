@@ -29,7 +29,11 @@
   )
 </script>
 
-{#if !$noBase}<Microcontroller geometry={microcontrollerGeometry} {showSupports} />{/if}
+{#if !$noBase}<Microcontroller
+    flip={side == 'left' || $view == 'left'}
+    geometry={microcontrollerGeometry}
+    {showSupports}
+  />{/if}
 {#each meshes.keyBufs || [] as key}
   <GroupMatrix matrix={key.matrix}>
     <KMesh
