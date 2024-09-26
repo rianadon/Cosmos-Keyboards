@@ -13,6 +13,7 @@
   } from '@mdi/js'
   import DecimalInput from '../editor/DecimalInput.svelte'
   import Checkbox from '$lib/presentation/Checkbox.svelte'
+  import { protoConfig } from '$lib/store'
 
   export let connectors: ConnectorMaybeCustom[]
 
@@ -160,6 +161,11 @@
     </li>
   {/each}
   <button class="button mx-auto" on:click={() => addConnector()}>Add</button>
+  <!-- svelte-ignore a11y-label-has-associated-control -->
+  <label class="flex items-center justify-center mt-6">
+    <Checkbox basic bind:value={$protoConfig.mirrorConnectors} />
+    Mirror Connectors on Both Side of the Keyboard
+  </label>
 </ul>
 
 <style>
