@@ -4,43 +4,88 @@ Expert Mode in Cosmos is designed to give you full control over the way keys are
 
 To use Expert Mode, you write [TypeScript](https://www.typescriptlang.org/) code to describe the keyboard configuration. However, because the configuration is declarative in nature, only a modest background in programming is required. The code should look approachable even if you've never written TypeScript before.
 
-Any configuration written in Basic/Advanced mode can be converted into code for Expert Mode. However, because Expert Mode is more capable, you cannot convert an Expert Mode program to Basic/Advanced configuration.
+Any configuration written in Basic/Advanced Mode can be converted into code for Expert Mode. Expert Mode programs likewise can be converted into Basic/Advanced Mode unless you are really stretching the limits of the generator [in one of these ways](#limitations-of-basic-expert-conversion).
 
 !!! tip "Parts Page"
 
     It's recommended you browse the [Parts Page](https://ryanis.cool/cosmos/parts) to familiarize yourself with the different key sockets Cosmos supports. The page will also tell you the name of each part within Expert mode.
+
+## ✔ When to Use Expert Mode
+
+1. **You Would Like to Use Different Curves for Positioning Keys.**
+
+   Cosmos only has two types of key positioning available: [Matrix Layout](#matrix-layout) and [Sphere Layout](#sphere-layout). However, if you'd like to lay keys out on some other type of arc like an ellipse or a spiral, and if you can write out the math, you can position keys using these algorithms.
+
+2. **Each Keyboard Half Uses Different Microcontrollers/Connectors/Rounding/Shrouding.**
+
+   Expert Mode overcomes this [limitation](#limitations-of-basic-expert-conversion) of Basic/Advanced Configuration. _You'll need to stay in Expert mode if you do this!_
+
+3. **You Are Importing Key Positions from Another Tool.**
+
+   Because Expert Mode is text-based, you can copy-paste key positions from another tool, such as key positions in a 2D keyboard from Ergogen/KiCAD or 3D positions from another CAD tool. Once you have written the necessary glue to turn these positions into the configuration Expert Mode requires, you _can switch back to Basic/Advanced Mode and edit your keyboard visually_.
+
+4. **You Want to Become Familiar with Cosmos's Codebase.**
+
+   Expert Mode's configuration structure is the same as the configuration structures used internally in Cosmos. If you'd like to see how a setting gets processed in the source code, you can look up what it's called in Expert Mode then search for that name in the source code.
+
+## ✘ When Not to Use Expert Mode
+
+For most use cases, the visual editor in Basic/Advanced is both faster and easier to edit in. I recommend against using Expert mode unless one of the reasons above applies to you.
+
+1. **You Need Precise Control over Key Positioning.**
+
+   If you select a key in Basic/Advanced mode then click on the _Edit Key_ menu on the right-hand side, you'll be able to edit exactly the key offset and rotation. You don't need Expert Mode for this.
+
+2. **You'd Like to Change an Individual Keycap or Legend.**
+
+   Also possible through the _Edit Key_ menu.
+
+3. **You are Saving Your Configuration.**
+
+   The URLs used in Basic/Advanced are both more stable and more compact than the Expert Mode code. I recommend you use these instead.
 
 ## Structure of and Interpretation of Cosmos Programs
 
 Expert Mode programs are laid out as configuration files. Every program must use the [`export default`](https://developer.mozilla.org/en-US/docs/web/javascript/reference/statements/export) syntax to return the desired configuration. Most configuration options map directly to the options available in basic and advanced modes. For example, `wallThickness` is configured as `Advanced -> Case -> Wall Thickness`.
 
 ```typescript
-export default {
+type Config = {
   keys: Key[] // Configuration for every key in the keyboard
 
-  wallThickness: number   // Thickness of walls (mm)
-  wallShrouding: number   // By how much keys should be shrouded (mm)
-  webThickness: number    // Thickness of the web between keys (mm)
+  wallThickness: number // Thickness of walls (mm)
+  wallShrouding: number // By how much keys should be shrouded (mm)
+  webThickness: number // Thickness of the web between keys (mm)
+  webMinThicknessFactor: number // Controls minimum web thickness
   rounded: RoundedOptions // For configuring rounded walls
-  shell: ShellOptions     // Configure the design of the case/shell
-                          // This is for tilted base, stilts mode, etc.
+  keyBasis: Profile // Controls how spacing relates to keycaps
+  shell: ShellOptions // Configure the design of the case/shell
+  // This is for tilted base, stilts mode, etc.
 
-  microcontroller: string          // Which microcontroller to use
-  fastenMicrocontroller: boolean   // Add tabs to hold in microcontroller?
-  connector: 'usb' | 'trrs' | null // Which connector to use
-  connectorIndex: number           // Where to place the microcontroller
+  microcontroller: string // Which microcontroller to use
+  microcontrollerAngle: number // Angle at which to affix microcontroller
+  fastenMicrocontroller: boolean // Add tabs to hold in microcontroller?
+  connectors: Connector[] // Which connector to use
+  connectorIndex: number // Where to place the microcontroller
+  flipConnectors: boolean // If true, flip connectors on this side
 
-  screwIndices: number[]           // Where to place the screw inserts
-  screwType: string                // Which type of screw insert to use
-  screwSize: string                // Which size of screw insert to use
-  screwCountersink: boolean        // Remove material to countersink holes?
+  screwIndices: number[] // Where to place the screw inserts
+  screwType: string // Which type of screw insert to use
+  screwSize: string // Which size of screw insert to use
+  screwCountersink: boolean // Remove material to countersink holes?
 
-  clearScrews: boolean      // Add extra clearance for screw inserts?
+  clearScrews: boolean // Add extra clearance for screw inserts?
   verticalClearance: number // Space between the ground and
-                            // the lowest point on any part
+  // the lowest point on any part
 
-  wristRest: WristRestOptions | null // Configuration for the wrist rest
-  wristRestOrigin: Trsf | null       // Where the wrist rest is placed
+  wristRestLeft: WristRestOptions | null // Configuration for left wrist rest
+  wristRestRight: WristRestOptions | null // Configuration for right wrist rest
+  wristRestOrigin: Trsf | null // Where the wrist rest is placed
+}
+
+export default {
+  left: Config,
+  right: Config,
+  // alternatively, `unibody: Config`
 }
 ```
 
@@ -49,6 +94,7 @@ A "key" here refers to both your regular keyboard key as well as other parts tha
 ```typescript
 type Key = {
   type: string      // The type of the key (part name or switch type)
+  variant: object   // If key has multiple variants, which one to use
 
   keycap?: {        // Only applies to keyboard switches:
     profile: string // The profile of the keycap
@@ -120,7 +166,7 @@ This lays keys out on a series of rows of concentric circles. The `spacing` argu
 
 #### An Example
 
-The code below creates an unconventional keyboard laid out on a sphere. You'll injure yourself if you try to use this keyboard in real life, but you can play around with it virtually [in the generator](https://ryanis.cool/cosmos-beta/#expert:eJxtVE2P2jAQvfMrplyALmShLVWVtqftpaqqrQo3xME4k8TF2K7tLLAr/nvHk/CxUiUknDdvZt7kjSOtCRGsi4oOOTy2B/gKLz2AvdB6WSu5NRgo+GHcYYva26ZQpsphyhhubmgMBelx/90USiJBq/UFWx4d5tDnMygT0Mf+JbhQzyn48/0VerCNieiDMtscom8wRai9KbDI4eWUHqU1BmW0PgfTaP0KIg14yGEyS+hOSW8pFL3VGm/oTyRDSaEfNAovjCQV04xTZEIWSUm49g81ak3dIbbTbERQsj8GrVwOpdAB4dQ79Xr39/ANS2UQYo2gMaZJIFrYIDgtJBZgDaCQNY2070k2g07JgNXg+SCfNmY3GMNAhKKs6j9bnR7+7kntsVHWDdZdzhaPJO8HHlfrlLrm1g8p5BsZuXuiwF7FGkrrQVvrQi+dhiQLPGVNP9PfF26faTRVrAm4uxvxKlyYqmWqjrny6wtZnckA1H3Z9hwEsGUZKLP0dsdKJCZHmdeqb4FUOJvDBIbqfvi69mQ2GjE/DZG5JtTDtg+cHdgdJht+vbw5HVUKl0xy3pZKJ9ahEOQS1c5hPu78yM9zrNQaTudsqZvAwT7ZV5Frl7oiOFqsHGZnwNmg0q2hbaKVXvpQDkddCCBjmx/NwtXo8aKaWzT+ScTGk7AZqaFX9kuLIwhe7tYpfltnWtqbndgitykwqMqENzf1ghOS7+TsUzYf3wSEqdL00/HZFm+jSIqhFs4hXXdR0qx74Ytwk8avyd+9u0Cnm7Ei3ZKgRcThajajyum3HvEQ5M514Wzzf+O5COvA4fwjvO1iXGHhhAFB40ahaXmA4gVWHrFVxzL4euHBWR8pWIpGR169LMu6jxl/mLwK8TeG+OhVpcz1vidt497pHysDiKE=).
+The code below creates an unconventional keyboard laid out on a sphere. You'll injure yourself if you try to use this keyboard in real life, but you can play around with it virtually [in the generator](https://ryanis.cool/cosmos/beta#expert:eJxtVE2P0zAQvfdXDL00ZdNsu7AcAlxYLgihRbS3KgfXmSSmrm1sZ9vuqv+dsfOxRUKVUufN1xu/mXCtnAdtvKBDDo/dAT7DywRgj+cvzAnCZ6eSzVKCjkzKTSP4XqEj/P2ArRur21KoOodlxHB35RYhxy0ev6lScCRoW4zY5mwwh2k8g1AOrZ+OxrV4DsYf716hB90qj9YJtc/B2xaDhcqrEsscXi7hlWulkHttx1IjQhTwlMNiFdCD4FaTyVstJdocVCtlMDwRC8GZfJDILFOcSCyzGMIDsg5E3Gt516CUVBx818yO7o1PU5DC5FAx6RAuk8tkcnsLX7ESCsE3CBJ9aAS8hh2CkYxjCVoBMt5QR8cJj/LQKUiynT2f+NNOHWYpzJgrq7r5vZfh5c+R2J5boc2s6GNIO6L3Hc/bIoQWsfRDMNmW+1g9uMBR+AYqbUFqbdwknBKiBZailh/p71Msn0lUtW8IuLmZx+EYPUXnKXrPrS1GZzE4A1D1TVdz5kBXlaPIyupDZMIxCBr9OvYdEBJn97CARNwm/+ZerObz6B+ayEzrmqSrA4MCh9NiF683Dk7vypkJIhmrKyGDF801qUS5c7hPez3yoY+tKOAyRHPZumicknw1qTbmZc7QYOWwGgCjnQh7RNNEE72xrkrmvQkgizI/qrVp0OLIOpZo7RPzrcUwnUSH7uynZGdgcbg7qeJ1DX5hcA5sj7FOiU7Uyr25SugM43En7+7SK5ipOjS/TAdVrPYsEIaGGYO0/6yiVo/Mlu4qLN6SvbkboctVV56WxEnmMdlS3tWKHstiHlsgcV7nTbf/1z0miTwwuf8Ab3tbCpSOfkV/WHU514YpYNS+Z5KmCSiixNoidnwjsbhv/ThpVYk6fNUgy7L+a5fC0Qrnf6Hzj1bUQvXL3/G8TPBktPWUt2Kt9BTaKrHT5Tkf0l3+AlNanPc=).
 
 ![The resulting keyboard](../assets/target/stadium.png){ width=600 .center .pad }
 
@@ -141,18 +187,19 @@ for (let r = 0; r < rows.length; r++) {
       aspect: 1,
       position: new Trsf()
         .placeOnSphere({
-          curvature: 15, // Play around with the curvature to make new designs!
-          spacing: 18.5,
+          curvature: -15, // Play around with the curvature to make new designs!
+          spacing: 22,
           angle: 0, // The rotation happens afterwards
           row: r + 2,
         })
-        .translate([110, 0, 0]) // Push the keys out from the center
-        .rotate(56 * center), // Span a total of 56 degrees
+        .translate([0, 110, 0]) // Push the keys out from the center
+        .rotate(56 * center, [0, 0, 0], [0, 0, 1]), // Span a total of 56 degrees
     })
   }
 }
 
-export default { ...options, wristRestOrigin: null, keys }
+const config = { ...options, wristRestOrigin: null, keys }
+export default { unibody: config }
 ```
 
 ### The `Trsf` Class
@@ -197,6 +244,8 @@ If a `choc` key basis is used with Choc keys, then the key basis will be positio
 
 However, if an `mt3` key basis were used with Choc keys, then spacing values would not match the final spacings. For this reason it's advised to set `keyBasis` to whichever profile you use the most within the model. Basic and Advanced modes do this automatically.
 
+If you're curious how this gets configured in the source code, [`keycaps.ts`](https://github.com/rianadon/Cosmos-Keyboards/blob/main/src/lib/geometry/keycaps.ts) defines the tilt and depth of all the keycaps. If you go the [keycaps page](https://ryanis.cool/cosmos/keycaps) and check _Developer mode_ you'll see the depth and tilt box overlaid. `applyKeyAdjustment` in [`geometry.ts`](https://github.com/rianadon/Cosmos-Keyboards/blob/main/src/lib/worker/geometry.ts) applies this adjustment.
+
 ## Microcontrollers and Screw Inserts
 
 The position of the microcontroller and screw inserts are configured using `connectorIndex` and `screwIndices` respectively. Because the microcontroller and screw inserts must be affixed to walls, their positions cannot be set to any arbitrary point in 3D space like the keys. Instead, they are located by specifying their position along the model's perimeter.
@@ -237,3 +286,23 @@ A few examples:
 - `#!ts [1.3, 5.6, 12.4]`: Manually places 3 screw inserts
 - `#!ts [0, 2, -1]`: Manually places 2 screw inserts close together, then lets the 3rd insert be automatically placed far away
 - `#!ts [-1, -1, -1, 9]`: Automatically places 3 screw inserts then places 1 manually, ignoring possible collisions. _You probably don't want to do this._
+
+## Limitations of Basic ⭤ Expert Conversion
+
+There are a few limitations of basic/advanced mode that will result in your programs being converted incorrectly from Expert Mode to Basic/Advanced.
+
+- **High-Precision Key Positioning.** Key translations are rounded to 100ths of a mm and rotations are rounded to 45ths of a degree in Basic/Advanced (45 results from fitting as much precision possible into 12 bits). _If you require more precision (why??) you should stick to Expert Mode._
+
+  When converting to basic/advanced, keys are sorted into a cluster → column → key hierarchy based on the row and column numbers used in the `placeOnMatrix` and `placeOnSphere` calls. Each of these three elements in the hierarchy are assigned a position and orientation relative to its parent. For instance, a key's position will be compute by evaluating both its position and it's parent column's position, then finding the relative transformation between the two. The rounded translation and rotation are that of this relative transformation, _not the values you use in_ _**Trsf**_ _-related functions_.
+
+- **Configuring the Left and Right Halves Differently, Apart from Keys and Wrist Rests.** In Expert mode, you can configure each half of the keyboard completely independently. You can use different wall thicknesses, connectors, and microcontrollers for each side. However, Basic/Advanced Mode assume you're using much of the same settings on both halves to save space when saving. The only properties that can be configured independently there are:
+  1. `keys` - For independent key layouts
+  2. `connectorIndex` - For configuring left and right connector placements independently
+  3. `flipConnectors` - To control whether connectors are flipped or not on both halves.
+  4. Wrist Rest configuration - `wristRestLeft` and `wristRestRight` independently control the left/right wrist rests. They are two separate properties so that unibody keyboards can also have independent wrist rests.
+
+  For all other properties, only the settings from the right half are used when converting to Basic/Advanced.
+
+- **Code Structure and Comments.** Basic/Advanced Mode stores only keyboard-specific data. _If your code is particularly clever, you should save it before switching to Basic/Advanced._
+
+You generally will not run into these limitations unless you have very specific needs that Basic/Advanced does not deliver.
