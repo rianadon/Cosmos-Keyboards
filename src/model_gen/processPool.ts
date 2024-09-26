@@ -28,7 +28,7 @@ export class ProcessPool extends PromisePool {
       name: `worker ${i}...`,
       promise: new Promise<R>((resolve, reject) => {
         cp.once('message', (m: any) => {
-          if (m.error) reject(m.error)
+          if (m.error) reject(new Error(m.error))
           else if (m.result !== 'ready') reject(new Error('Worker did not ready'))
           else resolve()
         })
@@ -45,7 +45,7 @@ export class ProcessPool extends PromisePool {
       name: item.name,
       promise: new Promise<R>((resolve, reject) => {
         cp.once('message', (m: any) => {
-          if (m.error) reject(m.error)
+          if (m.error) reject(new Error(m.error))
           else resolve(m.result)
         })
       }),
@@ -69,7 +69,7 @@ export class ProcessPool extends PromisePool {
           if (id < 0) return resolve()
           this.queue[id].f().then(
             result => process.send!({ id: process.argv[2], result }),
-            error => process.send!({ id: process.argv[2], error }),
+            error => process.send!({ id: process.argv[2], error: error.message }),
           )
         })
       })
