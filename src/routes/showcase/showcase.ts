@@ -12,7 +12,12 @@ type Keyboard = {
   keycaps?: string
 }
 
-const images: Record<string, { default: string }> = import.meta.glob(['./assets/*.jpg', '$target/media/kbd-*.jpg'], { query: '?url', eager: true })
+let images: Record<string, { default: string }>
+try {
+  images = import.meta.glob(['./assets/*.jpg', '$target/media/kbd-*.jpg'], { query: '?url', eager: true })
+} catch (e) {
+  images = {}
+}
 
 // Generate the IDs with `openssl rand -hex 4`
 const _keyboards: Record<string, Keyboard> = {
@@ -123,6 +128,36 @@ const _keyboards: Record<string, Keyboard> = {
     filament: 'Overture Black ABS',
     keycaps: 'KOA Profile from AliExpress',
     switches: 'Gateron MX Brown',
+  },
+  'a4d7f304': {
+    author: 'DieCuriousDnD',
+    type: 'split',
+    config:
+      '#cm:CosBChESBRCQQSATEgASADg7QIDGAQoQEgUQkE0gExIAEgA4J0CATgoVEgUQkFkgExIAEgMQsC84E0CEyJ0BChASBRCQZSATEgASAxCwOzgAChMSBRCQcSATEgASADgUQIiGiqAGChcSBBAQIBMSAxCgThICEDA4KECShoqQBhgAQNaHiKyQW0jc8KKgAQqPAQoXEhMQwMACQICAkAJIwpmglZC8AVBDOAgKFRIQEEBAgIAYSNCVgN2Q9QNQC1CeAgoWEhIQQECAgNQCSMKZoJWQvAFQhgFQOgoUEhAQQECAgPABSOaZ/KeQC1BXUH8KFRIQEEBAgICsA0jwmcy10DBQdFCVARgCIgcQqgEYACAAQMuLhKTQMUitkdyNwZMGEAMYhiAiBgi+ARCqATgDggEBAkgDUAdoAA==',
+    filament: 'OVV3D PLA Dual Color Purple and Sky Blue',
+    details: 'KMK and Engram with a trackpoint. The trackpoint module and board are from some Lenovo usb keyboard, and I run two usb cables through the wire loom for it and the MCU.',
+    switches: 'Choc Ambients Silent Twilights',
+    keycaps: '3D Printed <a href="https://www.printables.com/model/864126-mote-choc-low-profile-flat-keycaps">flat keycaps</a>, printed at 95% for fit',
+  },
+  '1a66e84a': {
+    author: 'Camembert',
+    type: 'split',
+    config:
+      '#cm:CpQBChESBRCAPyAnEgASABIAODtAAAoREgUQgEsgJxIAEgASADgnQAAKFxIFEIBXICcSABIAEgMQsC84E0CA8LwCChQSBRCAYyAnEgASABIDELA7OABAAAoVEgUQgG8gJxIAEgASADgUQICGisAHChcSAiAnEgASAxCgThICEDA4KECAhorABxgAQLqJoK7wVUjc8KKgAQqKAQorEhMQwIACQICAmAJIwpmglZC8AVBDEhJAgIDMAkjCmaCVkLwBUIYBWDo4CAoVEhAQQECAgCBI0JWA3ZD1A1ALUJ4CCicSEBBAQICA+AFI5pn8p5ALUFcSEUCAgKQDSPCZxLXQMFB0WJUBUH8YAiIKCMgBEMgBGAAgAEDLi/yf0DFIrZHcjcGTBjAyggECBAJIClhLYANyAigneNyLvJwB',
+    details: 'It had to be silent in sound, so I made it loud in color.',
+    filament: 'eSUN Silk PLA - gold red green',
+    switches: 'Outemu Silent Peach V2',
+    keycaps: 'Botanical clone from KBDiy on AliExpress',
+  },
+  'a8479182': {
+    author: 'jamgam',
+    name: 'Tightyl-Inspired',
+    type: 'split',
+    config:
+      '#cm:CpQBCg8SBRCQQSATEgASADg7QAAKDxIFEJBNIBMSABIAOCdAAAoaEgUQkFkgExIAEgMQsC8SAxCwXzgTQIDwvAIKFxIFEJBlIBMSABIDELA7EgMQsGs4AEAAChMSBRCQcSATEgASADgUQICGisAHChcSBBAQIBMSAxCgThICEDA4KECAhorABxgAQLqJoK7wVUjcjKvQAQpoChcSExDAgAJAgICYAkjCmaCVkLwBUEM4CAoVEhAQQECAgCBI0JWA3ZD1A1ALUJ4CChQSEBBAQICA+AFI5pn8p5ALUFdQfwoDUIICGAIiCgjIARDIARgAIABAy4v8n9AxSK2R3I3BkwYQCRiEIDgJggECBANIA1hHYANoAHIskAG5AhC5AiDd//////////8BKPoBMAo4C0AFSNT9/////////wFYlApwxgo=',
+    filament: 'BambuLab PLA Basic Gradient Arctic Whisper',
+    switches: 'Glorious Lynx',
+    keycaps: 'Custom via KeyV2. <a href="../../jamgam%20keycap.stl">[STL]</a> or <a href="../../jamgam%20keycap%20with%20base%20for%20printing.stl">[STL with Base for Printing]</a>',
   },
 }
 
