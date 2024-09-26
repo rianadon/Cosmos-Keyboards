@@ -201,7 +201,8 @@ Because there are many models of displays but very few differences between the s
 const dfDisplayProps: DisplayProps = {
   pcbLongSideWidth: 41.08,
   pcbShortSideWidth: 11.5,
-  offsetFromLongSide: 0.29,
+  offsetFromLeftLongSide: 0.29,
+  offsetFromRightLongSide: 0.29,
   offsetFromTopShortSide: 4.85,
   offsetFromBottomShortSide: 5.23,
   displayThickness: 1.71,
@@ -218,9 +219,10 @@ The numbers listed within `DisplayProps` are measurements of the display taken w
 
 - `pcbLongSideWidth`: Length of the long side of the PCB
 - `pcbShortSideWidth`: Length of the short side of the PCB
-- `offsetFromLongSide`: How much the display is offset from the long side of the PCB
-- `offsetFromTopShortSide`: How much the display is offset from the top short side of the PCB.
-- `offsetFromBottomShortSide`: How much the display is offset from the bottom short side of the PCB.
+- `offsetFromLeftLongSide`: How much the display is offset from the left long side of the PCB
+- `offsetFromRightLongSide`: How much the display is offset from the right long side of the PCB
+- `offsetFromTopShortSide`: How much the display is offset from the top short side of the PCB
+- `offsetFromBottomShortSide`: How much the display is offset from the bottom short side of the PCB
 - `displayThickness`: How thick the display part is (excluding PCB)
 - `pcbThickness`: How thick the PCB is
 

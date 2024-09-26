@@ -169,11 +169,20 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     partBottom: [box(16, 16, 5.8)],
   },
   'oled-128x32-0.91in-adafruit': {
-    partName: 'Adafruit 128x32 1" OLED',
-    bomName: 'Adafruit 128x32 1" Diagonal OLEDs',
+    partName: 'Adafruit 128x32 1" I2C OLED',
+    bomName: 'Adafruit 128x32 1" Diagonal OLEDs, I2C (Part No. 4440)',
     category: 'Displays',
     stepFile: '/src/assets/key-oled-128x32-0.91in-adafruit.step',
     socketSize: [22.044, 33.22, 5],
+    partBottom: [box(22, 33.2, 4.1)],
+  },
+  'oled-128x32-0.91in-spi-adafruit': {
+    partName: 'Adafruit 128x32 1" SPI OLED',
+    bomName: 'Adafruit 128x32 1" Diagonal OLEDs, SPI (Part No. 661)',
+    category: 'Displays',
+    stepFile: '/target/key-oled-128x32-0.91in-spi-adafruit.step',
+    partOverride: '/target/switch-oled-128x32-0.91in-spi-adafruit.glb',
+    socketSize: [23.6, 33.1, 2.5],
     partBottom: [box(22, 33.2, 4.1)],
   },
   'oled-128x32-0.91in-dfrobot': {
@@ -187,7 +196,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'trackball': {
     partName: 'Trackball',
-    bomName: () => 'Trackballs',
+    bomName: (v: Variant) => `${v.size} Trackballs`,
     category: 'Trackballs & Trackpads',
     stepFile: '/target/key-trackball.step',
     partOverride: '/target/switch-trackball.glb',
@@ -198,19 +207,22 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     }),
     partBottom: (v: Variant) => {
       // box = pcb then chip
-      if (v.size == '25mm') return [box(28.5, 21.3, 23.8), box(16, 11, 26.3)]
-      if (v.size == '55mm') return [box(28.5, 21.3, 38.8), box(16, 11, 41.3)]
-      return [box(28.5, 21.3, 28.3), box(16, 11, 30.8)] // 34mm variant
+      const pcbWidth = { 'Joe (QMK)': 28.5, 'Skree (ZMK)': 32 }[v.sensor as TrackballVariant['sensor']]
+      const pcbHeight = { 'Joe (QMK)': 21.3, 'Skree (ZMK)': 24 }[v.sensor as TrackballVariant['sensor']]
+
+      if (v.size == '25mm') return [box(pcbWidth, pcbHeight, 23.8), box(16, 11, 26.3)]
+      if (v.size == '55mm') return [box(pcbWidth, pcbHeight, 38.8), box(16, 11, 41.3)]
+      return [box(pcbWidth, pcbHeight, 28.3), box(16, 11, 30.8)] // 34mm variant
     },
     variants: {
       size: ['25mm', '34mm', '55mm'],
       bearings: ['Roller', 'Ball', 'BTU (7.5mm)', 'BTU (9mm)'],
-      sensor: ['Joe'],
+      sensor: ['Joe (QMK)', 'Skree (ZMK)'],
     },
     encodeVariant: (variant: Variant) => {
       const size = ['34mm', '25mm', '55mm'].indexOf(variant.size)
       const bearings = ['Roller', 'Ball', 'BTU (7.5mm)', 'BTU (9mm)'].indexOf(variant.bearings)
-      const sensor = ['Joe'].indexOf(variant.sensor)
+      const sensor = ['Joe (QMK)', 'Skree (ZMK)'].indexOf(variant.sensor)
       return size + (bearings << 3) + (sensor << 6)
     },
     decodeVariant: (variant: number) => {
@@ -220,7 +232,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
       return {
         size: ['34mm', '25mm', '55mm'][size] || '34mm',
         bearings: ['Roller', 'Ball', 'BTU (7.5mm)', 'BTU (9mm)'][bearings] || 'Roller',
-        sensor: ['Joe'][sensor] || 'Joe',
+        sensor: ['Joe (QMK)', 'Skree (ZMK)'][sensor] || 'Joe (QMK)',
       }
     },
   },
@@ -305,6 +317,7 @@ type PartInfo = (PartInfoNonVariant | PartInfoVariant) & {
   partOverride?: string | null
   category: string
   keycap?: boolean
+  draft?: boolean
 }
 
 // ------------------------------------------------------------------------------------------------------

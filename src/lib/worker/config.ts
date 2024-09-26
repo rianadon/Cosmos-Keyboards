@@ -1035,7 +1035,7 @@ export function decodeCustomKey(k: Cuttleform_CustomThumb_Key, keyType: KeyType,
       },
       variant: {
         bearings: 'Roller',
-        sensor: 'Joe',
+        sensor: 'Joe (QMK)',
         size: '34mm',
       },
     }
@@ -1441,7 +1441,7 @@ export function orbylThumbs(keyType: KeyType, capType: CapType, opts: Cuttleform
     },
     variant: {
       bearings: 'Roller',
-      sensor: 'Joe',
+      sensor: 'Joe (QMK)',
       size: '34mm',
     },
     position: new ETrsf()

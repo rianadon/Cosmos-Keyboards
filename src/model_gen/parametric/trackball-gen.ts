@@ -12,7 +12,12 @@ const JOE_SENSOR_LENS_WIDTH = 21 // Width of lense on sensor
 
 const BKB_SENSOR_HOLE_SPACING = 37 // Distance between two mounting holes
 const BKB_SENSOR_INSERT_DIAMETER = SCREWS.M3.mounting['screw insert'].diameter
-const BKB_SENSOR_INSERT_HEIGHT = SCREWS.M3.mounting['screw insert'].height * 1.5
+const BKB_SENSOR_INSERT_HEIGHT = 6.5
+
+const SKREE610_SENSOR_HOLE_X = 12.75
+const SKREE610_SENSOR_HOLE_Y = 8.75
+const SKREE610_SENSOR_INSERT_DIAMETER = SCREWS.M3.mounting['screw insert'].diameter - 0.8
+const SKREE610_SENSOR_INSERT_HEIGHT = BKB_SENSOR_INSERT_HEIGHT
 
 const DEFAULT_OPTS = {
   /** Trackball diameter */
@@ -26,7 +31,7 @@ const DEFAULT_OPTS = {
   /** How much material to add for sensor alignment */
   sensorAlignHeight: 1,
 
-  sensor: 'Joe' as 'Joe' | 'Bastardkb',
+  sensor: 'Joe (QMK)' as 'Joe (QMK)' | 'Bastardkb' | 'Skree (ZMK)',
   bearings: 'Ball' as 'Roller' | 'Ball' | 'BTU (9mm)' | 'BTU (7.5mm)',
 
   /** Angle from horizontal at which bearings are placed (~phi in polar coordinates) */
@@ -130,8 +135,9 @@ export function trackballSocket(opt: Partial<TrackballOptions>): Solid {
     .sketchOnPlane('XZ')
     .revolve() as Solid
 
-  if (opts.sensor == 'Joe') socket = addJoesSensor(socket, opts)
+  if (opts.sensor == 'Joe (QMK)') socket = addJoesSensor(socket, opts)
   if (opts.sensor == 'Bastardkb') socket = addBkbSensor(socket, opts)
+  if (opts.sensor == 'Skree (ZMK)') socket = addSkree610Sensor(socket, opts)
   socket = cutoutPMW(socket, opts)
 
   if (opts.bearings == 'Roller') socket = addRollerBearings(socket, opts)
@@ -277,7 +283,11 @@ function cutoutPMW(socket: Solid, opts: TrackballOptions) {
 
   // Cut out jig used to align sensor
   if (sensorAlignHeight) {
-    const alignment = drawRoundedRectangle(10.97 * 2, 19, 7.05).offset(TOLERANCE)
+    const lensCutout = opts.sensor == 'Skree (ZMK)'
+      ? drawRoundedRectangle(7.6 * 2, 8.3, 1.2) // PMW3610 with LM18-LSI SFF lens
+      : drawRoundedRectangle(10.97 * 2, 19, 7.05) // PMW3360 and PMW3389
+
+    const alignment = lensCutout.offset(TOLERANCE)
       .sketchOnPlane('XY', sensorY).extrude(-sensorAlignHeight) as Solid
     socket = socket.cut(alignment)
   }
@@ -348,4 +358,46 @@ function addBkbSensor(socket: Solid, opts: TrackballOptions) {
   return socket.fuse(bottom)
     .cut(new Trsf().translate(BKB_SENSOR_HOLE_SPACING / 2, 0, 0).transform(hole))
     .cut(new Trsf().translate(-BKB_SENSOR_HOLE_SPACING / 2, 0, 0).transform(hole))
+}
+
+/** Add sensor mount for the PMW Sensor PCB designed by Joe's Sensors. */
+function addSkree610Sensor(socket: Solid, opts: TrackballOptions) {
+  const { innerR, outerR, sensorY, outerArcEndX, outerArcEndY } = trackballGeometry(opts)
+  const { sensorAlignHeight } = opts
+
+  let socketOuter = draw()
+    .hLineTo(outerR)
+    .ellipseTo([outerArcEndX, outerArcEndY], outerR, outerR)
+    .hLineTo(0)
+    .close()
+    .sketchOnPlane('XZ')
+    .revolve() as Solid
+
+  // Post with screwhole for sensor
+  const insertHolderRadius = SKREE610_SENSOR_INSERT_DIAMETER / 2 + 2
+  const cylinder = draw().line(insertHolderRadius, sensorY)
+    .vLineTo(sensorY - PMW_LENS_HEIGHT).hLineTo(0).close()
+    .sketchOnPlane('XZ').revolve() as Solid
+
+  let bottom = drawRoundedRectangle(32, 24, 2.5).sketchOnPlane('XY').extrude(sensorY - sensorAlignHeight + 0.1) as Solid
+  // Tapped screw hole
+  // const holeInnerIntersectY = -Math.sqrt(innerR * innerR - SKREE610_SENSOR_HOLE_X ** 2 - SKREE610_SENSOR_HOLE_Y ** 2) - 0.1
+  // const hole = draw().movePointerTo([0, holeInnerIntersectY])
+  //   .line(-JOE_SENSOR_TAP_HOLE_DIAM / 2, -JOE_SENSOR_TAP_HOLE_DIAM)
+  //   .vLineTo(sensorY - PMW_LENS_HEIGHT)
+  //   .hLineTo(0).close().sketchOnPlane('XZ').revolve() as Solid
+  const hole = drawCircle(SKREE610_SENSOR_INSERT_DIAMETER / 2)
+    .sketchOnPlane('XY', sensorY - PMW_LENS_HEIGHT).extrude(SKREE610_SENSOR_INSERT_HEIGHT) as Solid
+
+  bottom = bottom.fuse(new Trsf().translate(SKREE610_SENSOR_HOLE_X, SKREE610_SENSOR_HOLE_Y, 0).transform(cylinder))
+  bottom = bottom.fuse(new Trsf().translate(SKREE610_SENSOR_HOLE_X, -SKREE610_SENSOR_HOLE_Y, 0).transform(cylinder))
+  bottom = bottom.fuse(new Trsf().translate(-SKREE610_SENSOR_HOLE_X, SKREE610_SENSOR_HOLE_Y, 0).transform(cylinder))
+  bottom = bottom.fuse(new Trsf().translate(-SKREE610_SENSOR_HOLE_X, -SKREE610_SENSOR_HOLE_Y, 0).transform(cylinder))
+  bottom = bottom.cut(socketOuter)
+
+  return socket.fuse(bottom)
+    .cut(new Trsf().translate(SKREE610_SENSOR_HOLE_X, SKREE610_SENSOR_HOLE_Y, 0).transform(hole))
+    .cut(new Trsf().translate(SKREE610_SENSOR_HOLE_X, -SKREE610_SENSOR_HOLE_Y, 0).transform(hole))
+    .cut(new Trsf().translate(-SKREE610_SENSOR_HOLE_X, SKREE610_SENSOR_HOLE_Y, 0).transform(hole))
+    .cut(new Trsf().translate(-SKREE610_SENSOR_HOLE_X, -SKREE610_SENSOR_HOLE_Y, 0).transform(hole))
 }

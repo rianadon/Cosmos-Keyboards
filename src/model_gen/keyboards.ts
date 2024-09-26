@@ -185,7 +185,7 @@ export function kbOpenSource(): Cuttleform[] {
       variant: {
         size: '34mm',
         bearings: 'Roller',
-        sensor: 'Joe',
+        sensor: 'Joe (QMK)',
       },
       aspect: 1,
       cluster: 'fingers',
@@ -253,7 +253,7 @@ export function kbCosmos(): Cuttleform {
       variant: {
         size: '34mm',
         bearings: 'Roller',
-        sensor: 'Joe',
+        sensor: 'Joe (QMK)',
       },
     },
     {
