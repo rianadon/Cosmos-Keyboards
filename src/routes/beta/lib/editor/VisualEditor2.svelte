@@ -67,6 +67,7 @@
   import Icon from '$lib/presentation/Icon.svelte'
   import Dialog from '$lib/presentation/Dialog.svelte'
   import ConnectorsView from '../dialogs/ConnectorsView.svelte'
+  import * as flags from '$lib/flags'
 
   export let cosmosConf: CosmosKeyboard
   export let conf: FullCuttleform
@@ -151,8 +152,16 @@
       BOARD_PROPERTIES[$protoConfig.microcontroller].extraName?.toLowerCase().includes('bluetooth')
 
     if ($protoConfig.microcontroller == null) $protoConfig.connectors = []
+    else if ($protoConfig.microcontroller == 'cyboard-assimilator')
+      $protoConfig.connectors = [
+        { width: 2.3, height: 2.3, x: -12.1, y: 5, radius: 100 },
+        { preset: 'usb', size: 'average', x: -3.2 },
+        { preset: 'usb', size: 'average', x: 9.4 },
+      ]
     else if (isBluetooth) $protoConfig.connectors = [{ preset: 'usb', size: 'average' }]
     else $protoConfig.connectors = [{ preset: 'trrs' }, { preset: 'usb', size: 'average' }]
+
+    $protoConfig.mirrorConnectors = $protoConfig.microcontroller != 'cyboard-assimilator'
   }
 
   let lastSwitch: PartType['type'] = 'mx-better'
@@ -884,7 +893,7 @@
       {#each MICROCONTROLLER_SIZES as size}
         <optgroup label={size}>
           {#each notNull(MICROCONTROLLER_NAME)
-            .filter((m) => BOARD_PROPERTIES[m].sizeName == size)
+            .filter((m) => BOARD_PROPERTIES[m].sizeName == size && (flags.draftuc || !BOARD_PROPERTIES[m].draft))
             .sort(sortMicrocontrollers) as controller}
             <option value={controller}>
               {BOARD_PROPERTIES[controller].name}
