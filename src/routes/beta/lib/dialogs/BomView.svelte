@@ -1,8 +1,8 @@
 <script lang="ts">
-  import type { Cuttleform, CuttleKey, Geometry } from '$lib/worker/config'
+  import { convertToMaybeCustomConnectors, type Cuttleform, type CuttleKey } from '$lib/worker/config'
   import Icon from '$lib/presentation/Icon.svelte'
   import { closestAspect, KEY_NAMES, UNIFORM } from '$lib/geometry/keycaps'
-  import { bomName } from '$lib/geometry/socketsParts'
+  import { bomName, extraBomItems, type BomItem } from '$lib/geometry/socketsParts'
   import {
     BOARD_PROPERTIES,
     holderScrewHeight,
@@ -11,6 +11,7 @@
   import { screwInsertHeight } from '$lib/geometry/screws'
   import * as mdi from '@mdi/js'
   import type { FullGeometry } from '../viewers/viewer3dHelpers'
+  import { objEntries } from '$lib/worker/util'
 
   export let geometry: FullGeometry
 
@@ -57,84 +58,55 @@
     return 'switch'
   }
 
+  function addToBom(bom: Record<any, any>, key: string, item: any) {
+    if (bom[key]) {
+      bom[key] = { ...bom[key], count: bom[key].count + item.count }
+    } else {
+      bom[key] = item
+    }
+  }
+
   function sockets(keys: CuttleKey[]) {
     const sockets: Record<any, any> = {}
     for (const key of keys) {
       if (key.type == 'blank') continue
-      if (!sockets[key.type])
-        sockets[key.type] = {
-          item: bomName(key),
-          icon: switchIcon(key.type),
-          count: 0,
-        }
-      sockets[key.type].count += 1
-    }
-    const nDiodes =
-      (sockets['old-mx']?.count || 0) +
-      (sockets['mx-hotswap']?.count || 0) +
-      (sockets['mx-better']?.count || 0) +
-      (sockets['mx-pcb']?.count || 0) +
-      (sockets['box']?.count || 0) +
-      (sockets['choc']?.count || 0)
-    const nPCB = sockets['mx-pcb']?.count || 0
-    if (nDiodes - nPCB > 0)
-      sockets['xdiodes'] = {
-        item: '1N4148 Diodes',
-        icon: 'diode',
-        count: nDiodes - nPCB,
-      }
-    if (nPCB > 0) {
-      sockets['xdiodes-pcb'] = {
-        item: '1N4148 Diodes (SOD-123)',
-        icon: 'diode',
-        count: nPCB,
-      }
-      sockets['pcb'] = {
-        item: 'Amoeba King PCBs',
-        icon: 'pcb',
-        count: sockets['mx-pcb'].count,
-      }
-      sockets['pcb-hotswap'] = {
-        item: 'Kailh Hotswap Sockets',
-        icon: 'hotswap',
-        count: sockets['mx-pcb'].count,
-      }
-      sockets['pcb-led'] = {
-        item: 'SK6812MINI-E LEDs (Optional)',
-        icon: 'led',
-        count: sockets['mx-pcb'].count,
-      }
-    }
-    const nHotswap = sockets['mx-hotswap']?.count || 0
-    if (nHotswap > 0) {
-      sockets['pcb-hotswap'] = {
-        item: 'Kailh Hotswap Sockets',
-        icon: 'hotswap',
-        count: nHotswap,
-      }
-    }
-    const nTrackball = sockets['trackball']?.count || 0
-    if (nTrackball > 0) {
-      sockets['trackball-dowel'] = {
-        item: '3 x 8 mm Dowel Pins',
-        icon: 'trackball',
-        count: 3 * nTrackball,
-      }
-      sockets['trackball-bearing'] = {
-        item: '3 x 6 x 2.5 mm Bearings',
-        icon: 'trackball',
-        count: 3 * nTrackball,
-      }
-      sockets['trackball-sensor'] = {
-        item: 'PMW3360 or PMW3389 Sensors',
-        icon: 'trackball',
-        info: 'Supports <a class="underline" href="https://www.tindie.com/products/citizenjoe/pmw3389-motion-sensor/">these PCBs</a> from Tindie',
-        count: nTrackball,
-      }
+      addToBom(sockets, key.type + bomName(key), {
+        item: bomName(key),
+        icon: switchIcon(key.type),
+        count: 1,
+      })
+      Object.entries(extraBomItems(key)).forEach(([key, item]) =>
+        addToBom(sockets, key + item.item, item)
+      )
     }
     return Object.keys(sockets)
       .sort()
       .map((s) => sockets[s])
+  }
+
+  function connectorsForSide(conf: Cuttleform) {
+    const conn = convertToMaybeCustomConnectors(conf)
+    const nTrrs = conn.filter((c) => c.preset == 'trrs').length
+    const nUSB = conn.filter((c) => c.preset == 'usb').length
+    const nSecondaryUSB = Math.max(nUSB - 1, 0)
+    const nCustom = conn.filter((c) => !c.preset).length
+    const items: Record<string, BomItem> = {}
+    if (nTrrs > 0) items['trrs'] = { item: 'PJ-320A TRRS Connectors', icon: 'trrs', count: nTrrs }
+    if (nTrrs > 0) items['trrs-cable'] = { item: 'TRRS Cable', icon: 'cable', count: nTrrs / 2 }
+    if (nCustom > 0) items['custom'] = { item: 'Custom Connectors', icon: 'trrs', count: nCustom }
+    if (nSecondaryUSB > 0)
+      items['usb'] = { item: 'USB Connectors', icon: 'usb-port', count: nSecondaryUSB }
+    return items
+  }
+
+  function connectors(geometry: FullGeometry) {
+    const bom: Record<string, BomItem> = {}
+    Object.values(geometry).forEach((g) =>
+      objEntries(connectorsForSide(g.c)).forEach(([key, item]) => addToBom(bom, key, item))
+    )
+    return Object.keys(bom)
+      .sort()
+      .map((s) => bom[s])
   }
 
   function nScrewInserts(geo: FullGeometry) {
@@ -215,19 +187,19 @@
           </div>
         </li>
       {/if}
-      {#if conf.connector == 'trrs'}
+      {#each connectors(geometry) as conn}
         <li class="item">
           <div class="icon-container">
-            <div class="icon"><Icon size="24" path={mdi.mdiSquareCircleOutline} /></div>
+            <div class="icon"><Icon size="24" name={conn.icon} /></div>
           </div>
           <div class="title-full">
             <div>
-              <span class="amount">{multiplier}</span>
-              <span>PJ-320A TRRS Connectors</span>
+              <span class="amount">{Math.round(conn.count)}</span>
+              <span>{conn.item}</span>
             </div>
           </div>
         </li>
-      {/if}
+      {/each}
       <li class="item">
         <div class="icon-container"><div class="icon"><Icon size="24" name="wire" /></div></div>
         <div class="title-full">

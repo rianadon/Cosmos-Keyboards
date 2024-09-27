@@ -42,6 +42,18 @@ Cosmos supports a few options for wiring: soldering directly to the switches, us
 
 When you wire your switches, you may use any pins but the ones used in the following applicable sections. Pin numbers are specified as `GP#`/`GPIO#`, which refers to the pin number used in the RP2040 chip. Most microcontroller boards match these numbers, so a `20` printed on your silkscreen will be connected to `GP20`. If you're using the KB2040, refer to the [pinout](https://learn.adafruit.com/adafruit-kb2040/pinouts) to learn which GPIO numbers of all the pins.
 
+### Key Matrix
+
+![Example of keyboard matrix wiring.](../assets/matrix.png){ width=500 .center }
+
+Cosmos will suggest a matrix in which to wire the keys under the _Programming_ tab, but it's incorrect so _you should not use it verbatim_. The rules for wiring the keys are pretty simple:
+
+1. Every key has a row wire and column wire connected to it.
+2. No two keys share _both_ the same row _and_ column wire.
+3. If your microcontroller has few pins, you'll need to be creative in how you minimize the total number of rows and columns.
+
+The image above is a Cosmos wiring diagram I fixed by adding the fatter squiggly lines. Once you've decided on a matrix, wire all the row wires to one side of the microcontroller and the column wires to the other side. I recommend you stay consistent between sides, so if you assign rows to D2-D8 on the left half of the keyboard, use D2-D8 for rows on the right half.
+
 ### TRRS Interconnection
 
 GP1 is used as the data line, so **do not wire it to switches**. If you do connect it to a switch, make sure to choose a new data pin and specify it in `info.json` (covered later).
@@ -49,6 +61,14 @@ GP1 is used as the data line, so **do not wire it to switches**. If you do conne
 There is no recommended way to wire a TRRS as long as you are consistent between both halves. This is how I personally do it.
 
 ![Picture of a PJ320A jack. All connections are made to one side of the connector. From the hole back: 5V/Vout, data, then ground.](../assets/pj320a.png){ width=250 .center }
+
+!!! info "Notes on TRRS"
+
+    TRRS jacks come in 4-pin and 3-pin varieties, and QMK supports using either 3 pins or all 4 pins. I choose the 3-pin wiring because it makes your keyboard work with a much larger variety of TRRS cables. Regardless of whether you choose 3 pins or 4 pins, the PJ-320A connector is the easiest to source so that's what Cosmos uses.
+
+    Some boards have both Vin and Vout pins. Vout is directly connected to microcontroller power, whereas Vin has extra circuitry that ensures current only flows *in* to Vin. This prevents backpowering (e.g. if you've connected Vin to 4V and plugged in USB (5V), these power sources won't be shorted. Nevertheless, we'd like to be able to power our keyboards from either half, and the only power the keyboard receives is from USB, so it's safe to connect Vout to Vout.
+
+    Vout is 5V power, and on other microcontrollers it's called **RAW** or **VSYS**. I don't recommend using the 3.3V pin in its place, unless you are absolutely sure you won't be adding LEDs and have a robust cable (voltage drop from resistance within the cable/connectors is ok over the 5V wire but not ok over 3.3V). LEDs go on the 5V pin because they will use more power than the 5V -> 3.3V regulator can provide, and connecting 5V allows you to put LEDs on both halves.
 
 ### Encoders
 
