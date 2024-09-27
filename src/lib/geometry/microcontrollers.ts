@@ -51,6 +51,7 @@ interface BoardProperties {
   backstopHeight?: number
   /** Only enabled when ?draftuc is added to the url */
   draft?: boolean
+  dontCount?: boolean
 }
 
 type Microcontroller = Exclude<Cuttleform['microcontroller'], null>
@@ -241,6 +242,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     sidePins: 3, // asymmetrical; only 6 on one side
     backstopHeight: 0,
     draft: true,
+    dontCount: true,
   },
 }
 
@@ -259,15 +261,16 @@ export function sortMicrocontrollers(a: Microcontroller, b: Microcontroller) {
 // Use a constant set of board properties for layout so
 // that no matter the microcontroller, the connector is
 // always placed in the correct spot
+// TODO: Only consider boards in same size class.
 function boardElementLayout(c: Cuttleform): BoardElement {
   return {
     model: 'layout',
     offset: new Vector(0, 0, 0),
     size: new Vector(
-      Math.max(...Object.values(BOARD_PROPERTIES).map(p => p.size.x)),
+      Math.max(...Object.values(BOARD_PROPERTIES).filter(p => !p.dontCount).map(p => p.size.x)),
       c.microcontroller
         ? BOARD_PROPERTIES[c.microcontroller].size.y
-        : Math.min(...Object.values(BOARD_PROPERTIES).map(p => p.size.y)),
+        : Math.min(...Object.values(BOARD_PROPERTIES).filter(p => !p.dontCount).map(p => p.size.y)),
       0,
     ),
     boundingBoxZ: 5,
