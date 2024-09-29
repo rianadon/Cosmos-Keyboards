@@ -13,9 +13,10 @@
 </script>
 
 <ul class="my-4 text-center">
-  <DecimalInput bind:value={nRows} />
-  <span class="ml-3">&times;</span>
-  <DecimalInput bind:value={nCols} />
+  <DecimalInput divisor={1} small bind:value={nRows} />
+  <span class="ml-2">rows <span class="ml-1">&times;</span></span>
+  <DecimalInput divisor={1} small bind:value={nCols} />
+  <span class="ml-2">columns</span>
   <div class="mb-4" />
   <button class="button mx-auto" on:click={() => changeSize()}>Set</button>
 </ul>

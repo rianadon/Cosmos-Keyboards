@@ -102,6 +102,7 @@
   import KeyboardMaterial from '$lib/3d/KeyboardMaterial.svelte'
   import { fade } from 'svelte/transition'
   import Preset from '$lib/presentation/Preset.svelte'
+  import { base } from '$app/paths'
 
   export let darkMode: boolean
   export let showSupports = false
@@ -336,7 +337,7 @@
   }
 
   function handleKeyUp(event: KeyboardEvent) {
-    if (event.keyCode == 17) snapRotation = true
+    if (event.keyCode == 17) snapRotation = false
   }
 
   function getClickedSide(
@@ -714,7 +715,7 @@
             class:left--24!={PART_INFO[nthPartType($protoConfig, $clickedKey, $selectMode)].partName
               .length < 20}
           >
-            <img src="/arrow2.svg" class="absolute h-13 top--9 right-7" />
+            <img src="{base}/arrow2.svg" class="absolute h-13 top--9 right-7" />
             You can change a key to a trackball, trackpad, display, or encoder here!
           </div>
         </div>
@@ -804,7 +805,7 @@
           <div
             class="absolute z-10 top-16 right--5 w-48 font-urbanist font-500 select-none text-sm opacity-80"
           >
-            <img src="/arrow1.svg" class="absolute h-13 top--9 right-7" />
+            <img src="{base}/arrow1.svg" class="absolute h-13 top--9 right-7" />
             Delete keys using this button or the <span class="kbd">delete</span> key.
           </div>
         </div>
@@ -887,21 +888,21 @@
         <div
           class="absolute right-19 top-13 z-10 font-urbanist font-500 w-45 opacity-80 text-sm text-right"
         >
-          <img src="/arrow3.svg" class="absolute h-11 right--12.5 top--2" />
+          <img src="{base}/arrow3.svg" class="absolute h-11 right--12.5 top--2" />
           Use these tools to select or reposition keys.<br />
           <span class="text-xs">tip: hold ctrl while rotating to snap to 90&deg;</span>
         </div>
         <div
           class="absolute right-19 top-38 z-10 font-urbanist font-500 w-45 opacity-80 text-sm text-right"
         >
-          <img src="/arrow4.svg" class="absolute h-11 right--12.5 top--3.8" />
+          <img src="{base}/arrow4.svg" class="absolute h-11 right--12.5 top--3.8" />
           Change selection mode!
           <span class="text-xs">tip: you can add columns by switching to column mode</span>
         </div>
         <div
           class="absolute right-19 top-64 z-10 font-urbanist font-500 w-60 opacity-80 text-sm text-right"
         >
-          <img src="/arrow5.svg" class="absolute h-11 right--12.5" />
+          <img src="{base}/arrow5.svg" class="absolute h-11 right--12.5" />
           <p class="w-45 ml-auto">This menu has *lots* of goodies. Try opening it!</p>
           <span class="text-xs">it changes for each selection mode</span>
         </div>
@@ -1415,7 +1416,7 @@
             <div
               class="absolute right-70 top-72 z-10 font-urbanist font-500 w-70 opacity-80 text-sm text-right"
             >
-              <img src="/arrow5.svg" class="absolute h-11 right--12.5" />
+              <img src="{base}/arrow5.svg" class="absolute h-11 right--12.5" />
               If moving keys around by hand isn't accurate enough for you, you can edit the exact positions
               here!
               <p class="text-xs mt-2">
