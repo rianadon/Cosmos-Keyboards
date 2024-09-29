@@ -34,6 +34,7 @@ export const stiltsMsg = storable('stiltsMsg', true)
 export const modelName = storable('modelName', 'cosmotyl')
 export const discordMsg = storable('discordMsg', true)
 export const enableUndo = storable('enableUndo', false)
+export const showHelp = storable('showHelp', true)
 
 export const developer = storable('developer', browser && location.origin.includes('localhost'))
 export const showTiming = andcondition(developer, storable('developer.timing', false))

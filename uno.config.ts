@@ -1,5 +1,6 @@
 import extractorSvelte from '@unocss/extractor-svelte'
 import transformerDirectives from '@unocss/transformer-directives'
+import transformerVariantGroup from '@unocss/transformer-variant-group'
 import { defineConfig, presetUno } from 'unocss'
 
 export default defineConfig({
@@ -32,11 +33,13 @@ export default defineConfig({
     fontFamily: {
       system: '-apple-system, BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, helvetica, Cantarell, Ubuntu, roboto, noto, arial, sans-serif',
       urbanist: 'Urbanist, sans-serif',
+      dynapuff: 'Dynapuff, sans-serif',
+      loxley: 'Loxley, sans-serif',
     },
   },
   presets: [presetUno({
     dark: 'media',
   })],
   extractors: [extractorSvelte()],
-  transformers: [transformerDirectives()],
+  transformers: [transformerDirectives(), transformerVariantGroup()],
 })

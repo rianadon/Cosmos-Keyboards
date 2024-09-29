@@ -39,6 +39,7 @@
     mirrorCluster,
     toCosmosConfig,
     type ConnectorMaybeCustom,
+    type CosmosKey,
     type CosmosKeyboard,
     type PartType,
   } from '$lib/worker/config.cosmos'
@@ -57,23 +58,34 @@
     getNKeys,
     getSize,
     getThumbN,
+    hasInnerCol,
+    hasKey,
+    hasOuterCol,
+    isFnKey,
+    isNumKey,
     isThumb,
     setClusterAngle,
     setClusterSeparation,
     setClusterSize,
     setThumbCluster,
+    toggleFnRow,
+    toggleInnerCol,
+    toggleNumRow,
+    toggleOuterCol,
   } from './visualEditorHelpers'
-  import { mdiCodeJson, mdiPencil } from '@mdi/js'
+  import { mdiCodeJson, mdiPencil, mdiArrowLeft, mdiArrowRight, mdiDotsVertical } from '@mdi/js'
   import Icon from '$lib/presentation/Icon.svelte'
   import Dialog from '$lib/presentation/Dialog.svelte'
   import ConnectorsView from '../dialogs/ConnectorsView.svelte'
   import * as flags from '$lib/flags'
+  import SizeEditView from '../dialogs/SizeEditView.svelte'
 
   export let cosmosConf: CosmosKeyboard
   export let conf: FullCuttleform
   export let basic: boolean
 
   let connectorView = false
+  let sizeEditView = false
 
   $: protoConfig.set(cosmosConf)
   $: conf = fromCosmosConfig($protoConfig)
@@ -88,11 +100,11 @@
   let lastConnectors: ConnectorMaybeCustom[] = [{ preset: 'trrs' }, { preset: 'usb', size: 'average' }]
   let lastScrews: number[] = [-1, -1, -1, -1, -1, -1, -1]
 
-  function setSize(rows: number, cols: number) {
+  function setSize(rows: number, cols: number, addExtraRow = true) {
     const originalSize = getSize($protoConfig, 'right')!
     protoConfig.update((k) => {
-      setClusterSize(k, 'left', rows, cols)
-      setClusterSize(k, 'right', rows, cols)
+      setClusterSize(k, 'left', rows, cols, addExtraRow)
+      setClusterSize(k, 'right', rows, cols, addExtraRow)
       return k
     })
     if (originalSize.rows == 0) {
@@ -361,14 +373,69 @@
   <button class="absolute top-0 right-2 button" on:click={() => editJointlySeparately('fingers')}
     ><Icon path={mdiPencil} />{#if leftFingersCl}Edit Jointly{:else}Edit Separately{/if}</button
   >
-  <Preset on:click={() => setSize(3, 4)} selected={isSize($protoConfig, 3, 4)}>3 × 4</Preset>
+  <!-- <Preset on:click={() => setSize(3, 4)} selected={isSize($protoConfig, 3, 4)}>3 × 5</Preset>
+  <Preset on:click={() => setSize(3, 5)} selected={isSize($protoConfig, 3, 5)}>3 × 6</Preset>
   <Preset on:click={() => setSize(4, 5)} selected={isSize($protoConfig, 4, 5)}>4 × 5</Preset>
   <Preset on:click={() => setSize(4, 6)} selected={isSize($protoConfig, 4, 6)}>4 × 6</Preset>
   <Preset on:click={() => setSize(5, 5)} selected={isSize($protoConfig, 5, 5)}>5 × 5</Preset>
   <Preset on:click={() => setSize(5, 6)} selected={isSize($protoConfig, 5, 6)}>5 × 6</Preset>
   <Preset on:click={() => setSize(0, 0)} selected={isSize($protoConfig, 0, 0)}
     ><span class="relative top-[-0.1em]">&empty;</span></Preset
-  >
+  > -->
+  <!-- <div class="flex gap-1 items-center">
+    <div class="mx-2">Rows</div>
+    <Preset>4</Preset>
+    <Preset selected><span class="font-mono text-xs relative top--0.5 mr-1">num</span>5</Preset>
+    <Preset><span class="font-mono text-xs relative top--0.5 mr-1">fn</span>6</Preset>
+    <div class="mr-2 ml-6">Columns</div>
+    <Preset selected>5</Preset>
+    <Preset>6</Preset>
+    <Preset>7</Preset>
+  </div> -->
+  <div class="flex gap-1">
+    <Preset
+      class="flex pl-2! pr-3! gap-1 items-center"
+      on:click={() => protoConfig.update(toggleOuterCol)}
+      selected={hasOuterCol($protoConfig)}
+      ><Icon class="opacity-70 mr--3" size="22" name="column" /><Icon
+        class="opacity-70"
+        size="18"
+        path={mdiArrowLeft}
+      />Out</Preset
+    >
+    <Preset
+      class="flex pl-2! pr-3! gap-2 items-center"
+      on:click={() => protoConfig.update(toggleNumRow)}
+      selected={hasKey($protoConfig, isNumKey)}
+      ><Icon class="opacity-70" size="22" name="row" />Num</Preset
+    >
+    <Preset
+      class="flex pl-2! pr-3! gap-2 items-center"
+      on:click={() => protoConfig.update(toggleFnRow)}
+      selected={hasKey($protoConfig, isFnKey)}
+      ><Icon class="opacity-70 relative" size="22" name="row" />Fn</Preset
+    >
+    <Preset
+      class="flex pl-2! pr-3! gap-1 items-center"
+      on:click={() => protoConfig.update(toggleInnerCol)}
+      selected={hasInnerCol($protoConfig)}
+      ><Icon class="opacity-70 mr--3" size="22" name="column" /><Icon
+        class="opacity-70"
+        size="18"
+        path={mdiArrowRight}
+      />Inner</Preset
+    >
+    <Preset
+      on:click={() => (isSize($protoConfig, 0, 0) ? setSize(5, 5) : setSize(0, 0))}
+      selected={isSize($protoConfig, 0, 0)}><span class="relative top-[-0.1em]">&empty;</span></Preset
+    >
+    <Preset class="px-2!" gray on:click={() => (sizeEditView = true)}
+      ><span class="border bg-white/50 rounded-0.5 line-height-5 w-5 text-center inline-block">r</span>
+      &times;
+      <span class="border bg-white/50 rounded-0.5 line-height-5 w-5 text-center inline-block">c</span
+      ></Preset
+    >
+  </div>
   <Field name="Keycaps" icon="keycap">
     <Select bind:value={$protoConfig.profile} on:change={updateKeycaps}>
       {#each notNull(PROFILE).sort(sortProfiles) as prof}
@@ -413,6 +480,11 @@
         To fasten, screw down forcefully so the screws carve threads into the plastic. For hard plastics,
         you'll need to tap the holes.
       </p>
+    </InfoBox>
+  {:else if $protoConfig.partType.type == 'mx-pcb-twist'}
+    <InfoBox>
+      This variant requires Plum Twist or Spiral Galaxy PCBs. I'm still working on documentation, so
+      check the #pcbs channel on Discord for updates.
     </InfoBox>
   {:else if $protoConfig.partType.type == 'mx-hotswap'}
     <InfoBox>
@@ -1114,9 +1186,18 @@
   </Dialog>
 {/if}
 
+{#if sizeEditView}
+  <Dialog small on:close={() => (sizeEditView = false)}>
+    <span slot="title">Set Size Exactly</span>
+    <div slot="content">
+      <SizeEditView on:size={(e) => setSize(e.detail[0] + 1, e.detail[1], false)} />
+    </div>
+  </Dialog>
+{/if}
+
 <style>
   .button {
-    --at-apply: 'appearance-none bg-gray-200 dark:bg-gray-900 px-2 py-1 m-1 rounded text-gray-800 dark:text-gray-200 flex items-center  gap-2';
+    --at-apply: 'appearance-none bg-slate-200 dark:bg-gray-900 px-2 py-1 m-1 rounded text-gray-800 dark:text-gray-200 flex items-center  gap-2';
   }
   .button:not(:disabled) {
     --at-apply: 'hover:bg-gray-400 dark:hover:bg-gray-700';

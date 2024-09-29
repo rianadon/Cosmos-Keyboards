@@ -130,7 +130,7 @@ export function addKeyInPlace(keeb: CosmosKeyboard, n: number, dx: number, dy: n
   let newKey: CosmosKey = {
     profile: {
       letter: adjacentKeycapLetter(key.profile.letter, dx, dy),
-      row: typeof oldRow != 'undefined' ? Math.max(1, Math.min(4, oldRow + dy)) : undefined,
+      row: typeof oldRow != 'undefined' ? Math.max(0, Math.min(4, oldRow + dy)) : undefined,
       home: null,
     },
     partType: {},
@@ -172,7 +172,9 @@ export function addColumnInPlace(keeb: CosmosKeyboard, n: number, dx: number): C
   const col = column.column
   if (typeof col == 'undefined') return undefined
   const newKeys = column.keys.map(k => ({
-    ...JSON.parse(JSON.stringify(k)),
+    ...JSON.parse(JSON.stringify({ ...k, position: undefined, rotation: undefined })),
+    position: k.position,
+    rotation: k.rotation,
     profile: {
       ...k.profile,
       letter: adjacentKeycapLetter(k.profile.letter, dx, 0),

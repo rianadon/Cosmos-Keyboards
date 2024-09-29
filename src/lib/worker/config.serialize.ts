@@ -125,7 +125,7 @@ function decodeConnectorsCompatible(connectors: Uint8Array, connector: number | 
 
 // ----------  PROFILES ----------
 // dprint-ignore
-const LETTERS = [
+export const LETTERS = [
   'F1', '1', 'q', 'a', 'z', '+',
   'F2', '2', 'w', 's', 'x', '-',
   'F3', '3', 'e', 'd', 'c', '=',

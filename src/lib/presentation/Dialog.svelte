@@ -4,6 +4,7 @@
   import Icon from '$lib/presentation/Icon.svelte'
 
   export let big = false
+  export let small = false
   export let dialogcls = ''
   export let forceDark = false
   export let hasClose = true
@@ -20,13 +21,23 @@
   }
 </script>
 
-<!-- svelte-ignore a11y-click-events-have-key-events -->
+<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
 <div class="fixed inset-0 bg-gray-900/80 z-20" on:click={close}>
-  <div class="absolute left-0 right-0 {dialogcls ? dialogcls : 'top-4 md:top-24'} bottom-4">
+  <div
+    class="absolute left-0 right-0 {dialogcls
+      ? dialogcls
+      : small
+      ? 'top-4 md:top-48'
+      : 'top-4 md:top-24'} bottom-4"
+  >
     <div
       class="mx-auto {big
         ? 'w-[50rem]'
-        : 'w-[40rem]'} max-w-full text-center px-4 md:px-8 py-8 rounded-md {forceDark
+        : small
+        ? 'w-[30rem]'
+        : 'w-[40rem]'} max-w-full text-center px-4 {small
+        ? 'md:px-4 pt-6'
+        : 'md:px-8 py-8'} rounded-md {forceDark
         ? 'bg-gray-800'
         : 'bg-white dark:bg-gray-800'} max-h-full overflow-auto"
       on:click|stopPropagation
