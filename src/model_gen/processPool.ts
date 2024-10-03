@@ -66,6 +66,7 @@ export class ProcessPool extends PromisePool {
         process.on('message', (id: number) => {
           // Quit if the id < 1
           // Otherwise process the corresponding item in the queue
+          Error.stackTraceLimit = Infinity // Infinite stack traces!
           if (id < 0) return resolve()
           this.queue[id].f().then(
             result => process.send!({ id: process.argv[2], result }),
