@@ -973,20 +973,23 @@ export function solveTriangularization(c: Cuttleform, pts2D: CriticalPoints[], p
     if (area > 5 || area / perimeter > 0.1) {
       return true
     }
-    removedTriangles.push([a, b, c])
-    const idxA = boundary.indexOf(a)
-    const idxB = boundary.indexOf(b)
-    const idxC = boundary.indexOf(c)
-    if (idxA >= 0 && idxB >= 0) {
-      innerBoundary.splice(Math.min(idxA, idxB), 0, c)
-    } else if (idxB >= 0 && idxC >= 0) {
-      innerBoundary.splice(Math.min(idxB, idxC), 0, a)
-    } else if (idxC >= 0 && idxA >= 0) {
-      innerBoundary.splice(Math.min(idxC, idxA), 0, b)
-    } else {
-      throw new Error('Unexpected')
-    }
-    return false
+    return true // The code below results in fewer nonmanifold CAD models but also creates holes.
+    // Disabled for now since I care more about correct STL models than nice CAD export.
+
+    // removedTriangles.push([a, b, c])
+    // const idxA = boundary.indexOf(a)
+    // const idxB = boundary.indexOf(b)
+    // const idxC = boundary.indexOf(c)
+    // if (idxA >= 0 && idxB >= 0) {
+    //   innerBoundary.splice(Math.min(idxA, idxB), 0, c)
+    // } else if (idxB >= 0 && idxC >= 0) {
+    //   innerBoundary.splice(Math.min(idxB, idxC), 0, a)
+    // } else if (idxC >= 0 && idxA >= 0) {
+    //   innerBoundary.splice(Math.min(idxC, idxA), 0, b)
+    // } else {
+    //   throw new Error('Unexpected')
+    // }
+    // return false
   })
   return {
     boundary,
