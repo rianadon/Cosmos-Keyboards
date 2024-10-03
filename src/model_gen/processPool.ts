@@ -45,7 +45,7 @@ export class ProcessPool extends PromisePool {
       name: item.name,
       promise: new Promise<R>((resolve, reject) => {
         cp.once('message', (m: any) => {
-          if (m.error) reject(new Error(m.error))
+          if (m.error) reject(new Error(m.error + '\n' + m.stack))
           else resolve(m.result)
         })
       }),
@@ -69,7 +69,7 @@ export class ProcessPool extends PromisePool {
           if (id < 0) return resolve()
           this.queue[id].f().then(
             result => process.send!({ id: process.argv[2], result }),
-            error => process.send!({ id: process.argv[2], error: error.message }),
+            error => process.send!({ id: process.argv[2], error: error.message, stack: error.stack }),
           )
         })
       })
