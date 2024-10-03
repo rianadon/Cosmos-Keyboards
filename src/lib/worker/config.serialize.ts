@@ -175,7 +175,12 @@ export function decodeProfile(flags: number, overrideLetter?: string): Profile {
   let letter = letterId > 0 ? String.fromCharCode(letterId >> 1) : undefined
   let inferredHoming = undefined
   if (letterId & 1) {
-    letter = lookupId(LETTERS, letterId >> 1, 'letter')
+    try {
+      letter = lookupId(LETTERS, letterId >> 1, 'letter')
+    } catch (e) {
+      console.error(e)
+      letter = 'error'
+    }
     inferredHoming = INFERRED_HOMING[letterId >> 1]
   }
   letter = overrideLetter ?? letter
