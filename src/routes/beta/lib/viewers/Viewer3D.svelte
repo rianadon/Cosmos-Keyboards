@@ -709,7 +709,7 @@
   {#if $clickedKey !== null}
     <div class="relative flex flex-1 justify-center">
       {#if $showHelp && $selectMode != 'cluster'}
-        <div class="relative mr--0.5">
+        <div class="relative mr--0.5 max-[528px]:hidden">
           <div
             class="absolute z-10 top-16 left--5 w-50 font-urbanist font-500 text-sm opacity-80"
             class:left--24!={PART_INFO[nthPartType($protoConfig, $clickedKey, $selectMode)].partName
@@ -801,7 +801,7 @@
         {/if}
       </div>
       {#if $showHelp && $selectMode != 'cluster'}
-        <div class="relative mr--0.5">
+        <div class="relative mr--0.5 max-[528px]:hidden">
           <div
             class="absolute z-10 top-16 right--5 w-48 font-urbanist font-500 select-none text-sm opacity-80"
           >
@@ -886,21 +886,21 @@
       </div>
       {#if $showHelp && !popoutShown}
         <div
-          class="absolute right-19 top-13 z-10 font-urbanist font-500 w-45 opacity-80 text-sm text-right"
+          class="absolute right-19 top-13 z-10 font-urbanist font-500 w-45 opacity-80 text-sm text-right max-[528px]:hidden"
         >
           <img src="{base}/arrow3.svg" class="absolute h-11 right--12.5 top--2" />
           Use these tools to select or reposition keys.<br />
           <span class="text-xs">tip: hold ctrl while rotating to snap to 90&deg;</span>
         </div>
         <div
-          class="absolute right-19 top-38 z-10 font-urbanist font-500 w-45 opacity-80 text-sm text-right"
+          class="absolute right-19 top-38 z-10 font-urbanist font-500 w-45 opacity-80 text-sm text-right max-[528px]:hidden"
         >
           <img src="{base}/arrow4.svg" class="absolute h-11 right--12.5 top--3.8" />
           Change selection mode!
           <span class="text-xs">tip: you can add columns by switching to column mode</span>
         </div>
         <div
-          class="absolute right-19 top-64 z-10 font-urbanist font-500 w-60 opacity-80 text-sm text-right"
+          class="absolute right-19 top-64 z-10 font-urbanist font-500 w-60 opacity-80 text-sm text-right max-[528px]:hidden"
         >
           <img src="{base}/arrow5.svg" class="absolute h-11 right--12.5" />
           <p class="w-45 ml-auto">This menu has *lots* of goodies. Try opening it!</p>
@@ -1414,7 +1414,7 @@
           {/if}
           {#if $showHelp}
             <div
-              class="absolute right-70 top-72 z-10 font-urbanist font-500 w-70 opacity-80 text-sm text-right"
+              class="absolute right-70 top-72 z-10 font-urbanist font-500 w-70 opacity-80 text-sm text-right max-[528px]:hidden"
             >
               <img src="{base}/arrow5.svg" class="absolute h-11 right--12.5" />
               If moving keys around by hand isn't accurate enough for you, you can edit the exact positions
@@ -1544,7 +1544,7 @@
 
 {#if $showHelp}
   <div
-    class="bg-white/80 absolute inset-0 z-5 flex items-center justify-center font-urbanist font-500 backdrop-blur-3"
+    class="bg-white/80 absolute inset-0 z-5 flex items-center justify-center font-urbanist font-500 backdrop-blur-3 max-[528px]:hidden"
     transition:fade
   >
     <div class="text-center">
