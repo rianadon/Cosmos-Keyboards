@@ -39,7 +39,7 @@ const DEFAULT_OPTS = {
   /** Angles at which bearings are placed about the Z axis (~theta in polar coodinates) */
   bearingThetas: [90, 210, 330],
 
-  /** Radius of the ball for ball beraigs */
+  /** Radius of the ball for ball bearings */
   ballBearingRadius: 1.585, // 1/8 inch outer diameter ball bearings
 }
 
@@ -242,7 +242,7 @@ function addRollerBearings(socket: Solid, opts: TrackballOptions) {
 // Add Ball Transfer Unit (BTU) bearings
 function addBtuBearings(socket: Solid, opts: TrackballOptions, diameter: keyof typeof BTU_PROPS) {
   const btuOpts = BTU_PROPS[diameter]
-  const btuClearance = 0.1 // Space to add around BTU on all sidesr
+  const btuClearance = 0.1 // Space to add around BTU on all sides
 
   // The BTU is extruded from X=0 (touching the trackball).
   const cylinder = drawCircle((btuOpts.btuDiameter / 2) + btuClearance)
