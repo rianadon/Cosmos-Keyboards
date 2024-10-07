@@ -52,14 +52,16 @@
       {#if kbd.details}
         <p class="mt-2 mb-4 showcasedetails">{@html kbd.details}</p>
       {/if}
-      <div class="opacity-80 grid grid-cols-[4.8rem_1fr] line-height-tight gap-row-1 mt-4">
+      <div
+        class="opacity-80 grid grid-cols-[4.8rem_1fr] line-height-tight gap-row-1 mt-4 mb-4 showcasedetails"
+      >
         {#if kbd.resin}
-          <span>Resin:</span> <span>{kbd.resin || 'Unknown'}</span>
+          <span>Resin:</span> <span>{@html kbd.resin || 'Unknown'}</span>
         {:else}
-          <span>Filament:</span> <span>{kbd.filament || 'Unknown'}</span>
+          <span>Filament:</span> <span>{@html kbd.filament || 'Unknown'}</span>
         {/if}
-        <span>Switches:</span> <span>{kbd.switches || 'Unknown'}</span>
-        <span>Keycaps:</span> <span>{kbd.keycaps || 'Unknown'}</span>
+        <span>Switches:</span> <span>{@html kbd.switches || 'Unknown'}</span>
+        <span>Keycaps:</span> <span>{@html kbd.keycaps || 'Unknown'}</span>
       </div>
     </div>
     <div class="flex-none opacity-80 mb-4 <sm:mt-10">

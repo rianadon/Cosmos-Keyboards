@@ -4,9 +4,12 @@ import { keyGeometries } from '$lib/loaders/keycaps'
 import { partGeometries } from '$lib/loaders/parts'
 import type { Cuttleform, CuttleKey } from '$lib/worker/config'
 import { notNull } from '$lib/worker/util'
-import { chromium } from 'playwright'
+import { readFileSync } from 'fs'
+import { GLTFExporter } from 'node-three-gltf'
+import { chromium, type Page } from 'playwright'
 import sharp from 'sharp'
 import * as THREE from 'three'
+import { fileURLToPath } from 'url'
 import { DEFAULT_PARTS, generate } from './node-model'
 
 export async function assembleGroup(window: Window, config: Cuttleform, parts = DEFAULT_PARTS, opts: RenderOptions) {
@@ -123,10 +126,125 @@ export function modelZoom(models: (THREE.BufferGeometry | undefined)[], aspect: 
   return Math.max(dx, dy) * 1.2
 }
 
+export function zoomForSize(size: THREE.Vector3, aspect: number) {
+  const fov = 50 * (Math.PI / 180)
+  const fovh = 2 * Math.atan(Math.tan(fov / 2) * aspect)
+  let dx = size.z / 2 + Math.abs(size.x / 2 / Math.tan(fovh / 2))
+  let dy = size.z / 2 + Math.abs(size.y / 2 / Math.tan(fov / 2))
+  return Math.max(dx, dy) * 1.2
+}
+
 function extractPixels(context: WebGLRenderingContext | WebGL2RenderingContext) {
   const width = context.drawingBufferWidth
   const height = context.drawingBufferHeight
   const frameBufferPixels = new Uint8Array(width * height * 4)
   context.readPixels(0, 0, width, height, context.RGBA, context.UNSIGNED_BYTE, frameBufferPixels)
   return sharp(frameBufferPixels, { raw: { width, height, channels: 4 } }).flip()
+}
+
+export async function createRenderPage() {
+  const browser = await chromium.launch({ headless: true })
+  const page = await browser.newPage()
+  await page.route('https://ryanis.cool/**', route => {
+    let url = route.request().url().substring(19)
+    if (url == '/three.js') url = '/three/build/three.module.js'
+    route.fulfill({
+      contentType: 'text/javascript',
+      body: readFileSync(fileURLToPath(new URL('../../node_modules' + url, import.meta.url))),
+    })
+  })
+
+  await page.addScriptTag({
+    content: JSON.stringify({
+      imports: { three: 'https://ryanis.cool/three.js', 'three/': 'https://ryanis.cool/three/' },
+    }),
+    type: 'importmap',
+  })
+
+  return { page, browser }
+}
+
+interface RenderOpts {
+  width: number
+  height: number
+}
+
+export async function renderGLTF(gltf: ArrayBuffer, page: Page, options: RenderOpts) {
+  const url = await page.evaluate(
+    async (args) => {
+      const [g, width, height] = args
+      const THREE = await import('three')
+      const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js')
+
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+
+      // Patch getContext() in canvas so that the drawing buffer is preserved
+      // This allows us to screenshot the canvas after it is rendered
+      const origFn = canvas.getContext
+      // @ts-ignore
+      canvas.getContext = function(type, attributes) {
+        if (type === 'webgl' || type === 'webgl2') {
+          attributes = Object.assign({}, attributes, {
+            preserveDrawingBuffer: true,
+          })
+        }
+        return origFn.call(this, type, attributes)
+      }
+
+      const renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: true,
+        canvas: canvas, // new OffscreenCanvas(width, height),
+      })
+      renderer.setClearColor(0x000000, 0)
+
+      const loader = new GLTFLoader()
+      const { scene, cameras } = await loader.parseAsync(g, 'model.gltf')
+
+      renderer.render(scene, cameras[0])
+      return canvas.toDataURL()
+    },
+    [gltf, options.width, options.height] as const,
+  )
+  return {
+    dataURL: url,
+    data: dataURLToData(url),
+  }
+}
+
+export function dataURLToData(url: string) {
+  return Buffer.from(url.replace(/^data:image\/\w+;base64,/, ''), 'base64')
+}
+
+export async function renderScene(scene: THREE.Scene, camera: THREE.Camera, page: Page, options: RenderOpts) {
+  const exporter = new GLTFExporter()
+  const gltf = await exporter.parseAsync([scene, camera])
+  return await renderGLTF(gltf, page, options)
+}
+
+export async function mergeDataURLs(urls: string[], page: Page, options: RenderOpts) {
+  return await page.evaluate(async ([images, options]) => {
+    const canvas = document.createElement('canvas')
+    const n = Math.floor(Math.sqrt(images.length))
+    const m = Math.ceil(images.length / n)
+    canvas.width = options.width * n
+    canvas.height = options.height * m
+
+    const imageData = await Promise.all(images.map(i =>
+      new Promise<HTMLImageElement>(r => {
+        let img = new Image()
+        img.onload = () => r(img)
+        img.src = i
+      })
+    ))
+
+    const ctx = canvas.getContext('2d')!
+    images.forEach((u, i) => {
+      ctx.drawImage(imageData[i], options.width * (i % n), options.height * Math.floor(i / n))
+    })
+
+    return canvas.toDataURL()
+  }, [urls, options] as const)
 }

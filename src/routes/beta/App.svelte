@@ -53,6 +53,7 @@
     noBlanks,
     noLabels,
     showGrid,
+    showHelp,
   } from '$lib/store'
   import { onDestroy } from 'svelte'
   import { browser } from '$app/environment'
@@ -617,7 +618,7 @@
           selected={prefsOpen}><Icon path={mdi.mdiCogOutline} /></Preset
         >
       </div>
-      <div style="--z-index: 50">
+      <div style="--z-index: 1000">
         <Popover
           referenceElement={referenceElementPrefs}
           placement="bottom-end"
@@ -664,6 +665,13 @@
             <label class="flex items-center my-2">
               <Checkbox small purple basic bind:value={$noBlanks} /> Hide Shapers
             </label>
+            <button
+              class="text-center text-sm w-full opacity-70"
+              on:click={() => {
+                $showHelp = true
+                prefsOpen = false
+              }}>Show Help</button
+            >
           </div>
         </Popover>
       </div>

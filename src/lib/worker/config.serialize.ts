@@ -125,7 +125,7 @@ function decodeConnectorsCompatible(connectors: Uint8Array, connector: number | 
 
 // ----------  PROFILES ----------
 // dprint-ignore
-const LETTERS = [
+export const LETTERS = [
   'F1', '1', 'q', 'a', 'z', '+',
   'F2', '2', 'w', 's', 'x', '-',
   'F3', '3', 'e', 'd', 'c', '=',
@@ -175,7 +175,12 @@ export function decodeProfile(flags: number, overrideLetter?: string): Profile {
   let letter = letterId > 0 ? String.fromCharCode(letterId >> 1) : undefined
   let inferredHoming = undefined
   if (letterId & 1) {
-    letter = lookupId(LETTERS, letterId >> 1, 'letter')
+    try {
+      letter = lookupId(LETTERS, letterId >> 1, 'letter')
+    } catch (e) {
+      console.error(e)
+      letter = 'error'
+    }
     inferredHoming = INFERRED_HOMING[letterId >> 1]
   }
   letter = overrideLetter ?? letter

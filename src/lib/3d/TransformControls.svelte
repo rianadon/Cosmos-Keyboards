@@ -12,6 +12,7 @@
   import type { CosmosKeyboard } from '$lib/worker/config.cosmos'
 
   export let visible = true
+  export let snap: boolean
 
   const dispatch = createEventDispatcher()
   const pos = new Vector3()
@@ -50,6 +51,7 @@
       size={0.9}
       space={$transformMode == 'translate' && $selectMode == 'cluster' ? 'world' : 'local'}
       mode={$transformMode}
+      rotationSnap={snap ? Math.PI / 2 : undefined}
       on:objectChange={() => {
         ref.updateMatrix()
         dispatch('move', conditionalFlip(ref.matrix, $view, $clickedKey, $protoConfig))

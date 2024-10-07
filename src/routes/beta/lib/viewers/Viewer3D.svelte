@@ -25,6 +25,7 @@
     showGizmo,
     enableUndo,
     showGrid,
+    showHelp,
   } from '$lib/store'
   import HandModel from '$lib/3d/HandModel.svelte'
   import { FINGERS, type Joints, SolvedHand } from '../hand'
@@ -99,6 +100,9 @@
   import AngleInputInherit from '../editor/AngleInputInherit.svelte'
   import { browser } from '$app/environment'
   import KeyboardMaterial from '$lib/3d/KeyboardMaterial.svelte'
+  import { fade } from 'svelte/transition'
+  import Preset from '$lib/presentation/Preset.svelte'
+  import { base } from '$app/paths'
 
   export let darkMode: boolean
   export let showSupports = false
@@ -115,10 +119,12 @@
   export let geometry: FullGeometry
   export let progress = 1
 
-  $: flip = $view == 'left'
-
   export let conf: Cuttleform | undefined
   let fitConf: Cuttleform | undefined
+  let snapRotation = false
+
+  $: flip = $view == 'left'
+  $: if (conf && $showHelp) $clickedKey = 0
 
   function copyCanvas() {
     document.querySelector('canvas')!.toBlob(function (blob) {
@@ -318,6 +324,7 @@
         $enableUndo = true
       }
     }
+    if (event.keyCode == 17) snapRotation = true
     if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return
     if (event.key == 'Escape') $clickedKey = null
     else if (event.key == 'q') $transformMode = 'select'
@@ -327,6 +334,10 @@
     else if (event.key == 'l') $selectMode = 'column'
     else if (event.key == 'o') $selectMode = 'cluster'
     else if (event.key == 'Delete') removeKey()
+  }
+
+  function handleKeyUp(event: KeyboardEvent) {
+    if (event.keyCode == 17) snapRotation = false
   }
 
   function getClickedSide(
@@ -676,7 +687,7 @@
   $: sphereColumn = (columnIsClicked || columnIsHovered)?.type == 'sphere'
 </script>
 
-<svelte:window on:keydown={handleKeydown} />
+<svelte:window on:keydown={handleKeydown} on:keyup={handleKeyUp} />
 
 <div class="absolute top-10 left-0 right-0">
   {#if flags.hand && showHand}
@@ -696,7 +707,19 @@
     </div>
   {/if}
   {#if $clickedKey !== null}
-    <div class="flex flex-1 justify-around">
+    <div class="relative flex flex-1 justify-center">
+      {#if $showHelp && $selectMode != 'cluster'}
+        <div class="relative mr--0.5 max-[528px]:hidden">
+          <div
+            class="absolute z-10 top-16 left--5 w-50 font-urbanist font-500 text-sm opacity-80"
+            class:left--24!={PART_INFO[nthPartType($protoConfig, $clickedKey, $selectMode)].partName
+              .length < 20}
+          >
+            <img src="{base}/arrow2.svg" class="absolute h-13 top--9 right-7" />
+            You can change a key to a trackball, trackpad, display, or encoder here!
+          </div>
+        </div>
+      {/if}
       <div
         class="flex justify-center bg-[#EFE8FF] dark:bg-gray-900 rounded-5 pl-1 pr-2 gap-0.5 z-100 items-center mt-2 overflow-hidden"
       >
@@ -755,6 +778,7 @@
             <div class="relative">
               <select
                 class="appearance-none bg-purple-200 dark:bg-pink-900/80 w-24 h-8 px-2"
+                class:w-34!={key == 'sensor'}
                 value={nthPartVariant($protoConfig, $clickedKey)[key]}
                 on:change={(ev) => changeKeyVariant(ev, key)}
               >
@@ -776,6 +800,16 @@
           </button>
         {/if}
       </div>
+      {#if $showHelp && $selectMode != 'cluster'}
+        <div class="relative mr--0.5 max-[528px]:hidden">
+          <div
+            class="absolute z-10 top-16 right--5 w-48 font-urbanist font-500 select-none text-sm opacity-80"
+          >
+            <img src="{base}/arrow1.svg" class="absolute h-13 top--9 right-7" />
+            Delete keys using this button or the <span class="kbd">delete</span> key.
+          </div>
+        </div>
+      {/if}
     </div>
   {/if}
   {#if flip && jointsJSON && flags.hand && showHand}
@@ -797,7 +831,7 @@
   <div class="absolute top-10 bottom-10 right-0 flex flex-col justify-center select-none">
     <div class="relative flex flex-col gap-2 h-87">
       <div
-        class="bigmenu bg-[#EFE8FF] dark:bg-slate-900 flex flex-col rounded-5 relative z-1 p-0.5 gap-0.5"
+        class="bigmenu bg-[#EFE8FF] dark:bg-slate-900 flex flex-col rounded-5 relative z-10 p-0.5 gap-0.5"
       >
         <button
           class="sidebutton"
@@ -850,6 +884,29 @@
         <div class="mhelpitem">Select Columns (l)</div>
         <div class="mhelpitem">Select Clusters (o)</div>
       </div>
+      {#if $showHelp && !popoutShown}
+        <div
+          class="absolute right-19 top-13 z-10 font-urbanist font-500 w-45 opacity-80 text-sm text-right max-[528px]:hidden"
+        >
+          <img src="{base}/arrow3.svg" class="absolute h-11 right--12.5 top--2" />
+          Use these tools to select or reposition keys.<br />
+          <span class="text-xs">tip: hold ctrl while rotating to snap to 90&deg;</span>
+        </div>
+        <div
+          class="absolute right-19 top-38 z-10 font-urbanist font-500 w-45 opacity-80 text-sm text-right max-[528px]:hidden"
+        >
+          <img src="{base}/arrow4.svg" class="absolute h-11 right--12.5 top--3.8" />
+          Change selection mode!
+          <span class="text-xs">tip: you can add columns by switching to column mode</span>
+        </div>
+        <div
+          class="absolute right-19 top-64 z-10 font-urbanist font-500 w-60 opacity-80 text-sm text-right max-[528px]:hidden"
+        >
+          <img src="{base}/arrow5.svg" class="absolute h-11 right--12.5" />
+          <p class="w-45 ml-auto">This menu has *lots* of goodies. Try opening it!</p>
+          <span class="text-xs">it changes for each selection mode</span>
+        </div>
+      {/if}
       <button
         class="sidemenu"
         class:selected={popoutShown}
@@ -1355,6 +1412,18 @@
               </div>
             </div>
           {/if}
+          {#if $showHelp}
+            <div
+              class="absolute right-70 top-72 z-10 font-urbanist font-500 w-70 opacity-80 text-sm text-right max-[528px]:hidden"
+            >
+              <img src="{base}/arrow5.svg" class="absolute h-11 right--12.5" />
+              If moving keys around by hand isn't accurate enough for you, you can edit the exact positions
+              here!
+              <p class="text-xs mt-2">
+                Row and Column move the key along its curve, while offset moves it in all directions.
+              </p>
+            </div>
+          {/if}
         </div>
       {/if}
     </div>
@@ -1439,6 +1508,7 @@
         {/each}
       {/if}
       <TransformControls
+        snap={snapRotation}
         visible={!showSupports}
         on:move={(e) => onMove(e.detail, false)}
         on:change={(e) => onMove(e.detail, true)}
@@ -1472,6 +1542,29 @@
   </div>
 {/if}
 
+{#if $showHelp}
+  <div
+    class="bg-white/80 absolute inset-0 z-5 flex items-center justify-center font-urbanist font-500 backdrop-blur-3 max-[528px]:hidden"
+    transition:fade
+  >
+    <div class="text-center">
+      <button class="button purple inline-block!" on:click={() => ($showHelp = false)}>Close Help</button
+      >
+      <div class="font-urbanist text-xs w-40 opacity-80">
+        You can access this help from the <Icon
+          class="inline-block relative top--0.5"
+          size="16"
+          path={mdi.mdiCogOutline}
+        /> menu.<br />
+        Also:
+        <a href="docs/tips-and-tricks/" target="_blank" class="text-teal-500 dark:text-teal-300"
+          >tips & tricks</a
+        > .
+      </div>
+    </div>
+  </div>
+{/if}
+
 <style>
   .button {
     z-index: 10;
@@ -1493,7 +1586,7 @@
     --at-apply: 'appearance-none hover:bg-purple-200 dark:hover:bg-gray-200 dark:hover:bg-gray-700 p-1.5 rounded-full text-gray-800 dark:text-gray-200';
   }
   .sidemenu {
-    --at-apply: 'text-sm relative z-1 appearance-none hover:bg-purple-200 dark:hover:bg-gray-200 dark:hover:bg-gray-700 py-4 rounded-5 bg-[#EFE8FF] dark:bg-gray-900 text-gray-800 dark:text-gray-200 write-vertical-left flex items-center';
+    --at-apply: 'text-sm relative z-10 appearance-none hover:bg-purple-200 dark:hover:bg-gray-200 dark:hover:bg-gray-700 py-4 rounded-5 bg-[#EFE8FF] dark:bg-gray-900 text-gray-800 dark:text-gray-200 write-vertical-left flex items-center';
   }
   .sidebutton.selected,
   .sidemenu.selected {
@@ -1513,7 +1606,7 @@
   }
 
   .tab {
-    --at-apply: 'bg-[#f8f5ff]/80 backdrop-blur-md dark:bg-slate-900/80 rounded-2 overflow-hidden mb-4 transition-opacity relative z-1';
+    --at-apply: 'bg-[#f8f5ff]/80 backdrop-blur-md dark:bg-slate-900/80 rounded-2 overflow-hidden mb-4 transition-opacity relative z-10';
   }
   .tabhead {
     --at-apply: 'bg-purple-300 dark:bg-pink-600 px-3 py-0.5 flex justify-between';
@@ -1530,5 +1623,21 @@
   .mhelpitem {
     --at-apply: 'line-height-[20px] pl-4 pr-2 py-1.5 whitespace-nowrap from-white/80 dark:from-slate-800/80 via-white/60 to-white/0 dark:via-slate-800/70  dark:to-slate-800/50 backdrop-blur-sm rounded-2';
     background: radial-gradient(ellipse 70% 80% at 60% center, var(--un-gradient-stops));
+  }
+
+  .kbd {
+    --at-apply: 'relative bg-slate-100 border border-slate-400 rounded px-1 mx-[0.1em] text-[0.9em] bottom-0.05em';
+  }
+
+  .purple.purple {
+    --at-apply: 'px-2 bg-purple-300 dark:bg-gray-900 hover:bg-purple-400 dark:hover:bg-pink-900 focus:border-pink-500';
+  }
+
+  /* Fudge factors */
+  .font-urbanist.text-sm {
+    font-size: 0.95rem;
+  }
+  .font-urbanist .text-xs {
+    font-size: 0.8rem;
   }
 </style>

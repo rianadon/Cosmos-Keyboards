@@ -16,6 +16,8 @@
       case 'angle': return mdi.mdiAngleAcute
       case 'numeric': return mdi.mdiNumeric
       case 'usb-port': return mdi.mdiUsbPort
+      case 'trrs': return mdi.mdiSquareCircleOutline
+      case 'cable': return mdi.mdiCableData
       case 'hand': return mdi.mdiHandBackRightOutline
       case 'hand-left': return mdi.mdiHandBackLeftOutline
       case 'screw': return mdi.mdiScrewMachineFlatTop

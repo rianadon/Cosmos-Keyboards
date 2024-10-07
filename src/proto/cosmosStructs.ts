@@ -31,6 +31,7 @@ enumeration('PART', {
   21: 'joystick-ps2-40x45',
   22: 'trackball',
   23: 'trackpad-cirque',
+  24: 'oled-128x32-0.91in-spi-adafruit',
 
   // Old stuff no one should be using.
   110: 'old-mx',

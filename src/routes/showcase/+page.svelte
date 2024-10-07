@@ -30,7 +30,7 @@
         <div class="w-full aspect-[1.9/1] vignette">
           <img
             src={kbd.image}
-            alt="Image of {kbd.author}'s keyboard"
+            alt="Photo of {kbd.author}'s keyboard"
             class="w-full h-full object-cover"
           />
         </div>

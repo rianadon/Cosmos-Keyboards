@@ -117,9 +117,9 @@ Here's how to add a new socket to the codebase:
       partBottom: [box(12, 12, 14.5)],
    },
    ```
-   The part/socket pair has two names: `partName` is the name shown in the editor, whereas `bomName` is shown in the bill of materials. Unlike `partName`, `bomName` is plural. Usually these are similar, but it's helpful to include vendors and part numbers in the `bomName`, whereas `partName` should be concise.<p>
+   The part/socket pair has two names: `partName` is the name shown in the editor, whereas `bomName` is shown in the bill of materials. Unlike `partName`, `bomName` is plural. Usually these are similar, but it's helpful to include vendors and part numbers in the `bomName`, whereas `partName` should be concise.<p></p>
    The field `stepFile` is the location where you saved the STEP file (`src/assets/key-(name).step`), and `socketSize` refers to the part boundary from step 3. The order of dimensions is `[x, y, z]`.</p><p>
-   Finally, `partBottom` is a box describing the boundary of the part, referenced from the top of the socket. This is used to raise the model high enough so that your part doesn't collide with the ground!</p>
+   Finally, `partBottom` is a box describing the boundary of the part, referenced from the top of the socket. This is used to raise the model high enough so that your part doesn't collide with the ground!<p></p>
 
 5. Edit `src/proto/cosmosStructs.ts` and add your socket/part to the `enumeration('PART', {` declaration. You'll need to give your part a unique number used to identify it in the URL. Switches get numbers from 1–15, and everything else uses 16–109.
 
@@ -193,6 +193,27 @@ The `bomName`, `socketSize`, and `partBottom` fields are all functions of the va
 
 The `encodeVariant` and `decodeVariant` functions determine how to map between the variant configurations and nonnegative integers. This mapping should be 1:1. If the part has two configurable variables in its variants and each variable has three possible values, then you'll need to map to 2 × 3 = 6 integers, `0`–`5`. By convention `0` is mapped to the default configuration.
 
+#### Extra BOM Items
+
+If the socket requires extra parts (e.g. a key socket that requires a PCB or diode), you can use the `extraBomItems` to define these parts, for example:
+
+```typescript
+'mx-better': {
+  partName: 'MX-Compatible (Cherry, Gateron, ...)',
+  bomName: 'MX-Compatible Switches',
+  ...
+  extraBomItems: { 'xdiodes': {item: '1N4148 Diodes', icon: 'diode', count: 1} }
+},
+```
+
+In the BOM, this item will appear as:
+
+![Screenshot of the switch and diode in the BOM](../assets/bom.png){ .center width=312 }
+
+The keys are sorted alphabetically, so the `x` in `xdiodes` places this item at the end of the list. PCB-relelated things have keys starting with `pcb-` so they are grouped together.<p></p>
+
+If you need to add any more icons, the file to edit is `src/lib/presentation/Icon.svelte`.
+
 #### OLED/LCD Displays
 
 Because there are many models of displays but very few differences between the sockets, Cosmos includes a parametric socket generator for displays. This means **you do not have to create STEP files for displays**. Instead, generate the sockets in `src/model_gen/parts.ts` using code like this:
@@ -201,7 +222,8 @@ Because there are many models of displays but very few differences between the s
 const dfDisplayProps: DisplayProps = {
   pcbLongSideWidth: 41.08,
   pcbShortSideWidth: 11.5,
-  offsetFromLongSide: 0.29,
+  offsetFromLeftLongSide: 0.29,
+  offsetFromRightLongSide: 0.29,
   offsetFromTopShortSide: 4.85,
   offsetFromBottomShortSide: 5.23,
   displayThickness: 1.71,
@@ -218,9 +240,10 @@ The numbers listed within `DisplayProps` are measurements of the display taken w
 
 - `pcbLongSideWidth`: Length of the long side of the PCB
 - `pcbShortSideWidth`: Length of the short side of the PCB
-- `offsetFromLongSide`: How much the display is offset from the long side of the PCB
-- `offsetFromTopShortSide`: How much the display is offset from the top short side of the PCB.
-- `offsetFromBottomShortSide`: How much the display is offset from the bottom short side of the PCB.
+- `offsetFromLeftLongSide`: How much the display is offset from the left long side of the PCB
+- `offsetFromRightLongSide`: How much the display is offset from the right long side of the PCB
+- `offsetFromTopShortSide`: How much the display is offset from the top short side of the PCB
+- `offsetFromBottomShortSide`: How much the display is offset from the bottom short side of the PCB
 - `displayThickness`: How thick the display part is (excluding PCB)
 - `pcbThickness`: How thick the PCB is
 

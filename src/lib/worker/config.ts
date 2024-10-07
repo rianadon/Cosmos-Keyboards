@@ -582,7 +582,7 @@ export function tupleToXYZ(tuple: bigint) {
   return [decoded[0] / 10, decoded[1] / 10, decoded[2] / 10] as Point
 }
 
-export function cosmosFingers(nRows: number, nCols: number, side: 'left' | 'right'): CosmosCluster[] {
+export function cosmosFingers(nRows: number, nCols: number, side: 'left' | 'right', addExtraRow = true): CosmosCluster[] {
   let columns = range(0, nCols)
   if (nCols <= 4) columns = range(1, nCols + 1)
   const rows = range(0, nRows)
@@ -618,7 +618,7 @@ export function cosmosFingers(nRows: number, nCols: number, side: 'left' | 'righ
     partType: usesWidePinky(column) ? { aspect: pinkySize } : {},
     clusters: [],
     column: multiplier * (column - centerCol + (usesWidePinky(column) ? (pinkySize - 1) / 2 : 0)),
-    keys: rows.filter(row => row != lastRow || [2, 3].includes(column)).map(row => ({
+    keys: rows.filter(row => row != lastRow || ([2, 3].includes(column) && addExtraRow)).map(row => ({
       partType: {},
       profile: {
         row: Math.min(row2Row(row), 4),
@@ -1035,7 +1035,7 @@ export function decodeCustomKey(k: Cuttleform_CustomThumb_Key, keyType: KeyType,
       },
       variant: {
         bearings: 'Roller',
-        sensor: 'Joe',
+        sensor: 'Joe (QMK)',
         size: '34mm',
       },
     }
@@ -1441,7 +1441,7 @@ export function orbylThumbs(keyType: KeyType, capType: CapType, opts: Cuttleform
     },
     variant: {
       bearings: 'Roller',
-      sensor: 'Joe',
+      sensor: 'Joe (QMK)',
       size: '34mm',
     },
     position: new ETrsf()

@@ -51,6 +51,7 @@
     "manifold-3d": "^2.2.2",
     "meshoptimizer": "^0.20.0",
     "ml-matrix": "^6.10.4",
+    "node-three-gltf": "^1.8.2",
     "openscad-parser": "^0.6.1",
     "simple-git-hooks": "^2.11.1",
     "svelte": "^4.2.17",

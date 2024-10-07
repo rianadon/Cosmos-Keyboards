@@ -115,7 +115,8 @@ async function main() {
   const dfDisplayProps: DisplayProps = {
     pcbLongSideWidth: 41.08,
     pcbShortSideWidth: 11.5,
-    offsetFromLongSide: 0.29,
+    offsetFromLeftLongSide: 0.29,
+    offsetFromRightLongSide: 0.29,
     offsetFromTopShortSide: 4.85,
     offsetFromBottomShortSide: 5.23,
     displayThickness: 1.71,
@@ -124,6 +125,26 @@ async function main() {
 
   poolDisplayModel('oled-128x32-0.91in-dfrobot', dfDisplayProps, 0.5)
   poolDisplaySocket('oled-128x32-0.91in-dfrobot', dfDisplayProps)
+
+  const adafruitDisplayProps: DisplayProps = {
+    pcbLongSideWidth: 33, // Added 0.5mm to top and bottom each for the connector
+    pcbShortSideWidth: 23.5, // Added 0.5mm on the left side to make the display symmetrical
+    offsetFromLeftLongSide: 6,
+    offsetFromRightLongSide: 6,
+    offsetFromTopShortSide: 0.5,
+    offsetFromBottomShortSide: 0.5,
+    displayThickness: 1,
+    pcbThickness: 1.5,
+    alignmentRectangles: [
+      [[-23.5 / 2, -33 / 2], [-6, -32 / 2]],
+      [[6, -33 / 2], [23.5 / 2, -32 / 2]],
+      [[-23.5 / 2, 32 / 2], [-6, 33 / 2]],
+      [[6, 32 / 2], [23.5 / 2, 33 / 2]],
+    ],
+  }
+
+  poolDisplayModel('oled-128x32-0.91in-spi-adafruit', adafruitDisplayProps, 0.5)
+  poolDisplaySocket('oled-128x32-0.91in-spi-adafruit', adafruitDisplayProps)
 
   // Make all combinations of trackballs
   for (const v of allVariants('trackball') as TrackballVariant[]) {

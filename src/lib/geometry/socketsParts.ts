@@ -8,6 +8,10 @@ const CHOC_BOTTOM = box(12, 12, 5.2)
 const MX_PART = '/target/switch-cherry-mx.glb'
 const CHOC_PART = '/src/assets/switch-choc.glb'
 
+const BOM_MX_HOTSWAP = { 'pcb-hotswap': { item: 'Kailh Hotswap Sockets', icon: 'hotswap', count: 1 } }
+const BOM_CHOC_HOTSWAP = { 'pcb-hotswap': { item: 'Kailh Choc Hotswap Sockets', icon: 'hotswap', count: 1 } }
+const BOM_DIODE = { 'xdiodes': { item: '1N4148 Diodes', icon: 'diode', count: 1 } }
+
 export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   'mx-better': {
     partName: 'MX-Compatible (Cherry, Gateron, ...)',
@@ -18,39 +22,10 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     socketSize: [18, 18, 4.7],
     partBottom: [MX_BOTTOM],
     keycap: true,
-  },
-  'mx-pcb': {
-    partName: 'MX-Compatible PCB (Amoeba King)',
-    bomName: 'MX-Compatible Switches',
-    category: 'Sockets',
-    stepFile: '/src/assets/key-mx-pcb.step',
-    partOverride: MX_PART,
-    socketSize: [19.2, 19.2, 4.7],
-    partBottom: [MX_BOTTOM, box(19.4, 19.4, 6.6)],
-    keycap: true,
-  },
-  'mx-hotswap': {
-    partName: 'MX-Compatible with 3DP Hotswap',
-    bomName: 'MX-Compatible Switches',
-    category: 'Sockets',
-    stepFile: '/target/key-mx-hotswap.step',
-    partOverride: MX_PART,
-    socketSize: [18, 18, 5.85],
-    partBottom: [box(16.9, 16.8, 8)],
-    keycap: true,
-  },
-  'mx-klavgen': {
-    partName: 'MX-Compatible with Klavgen Hotswap',
-    bomName: 'MX-Compatible Switches',
-    category: 'Sockets',
-    stepFile: '/src/assets/key-mx-klavgen.step',
-    partOverride: MX_PART,
-    socketSize: [18.75, 18.75, 2.2],
-    partBottom: [MX_BOTTOM, box(18.55, 18.55, 8)],
-    keycap: true,
+    extraBomItems: { ...BOM_DIODE },
   },
   'mx-pcb-twist': {
-    partName: 'MX-Compatible PCB (EXPERIMENTAL TWISTY)',
+    partName: 'MX-Compat + Plum Twist PCBs (1.6mm)',
     bomName: 'MX-Compatible Switches',
     category: 'Sockets',
     stepFile: '/src/assets/key-mx-pcb-twist.step',
@@ -58,6 +33,45 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     socketSize: [18.7, 18.7, 8],
     partBottom: [MX_BOTTOM, box(19.4, 19.4, 6.6)],
     keycap: true,
+    extraBomItems: { 'pcb': { item: 'Plum Twist PCBs, 1.6mm Thick', icon: 'pcb', count: 1 } },
+  },
+  'mx-pcb': {
+    partName: 'MX-Compatible + Amoeba King PCBs',
+    bomName: 'MX-Compatible Switches',
+    category: 'Sockets',
+    stepFile: '/src/assets/key-mx-pcb.step',
+    partOverride: MX_PART,
+    socketSize: [19.2, 19.2, 4.7],
+    partBottom: [MX_BOTTOM, box(19.4, 19.4, 6.6)],
+    keycap: true,
+    extraBomItems: {
+      'xdiodes-pcb': { item: '1N4148 Diodes (SOD-123)', icon: 'diode', count: 1 },
+      'pcb': { item: 'Amoeba King PCBs', icon: 'pcb', count: 1 },
+      'pcb-hotswap': { item: 'Kailh Hotswap Sockets', icon: 'hotswap', count: 1 },
+      'pcb-led': { item: 'SK6812MINI-E LEDs (Optional)', icon: 'led', count: 1 },
+    },
+  },
+  'mx-hotswap': {
+    partName: 'MX-Compatible + 3DP Hotswap',
+    bomName: 'MX-Compatible Switches',
+    category: 'Sockets',
+    stepFile: '/target/key-mx-hotswap.step',
+    partOverride: MX_PART,
+    socketSize: [18, 18, 5.85],
+    partBottom: [box(16.9, 16.8, 8)],
+    keycap: true,
+    extraBomItems: { ...BOM_MX_HOTSWAP, ...BOM_DIODE },
+  },
+  'mx-klavgen': {
+    partName: 'MX-Compatible + 3DP Klavgen Hotswap',
+    bomName: 'MX-Compatible Switches',
+    category: 'Sockets',
+    stepFile: '/src/assets/key-mx-klavgen.step',
+    partOverride: MX_PART,
+    socketSize: [18.75, 18.75, 2.2],
+    partBottom: [MX_BOTTOM, box(18.55, 18.55, 8)],
+    keycap: true,
+    extraBomItems: { ...BOM_MX_HOTSWAP, ...BOM_DIODE },
   },
   'alps': {
     partName: 'Alps (and clones)',
@@ -68,6 +82,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     socketSize: [18.6, 17, 5],
     partBottom: [box(15, 13, 8.6)],
     keycap: true,
+    extraBomItems: { ...BOM_DIODE },
   },
   'choc': {
     partName: 'Choc (Kailh)',
@@ -78,6 +93,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     socketSize: [17.5, 16.5, 2.2],
     partBottom: [CHOC_BOTTOM],
     keycap: true,
+    extraBomItems: { ...BOM_DIODE },
   },
   'blank': {
     partName: 'Shaper (Blank key)',
@@ -100,6 +116,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     socketSize: [18, 18, 5],
     partBottom: [MX_BOTTOM],
     keycap: true,
+    extraBomItems: { ...BOM_DIODE },
   },
   'old-mx-snap-in': {
     partName: 'Old MX-Compatible snap-in',
@@ -110,6 +127,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     socketSize: [18, 18, 5],
     partBottom: [MX_BOTTOM],
     keycap: true,
+    extraBomItems: { ...BOM_DIODE },
   },
   'old-mx-hotswap': {
     partName: 'Old MX-Compatible',
@@ -120,6 +138,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     socketSize: [18, 18, 5],
     partBottom: [MX_BOTTOM],
     keycap: true,
+    extraBomItems: { ...BOM_DIODE, ...BOM_MX_HOTSWAP },
   },
   'old-mx-snap-in-hotswap': {
     partName: 'Old MX-Compatible Hotswap',
@@ -130,6 +149,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     socketSize: [18, 18, 5],
     partBottom: [MX_BOTTOM],
     keycap: true,
+    extraBomItems: { ...BOM_DIODE, ...BOM_MX_HOTSWAP },
   },
   'old-box': {
     partName: 'Old Kailh Box Switches',
@@ -140,6 +160,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     socketSize: [18, 18, 5],
     partBottom: [MX_BOTTOM],
     keycap: true,
+    extraBomItems: { ...BOM_DIODE },
   },
   'choc-hotswap': {
     partName: 'Old Choc (Kailh)',
@@ -150,6 +171,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     socketSize: [18, 18, 5],
     partBottom: [CHOC_BOTTOM],
     keycap: true,
+    extraBomItems: { ...BOM_DIODE, ...BOM_CHOC_HOTSWAP },
   },
   'ec11': {
     partName: 'EC11 Encoder',
@@ -169,11 +191,20 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     partBottom: [box(16, 16, 5.8)],
   },
   'oled-128x32-0.91in-adafruit': {
-    partName: 'Adafruit 128x32 1" OLED',
-    bomName: 'Adafruit 128x32 1" Diagonal OLEDs',
+    partName: 'Adafruit 128x32 1" I2C OLED',
+    bomName: 'Adafruit 128x32 1" Diagonal OLEDs, I2C (Part No. 4440)',
     category: 'Displays',
     stepFile: '/src/assets/key-oled-128x32-0.91in-adafruit.step',
     socketSize: [22.044, 33.22, 5],
+    partBottom: [box(22, 33.2, 4.1)],
+  },
+  'oled-128x32-0.91in-spi-adafruit': {
+    partName: 'Adafruit 128x32 1" SPI OLED',
+    bomName: 'Adafruit 128x32 1" Diagonal OLEDs, SPI (Part No. 661)',
+    category: 'Displays',
+    stepFile: '/target/key-oled-128x32-0.91in-spi-adafruit.step',
+    partOverride: '/target/switch-oled-128x32-0.91in-spi-adafruit.glb',
+    socketSize: [23.6, 33.1, 2.5],
     partBottom: [box(22, 33.2, 4.1)],
   },
   'oled-128x32-0.91in-dfrobot': {
@@ -187,7 +218,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'trackball': {
     partName: 'Trackball',
-    bomName: () => 'Trackballs',
+    bomName: (v: Variant) => `${v.size} Trackballs`,
     category: 'Trackballs & Trackpads',
     stepFile: '/target/key-trackball.step',
     partOverride: '/target/switch-trackball.glb',
@@ -198,19 +229,22 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     }),
     partBottom: (v: Variant) => {
       // box = pcb then chip
-      if (v.size == '25mm') return [box(28.5, 21.3, 23.8), box(16, 11, 26.3)]
-      if (v.size == '55mm') return [box(28.5, 21.3, 38.8), box(16, 11, 41.3)]
-      return [box(28.5, 21.3, 28.3), box(16, 11, 30.8)] // 34mm variant
+      const pcbWidth = { 'Joe (QMK)': 28.5, 'Skree (ZMK)': 32 }[v.sensor as TrackballVariant['sensor']]
+      const pcbHeight = { 'Joe (QMK)': 21.3, 'Skree (ZMK)': 24 }[v.sensor as TrackballVariant['sensor']]
+
+      if (v.size == '25mm') return [box(pcbWidth, pcbHeight, 23.8), box(16, 11, 26.3)]
+      if (v.size == '55mm') return [box(pcbWidth, pcbHeight, 38.8), box(16, 11, 41.3)]
+      return [box(pcbWidth, pcbHeight, 28.3), box(16, 11, 30.8)] // 34mm variant
     },
     variants: {
       size: ['25mm', '34mm', '55mm'],
       bearings: ['Roller', 'Ball', 'BTU (7.5mm)', 'BTU (9mm)'],
-      sensor: ['Joe'],
+      sensor: ['Joe (QMK)', 'Skree (ZMK)'],
     },
     encodeVariant: (variant: Variant) => {
       const size = ['34mm', '25mm', '55mm'].indexOf(variant.size)
       const bearings = ['Roller', 'Ball', 'BTU (7.5mm)', 'BTU (9mm)'].indexOf(variant.bearings)
-      const sensor = ['Joe'].indexOf(variant.sensor)
+      const sensor = ['Joe (QMK)', 'Skree (ZMK)'].indexOf(variant.sensor)
       return size + (bearings << 3) + (sensor << 6)
     },
     decodeVariant: (variant: number) => {
@@ -220,8 +254,31 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
       return {
         size: ['34mm', '25mm', '55mm'][size] || '34mm',
         bearings: ['Roller', 'Ball', 'BTU (7.5mm)', 'BTU (9mm)'][bearings] || 'Roller',
-        sensor: ['Joe'][sensor] || 'Joe',
+        sensor: ['Joe (QMK)', 'Skree (ZMK)'][sensor] || 'Joe (QMK)',
       }
+    },
+    extraBomItems(v: Variant) {
+      const variant = v as TrackballVariant
+      const btuInfo = 'Use <a class="underline" href="https://www.aliexpress.us/item/3256805224793948.html">these BTUs from AliExpress</a>'
+      const joeInfo = 'Supports <a class="underline" href="https://www.tindie.com/products/citizenjoe/pmw3389-motion-sensor/">these PCBs</a> from Tindie'
+      const skreeInfo = 'Supports <a class="underline" href="https://skree.us/products/zmk-compatible-pmw3610-board">these PCBs</a> from Skree'
+      const items: Record<string, BomItem> = {}
+      if (variant.bearings == 'Roller') {
+        items['trackball-dowel'] = { item: '3 x 8 mm Dowel Pins', icon: 'trackball', count: 3 }
+        items['trackball-bearing'] = { item: '3 x 6 x 2.5 mm Bearings', icon: 'trackball', count: 3 }
+      } else if (variant.bearings == 'Ball') {
+        items['trackball-bearing'] = { item: '1/8" diameter (3.175mm) Ceramic Ball Bearings', icon: 'trackball', count: 3 }
+      } else if (variant.bearings == 'BTU (7.5mm)') {
+        items['trackball-bearing'] = { item: '7.5mm diameter BTUs', icon: 'trackball', count: 3, info: btuInfo }
+      } else if (variant.bearings == 'BTU (9mm)') {
+        items['trackball-bearing'] = { item: '9mm diameter BTUs', icon: 'trackball', count: 3, info: btuInfo }
+      }
+      if (variant.sensor == 'Joe (QMK)') {
+        items['trackball-sensor'] = { item: 'PMW3360 or PMW3389 Sensors', icon: 'trackball', info: joeInfo, count: 1 }
+      } else if (variant.sensor == 'Skree (ZMK)') {
+        items['trackball-sensor'] = { item: 'PMW3610 Sensor', icon: 'trackball', info: skreeInfo, count: 1 }
+      }
+      return items
     },
   },
   'trackpad-cirque': {
@@ -285,11 +342,13 @@ export const sortedCategories = [...new Set(Object.values(PART_INFO).map((p) => 
 
 type PartSize = [number, number, number] | { radius: number; sides: number; height: number }
 type Variant = Record<string, any>
+export type BomItem = { item: string; icon: string; count: number; info?: string }
 
 type PartInfoNonVariant = {
   bomName: string
   socketSize: PartSize | ((k: CuttleKey) => PartSize)
   partBottom: [number, number, number][][]
+  extraBomItems?: Record<string, BomItem>
 }
 type PartInfoVariant = {
   bomName: (v: Variant) => string
@@ -298,6 +357,7 @@ type PartInfoVariant = {
   variants: Record<string, string[]>
   decodeVariant: (n: number) => Variant
   encodeVariant: (v: Variant) => number
+  extraBomItems?: (v: Variant) => Record<string, BomItem>
 }
 type PartInfo = (PartInfoNonVariant | PartInfoVariant) & {
   partName: string
@@ -305,6 +365,7 @@ type PartInfo = (PartInfoNonVariant | PartInfoVariant) & {
   partOverride?: string | null
   category: string
   keycap?: boolean
+  draft?: boolean
 }
 
 // ------------------------------------------------------------------------------------------------------
@@ -343,6 +404,11 @@ export function bomName(k: CuttleKey): string {
   const info = PART_INFO[k.type]
   if ('variants' in info) return info.bomName(k.variant!)
   return info.bomName
+}
+export function extraBomItems(k: CuttleKey): Record<string, BomItem> {
+  const info = PART_INFO[k.type]
+  if ('variants' in info) return info.extraBomItems ? info.extraBomItems(k.variant!) : {}
+  return info.extraBomItems || {}
 }
 
 export function decodeVariant(t: CuttleKey['type'], variant: number) {
