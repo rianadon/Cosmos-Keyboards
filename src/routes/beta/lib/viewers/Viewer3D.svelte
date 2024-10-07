@@ -711,11 +711,16 @@
       {#if $showHelp && $selectMode != 'cluster'}
         <div class="relative mr--0.5 max-[528px]:hidden">
           <div
-            class="absolute z-10 top-16 left--5 w-50 font-urbanist font-500 text-sm opacity-80"
+            class="absolute z-10 top-16 left--5 w-50 font-urbanist font-500 text-sm light:opacity-80"
             class:left--24!={PART_INFO[nthPartType($protoConfig, $clickedKey, $selectMode)].partName
               .length < 20}
           >
-            <img src="{base}/arrow2.svg" class="absolute h-13 top--9 right-7" />
+            <svg
+              class="absolute h-13 top--9 right-7 opacity-80"
+              viewBox="340.4670715390309 429.628023054668 90.38483407847127 100.52045602861654"
+            >
+              <use xlink:href="{base}/arrows.svg#arrow2" />
+            </svg>
             You can change a key to a trackball, trackpad, display, or encoder here!
           </div>
         </div>
@@ -803,9 +808,14 @@
       {#if $showHelp && $selectMode != 'cluster'}
         <div class="relative mr--0.5 max-[528px]:hidden">
           <div
-            class="absolute z-10 top-16 right--5 w-48 font-urbanist font-500 select-none text-sm opacity-80"
+            class="absolute z-10 top-16 right--5 w-48 font-urbanist font-500 select-none text-sm light:opacity-80"
           >
-            <img src="{base}/arrow1.svg" class="absolute h-13 top--9 right-7" />
+            <svg
+              class="absolute h-13 top--9 right-7 opacity-80"
+              viewBox="0 0 90.38483407847127 100.52045602861654"
+            >
+              <use xlink:href="{base}/arrows.svg#arrow1" />
+            </svg>
             Delete keys using this button or the <span class="kbd">delete</span> key.
           </div>
         </div>
@@ -886,23 +896,38 @@
       </div>
       {#if $showHelp && !popoutShown}
         <div
-          class="absolute right-19 top-13 z-10 font-urbanist font-500 w-45 opacity-80 text-sm text-right max-[528px]:hidden"
+          class="absolute right-19 top-13 z-10 font-urbanist font-500 w-45 light:opacity-80 text-sm text-right max-[528px]:hidden"
         >
-          <img src="{base}/arrow3.svg" class="absolute h-11 right--12.5 top--2" />
+          <svg
+            class="absolute h-11 right--12.5 top--2 opacity-80"
+            viewBox="324.63186981735146 429.628023054668 106.22003580015075 94.79661453649442"
+          >
+            <use xlink:href="{base}/arrows.svg#arrow3" />
+          </svg>
           Use these tools to select or reposition keys.<br />
           <span class="text-xs">tip: hold ctrl while rotating to snap to 90&deg;</span>
         </div>
         <div
-          class="absolute right-19 top-38 z-10 font-urbanist font-500 w-45 opacity-80 text-sm text-right max-[528px]:hidden"
+          class="absolute right-19 top-38 z-10 font-urbanist font-500 w-45 light:opacity-80 text-sm text-right max-[528px]:hidden"
         >
-          <img src="{base}/arrow4.svg" class="absolute h-11 right--12.5 top--3.8" />
+          <svg
+            class="absolute h-11 right--12.5 top--3.8"
+            viewBox="324.63186981735146 429.628023054668 106.22003580015075 94.79661453649442"
+          >
+            <use xlink:href="{base}/arrows.svg#arrow4" />
+          </svg>
           Change selection mode!
           <span class="text-xs">tip: you can add columns by switching to column mode</span>
         </div>
         <div
-          class="absolute right-19 top-64 z-10 font-urbanist font-500 w-60 opacity-80 text-sm text-right max-[528px]:hidden"
+          class="absolute right-19 top-64 z-10 font-urbanist font-500 w-60 light:opacity-80 text-sm text-right max-[528px]:hidden"
         >
-          <img src="{base}/arrow5.svg" class="absolute h-11 right--12.5" />
+          <svg
+            class="absolute h-11 right--12.5 opacity-80"
+            viewBox="324.63186981735146 429.628023054668 106.22003580015075 94.79661453649442"
+          >
+            <use xlink:href="{base}/arrows.svg#arrow5" />
+          </svg>
           <p class="w-45 ml-auto">This menu has *lots* of goodies. Try opening it!</p>
           <span class="text-xs">it changes for each selection mode</span>
         </div>
@@ -1414,9 +1439,14 @@
           {/if}
           {#if $showHelp}
             <div
-              class="absolute right-70 top-72 z-10 font-urbanist font-500 w-70 opacity-80 text-sm text-right max-[528px]:hidden"
+              class="absolute right-70 top-72 z-10 font-urbanist font-500 w-70 light:opacity-80 text-sm text-right max-[528px]:hidden"
             >
-              <img src="{base}/arrow5.svg" class="absolute h-11 right--12.5" />
+              <svg
+                class="absolute h-11 right--12.5"
+                viewBox="324.63186981735146 429.628023054668 106.22003580015075 94.79661453649442"
+              >
+                <use xlink:href="{base}/arrows.svg#arrow5" />
+              </svg>
               If moving keys around by hand isn't accurate enough for you, you can edit the exact positions
               here!
               <p class="text-xs mt-2">
@@ -1544,13 +1574,13 @@
 
 {#if $showHelp}
   <div
-    class="bg-white/80 absolute inset-0 z-5 flex items-center justify-center font-urbanist font-500 backdrop-blur-3 max-[528px]:hidden"
+    class="bg-white/80 dark:bg-gray-800/80 absolute inset-0 z-5 flex items-center justify-center font-urbanist font-500 backdrop-blur-3 max-[528px]:hidden"
     transition:fade
   >
     <div class="text-center">
       <button class="button purple inline-block!" on:click={() => ($showHelp = false)}>Close Help</button
       >
-      <div class="font-urbanist text-xs w-40 opacity-80">
+      <div class="font-urbanist text-xs w-40 light:opacity-80">
         You can access this help from the <Icon
           class="inline-block relative top--0.5"
           size="16"
@@ -1626,7 +1656,7 @@
   }
 
   .kbd {
-    --at-apply: 'relative bg-slate-100 border border-slate-400 rounded px-1 mx-[0.1em] text-[0.9em] bottom-0.05em';
+    --at-apply: 'relative bg-slate-100 dark:bg-slate-900 border border-slate-400 rounded px-1 mx-[0.1em] text-[0.9em] bottom-0.05em';
   }
 
   .purple.purple {
