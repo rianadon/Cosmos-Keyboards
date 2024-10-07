@@ -18,7 +18,13 @@ Some setting groups allow you to edit the vaues for one side of the keyboard. Wh
 ## Upper keys
 This section steers the general look / layout of the keyboard.
 
-With the buttons, you can select the amount of rows and columns of your keyboard. The amounts of rows generally applies to the middle- and ringfinder columns, the index finger and pinky rows will have a row less. Ø removes the keys and only leaves the thumb cluster.
+The "Out", "Num", "Fn" and "Inner" buttons allow you to add rows on the outside or inside, and add a number and/or fn row.
+
+!!! info "The "Fn" button automatically selects the "Num" button."
+
+Ø removes the keys and only leaves the thumb cluster.
+
+The `r`x`c` button allows you to manually specify how many rows and columns you want.
 
 The keycap and switch settings work the same as [the ones in the edit key menu](editor-basics.md#switch-and-keycap-size).
 
