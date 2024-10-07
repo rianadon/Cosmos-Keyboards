@@ -137,3 +137,14 @@ Minimum web thickness TODO
 The vertical part clearance adds clearance on the bottom so you have more space for wiring or other stuff.
 
 The auto clear screw inserts adds additional height so all scre inserts fit in there. TODO
+
+## Extras
+Show wrist rest shows / hides the wrist rest.
+
+### Unibody
+When activated, the unibody setting converts the keyboard to a unibody keyboard.
+
+You can set the separation and the angle with their respective settings.
+
+### Wrist rest
+
