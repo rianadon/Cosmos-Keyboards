@@ -79,7 +79,7 @@ enumeration('MICROCONTROLLER_NAME', [
 struct('PartVariant', {
   part: 'PART,7',
   aspect: 'int,8',
-  variant: 'int,6',
+  variant: 'int,13',
 })
 
 struct('Keycap', {

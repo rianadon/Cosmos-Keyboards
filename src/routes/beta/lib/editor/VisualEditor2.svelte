@@ -37,6 +37,7 @@
   import {
     fromCosmosConfig,
     mirrorCluster,
+    partVariant,
     toCosmosConfig,
     type ConnectorMaybeCustom,
     type CosmosKey,
@@ -47,9 +48,9 @@
   import Checkbox from '$lib/presentation/Checkbox.svelte'
   import CheckboxOpt from '$lib/presentation/CheckboxOptDef.svelte'
   import Select from '$lib/presentation/Select.svelte'
-  import { notNull, objKeys } from '$lib/worker/util'
+  import { capitalize, notNull, objKeys } from '$lib/worker/util'
   import { profileName, sortProfiles } from '../viewers/viewer3dHelpers'
-  import { PART_INFO } from '$lib/geometry/socketsParts'
+  import { encodeVariant, PART_INFO } from '$lib/geometry/socketsParts'
   import DecimalInputInherit from './DecimalInputInherit.svelte'
   import {
     clusterAngle,
@@ -73,7 +74,14 @@
     toggleNumRow,
     toggleOuterCol,
   } from './visualEditorHelpers'
-  import { mdiCodeJson, mdiPencil, mdiArrowLeft, mdiArrowRight, mdiDotsVertical } from '@mdi/js'
+  import {
+    mdiCodeJson,
+    mdiPencil,
+    mdiArrowLeft,
+    mdiArrowRight,
+    mdiDotsVertical,
+    mdiChevronDown,
+  } from '@mdi/js'
   import Icon from '$lib/presentation/Icon.svelte'
   import Dialog from '$lib/presentation/Dialog.svelte'
   import ConnectorsView from '../dialogs/ConnectorsView.svelte'
@@ -328,6 +336,16 @@
     })
   }
 
+  function changeKeyVariant(e: Event, elem: string) {
+    const newValue = (e.target as HTMLInputElement).value
+    protoConfig.update((proto) => {
+      const oldVariant = partVariant(proto.partType)
+      oldVariant[elem] = newValue
+      proto.partType.variant = encodeVariant(proto.partType.type, oldVariant)
+      return proto
+    })
+  }
+
   function rearPins(conf: CosmosKeyboard): number {
     if (conf.microcontroller == null) return 0
     return BOARD_PROPERTIES[conf.microcontroller].rearPins || 0
@@ -450,6 +468,19 @@
       {/each}
     </Select>
   </Field>
+  {@const info = PART_INFO[$protoConfig.partType.type]}
+  {#each Object.entries('variants' in info ? info.variants : {}) as [key, opt]}
+    <Field name={capitalize(key)}>
+      <Select
+        value={partVariant($protoConfig.partType)[key]}
+        on:change={(ev) => changeKeyVariant(ev, key)}
+      >
+        {#each opt as part}
+          <option value={part}>{part}</option>
+        {/each}
+      </Select>
+    </Field>
+  {/each}
   {#if !basic}
     <Field
       name="Horizontal (X) Spacing"

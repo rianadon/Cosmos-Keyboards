@@ -53,14 +53,26 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'mx-hotswap': {
     partName: 'MX-Compatible + 3DP Hotswap',
-    bomName: 'MX-Compatible Switches',
+    bomName: () => 'MX-Compatible Switches',
     category: 'Sockets',
     stepFile: '/target/key-mx-hotswap.step',
     partOverride: MX_PART,
-    socketSize: [18, 18, 5.85],
-    partBottom: [box(16.9, 16.8, 8)],
+    singlePartForVariants: true,
+    socketSize: () => [18, 18, 5.85],
+    partBottom: () => [box(16.9, 16.8, 8)],
     keycap: true,
     extraBomItems: { ...BOM_MX_HOTSWAP, ...BOM_DIODE },
+    variants: {
+      hotswap: ['Kailh', 'Gateron', 'Outemu'],
+    },
+    encodeVariant: (variant: Variant) => {
+      return ['Kailh', 'Gateron', 'Outemu'].indexOf(variant.hotswap)
+    },
+    decodeVariant: (variant: number) => {
+      return {
+        hotswap: ['Kailh', 'Gateron', 'Outemu'][variant] || 'Kailh',
+      }
+    },
   },
   'mx-klavgen': {
     partName: 'MX-Compatible + 3DP Klavgen Hotswap',
@@ -363,6 +375,7 @@ type PartInfo = (PartInfoNonVariant | PartInfoVariant) & {
   partName: string
   stepFile: string
   partOverride?: string | null
+  singlePartForVariants?: boolean
   category: string
   keycap?: boolean
   draft?: boolean
