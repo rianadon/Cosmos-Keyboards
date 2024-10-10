@@ -10,9 +10,11 @@
     transformationCenter,
   } from '../../routes/beta/lib/viewers/viewer3dHelpers'
   import type { CosmosKeyboard } from '$lib/worker/config.cosmos'
+  import { TransformControls as TC } from 'three/examples/jsm/controls/TransformControls.js'
 
   export let visible = true
   export let snap: boolean
+  let controls: TC
 
   const dispatch = createEventDispatcher()
   const pos = new Vector3()
@@ -42,6 +44,13 @@
     position = pos.toArray()
     quaternion = quat.toArray() as Vector4Tuple
   }
+
+  // const dispatchSnap = (_snap: boolean) => {
+  //   // Force the controls to update themselves, therefore updating the controlled object
+  //   // This causes the key to move when snap is enabled/disabled
+  //   setTimeout(() => controls.dragging && controls.pointerMove(null), 5)
+  // }
+  // $: dispatchSnap(snap)
 </script>
 
 {#if ($transformMode == 'rotate' || $transformMode == 'translate') && $clickedKey != null && visible}
@@ -52,6 +61,7 @@
       space={$transformMode == 'translate' && $selectMode == 'cluster' ? 'world' : 'local'}
       mode={$transformMode}
       rotationSnap={snap ? Math.PI / 2 : undefined}
+      bind:controls
       on:objectChange={() => {
         ref.updateMatrix()
         dispatch('move', conditionalFlip(ref.matrix, $view, $clickedKey, $protoConfig))

@@ -326,6 +326,7 @@ export function addRow(kbd: CosmosKeyboard, fn: (side: 'left' | 'right', alphas:
     const alphas = alphaColumns(kbd, cluster)
     return mapClusters(cluster, (col, i) => {
       const firstKey = col.keys.filter(a => !!a.row).sort((a, b) => a.row! - b.row!)[0]
+      if (!firstKey) return col
       if (!PART_INFO[firstKey.partType.type || col.partType.type || kbd.partType.type!].keycap) return col // Skip if first key not a keycap
       const oldRow = firstKey?.profile.row
       const row = (firstKey?.row || 0) - 1
