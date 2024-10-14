@@ -76,7 +76,7 @@ async function main() {
     // generateMXPCB(),
     // generateChoc(),
 
-    generateHotswapKey('mx-hotswap', 4.1, 4.815, 6.1, 3.815), // For MX?
+    generateHotswapKey('mx-hotswap-kailh', 4.1, 4.815, 6.1, 3.815), // For MX?
     generateHotswapKey('mx-hotswap-outemu', 4.6, 4.35, 4.6, 3.0), // For outemu
     generateHotswapKey('mx-hotswap-gateron', 4.5, 4.55, 6.0, 3.8), // For gateron
     generateKey('old-box', { switchType: 'box' }),

@@ -21,9 +21,9 @@ export async function partGeometry(type: Switch, variant: Record<string, any> = 
   if ('partOverride' in PART_INFO[type]) {
     const url = PART_INFO[type].partOverride
     if (!url) throw new Error(`No model for switch ${type}`)
-    return await loadGLTF(url.replace('.glb', varurl + '.glb'))
+    return await loadGLTF(url.replace('.glb', (PART_INFO[type].singlePartForVariants ? '' : varurl) + '.glb'))
   } else {
-    const splitUrl = '/target/splitpart-' + type + varurl + '.glb'
+    const splitUrl = '/target/splitpart-' + type + (PART_INFO[type].singlePartForVariants ? '' : varurl) + '.glb'
     console.log(splitUrl)
     return await loadGLTF(splitUrl)
   }

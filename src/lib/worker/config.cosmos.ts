@@ -2,7 +2,7 @@ import ETrsf, { Constant, fullMirrorETrsf, type MatrixOptions, mirror } from '$l
 // import { deserialize } from 'src/routes/beta/lib/serialize'
 import { flippedKey } from '$lib/geometry/keycaps'
 import { decodeVariant, PART_INFO, socketSize } from '$lib/geometry/socketsParts'
-import { type ClusterName, type ClusterSide, type ClusterType, type Connector, decodeClusterFlags, encodeClusterFlags, type ScrewFlags } from '$target/cosmosStructs'
+import { type ClusterName, type ClusterSide, type ClusterType, type Connector, decodeClusterFlags, encodeClusterFlags, type PartVariant, type ScrewFlags } from '$target/cosmosStructs'
 import type { Curvature } from '$target/proto/cosmos'
 import { Matrix4, Vector3 } from 'three'
 import {
@@ -96,7 +96,7 @@ export type CosmosKeyboard =
   & {
     curvature: Required<CosmosCurvature>
     profile: Keycap['profile']
-    partType: PartType
+    partType: Required<PartType>
     wallShrouding: number
     wallThickness: number
     keyBasis: Keycap['profile']
@@ -784,6 +784,12 @@ export function nthPartType(conf: CosmosKeyboard, n: number, mode: 'key' | 'colu
   type = column.partType.type || type
   if (mode == 'column') return type
   return key.partType.type || type
+}
+
+export function partVariant(p: PartType) {
+  const type = p.type!
+  const variant = p.variant!
+  return decodeVariant(type, variant)
 }
 
 export function nthPartVariant(conf: CosmosKeyboard, n: number) {

@@ -459,7 +459,7 @@ export function decodeConfigIdk(b64: string): CosmosKeyboard {
   const roundedFlags = decodeRoundedFlags(keeb.roundedFlags)
 
   const conf: CosmosKeyboard = {
-    partType: decodePartType(keeb.partType || 0),
+    partType: decodePartType(keeb.partType || 0) as Required<PartType>,
     wallThickness: keeb.wallThickness / 10,
     wallShrouding: keeb.wallShrouding / 10,
     webMinThicknessFactor: keebExtra.webMinThicknessFactor / 10,
