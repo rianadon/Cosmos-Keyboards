@@ -3,33 +3,34 @@
 
   import Viewer from './Viewer.svelte'
   import {
-    allFootIndices,
-    allScrewIndices,
-    footOrigin,
-    keyHolesTrsfs,
-    possibleFootIndices,
-    possibleScrewIndices,
-    screwOrigin,
+      allFootIndices,
+      allScrewIndices,
+      footOrigin,
+      keyHolesTrsfs,
+      possibleFootIndices,
+      possibleScrewIndices,
+      screwOrigin,
+      type LabeledBoardInd,
   } from '$lib/worker/geometry'
-  import { rectangle, drawWall, drawLinedWall, drawBezierWall, fullSizes } from './viewerHelpers'
-  import { localHolderBounds } from '$lib/geometry/microcontrollers'
+import { rectangle, drawWall, drawLinedWall, drawBezierWall, fullSizes } from './viewerHelpers'
+import { localHolderBounds } from '$lib/geometry/microcontrollers'
 
-  import { isRenderable, type ConfErrors } from '$lib/worker/check'
-  import Trsf from '$lib/worker/modeling/transformation'
-  import { fullEstimatedCenter, type Cuttleform, type Geometry } from '$lib/worker/config'
-  import { Vector } from '$lib/worker/modeling/transformation'
-  import { CanvasTexture, Color, NearestFilter } from 'three'
-  import { view } from '$lib/store'
-  import { mapObj, objEntries } from '$lib/worker/util'
-  import type { FullGeometry } from './viewer3dHelpers'
-  import { T } from '@threlte/core'
+import { isRenderable, type ConfErrors } from '$lib/worker/check'
+import Trsf from '$lib/worker/modeling/transformation'
+import { fullEstimatedCenter, type Cuttleform, type Geometry } from '$lib/worker/config'
+import { Vector } from '$lib/worker/modeling/transformation'
+import { CanvasTexture, Color, NearestFilter } from 'three'
+import { view } from '$lib/store'
+import { mapObj, objEntries } from '$lib/worker/util'
+import type { FullGeometry } from './viewer3dHelpers'
+import { T } from '@threlte/core'
 
-  export let geometry: FullGeometry | null
-  export let confError: ConfErrors
-  export let style: string = ''
-  export let darkMode: boolean
+export let geometry: FullGeometry | null
+export let confError: ConfErrors
+export let style: string = ''
+export let darkMode: boolean
 
-  interface Geo {
+interface Geo {
     geometry: THREE.BufferGeometry
     material: THREE.Material
   }
@@ -170,6 +171,7 @@
       ...allScrewIndices(
         config,
         walls2,
+        geo.possibleScrewIndices,
         geo.connectorOrigin,
         boardInd,
         initialPos,

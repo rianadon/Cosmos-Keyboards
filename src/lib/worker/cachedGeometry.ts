@@ -100,8 +100,16 @@ export class BaseGeometry<C extends Cuttleform = SpecificCuttleform<BasicShell>>
   }
 
   @Memoize()
+  get possibleScrewIndices() {
+    const pos: number[] = []
+    for (let i = 0; i < this.allWallCriticalPoints().length; i++) {
+      pos.push(i + 0.5)
+    }
+    return pos
+  }
+  @Memoize()
   get justScrewIndices() {
-    return screwIndices(this.c, this.allWallCriticalPoints(), this.connectorOrigin, this.boardIndices, this.boardIndicesThatAreScrewsToo, this.worldZ, this.bottomZ)
+    return screwIndices(this.c, this.allWallCriticalPoints(), this.possibleScrewIndices, this.connectorOrigin, this.boardIndices, this.boardIndicesThatAreScrewsToo, this.worldZ, this.bottomZ)
   }
   get screwIndices() {
     return this.boardIndicesThatAreScrewsToo.map((i) => this.boardIndices[i as keyof LabeledBoardInd]!).concat(this.justScrewIndices)
@@ -230,7 +238,7 @@ export class TiltGeometry extends BaseGeometry<SpecificCuttleform<TiltShell>> {
   }
   @Memoize()
   get bottomScrewIndices() {
-    return screwIndices(this.c, this.allWallCriticalPoints(), null, this.screwIndices as any, [], new Vector(0, 0, 1), this.floorZ)
+    return screwIndices(this.c, this.allWallCriticalPoints(), this.possibleScrewIndices, null, this.screwIndices as any, [], new Vector(0, 0, 1), this.floorZ)
   }
   @Memoize()
   get bottomScrewPositions() {
