@@ -2,7 +2,7 @@ import { draw, Face, getOC, type PlaneName } from 'replicad'
 import { BufferAttribute, ExtrudeGeometry, Shape } from 'three'
 import { bezierPatch, type Curve, evalPatch, lineToCurve, loftCurves, type Patch, patchGradient, triangleNormTrsf } from '../geometry'
 import { sum } from '../util'
-import { buildSewnSolid, buildSolid, makeQuad, makeTriangle, type ShapeMesh } from './index'
+import { buildSewnShell, buildSewnSolid, buildShell, buildSolid, makeQuad, makeTriangle, type ShapeMesh } from './index'
 import Trsf from './transformation'
 import { Vector } from './transformation'
 
@@ -23,6 +23,7 @@ export class CompBezierSurface {
     this.patches.push(...b.patches)
     this.triangles.push(...b.triangles)
     this.quads.push(...b.quads)
+    return this
   }
 
   addPatch(p: Patch) {
@@ -55,6 +56,15 @@ export class CompBezierSurface {
     this.triangles.forEach(([a, b, c]) => faces.push(makeTriangle(a, b, c)))
     this.quads.forEach(([a, b, c, d]) => faces.push(makeQuad(a, b, c, d)))
     return sew ? buildSewnSolid(faces, nonManifold) : buildSolid(faces)
+  }
+
+  /** Create a Shell that can be used in opencascade from this surface. */
+  toShell(sew: boolean, nonManifold: boolean) {
+    const faces: Face[] = []
+    this.patches.forEach(p => faces.push(bezierFace(p)))
+    this.triangles.forEach(([a, b, c]) => faces.push(makeTriangle(a, b, c)))
+    this.quads.forEach(([a, b, c, d]) => faces.push(makeQuad(a, b, c, d)))
+    return sew ? buildSewnShell(faces, nonManifold) : buildShell(faces)
   }
 
   transform(t: Trsf) {
@@ -128,55 +138,77 @@ function patchNormal(p: Patch, u: number, v: number) {
   return y.cross(x)
 }
 
+// function patchToMesh(p: Patch): FaceMesh {
+//   const mesh: FaceMesh = { vertices: [], normals: [], triangles: [] }
+
+//   let ind = 4
+//   function process(i00: number, i02: number, i22: number, i20: number, x0 = 0, x2 = 1, y0 = 0, y2 = 1, level = 0) {
+//     const x1 = (x0 + x2) / 2
+//     const y1 = (y0 + y2) / 2
+//     const p11 = evalPatchV(p, x1, y1)
+//     const midpoint = new Vector().fromArray(mesh.vertices, i00 * 3)
+//       .add(new Vector().fromArray(mesh.vertices, i02 * 3))
+//       .add(new Vector().fromArray(mesh.vertices, i20 * 3))
+//       .add(new Vector().fromArray(mesh.vertices, i22 * 3))
+//       .divideScalar(4)
+//     if (level >= 2 || midpoint.distanceTo(p11) < 3e-2) {
+//       mesh.triangles.push(i00, i02, i22, i00, i22, i20)
+//       return
+//     }
+//     const i11 = ind++
+//     mesh.vertices.push(...p11.xyz())
+//     const i10 = ind++
+//     mesh.vertices.push(...evalPatchV(p, x1, y0).xyz())
+//     const i12 = ind++
+//     mesh.vertices.push(...evalPatchV(p, x1, y2).xyz())
+//     const i01 = ind++
+//     mesh.vertices.push(...evalPatchV(p, x0, y1).xyz())
+//     const i21 = ind++
+//     mesh.vertices.push(...evalPatchV(p, x2, y1).xyz())
+//     mesh.normals.push(...patchNormal(p, x1, y1).xyz())
+//     mesh.normals.push(...patchNormal(p, x1, y0).xyz())
+//     mesh.normals.push(...patchNormal(p, x1, y2).xyz())
+//     mesh.normals.push(...patchNormal(p, x0, y1).xyz())
+//     mesh.normals.push(...patchNormal(p, x2, y1).xyz())
+
+//     process(i00, i01, i11, i10, x0, x1, y0, y1, level + 1)
+//     process(i01, i02, i12, i11, x0, x1, y1, y2, level + 1)
+//     process(i10, i11, i21, i20, x1, x2, y0, y1, level + 1)
+//     process(i11, i12, i22, i21, x1, x2, y1, y2, level + 1)
+//   }
+
+//   mesh.vertices.push(...p[0][0].xyz())
+//   mesh.vertices.push(...p[3][0].xyz())
+//   mesh.vertices.push(...p[3][3].xyz())
+//   mesh.vertices.push(...p[0][3].xyz())
+
+//   mesh.normals.push(...patchNormal(p, 0, 0).xyz())
+//   mesh.normals.push(...patchNormal(p, 0, 1).xyz())
+//   mesh.normals.push(...patchNormal(p, 1, 1).xyz())
+//   mesh.normals.push(...patchNormal(p, 1, 0).xyz())
+//   process(0, 1, 2, 3, 0, 1, 0, 1)
+//   return mesh
+// }
+
 function patchToMesh(p: Patch): FaceMesh {
   const mesh: FaceMesh = { vertices: [], normals: [], triangles: [] }
-
-  let ind = 4
-  function process(i00: number, i02: number, i22: number, i20: number, x0 = 0, x2 = 1, y0 = 0, y2 = 1, level = 0) {
-    const x1 = (x0 + x2) / 2
-    const y1 = (y0 + y2) / 2
-    const p11 = evalPatchV(p, x1, y1)
-    const midpoint = new Vector().fromArray(mesh.vertices, i00 * 3)
-      .add(new Vector().fromArray(mesh.vertices, i02 * 3))
-      .add(new Vector().fromArray(mesh.vertices, i20 * 3))
-      .add(new Vector().fromArray(mesh.vertices, i22 * 3))
-      .divideScalar(4)
-    if (level >= 2 || midpoint.distanceTo(p11) < 3e-2) {
-      mesh.triangles.push(i00, i02, i22, i00, i22, i20)
-      return
-    }
-    const i11 = ind++
-    mesh.vertices.push(...p11.xyz())
-    const i10 = ind++
-    mesh.vertices.push(...evalPatchV(p, x1, y0).xyz())
-    const i12 = ind++
-    mesh.vertices.push(...evalPatchV(p, x1, y2).xyz())
-    const i01 = ind++
-    mesh.vertices.push(...evalPatchV(p, x0, y1).xyz())
-    const i21 = ind++
-    mesh.vertices.push(...evalPatchV(p, x2, y1).xyz())
-    mesh.normals.push(...patchNormal(p, x1, y1).xyz())
-    mesh.normals.push(...patchNormal(p, x1, y0).xyz())
-    mesh.normals.push(...patchNormal(p, x1, y2).xyz())
-    mesh.normals.push(...patchNormal(p, x0, y1).xyz())
-    mesh.normals.push(...patchNormal(p, x2, y1).xyz())
-
-    process(i00, i01, i11, i10, x0, x1, y0, y1, level + 1)
-    process(i01, i02, i12, i11, x0, x1, y1, y2, level + 1)
-    process(i10, i11, i21, i20, x1, x2, y0, y1, level + 1)
-    process(i11, i12, i22, i21, x1, x2, y1, y2, level + 1)
+  let blocks: number[] = []
+  for (let i = 0; i <= 7; i++) {
+    blocks.push(i / 7)
   }
-
-  mesh.vertices.push(...p[0][0].xyz())
-  mesh.vertices.push(...p[3][0].xyz())
-  mesh.vertices.push(...p[3][3].xyz())
-  mesh.vertices.push(...p[0][3].xyz())
-
-  mesh.normals.push(...patchNormal(p, 0, 0).xyz())
-  mesh.normals.push(...patchNormal(p, 0, 1).xyz())
-  mesh.normals.push(...patchNormal(p, 1, 1).xyz())
-  mesh.normals.push(...patchNormal(p, 1, 0).xyz())
-  process(0, 1, 2, 3, 0, 1, 0, 1)
+  for (let i = 0; i < blocks.length; i++) {
+    for (let j = 0; j < blocks.length; j++) {
+      mesh.vertices.push(...evalPatchV(p, blocks[i], blocks[j]).xyz())
+      mesh.normals.push(...patchNormal(p, blocks[i], blocks[j]).xyz())
+    }
+  }
+  const n = blocks.length
+  for (let i = 0; i < blocks.length - 1; i++) {
+    for (let j = 0; j < blocks.length - 1; j++) {
+      mesh.triangles.push(i * n + j, i * n + (j + 1), (i + 1) * n + j)
+      mesh.triangles.push(i * n + (j + 1), (i + 1) * n + (j + 1), (i + 1) * n + j)
+    }
+  }
   return mesh
 }
 

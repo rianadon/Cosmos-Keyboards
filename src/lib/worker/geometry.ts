@@ -755,7 +755,7 @@ export function minWallYAlongVector(c: Cuttleform, surfaces: Line[][], idx: numb
   const prev = surfaces[(idx - 1 + surfaces.length) % surfaces.length]
   const wallBiMi = joinedWall(c, nextnext, next, surf, prev, new Vector(0, 0, 1), -Infinity)[1]
 
-  console.log(wallBiMi)
+  // console.log(wallBiMi)
   return patchMinAlongVector(wallBiMi, v)
 }
 
@@ -942,16 +942,6 @@ export function solveTriangularization(c: Cuttleform, pts2D: CriticalPoints[], p
   let allTris: number[][] = cdt2d(allPts, edges)
   const bnd = findBoundary(allTris)
 
-  if (opts.noKeyTriangles) {
-    allTris = allTris.filter(([a, b, c]) => {
-      for (const poly of allPolys) {
-        if (poly.includes(allPts[a]) && poly.includes(allPts[b]) && poly.includes(allPts[c])) {
-          return false
-        }
-      }
-      return true
-    })
-  }
   const lengthThresh = c.rounded.side ? 40 : undefined
   const concavity = c.rounded.side?.concavity ?? 1.5
   if (opts.boundary) {
@@ -975,9 +965,22 @@ export function solveTriangularization(c: Cuttleform, pts2D: CriticalPoints[], p
       allIdx,
       removedTriangles,
       innerBoundary: boundaryPts,
+      originalTriangles: [],
     }
   }
   let { boundary, triangles } = concaveman(c, allTrsfs, allPts, allTris, bnd, bottomZ, worldZ, opts.noBadWalls, concavity, lengthThresh, opts.noCut, opts.bottomPts2D)
+  const originalTriangles = triangles
+  if (opts.noKeyTriangles) {
+    triangles = triangles.filter(([a, b, c]) => {
+      for (const poly of allPolys) {
+        if (poly.includes(allPts[a]) && poly.includes(allPts[b]) && poly.includes(allPts[c])) {
+          return false
+        }
+      }
+      return true
+    })
+  }
+
   const innerBoundary: number[] = [...boundary]
   triangles = triangles.filter(([a, b, c]) => {
     // @ts-ignore
@@ -1017,6 +1020,7 @@ export function solveTriangularization(c: Cuttleform, pts2D: CriticalPoints[], p
     allIdx,
     removedTriangles,
     innerBoundary,
+    originalTriangles,
   }
 }
 
@@ -1314,6 +1318,7 @@ export function* possibleScrewIndices(c: Cuttleform, walls: WallCriticalPoints[]
 export function* allScrewIndices(
   c: Cuttleform,
   walls: WallCriticalPoints[],
+  indexCandidates: number[],
   connOrigin: Trsf | null,
   boardInd: LabeledBoardInd,
   initialPositions: number[],
@@ -1337,7 +1342,7 @@ export function* allScrewIndices(
     // Find position with the highest score
     let highestScore = -Infinity
     let bestPosition = 0
-    for (const iCenter of possibleIndices) {
+    for (const iCenter of indexCandidates) {
       if (positions.has(iCenter)) continue
       const fn = c.shell.type == 'stilts' ? screwScoreStilts : screwScore
       const sc = fn(c, walls, walls, iCenter, {
@@ -1370,6 +1375,7 @@ export function* allScrewIndices(
 export function screwIndices(
   c: Cuttleform,
   walls: WallCriticalPoints[],
+  indexCandidates: number[],
   connOrigin: Trsf | null,
   boardIdx: LabeledBoardInd,
   boardsScrewsToo: (keyof LabeledBoardInd)[],
@@ -1382,7 +1388,7 @@ export function screwIndices(
   const positiveInd = screwPositions.filter(i => i != -1)
 
   // if (true || positiveInd.length) {
-  for (const pos of allScrewIndices(c, walls, connOrigin, boardIdx, positiveInd, worldZ, bottomZ, minDisplacement)) {
+  for (const pos of allScrewIndices(c, walls, connOrigin, boardIdx, indexCadidates, worldZ, bottomZ, minDisplacement)) {
     // Find next position with index -1. It will be replaced.
     const nextIndex = screwPositions.indexOf(-1)
     if (nextIndex == -1) break
@@ -2176,7 +2182,7 @@ export function microcontrollerBottomBox(c: Cuttleform, connOrigin: Trsf, boardP
 
   const ucPoints = microControllerRectangles(c, connOrigin, boardPositions).map(([minX, maxX, minY, maxY], i) => {
     const offsetZ = -BOARD_TOLERANCE_Z // some extra margin between bottom + board holder
-    const offsetY = i == 0 ? 50 : 0
+    const offsetY = i == 0 ? 20 : 0
     return [
       new Vector(minX, minY, offsetZ),
       new Vector(maxX, minY, offsetZ),

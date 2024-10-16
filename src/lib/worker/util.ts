@@ -271,3 +271,7 @@ export function pluralizeLastWord(str: string) {
   if (lastThing == -1) return pluralize(str)
   return pluralize(str.substring(0, lastThing)) + str.substring(lastThing)
 }
+
+export function iterEmpty<T, TR, TN>(iter: Generator<T, TR, TN>) {
+  return iter.next().done
+}

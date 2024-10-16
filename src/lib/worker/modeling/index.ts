@@ -1,5 +1,5 @@
 import type { OpenCascadeInstance, TopAbs_ShapeEnum, TopoDS_Shell, TopoDS_Vertex } from '$assets/replicad_single'
-import { type AnyShape, Compound, downcast, Face, getOC as ogetOC, type ShapeMesh as SM, shapeType, Solid } from 'replicad'
+import { type AnyShape, Compound, downcast, Face, getOC as ogetOC, type ShapeMesh as SM, shapeType, Shell, Solid } from 'replicad'
 import { Assembly } from './assembly'
 import type Trsf from './transformation'
 
@@ -101,12 +101,43 @@ export function buildSewnSolid(polygons: Face[], nonManifold: boolean) {
   }
 }
 
+export function buildSewnShell(polygons: Face[], nonManifold: boolean) {
+  const oc = getOC()
+  const shell = _facesToShell(polygons)
+  const sewing = new oc.BRepBuilderAPI_Sewing(1e-6, true, true, true, nonManifold)
+  sewing.Add(shell)
+  sewing.Perform(new oc.Message_ProgressRange_1())
+  shell.delete()
+  const unknownShape = sewing.SewedShape()
+  switch (shapeType(unknownShape)) {
+    case oc.TopAbs_ShapeEnum.TopAbs_SHELL:
+      return new Shell(downcast(unknownShape))
+    case oc.TopAbs_ShapeEnum.TopAbs_COMPOUND: {
+      const explorer = new oc.TopExp_Explorer_2(downcast(unknownShape), oc.TopAbs_ShapeEnum.TopAbs_SHELL as TopAbs_ShapeEnum, oc.TopAbs_ShapeEnum.TopAbs_SHAPE as TopAbs_ShapeEnum)
+      const solids: Shell[] = []
+      while (explorer.More()) {
+        solids.push(new Shell(downcast(explorer.Value())))
+        explorer.Next()
+      }
+      explorer.delete()
+      unknownShape.delete()
+      return combine(solids)
+    }
+    default:
+      throw new Error('Sewn solid is of unexpected shape type')
+  }
+}
+
 export function buildFixedSolid(polygons: Face[]) {
   return _shellToSolid(_facesToShell(polygons), true)
 }
 
 export function buildSolid(polygons: Face[]) {
   return _shellToSolid(_facesToShell(polygons), false)
+}
+
+export function buildShell(polygons: Face[]) {
+  return new Shell(_facesToShell(polygons))
 }
 
 export function blobSTL(shape: AnyShape | Assembly, opts?: {
