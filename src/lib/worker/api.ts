@@ -9,6 +9,9 @@ import wasmUrl from '$assets/replicad_single.wasm?url'
 // import loadOC from 'opencascade/dist/opencascade.full';
 // import wasmUrl from 'opencascade/dist/opencascade.full.wasm?url';
 import { combinedKeyHoleMesh, keyHoleMeshes } from '$lib/loaders/sockets'
+import type { InitOutput } from '@pro/rust_offset'
+import __wbg_init from '@pro/rust_offset'
+import { makeStiltsWalls, makeStiltsWallsQuick } from '@pro/stiltsModel'
 import { wristRest } from '@pro/wristRest'
 import type { BufferAttribute, BufferGeometry, Mesh } from 'three'
 import { getUser } from '../../routes/beta/lib/login'
@@ -23,6 +26,7 @@ import Trsf, { Vector } from './modeling/transformation'
 import ETrsf from './modeling/transformation-ext'
 
 let oc: OpenCascadeInstance
+let rust: InitOutput
 let model: Solid
 let ocTime = 0
 
@@ -39,6 +43,12 @@ async function ensureOC() {
     ocTime = performance.now() - start
   } // @ts-ignore
   else console.debug('OC memory', oc.asm.oa.buffer.byteLength / 1e6 + ' MB')
+}
+
+async function ensureRust() {
+  if (!rust) {
+    rust = await __wbg_init({} as any)
+  }
 }
 
 const toMesh = (mesh: BufferGeometry) =>
@@ -94,7 +104,8 @@ export async function generateWeb(config: Cuttleform) {
 }
 
 async function generateWallsQuick(config: Cuttleform, geo: Geometry) {
-  const mesh = makeWalls(config, geo.allWallCriticalPoints(), geo.worldZ, geo.bottomZ).toMesh()
+  const shape = config.shell.type == 'stilts' ? makeStiltsWallsQuick(geo) : makeWalls(config, geo.allWallCriticalPoints(), geo.worldZ, geo.bottomZ)
+  const mesh = shape.toMesh()
   const supports = supportMesh(mesh, geo.bottomZ)
   return { mesh, supports }
 }
@@ -110,6 +121,7 @@ export async function generatePlateQuick(config: Cuttleform, geo: Geometry) {
 
 export async function generatePlate(config: Cuttleform, cut = false) {
   await ensureOC()
+  await ensureRust()
   const geo = newGeometry(config)
   const { top, bottom } = makePlate(config, geo, cut)
   const topMesh = colorPlate(geo, meshWithVolume(await top()))
@@ -121,6 +133,7 @@ export async function generatePlate(config: Cuttleform, cut = false) {
 }
 
 export async function generateQuick(config: Cuttleform) {
+  await ensureRust()
   const geo = newGeometry(config)
   const platePromise = generatePlateQuick(config, geo)
   const webPromise = generateWebQuick(config, geo)
@@ -139,6 +152,7 @@ export async function generate(config: Cuttleform, geo: Geometry, stitchWalls: b
     throw new Error('No pro account')
   }
   await ensureOC()
+  await ensureRust()
   const assembly = new Assembly()
 
   console.time('Calculating geometry')
@@ -151,7 +165,8 @@ export async function generate(config: Cuttleform, geo: Geometry, stitchWalls: b
   console.time('Creating walls')
   let walls: Solid
   try {
-    walls = makeWalls(config, wallPts, geo.worldZ, geo.bottomZ).toSolid(stitchWalls, false)
+    if (config.shell.type == 'stilts') walls = makeStiltsWalls(geo)
+    else walls = makeWalls(config, wallPts, geo.worldZ, geo.bottomZ).toSolid(stitchWalls, false)
   } catch (e) {
     throw new Error('Error Generating the Walls: ' + e + "\n\nThis is caused by bad geometry. Check that the walls don't intersect themselves.")
   }
@@ -220,6 +235,7 @@ export async function generate(config: Cuttleform, geo: Geometry, stitchWalls: b
 
 export async function generateScrewInserts(config: Cuttleform) {
   await ensureOC()
+  await ensureRust()
   const geo = newGeometry(config)
   if (!geo.screwIndices.length) return { baseInserts: NULL, plateInserts: NULL }
   let baseInsertsM = makerScrewInserts(config, geo, ['base'])
@@ -270,8 +286,11 @@ export async function generateMirroredWristRest(config: Cuttleform) {
 
 export async function cutWall(config: Cuttleform) {
   await ensureOC()
+  await ensureRust()
   const geo = newGeometry(config)
-  let walls = makeWalls(config, geo.allWallCriticalPoints(), geo.worldZ, geo.bottomZ).toSolid(false, false)
+  let walls = config.shell.type == 'stilts'
+    ? makeStiltsWalls(geo)
+    : makeWalls(config, geo.allWallCriticalPoints(), geo.worldZ, geo.bottomZ).toSolid(false, false)
   if (geo.connectorOrigin) {
     walls = cutWithConnector(config, walls, geo.connectorOrigin)
   }

@@ -76,6 +76,9 @@
   import { SORTED_VENDORS } from '@pro/assemblyService'
   import { microcontrollerConnectors } from '$lib/geometry/microcontrollers'
   import PeaWarnings from './lib/editor/PeaWarnings.svelte'
+  import __wbg_init from '@pro/rust_offset'
+
+  __wbg_init({} as any)
 
   const DEF_CENTER = [-35.510501861572266, -17.58449935913086, 35.66889877319336] as [
     number,
@@ -369,6 +372,7 @@
     try {
       setBottomZ(conf)
     } catch (e) {
+      console.error(e)
       confError.set([
         {
           type: 'exception',
