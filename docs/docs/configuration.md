@@ -3,14 +3,14 @@
 ## Modes
 There are three modes for the configuration. This documentation is written for the Advanced mode. When you refresh the page, you might have to select the advanced mode again.
 
-### Basic
-Only shows the most used configuration options.
+This documentation tries to cover all of the important settings. Some settings might've been left out, as they are easily understandable and documentation would not add anything of value.
 
-### Advanced
-Shows most things, that you'll need to create your keyboard.
-
-### Expert
-Allows to edit the code directly, to enable even more possibilities. See [expert mode](expert.md) for that.
+- Basic
+    - Only shows the most used configuration options.
+- Advanced
+    - Shows most things, that you'll need to create your keyboard.
+- Expert
+    - Allows to edit the code directly, to enable even more possibilities. See [expert mode](expert.md) for that.
 
 ## General
 Some setting groups allow you to edit the vaues for one side of the keyboard. When you edit want to edit them together, the values of the left half will be overridden by the values of the right half.
@@ -18,9 +18,12 @@ Some setting groups allow you to edit the vaues for one side of the keyboard. Wh
 ## Upper keys
 This section steers the general look / layout of the keyboard.
 
-The "Out", "Num", "Fn" and "Inner" buttons allow you to add rows on the outside or inside, and add a number and/or fn row.
+![row selection](../assets/row-selection.png)
 
-!!! info "The "Fn" button automatically selects the "Num" button."
+- <p style="color: red">FN</p>
+- <p style="color: blue">Num</p>
+- <p style="color: green">Out</p>
+- <p style="color: yellow">Inner</p>
 
 Ø removes the keys and only leaves the thumb cluster.
 
