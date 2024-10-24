@@ -139,25 +139,29 @@ Navigate to the qmk home folder that `qmk setup` generated. We'll be creating a 
    }
    ```
 
-   QMK is a little confusing in that a lot of settings are configurable _both_ in `info.json` and in the C source code. The configuration you copied might be missing some of these options or might even have extra options. Either way, make it look like this.
+!!! info "Autogenerating info.json"
 
-   1. Unless you plan to sell your keyboard, the `vid` and `pid` settings are arbitrary. Just try to make sure they are unique for your keyboard. I've never seen `device_version` matter in practice: it's simply a way for you to specify the version of your firmware through usb.
+    QMK has a neat little [converter site](https://qmk.fm/converter/) that will create an `info.json` based off of the KLE data (remember, you can export KLE from Cosmos). It won't have everything we need, but it's a great time-saver.
 
-   2. Make sure to set `diode_direction` to whichever way the current flows in your diode wiring. Remember that the bar printed on the diode is the cathode, so it's where the "current flows to". An easy way to remember this is remembering the symbol for a diode, in which the arrow is pointing to the cathode bar. If this picture doesn't make sense, just try both! Only one of these directions will work.
+QMK is a little confusing in that a lot of settings are configurable _both_ in `info.json` and in the C source code. The configuration you copied might be missing some of these options or might even have extra options. Either way, make it look like this.
 
-   ![The diode directions, illustrated](../assets/wiring-row2col.png){ width=400 .center }
+1. Unless you plan to sell your keyboard, the `vid` and `pid` settings are arbitrary. Just try to make sure they are unique for your keyboard. I've never seen `device_version` matter in practice: it's simply a way for you to specify the version of your firmware through usb.
 
-   3. I recommend keeping the `split` settings as I wrote them here. I use `GP1` as the serial data line (so don't connect it to any switches!) The `[0,0]` in the `matrix` option refers to the top-left key in the left side of your keyboard. Holding it down when plugging in the keyboard will make it enter bootloader mode.
+2. Make sure to set `diode_direction` to whichever way the current flows in your diode wiring. Remember that the bar printed on the diode is the cathode, so it's where the "current flows to". An easy way to remember this is remembering the symbol for a diode, in which the arrow is pointing to the cathode bar. If this picture doesn't make sense, just try both! Only one of these directions will work.
 
-   4. Underneath `layouts` is where the magic happens. Here you will list all the keys, left to right across both halves then top to bottom. The `x` and `y` values are only used by `qmk info -l` and QMK configurator, neither of which you will use in this guide. However, you should still set them! You can start them at `10` on the right side to create a gap between both sides.
+![The diode directions, illustrated](../assets/wiring-row2col.png){ width=400 .center }
 
-      First start with the left side and list starting from `[0,0]` to `[0,C-1]`, where `C` is the number of columns in one half. Then, list from `[R,C-1]` to `[R,0]`, where `R` is the number of rows in one half. Then list the next row. Add keys with matrix positions `[1,0]` to `[1,C-1]`, then `[R+1,C-1]` to `[R+1,0]`.
+3. I recommend keeping the `split` settings as I wrote them here. I use `GP1` as the serial data line (so don't connect it to any switches!) The `[0,0]` in the `matrix` option refers to the top-left key in the left side of your keyboard. Holding it down when plugging in the keyboard will make it enter bootloader mode.
 
-      Things are this way because to QMK, the left and right sides are combined into the same matrix where they share the same rows but the right side has its own rows placed under the left side. Wouldn't it make more sense to share rows but have different columns? Beats me.
+4. Underneath `layouts` is where the magic happens. Here you will list all the keys, left to right across both halves then top to bottom. The `x` and `y` values are only used by `qmk info -l` and QMK configurator, neither of which you will use in this guide. However, you should still set them! You can start them at `10` on the right side to create a gap between both sides.
 
-      I reverse the columns when listing the right-side keys because I assume you've wired the keyboards as mirror inverses of each other. If the left outermost key is wired to GP2, the right outermost key should also be wired to GP2. Say GP2 is column 0. You should now see why when listing a row we start with `[0,0]` and end with `[R,0]` (both column 0).
+   First start with the left side and list starting from `[0,0]` to `[0,C-1]`, where `C` is the number of columns in one half. Then, list from `[R,C-1]` to `[R,0]`, where `R` is the number of rows in one half. Then list the next row. Add keys with matrix positions `[1,0]` to `[1,C-1]`, then `[R+1,C-1]` to `[R+1,0]`.
 
-      By the end of this, you should have exactly as many items in your layout configuration as you have keys in your keyboard, including encoders. Remember, the encoder switch pins are wired like the keys.
+   Things are this way because to QMK, the left and right sides are combined into the same matrix where they share the same rows but the right side has its own rows placed under the left side. Wouldn't it make more sense to share rows but have different columns? Beats me.
+
+   I reverse the columns when listing the right-side keys because I assume you've wired the keyboards as mirror inverses of each other. If the left outermost key is wired to GP2, the right outermost key should also be wired to GP2. Say GP2 is column 0. You should now see why when listing a row we start with `[0,0]` and end with `[R,0]` (both column 0).
+
+   By the end of this, you should have exactly as many items in your layout configuration as you have keys in your keyboard, including encoders. Remember, the encoder switch pins are wired like the keys.
 
 5. Edit `config.h`, creating it if there is none. Edit it to look like this:
 

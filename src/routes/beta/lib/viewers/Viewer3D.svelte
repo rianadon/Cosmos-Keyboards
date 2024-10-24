@@ -1476,7 +1476,9 @@
         />
         {#if flags.intersection}
           {#each componentBoxes(geo.c, geo) as box}
-            <T.Mesh geometry={componentGeometry(box)} material={new KeyMaterial(1, 1, 'red')} />
+            <T.Mesh geometry={componentGeometry(box)}>
+              <KeyboardMaterial status="error" kind="key" />
+            </T.Mesh>
           {/each}
         {/if}
         {#if $showKeyInts}

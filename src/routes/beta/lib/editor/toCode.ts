@@ -51,8 +51,10 @@ function allClustersFlipped(conf: CosmosKeyboard) {
 }
 
 export function toCode(proto: CosmosKeyboard) {
+  // I need two different versions of the config. The flipped one has correct geometry info.
+  // The non-flipped has appropriate transforms for expert mode.
   const cosmosConf = fromCosmosConfig(proto, false)
-  const geo = newFullGeometry(cosmosConf)
+  const geo = newFullGeometry(fromCosmosConfig(proto))
 
   const baseConfig: Partial<Cuttleform> = { ...cosmosConf.right! ?? cosmosConf.unibody }
   delete baseConfig.keys
@@ -60,6 +62,7 @@ export function toCode(proto: CosmosKeyboard) {
 
   const fingerDefinitions: string[] = []
   const fingerReferences: string[] = []
+  const screwStuff: string[] = []
   for (const [name, kbd] of objEntries(cosmosConf)) {
     fingerReferences.push(
       `  ${name}: {`,
@@ -75,6 +78,10 @@ export function toCode(proto: CosmosKeyboard) {
         'const ' + side + capitalize(name) + ': Key[] = ' + jsonToCode(keys) + '\n',
       )
     }
+    screwStuff.push(
+      `// [${name}] screwIndices: ${jsonToCode(geo[name]!.justScrewIndices)}`,
+      `// [${name}] connectorIndex: ${kbd!.microcontroller ? geo[name]!.autoConnectorIndex : -1}`,
+    )
   }
 
   // const keysPlane = upperKeysPlane(proto)
@@ -94,11 +101,12 @@ export function toCode(proto: CosmosKeyboard) {
     '// NOTE: Screws / the connector with',
     '// negative indices are placed automatically.',
     '// In the basic/advanced tab, these values were:',
+    ...screwStuff,
     // `// screwIndices: ${jsonToCode(screwIdx)}`,
     // `// connectorIndex: ${connectorIdx}`,
-    '',
+    // '',
     // `const curvature = ${stringifyObj(curvature(false, proto).merged, 0)}`,
-    '',
+    // '',
     // '/**',
     // ' * Useful for setting a different curvature',
     // ' * for the pinky keys.',

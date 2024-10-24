@@ -11,6 +11,7 @@
     mdiWrenchOutline,
   } from '@mdi/js'
   import type { PageData } from './$types'
+  import Carousel from './Carousel.svelte'
 
   export let data: PageData
   $: kbd = data.keyboard
@@ -27,13 +28,29 @@
 <Header />
 
 <div class="mx-auto container max-w-[calc(190vh-22rem)]">
-  <div class="w-full aspect-[1.9/1]">
-    <img
-      src={kbd.largeImage}
-      alt="Image of {kbd.author}'s keyboard"
-      class="w-full h-full object-cover"
-    />
-  </div>
+  {#if kbd.images.length == 1}
+    <div class="w-full aspect-[1.9/1]">
+      <img
+        src={kbd.largeImage}
+        alt="Image of {kbd.author}'s keyboard"
+        class="w-full h-full object-cover"
+      />
+    </div>
+  {:else}
+    <div class="w-full aspect-[1.9/1] overflow-hidden">
+      <Carousel>
+        {#each kbd.images as image}
+          <div class="w-full aspect-[1.9/1]">
+            <img
+              src={image.largeImage}
+              alt="Image of {kbd.author}'s keyboard"
+              class="w-full h-full object-cover"
+            />
+          </div>
+        {/each}
+      </Carousel>
+    </div>
+  {/if}
   <div class="sm:flex mt-2 mx-2 gap-4 md:gap-12 justify-center mx-8">
     <div class="w-full mb-2 mt-3 max-w-prose">
       <h1 class="uppercase text-2xl sm:text-3xl text-[#68e4a9] font-medium">
@@ -50,7 +67,7 @@
         </div>
       {/if}
       {#if kbd.details}
-        <p class="mt-2 mb-4 showcasedetails">{@html kbd.details}</p>
+        <div class="mt-2 mb-4 showcasedetails">{@html kbd.details}</div>
       {/if}
       <div
         class="opacity-80 grid grid-cols-[4.8rem_1fr] line-height-tight gap-row-1 mt-4 mb-4 showcasedetails"

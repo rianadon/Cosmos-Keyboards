@@ -31,7 +31,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     stepFile: '/src/assets/key-mx-pcb-twist.step',
     partOverride: MX_PART,
     socketSize: [18.7, 18.7, 8],
-    partBottom: [MX_BOTTOM, box(19.4, 19.4, 6.6)],
+    partBottom: [box(18.7, 18.7, 9.5)],
     keycap: true,
     extraBomItems: { 'pcb': { item: 'Plum Twist PCBs, 1.6mm Thick', icon: 'pcb', count: 1 } },
   },
