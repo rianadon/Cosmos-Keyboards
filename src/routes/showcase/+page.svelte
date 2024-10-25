@@ -36,7 +36,10 @@
         </div>
         <div class="flex gap-4 mx-2 my-2 items-center">
           <img src={kbd.authorImage} alt="Profile icon for {kbd.author}" class="h-6 w-6 rounded-full" />
-          {kbd.author}
+          <div>
+            {#if kbd.named}<span class="italic">{kbd.name}</span> <span class="mx-1">~</span> {/if}
+            {kbd.author}
+          </div>
         </div>
       {:else}
         <div class="w-full aspect-[1.9/1] bg-slate-800" />

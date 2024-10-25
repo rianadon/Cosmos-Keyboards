@@ -161,11 +161,11 @@ const _keyboards: Record<string, Keyboard> = {
   },
   'd85e682f': {
     author: 'rianadon',
-    name: 'Limbo (Low Profile)',
+    name: 'Limbo',
     type: 'split',
     modifiedInCAD: true,
     details:
-      "<p>I wanted to try to make as thin of Dactyl-style keyboard as possible while preserving the standard curvature and functionality. The result is the Limbo. It's portable enough to throw in a backpack, but it still packs enough keys to get your work done.</p><p>If you're going to try this yourself, beware of the thumb cluster. The vertical cluster requires you to press with the pad of your thumb, which places more strain on your fingers than pressing with the side. I recommend doing a test print of just the thumb cluster before going all-in.</p><p><i>Note: The top case was printed as-is from Cosmos, but I added the logo and stars to the bottom plate in CAD.</i></p>",
+      "<p>I wanted to make a Dactyl-style keyboard as compact as possible while preserving the standard curvature and functionality. The result is the Limbo. It's portable enough to throw in a backpack, but it still packs enough keys to get your work done.</p><p>If you're going to try this yourself, beware of the thumb cluster. The vertical cluster requires you to press with the pad of your thumb, which places more strain on your fingers than pressing with the side. I recommend doing a test print of just the thumb cluster before going all-in.</p><p><i>Note: The top case was printed as-is from Cosmos, but I added the logo and stars to the bottom plate in CAD.</i></p>",
     config:
       '#cm:CrYBCg0SBRCQQSATEgASADgxCh8SEQgIEIBLKKoBMB5AgIBMULUCEgIgExIAEgA4HUAACiISBRCQWSATEgASAxCwLxIMCAgQsF8gJCigATB4OAlAgJg9CiISBRCQZSATEgASAxCwOxIMCAgQsGsgJCigATBkOApAgKoEChMSBRCQcSATEgASADgeQICmi/ACChgSBBAQIBMSBBCggAoSAhAwODJAgM6L8AEYAEDohaCu8FVI2vCisAEKRQosEhQQwIACIABA/pyGsARIwpmglZC8ARISEEAgAECdhaCNwAdIrJ20vKA9OAAYAiIEGAAgAECFjdydwAdIl9HUvILTCxADGIYgIgYIuQEQuQE4A4IBAgQCSAVQAlhHYAFyBCAKMBR4yIOUlAE=',
     filament: 'OVV3D PLA Tri-Color Red-Yellow-Blue',
@@ -200,6 +200,7 @@ export const keyboards = Object.entries(_keyboards).map(([key, kbd]) => {
     ...kbd,
     key,
     name: kbd.name || `${kbd.author}'s Keyboard`,
+    named: !!kbd.name,
     images: foundImages,
     image: foundImages[0].image,
     largeImage: foundImages[0].largeImage,
