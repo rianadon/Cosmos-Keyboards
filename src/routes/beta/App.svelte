@@ -1079,6 +1079,17 @@
         </div>
       </div>
 
+      <div class="bg-teal-500/10 rounded my-4 px-4 py-2 mx--2">
+        <b class="text-teal-600">Coming Soon!</b>
+        <span class="font-medium">Buy Your Keyboard Assembled and Ready to Use.</span>
+        <p class="text-sm mt-2 opacity-70">
+          I'll be pairing up with a couple keyboard makers/enthusiasts so you can get your hands on your
+          dream keyboard faster &amp; easier. <a class="underline" href="/docs/assembly-service/"
+            >Learn more.</a
+          >
+        </p>
+      </div>
+
       {#if mode == 'basic' || mode == 'intermediate'}
         {#if !state.error}
           <VisualEditor2
