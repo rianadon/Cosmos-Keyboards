@@ -5,10 +5,10 @@ import { objEntries, objKeys } from '$lib/worker/util'
 import type { TrackballVariant } from '$target/cosmosStructs'
 import { readFile, writeFile } from 'fs/promises'
 import { basename, join } from 'path'
-import { type AnyShape, getOC, importSTEP } from 'replicad'
+import { type AnyShape, drawRectangle, getOC, importSTEP, makeBaseBox, Solid } from 'replicad'
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
 import { fileURLToPath } from 'url'
-import { allVariants, PART_INFO, variantURL, variantURLs } from '../lib/geometry/socketsParts'
+import { allVariants, decodeVariant, PART_INFO, variantURL, variantURLs } from '../lib/geometry/socketsParts'
 import { exportGLTF } from './exportGLTF'
 import { importSTEPSpecifically, serialize } from './modeling'
 import { setup } from './node-model'
@@ -80,10 +80,24 @@ async function main() {
       const stepName = join(targetDir, 'key-' + name + '.step')
       await writeModel(stepName, displaySocket(name, opts))
     })
+  const poolChocV1 = (name: CuttleKey['type']) =>
+    pool.add(name + ' socket', async () => {
+      const stepFile = await readFile(join(assetsDir, 'key-' + name + '.step'))
+      const model = await importSTEP(new Blob([stepFile])) as Solid
+      const variantV1 = variantURL({ type: name, variant: { ...decodeVariant(name, 0), switch: 'V1' } } as any)
+      const variantV2 = variantURL({ type: name, variant: { ...decodeVariant(name, 0), switch: 'V2' } } as any)
+      const stepV1 = join(targetDir, `key-${name + variantV1}.step`.toLowerCase())
+      const stepV2 = join(targetDir, `key-${name + variantV2}.step`.toLowerCase())
+      await writeModel(stepV2, model.clone().fuse(drawRectangle(18, 18).cut(drawRectangle(17.5, 16.5)).sketchOnPlane('XY').extrude(-2.2) as Solid))
+      await writeModel(stepV1, model.intersect(makeBaseBox(17.5, 16.5, 100).translateZ(-50)))
+    })
 
   pool.add('Cherry MX Switch', () => genPart('switch-cherry-mx'))
   pool.add('ECQWGD001 Encoder', () => genPart('switch-evqwgd001'))
   pool.add('Joycon Joystick', () => genPart('switch-joystick-joycon-adafruit'))
+
+  poolChocV1('choc')
+  poolChocV1('choc-hotswap')
 
   const defaults = { spacing: 2.54, diameter: 0.9 }
   poolUC('rp2040-black-usb-c-aliexpress', {}, [

@@ -69,10 +69,10 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     stepFile: '/target/key-mx-hotswap.step',
     partOverride: MX_PART,
     singlePartForVariants: true,
-    socketSize: () => [18, 18, 5.85],
+    socketSize: () => [18, 18, 5.85] as [number, number, number],
     partBottom: () => [box(16.9, 16.8, 8)],
     keycap: true,
-    extraBomItems: { ...BOM_MX_HOTSWAP, ...BOM_DIODE },
+    extraBomItems: () => ({ ...BOM_MX_HOTSWAP, ...BOM_DIODE }),
     variants: {
       hotswap: ['Kailh', 'Gateron', 'Outemu'],
     },
@@ -109,25 +109,37 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'choc': {
     partName: 'Choc (Kailh)',
-    bomName: 'Kailh Choc Switches',
+    bomName: (v: Variant) => `Kailh Choc ${v.switch} Switches`,
     category: 'Sockets',
-    stepFile: '/src/assets/key-choc.step',
+    stepFile: '/target/key-choc.step',
     partOverride: CHOC_PART,
-    socketSize: [17.5, 16.5, 2.2],
-    partBottom: [CHOC_BOTTOM],
+    singlePartForVariants: true,
+    socketSize: (v: Variant) => (v.switch == 'V2' ? [18, 18, 2.2] : [17.5, 16.5, 2.2]) as PartSize,
+    partBottom: () => [CHOC_BOTTOM],
     keycap: true,
-    extraBomItems: { ...BOM_DIODE },
+    extraBomItems: () => ({ ...BOM_DIODE }),
+    variants: {
+      switch: ['V1', 'V2'],
+    },
+    encodeVariant: makeEncodeVariant('choc', { switch: 2 }),
+    decodeVariant: makeDecodeVariant('choc', { switch: 2 }),
   },
   'choc-hotswap': {
     partName: 'Choc (Kailh) + 3DP Hotswap',
-    bomName: 'Kailh Choc V1 & V2 Switches',
+    bomName: (v: Variant) => `Kailh Choc ${v.switch} Switches`,
     category: 'Sockets',
-    stepFile: '/src/assets/choc-hotswap.step',
+    stepFile: '/target/key-choc-hotswap.step',
     partOverride: CHOC_PART,
-    socketSize: [18, 18, 2.2],
-    partBottom: [CHOC_BOTTOM, box(18, 18, 1.2)],
+    singlePartForVariants: true,
+    socketSize: (v: Variant) => (v.switch == 'V2' ? [18, 18, 2.2] : [17.5, 16.5, 2.2]) as PartSize,
+    partBottom: (v: Variant) => [CHOC_BOTTOM, v.switch == 'V2' ? box(18, 18, 3.3) : box(17.5, 16.5, 3.3)],
     keycap: true,
-    extraBomItems: { ...BOM_DIODE, ...BOM_CHOC_HOTSWAP },
+    extraBomItems: () => ({ ...BOM_DIODE, ...BOM_CHOC_HOTSWAP }),
+    variants: {
+      switch: ['V1', 'V2'],
+    },
+    encodeVariant: makeEncodeVariant('choc-hotswap', { switch: 2 }),
+    decodeVariant: makeDecodeVariant('choc-hotswap', { switch: 2 }),
   },
   'blank': {
     partName: 'Shaper (Blank key)',
@@ -474,4 +486,31 @@ export function allVariants(socket: CuttleKey['type']) {
 
 export function variantURLs(socket: CuttleKey['type']) {
   return allVariants(socket).map(p => variantURL({ type: socket, variant: p } as any))
+}
+
+function makeEncodeVariant(key: CuttleKey['type'], opts: Record<string, number>) {
+  return (v: Variant) => {
+    if (!('variants' in PART_INFO[key])) throw new Error(`Part ${key} has no variants`)
+    const { variants } = PART_INFO[key]
+    let encoded = 0
+    let shift = 0
+    for (const opt of Object.keys(opts)) {
+      encoded |= variants[opt].indexOf(v[opt]) << shift
+      shift += opts[opt]
+    }
+    return encoded
+  }
+}
+
+function makeDecodeVariant(key: CuttleKey['type'], opts: Record<string, number>) {
+  return (encoded: number) => {
+    if (!('variants' in PART_INFO[key])) throw new Error(`Part ${key} has no variants`)
+    const { variants } = PART_INFO[key]
+    const decoded: Variant = {}
+    for (const opt of Object.keys(opts)) {
+      decoded[opt] = variants[opt][encoded & ((1 << opts[opt]) - 1)] || variants[opt][0]
+      encoded >>= opts[opt]
+    }
+    return decoded
+  }
 }
