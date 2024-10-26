@@ -87,7 +87,7 @@ async function main() {
     generateKey('old-box-hotswap', { switchType: 'box', useHotswap: true }),
     generateKey('old-mx-hotswap', { switchType: 'mx', useHotswap: true }),
     generateKey('old-mxSnapIn-hotswap', { switchType: 'mxSnapIn', useHotswap: true }),
-    generateKey('choc-hotswap', { switchType: 'choc', useHotswap: true }),
+    generateKey('old-choc-hotswap', { switchType: 'choc', useHotswap: true }),
   ])
 }
 
