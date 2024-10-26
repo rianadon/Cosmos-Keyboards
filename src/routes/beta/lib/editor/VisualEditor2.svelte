@@ -538,6 +538,13 @@
         > for every key. These hold in the sockets better than the 3DP hotswap option but require extra printing.
       </p>
     </InfoBox>
+  {:else if $protoConfig.partType.type == 'choc-v2-hotswap'}
+    <InfoBox>
+      <p>
+        This variant requires Kailh Choc hotswap sockets and a well-tuned 3D printer. You'll need to glue
+        the sockets in place.
+      </p>
+    </InfoBox>
   {/if}
 </Section>
 <!---<svelte:fragment slot="content">
