@@ -18,12 +18,14 @@
   class:square
   class:gray
   on:click
+  on:focus
+  on:blur
   bind:this={button}><slot>{name}</slot></button
 >
 
 <style>
   .preset {
-    --at-apply: 'bg-[#99F0DC] dark:bg-gray-900 hover:bg-teal-500 dark:hover:bg-teal-900 dark:text-white py-1 px-4 rounded focus:outline-none border border-transparent focus:border-teal-500';
+    --at-apply: 'bg-[#99F0DC] dark:bg-gray-900 hover:bg-teal-400 dark:hover:bg-teal-900 dark:text-white py-1 px-4 rounded focus:outline-none border border-transparent focus:border-teal-500';
   }
   .preset.selected {
     --at-apply: 'bg-teal-500 dark:bg-teal-700';

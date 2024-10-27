@@ -117,8 +117,7 @@
 
   $: if (rightHand && rightHand.score > 0.7) {
     rightStat = calcStat(rightHand, rightStat)
-    if (rightStat.history.length > 3)
-      rightJoints = calculateJoints(rightStat.history, rightStat.means)
+    if (rightStat.history.length > 3) rightJoints = calculateJoints(rightStat.history, rightStat.means)
   }
 
   const resize = () => {
@@ -200,8 +199,8 @@
           >
         </p>
         <p>
-          If you are happy with the results, you can close this tab. Othwerise, click "Start Scan"
-          again to rescan.
+          If you are happy with the results, you can close this tab. Othwerise, click "Start Scan" again
+          to rescan.
         </p>
       {/if}
     </div>

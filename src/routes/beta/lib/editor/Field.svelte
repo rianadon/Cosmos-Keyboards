@@ -53,12 +53,7 @@
         <div class="s-help ml-1" bind:this={referenceElement}>
           <Icon path={mdi.mdiHelpCircle} size="20px" />
         </div>
-        <Popover
-          triggerEvents={['hover', 'focus']}
-          {referenceElement}
-          placement="top"
-          spaceAway={4}
-        >
+        <Popover triggerEvents={['hover', 'focus']} {referenceElement} placement="top" spaceAway={4}>
           <div
             class="rounded bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 px-2 py-1 mx-2"
             in:fade={{ duration: 100 }}
@@ -98,14 +93,7 @@
     {:else if schema.type === 'float'}
       <FloatInput class="mx-2 px-2 w-44" bind:value on:change />
     {:else if schema.type == 'int'}
-      <input
-        class="input px-2"
-        type="number"
-        min={schema.min}
-        max={schema.max}
-        bind:value
-        on:change
-      />
+      <input class="input px-2" type="number" min={schema.min} max={schema.max} bind:value on:change />
     {:else if schema.type === 'bool'}
       <Checkbox bind:value on:change />
     {:else if schema.options}
@@ -149,9 +137,6 @@
 
 <style>
   .input {
-    --at-apply: 'focus:border-teal-500 border border-transparent text-gray-700 focus:outline-none';
-    --at-apply: 'border-gray-200 dark:border-transparent bg-gray-100 dark:bg-gray-700 dark:text-gray-100';
-    --at-apply: 'appearance-none w-44 rounded mx-2';
-    --at-apply: 'text-ellipsis';
+    --at-apply: 'focus:border-teal-500 border border-transparent text-gray-700 focus:outline-none border-gray-200 dark:border-transparent bg-gray-100 dark:bg-gray-700 dark:text-gray-100 appearance-none w-44 rounded mx-2 text-ellipsis';
   }
 </style>

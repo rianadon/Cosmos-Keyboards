@@ -1,8 +1,9 @@
 <script lang="ts">
   import { protoConfig } from '$lib/store'
   import { serialize } from '../serialize'
-  import cuttleform from '$assets/cuttleform.json'
-  import type { Cuttleform as CuttleformProto } from '$target/proto/cuttleform'
+  import type { CosmosKeyboard } from '$lib/worker/config.cosmos'
+  import { encodeCosmosConfig, serializeCosmosConfig } from '$lib/worker/config.serialize'
+  import { Cluster, type Keyboard } from '../../../../../target/proto/cosmos'
 
   export let mode: string
   export let editorContent: string
@@ -17,21 +18,33 @@
 
   const origin = window.location.origin
   const pathname = window.location.pathname
-  $: prefix = mode == 'advanced' ? '#expert:' : '#cf:'
+  $: prefix = mode == 'advanced' ? '#expert:' : '#cm:'
   $: hash =
     mode == 'advanced'
       ? editorContent?.substring(7)
       : serialize({
-          keyboard: 'cf',
+          keyboard: 'cm',
           options: $protoConfig,
         }).slice(3)
 
-  function createPart(hash: Uint8Array, name: string, conf: CuttleformProto): Part {
-    const part = serialize({
-      keyboard: 'cf',
-      options: conf,
-    }).substring(3)
+  function createPart(hash: Uint8Array, name: string, conf: Keyboard): Part {
+    const part = serializeCosmosConfig(conf)
     const rawPart = Uint8Array.from(window.atob(part), (c) => c.charCodeAt(0))
+    const idx = hash.findIndex((_, idx) => {
+      for (let i = 0; i < rawPart.length; i++) if (hash[idx + i] != rawPart[i]) return false
+      return true
+    })
+    console.log(idx, rawPart)
+    return {
+      name,
+      start: Math.ceil((idx * 4) / 3),
+      end: Math.ceil(((idx + rawPart.length) * 4) / 3),
+    }
+  }
+
+  function createPartCluster(hash: Uint8Array, name: string, conf: Cluster): Part {
+    const rawPart = Cluster.toBinary(conf)
+    console.log('rawPart', rawPart)
     const idx = hash.findIndex((_, idx) => {
       for (let i = 0; i < rawPart.length; i++) if (hash[idx + i] != rawPart[i]) return false
       return true
@@ -69,7 +82,7 @@
     return allParts
   }
 
-  function calcParts(mode: string, url: string, conf: CuttleformProto) {
+  function calcParts(mode: string, url: string, conf: CosmosKeyboard) {
     if (mode == 'advanced') {
       if (!url) return []
       return [
@@ -84,34 +97,25 @@
 
     const rawHash = Uint8Array.from(window.atob(url), (c) => c.charCodeAt(0))
 
+    const keeb = encodeCosmosConfig(conf)
+    const parts: Part[] = [
+      createPartCluster(rawHash, 'Right Upper Keys', keeb.cluster[0]),
+      createPartCluster(rawHash, 'Right Thumb Keys', keeb.cluster[1]),
+    ]
+    let i = 2
+    if (conf.clusters.find((c) => c.side == 'left' && c.name == 'fingers'))
+      parts.push(createPartCluster(rawHash, 'Left Upper Keys', keeb.cluster[i++]))
+    if (conf.clusters.find((c) => c.side == 'left' && c.name == 'thumbs'))
+      parts.push(createPartCluster(rawHash, 'Left Thumb Keys', keeb.cluster[i++]))
+    parts.push(
+      createPart(rawHash, 'Keyboard', {
+        ...keeb,
+        cluster: [],
+      })
+    )
     return splitWithParts(
       url,
-      [
-        createPart(rawHash, 'Upper Keys', {
-          ...cuttleform.options,
-          upperKeys: conf.upperKeys,
-        }),
-        createPart(rawHash, 'Curvature', {
-          ...cuttleform.options,
-          curvature: conf.curvature,
-        }),
-        createPart(rawHash, 'Thumb Cluster', {
-          ...cuttleform.options,
-          thumbCluster: conf.thumbCluster,
-        }),
-        createPart(rawHash, 'Stagger', {
-          ...cuttleform.options,
-          stagger: conf.stagger,
-        }),
-        createPart(rawHash, 'Walls', {
-          ...cuttleform.options,
-          wall: conf.wall,
-        }),
-        createPart(rawHash, 'Shell', {
-          ...cuttleform.options,
-          shell: conf.shell,
-        }),
-      ].filter((p) => p.end > p.start)
+      parts.filter((p) => p.end > p.start)
     )
   }
 
@@ -126,7 +130,7 @@
 
 <div class="font-mono mt-4">
   <span class="mr-2 c0">Mode</span>{#each parts.filter((p) => p.name) as part}
-    <span class="mr-2 {part.clazz}">{part.name}</span>
+    <span><span class="whitespace-nowrap {part.clazz}">{part.name}</span> </span>
   {/each}
 </div>
 

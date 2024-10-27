@@ -156,15 +156,15 @@
             <div class="info">
               <div class="info-div"><Icon size="24" path={mdi.mdiToolboxOutline} /></div>
               <p class="info-p">
-                A PRO account lets download models with Cosmos's specialties: rounded case designs
-                and form-fitting wrist rests.
+                A PRO account lets download models with Cosmos's specialties: rounded case designs and
+                form-fitting wrist rests.
               </p>
             </div>
             <div class="info">
               <div class="info-div"><Icon size="24" path={mdi.mdiCreditCardLockOutline} /></div>
               <p class="info-p">
-                Your payment information is processed securely by Stripe. You can alternatively
-                sponsor me on GitHub to access PRO.
+                Your payment information is processed securely by Stripe. You can alternatively sponsor
+                me on GitHub to access PRO.
               </p>
             </div>
             <div class="info">
@@ -229,9 +229,7 @@
                 <Icon path={mdi.mdiNumeric1Box} class="opacity-80" /> Send Verification Email
               </div>
               {#if state == 'email'}
-                <p class="mt-4">
-                  Please enter your email address below. You will be sent a login code.
-                </p>
+                <p class="mt-4">Please enter your email address below. You will be sent a login code.</p>
                 <p class="mt-1 text-sm opacity-70">
                   The code will be valid for 10 minutes and will only be accepted on this device.
                 </p>
@@ -329,8 +327,8 @@
               > with any relevant details.
             </p>
             <p class="">
-              If you log in through GitHub, the server processes only your GitHub username.<br />No
-              other account data is requested or stored on the server.
+              If you log in through GitHub, the server processes only your GitHub username.<br />No other
+              account data is requested or stored on the server.
             </p>
           </div>
         </div>
@@ -340,8 +338,7 @@
           />
           {#if flags.theme}
             <p class="mb-2 opacity-80">
-              As an bonus for supporting the generator, you can now change the color theme of the
-              model.
+              As an bonus for supporting the generator, you can now change the color theme of the model.
             </p>
             <div class="text-center mb-4">
               Select Theme: <div class="inline-block relative">
@@ -390,10 +387,7 @@
   }
 
   .input {
-    --at-apply: 'focus:border-teal-500 border border-transparent text-gray-700 focus:outline-none';
-    --at-apply: 'border-gray-200 dark:border-transparent bg-gray-100 dark:bg-gray-700 dark:text-gray-100';
-    --at-apply: 'appearance-none rounded mx-2';
-    --at-apply: 'text-ellipsis px-2 py-1 flex-1 max-w-[20rem]';
+    --at-apply: 'focus:border-teal-500 border border-transparent text-gray-700 focus:outline-none border-gray-200 dark:border-transparent bg-gray-100 dark:bg-gray-700 dark:text-gray-100 appearance-none rounded mx-2 text-ellipsis px-2 py-1 flex-1 max-w-[20rem]';
   }
   .input.short {
     --at-apply: 'max-w-[7rem] px-6';

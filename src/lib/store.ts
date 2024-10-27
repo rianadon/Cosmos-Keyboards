@@ -1,30 +1,45 @@
 import { browser } from '$app/environment'
-import type { CuttleformProto } from '$lib/worker/config'
+import type { CosmosKeyboard } from '$lib/worker/config.cosmos'
 import { derived, type Readable, type Writable, writable } from 'svelte/store'
 import type { User } from '../routes/beta/lib/login'
+import type { ColorScheme } from './3d/materials'
+import type { ConfError } from './worker/check'
 
-export const protoConfig = writable<CuttleformProto>(undefined)
+export type TempConfig = CosmosKeyboard & { fromProto: boolean }
+
+export const protoConfig = writable<CosmosKeyboard>(undefined)
+export const tempConfig = writable<TempConfig>(undefined)
+export const confError = writable<ConfError | undefined>(undefined)
+protoConfig.subscribe(c => tempConfig.set(c ? { ...c, fromProto: true } : c))
 export const transformMode = writable<'translate' | 'rotate' | 'select'>('select')
-export const flip = writable(false)
+export const selectMode = writable<'key' | 'column' | 'cluster'>('key')
 export const user = writable<User>({ success: false, sponsor: undefined })
 export const codeError = writable<Error | null>(null)
 
 export const hoveredKey = writable<number | null>(null)
 export const clickedKey = writable<number | null>(null)
 
+export const showGrid = writable(false)
+export const noWall = writable(false)
+export const noBase = writable(false)
+export const noBlanks = writable(false)
+export const noLabels = writable(false)
+
 // Preferences
-export const theme = storable('theme', 'purple')
+export const theme = storable<ColorScheme>('theme', 'purple')
 export const showHand = storable('showHand', true)
+export const view = storable<'left' | 'right' | 'both'>('view', 'both')
 export const bomMultiplier = storable('bomMultiplier', '2')
 export const stiltsMsg = storable('stiltsMsg', true)
 export const modelName = storable('modelName', 'cosmotyl')
 export const discordMsg = storable('discordMsg', true)
+export const enableUndo = storable('enableUndo', false)
+export const showHelp = storable('showHelp', true)
 
 export const developer = storable('developer', browser && location.origin.includes('localhost'))
 export const showTiming = andcondition(developer, storable('developer.timing', false))
-export const noWall = andcondition(developer, storable('developer.hideWall', false))
-export const noBase = andcondition(developer, storable('developer.hideBase', false))
 export const showKeyInts = andcondition(developer, storable('developer.showKeyInts', false))
+export const showGizmo = andcondition(developer, storable('developer.showGizmo', false))
 export const debugViewport = andcondition(developer, storable('developer.debugViewport', false))
 
 /** A Svelte store that writes and reads from localStorage. */

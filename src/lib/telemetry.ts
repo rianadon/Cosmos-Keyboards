@@ -1,3 +1,5 @@
+import { hasPro } from '@pro'
+
 async function post(url: string, body: any) {
   try {
     await (await fetch('https://analytics.ryanis.cool' + url, {
@@ -9,15 +11,17 @@ async function post(url: string, body: any) {
   }
 }
 
-export function trackPageView() {
+export function trackPageView(referrer?: string) {
+  if (!hasPro) return
   return post('/', {
     url: window.location.href,
     language: window.navigator.language,
-    referrer: document.referrer,
+    referrer: referrer || document.referrer,
   })
 }
 
 export function trackEvent(event: string, keys: Record<string, string | number>) {
+  if (!hasPro) return
   const entries = Object.entries(keys)
   return post('/event', {
     url: window.location.href,

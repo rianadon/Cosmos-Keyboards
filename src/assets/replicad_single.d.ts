@@ -934,6 +934,73 @@ export declare class Interface_TypedValue extends MoniTool_TypedValue {
   delete(): void;
 }
 
+export declare class Interface_InterfaceModel extends Standard_Transient {
+  Destroy(): void;
+  SetProtocol(proto: Handle_Interface_Protocol): void;
+  Protocol(): Handle_Interface_Protocol;
+  SetGTool(gtool: Handle_Interface_GTool): void;
+  GTool(): Handle_Interface_GTool;
+  DispatchStatus(): Standard_Boolean;
+  Clear(): void;
+  ClearEntities(): void;
+  ClearLabels(): void;
+  ClearHeader(): void;
+  NbEntities(): Graphic3d_ZLayerId;
+  Contains(anentity: Handle_Standard_Transient): Standard_Boolean;
+  Number(anentity: Handle_Standard_Transient): Graphic3d_ZLayerId;
+  Value(num: Graphic3d_ZLayerId): Handle_Standard_Transient;
+  NbTypes(ent: Handle_Standard_Transient): Graphic3d_ZLayerId;
+  Type(ent: Handle_Standard_Transient, num: Graphic3d_ZLayerId): Handle_Standard_Type;
+  TypeName(ent: Handle_Standard_Transient, complete: Standard_Boolean): Standard_CString;
+  static ClassName(typnam: Standard_CString): Standard_CString;
+  EntityState(num: Graphic3d_ZLayerId): Interface_DataState;
+  IsReportEntity(num: Graphic3d_ZLayerId, semantic: Standard_Boolean): Standard_Boolean;
+  ReportEntity(num: Graphic3d_ZLayerId, semantic: Standard_Boolean): Handle_Interface_ReportEntity;
+  IsErrorEntity(num: Graphic3d_ZLayerId): Standard_Boolean;
+  IsRedefinedContent(num: Graphic3d_ZLayerId): Standard_Boolean;
+  ClearReportEntity(num: Graphic3d_ZLayerId): Standard_Boolean;
+  SetReportEntity(num: Graphic3d_ZLayerId, rep: Handle_Interface_ReportEntity): Standard_Boolean;
+  AddReportEntity(rep: Handle_Interface_ReportEntity, semantic: Standard_Boolean): Standard_Boolean;
+  IsUnknownEntity(num: Graphic3d_ZLayerId): Standard_Boolean;
+  FillSemanticChecks(checks: Interface_CheckIterator, clear: Standard_Boolean): void;
+  HasSemanticChecks(): Standard_Boolean;
+  Check(num: Graphic3d_ZLayerId, syntactic: Standard_Boolean): Handle_Interface_Check;
+  Reservate(nbent: Graphic3d_ZLayerId): void;
+  AddEntity(anentity: Handle_Standard_Transient): void;
+  AddWithRefs_1(anent: Handle_Standard_Transient, proto: Handle_Interface_Protocol, level: Graphic3d_ZLayerId, listall: Standard_Boolean): void;
+  AddWithRefs_2(anent: Handle_Standard_Transient, level: Graphic3d_ZLayerId, listall: Standard_Boolean): void;
+  AddWithRefs_3(anent: Handle_Standard_Transient, lib: Interface_GeneralLib, level: Graphic3d_ZLayerId, listall: Standard_Boolean): void;
+  ReplaceEntity(nument: Graphic3d_ZLayerId, anent: Handle_Standard_Transient): void;
+  ReverseOrders(after: Graphic3d_ZLayerId): void;
+  ChangeOrder(oldnum: Graphic3d_ZLayerId, newnum: Graphic3d_ZLayerId, count: Graphic3d_ZLayerId): void;
+  GetFromTransfer(aniter: Interface_EntityIterator): void;
+  GetFromAnother(other: Handle_Interface_InterfaceModel): void;
+  NewEmptyModel(): Handle_Interface_InterfaceModel;
+  SetCategoryNumber(num: Graphic3d_ZLayerId, val: Graphic3d_ZLayerId): Standard_Boolean;
+  CategoryNumber(num: Graphic3d_ZLayerId): Graphic3d_ZLayerId;
+  FillIterator(iter: Interface_EntityIterator): void;
+  Entities(): Interface_EntityIterator;
+  Reports(semantic: Standard_Boolean): Interface_EntityIterator;
+  Redefineds(): Interface_EntityIterator;
+  GlobalCheck(syntactic: Standard_Boolean): Handle_Interface_Check;
+  SetGlobalCheck(ach: Handle_Interface_Check): void;
+  VerifyCheck(ach: Handle_Interface_Check): void;
+  DumpHeader(S: Standard_OStream, level: Graphic3d_ZLayerId): void;
+  Print(ent: Handle_Standard_Transient, s: Standard_OStream, mode: Graphic3d_ZLayerId): void;
+  PrintLabel(ent: Handle_Standard_Transient, S: Standard_OStream): void;
+  PrintToLog(ent: Handle_Standard_Transient, S: Standard_OStream): void;
+  StringLabel(ent: Handle_Standard_Transient): Handle_TCollection_HAsciiString;
+  NextNumberForLabel(label: Standard_CString, lastnum: Graphic3d_ZLayerId, exact: Standard_Boolean): Graphic3d_ZLayerId;
+  static HasTemplate(name: Standard_CString): Standard_Boolean;
+  static Template(name: Standard_CString): Handle_Interface_InterfaceModel;
+  static SetTemplate(name: Standard_CString, model: Handle_Interface_InterfaceModel): Standard_Boolean;
+  static ListTemplates(): Handle_TColStd_HSequenceOfHAsciiString;
+  static get_type_name(): Standard_Character;
+  static get_type_descriptor(): Handle_Standard_Type;
+  DynamicType(): Handle_Standard_Type;
+  delete(): void;
+}
+
 export declare class Interface_Static extends Interface_TypedValue {
   PrintStatic(S: Standard_OStream): void;
   Family(): Standard_CString;
@@ -2584,6 +2651,30 @@ export declare class TDocStd_Document extends CDM_Document {
   DynamicType(): Handle_Standard_Type;
   delete(): void;
 }
+
+export declare class Handle_Standard_Transient {
+  Nullify(): void;
+  IsNull(): boolean;
+  reset(thePtr: Standard_Transient): void;
+  get(): Standard_Transient;
+  delete(): void;
+}
+
+  export declare class Handle_Standard_Transient_1 extends Handle_Standard_Transient {
+    constructor();
+  }
+
+  export declare class Handle_Standard_Transient_2 extends Handle_Standard_Transient {
+    constructor(thePtr: Standard_Transient);
+  }
+
+  export declare class Handle_Standard_Transient_3 extends Handle_Standard_Transient {
+    constructor(theHandle: Handle_Standard_Transient);
+  }
+
+  export declare class Handle_Standard_Transient_4 extends Handle_Standard_Transient {
+    constructor(theHandle: Handle_Standard_Transient);
+  }
 
 export declare class Standard_Transient {
   Delete(): void;
@@ -7345,6 +7436,36 @@ export declare class Handle_StepData_StepModel {
     constructor(theHandle: Handle_StepData_StepModel);
   }
 
+export declare class StepData_StepModel extends Interface_InterfaceModel {
+  constructor()
+  Entity(num: Graphic3d_ZLayerId): Handle_Standard_Transient;
+  GetFromAnother(other: Handle_Interface_InterfaceModel): void;
+  NewEmptyModel(): Handle_Interface_InterfaceModel;
+  Header(): Interface_EntityIterator;
+  HasHeaderEntity(atype: Handle_Standard_Type): Standard_Boolean;
+  HeaderEntity(atype: Handle_Standard_Type): Handle_Standard_Transient;
+  ClearHeader(): void;
+  AddHeaderEntity(ent: Handle_Standard_Transient): void;
+  VerifyCheck(ach: Handle_Interface_Check): void;
+  DumpHeader(S: Standard_OStream, level: Graphic3d_ZLayerId): void;
+  ClearLabels(): void;
+  SetIdentLabel(ent: Handle_Standard_Transient, ident: Graphic3d_ZLayerId): void;
+  IdentLabel(ent: Handle_Standard_Transient): Graphic3d_ZLayerId;
+  PrintLabel(ent: Handle_Standard_Transient, S: Standard_OStream): void;
+  StringLabel(ent: Handle_Standard_Transient): Handle_TCollection_HAsciiString;
+  SourceCodePage(): Resource_FormatType;
+  SetSourceCodePage(theCode: Resource_FormatType): void;
+  SetLocalLengthUnit(theUnit: Standard_Real): void;
+  LocalLengthUnit(): Standard_Real;
+  SetWriteLengthUnit(theUnit: Standard_Real): void;
+  WriteLengthUnit(): Standard_Real;
+  IsInitializedUnit(): Standard_Boolean;
+  static get_type_name(): Standard_Character;
+  static get_type_descriptor(): Handle_Standard_Type;
+  DynamicType(): Handle_Standard_Type;
+  delete(): void;
+}
+
 export declare type TopAbs_ShapeEnum = {
   TopAbs_COMPOUND: {};
   TopAbs_COMPSOLID: {};
@@ -8165,6 +8286,7 @@ export type OpenCascadeInstance = {FS: typeof FS} & {
   Handle_Adaptor2d_Curve2d_4: typeof Handle_Adaptor2d_Curve2d_4;
   Adaptor2d_Curve2d: typeof Adaptor2d_Curve2d;
   Interface_TypedValue: typeof Interface_TypedValue;
+  Interface_InterfaceModel: typeof Interface_InterfaceModel;
   Interface_Static: typeof Interface_Static;
   Interface_Static_1: typeof Interface_Static_1;
   Interface_Static_2: typeof Interface_Static_2;
@@ -8346,6 +8468,11 @@ export type OpenCascadeInstance = {FS: typeof FS} & {
   Handle_TDocStd_Document_3: typeof Handle_TDocStd_Document_3;
   Handle_TDocStd_Document_4: typeof Handle_TDocStd_Document_4;
   TDocStd_Document: typeof TDocStd_Document;
+  Handle_Standard_Transient: typeof Handle_Standard_Transient;
+  Handle_Standard_Transient_1: typeof Handle_Standard_Transient_1;
+  Handle_Standard_Transient_2: typeof Handle_Standard_Transient_2;
+  Handle_Standard_Transient_3: typeof Handle_Standard_Transient_3;
+  Handle_Standard_Transient_4: typeof Handle_Standard_Transient_4;
   Standard_Transient: typeof Standard_Transient;
   Standard_Transient_1: typeof Standard_Transient_1;
   Standard_Transient_2: typeof Standard_Transient_2;
@@ -8857,6 +8984,7 @@ export type OpenCascadeInstance = {FS: typeof FS} & {
   Handle_StepData_StepModel_2: typeof Handle_StepData_StepModel_2;
   Handle_StepData_StepModel_3: typeof Handle_StepData_StepModel_3;
   Handle_StepData_StepModel_4: typeof Handle_StepData_StepModel_4;
+  StepData_StepModel: typeof StepData_StepModel;
   TopAbs_ShapeEnum: TopAbs_ShapeEnum;
   TopAbs_Orientation: TopAbs_Orientation;
   Bnd_Box2d: typeof Bnd_Box2d;

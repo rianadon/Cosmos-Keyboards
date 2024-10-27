@@ -10,7 +10,7 @@
   export let rotB: number
   export let thicknessFactor: number
 
-  const keySize = socketSize({ type: 'mx-better' } as any)
+  const keySize = socketSize({ type: 'mx-better' } as any) as [number, number, number]
   const VIEWX = 80
   const VIEWY = 40
 
@@ -97,7 +97,7 @@
     if (dragging || rotating) e.preventDefault()
     if (dragging) {
       posB = { x: pos.x + dragOffset.x, y: pos.y + dragOffset.y }
-      posB.x = Math.max(posB.x, posA.x + keySize.x + 2)
+      posB.x = Math.max(posB.x, posA.x + keySize[0] + 2)
     }
     if (rotating) {
       let newRot = (Math.atan2(pos.x - posB.x, pos.y - posB.y) * 180) / Math.PI + rotationOffset
@@ -200,7 +200,7 @@
       <path d={polyToD(p)} class="polygon" />
     {/each}
     <g transform={cssMatrix(geo.keyHolesTrsfs[0])}>
-      <rect x={-keySize.x / 2} width={keySize.x} height={keySize.z} class="socket" />
+      <rect x={-keySize[0] / 2} width={keySize[0]} height={keySize[2]} class="socket" />
       <path d="M-7.7,0 v-0.8 H-7.1 L-3.6 -6.2 H3.6 L7.1,-0.8 H7.7 v0.8Z" fill="url(#{keyA})" />
       <use href="#keycap" fill="url(#{keyA})" />
     </g>
@@ -211,8 +211,8 @@
       on:mouseenter={() => (hoveringDragging = true)}
       on:mouseleave={() => (hoveringDragging = false)}
     >
-      <rect class="touch" x={-keySize.x / 2} y="-9" width={keySize.x} height={keySize.z + 9} />
-      <rect x={-keySize.x / 2} width={keySize.x} height={keySize.z} class="socket" />
+      <rect class="touch" x={-keySize[0] / 2} y="-9" width={keySize[0]} height={keySize[2] + 9} />
+      <rect x={-keySize[0] / 2} width={keySize[0]} height={keySize[2]} class="socket" />
       <path d="M-7.7,0 v-0.8 H-7.1 L-3.6 -6.2 H3.6 L7.1,-0.8 H7.7 v0.8Z" fill="url(#{keyB})" />
       <use href="#keycap" fill="url(#{keyB})" />
     </g>

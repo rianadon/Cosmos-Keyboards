@@ -19,8 +19,8 @@
       Cosmos Hand Scanning
     </h1>
     <p class="mb-10">
-      To build the best possible computer model for your hand, Cosmos measures both the lengths of
-      your limbs and the direction you naturally move your fingers.
+      To build the best possible computer model for your hand, Cosmos measures both the lengths of your
+      limbs and the direction you naturally move your fingers.
     </p>
     <video autoplay muted loop class="max-w-lg mx-auto rounded mb-10">
       <source src="{base}/cosmoshand.mp4" type="video/mp4" />

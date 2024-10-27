@@ -16,10 +16,10 @@ globalThis.require = createRequire(import.meta.url)
 
 // Set socket urls
 process.env.SOCKET_URLS = JSON.stringify(Object.fromEntries(
-  fg.sync(['target/*.step', 'src/assets/*.step']).map(u => ['/' + u, u]),
+  fg.sync(['target/*.step', 'src/assets/*.step']).map(u => ['/' + u, { default: u }]),
 ))
 process.env.GLB_URLS = JSON.stringify(Object.fromEntries(
-  fg.sync(['target/*.glb', 'src/assets/*.glb']).map(u => ['/' + u, u]),
+  fg.sync(['target/*.glb', 'src/assets/*.glb']).map(u => ['/' + u, { default: u }]),
 ))
 process.env.FS = 'fs/promises'
 
@@ -27,6 +27,8 @@ export async function setup() {
   // @ts-ignore
   const oc = await loadOC({
     locateFile: () => 'src/assets/replicad_single.wasm',
+    print: () => {},
+    printErr: () => {},
   })
   setOC(oc)
 }
@@ -40,13 +42,13 @@ export async function generate(config: Cuttleform, parts = DEFAULT_PARTS) {
 
   const components: Record<Part, () => Promise<AnyShape | undefined>> = {
     walls: async () => {
-      let walls = makeWalls(config, geo.allWallCriticalPoints(), geo.worldZ, geo.bottomZ, true)
+      let walls = makeWalls(config, geo.allWallCriticalPoints(), geo.worldZ, geo.bottomZ).toSolid(true)
       if (config.connector) {
         walls = cutWithConnector(config, walls, config.connector, geo.connectorOrigin!)
       }
       return walls
     },
-    web: async () => webSolid(config, geo, false),
+    web: async () => webSolid(config, geo).toSolid(false),
     holes: async () => keyHoles(config, geo.keyHolesTrsfs.flat()),
     inserts: async () => geo.screwPositions.length ? makerScrewInserts(config, geo, ['base']) : undefined,
     plate: async () => combine(Object.values(makePlate(config, geo, true, true)).map(a => a())),

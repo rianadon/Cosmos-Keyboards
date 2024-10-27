@@ -1,5 +1,5 @@
 import type { Geometry } from '$lib/worker/config'
-import { triangleNormTrsf } from '$lib/worker/geometry.thickWebs'
+import { triangleNormTrsf } from '$lib/worker/geometry'
 import type Trsf from '$lib/worker/modeling/transformation'
 
 function boundarySplines(boundary: number[]) {

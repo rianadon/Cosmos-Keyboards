@@ -8,18 +8,30 @@ export class TransparentNormalMaterial extends MeshNormalMaterial {
   }
 }
 
-const VERTEX_SHADER = `
+// https://threejs.org/docs/#api/en/renderers/webgl/WebGLProgram
+export const VERTEX_SHADER = `
 varying vec2 vUv;
 varying vec3 vNormal;
 varying vec4 vPosition;
 varying vec4 vLightPosition;
 
+#ifdef USE_INSTANCING
+attribute float instanceBrightness;
+attribute float instanceTexOffset;
+varying float vBrightness;
+#endif
+
 void main() {
     vNormal = normalize( normalMatrix * vec3(normal) );
     vUv = uv;
-    vPosition = modelViewMatrix * vec4( position, 1.0 );
-    vLightPosition = modelViewMatrix * vec4(100, -80, 200, 1);
-    gl_Position = projectionMatrix * vPosition;
+    vPosition = modelMatrix * vec4( position, 1.0 );
+    #ifdef USE_INSTANCING
+    vPosition = modelMatrix * instanceMatrix * vec4(position, 1.0);
+    vBrightness = instanceBrightness;
+    vUv.x = (vUv.x + instanceTexOffset) / 1000.0;
+    #endif
+    vLightPosition = vec4(100, 100, 300, 1);
+    gl_Position = projectionMatrix * viewMatrix * vPosition;
 }
 `
 
@@ -27,17 +39,22 @@ void main() {
  *   - An HSV part which takes into account lambertian reflectance (matte/diffuse)
  *   - An irridescent-ish part which is computed from surface normals
  */
-const FRAGMENT_SHADER = `
+export const FRAGMENT_SHADER = `
 varying vec2 vUv;
 varying vec3 vNormal;
 varying vec4 vPosition;
 varying vec4 vLightPosition;
 uniform float uOpacity;
-uniform float uBrightness;
 uniform vec3 uSaturation;
 uniform float uAmbient;
 uniform vec3 uColor;
 uniform sampler2D tLetter;
+
+#ifdef USE_INSTANCING
+varying float vBrightness;
+#else
+uniform float uBrightness;
+#endif
 
 // http://lolengine.net/blog/2013/07/27/rgb-to-hsv-in-glsl
 vec3 hsv2rgb(vec3 c) {
@@ -51,33 +68,56 @@ void main() {
     vec4 l = r / length(r.xyz);
     vec4 n = vec4(vNormal, 0);
 
-    float light = min(1.0, 50000.0 / dot(r, r));
+    float light = min(1.0, 90000.0 / dot(r, r));
 
     vec3 cnorm = vNormal.xyz * 0.5 + 0.5;
     float value = light * min(1.0, max(0.0, dot(n, l)) + uAmbient);
     vec3 letter = texture2D( tLetter, vUv ).rgb;
+    #ifdef USE_INSTANCING
+    vec3 hsv = vec3(uColor.r, uColor.g, uColor.b * value * vBrightness - letter.g*0.5);
+    #else
     vec3 hsv = vec3(uColor.r, uColor.g, uColor.b * value * uBrightness - letter.g*0.5);
+    #endif
     gl_FragColor = vec4(hsv2rgb(hsv) + cnorm*uSaturation, uOpacity);
 }
 `
 
+export const VERTEX_SHADER_INSTANCED = '#define USE_INSTANCING\n' + VERTEX_SHADER
+export const FRAGMENT_SHADER_INSTANCED = '#define USE_INSTANCING\n' + FRAGMENT_SHADER
+
 export class KeyboardMaterial extends ShaderMaterial {
-  constructor(opts: { opacity: number; brightness: number; saturation: Vector3; color: Vector3 }) {
+  constructor() {
     super()
     this.vertexShader = VERTEX_SHADER
     this.fragmentShader = FRAGMENT_SHADER
     this.uniforms = {
-      uOpacity: { value: opts.opacity },
-      uBrightness: { value: opts.brightness },
-      uSaturation: { value: opts.saturation },
+      uOpacity: { value: 0 },
+      uBrightness: { value: new Vector3(0.6, 1, 1) },
+      uSaturation: { value: new Vector3(0.4, 1, 1) },
       uAmbient: { value: 0.8 },
-      uColor: { value: opts.color },
+      uColor: { value: new Vector3(0.3, 1, 1) },
       tLetter: { value: null },
     }
-    this.opacity = opts.opacity
-    if (opts.opacity < 1) this.transparent = true
   }
 }
+
+// export class KeyboardMaterial extends ShaderMaterial {
+//   constructor(opts: { opacity: number; brightness: number; saturation: Vector3; color: Vector3 }) {
+//     super()
+//     this.vertexShader = VERTEX_SHADER
+//     this.fragmentShader = FRAGMENT_SHADER
+//     this.uniforms = {
+//       uOpacity: { value: opts.opacity },
+//       uBrightness: { value: opts.brightness },
+//       uSaturation: { value: opts.saturation },
+//       uAmbient: { value: 0.8 },
+//       uColor: { value: opts.color },
+//       tLetter: { value: null },
+//     }
+//     this.opacity = opts.opacity
+//     if (opts.opacity < 1) this.transparent = true
+//   }
+// }
 
 export const COLORCONFIG = {
   green: {
@@ -163,15 +203,21 @@ export class KeyMaterial extends KeyboardMaterial {
   }
 }
 
-export function letterTexture(letter: string, flip: boolean) {
-  const canvas = document.createElement('canvas')
-  canvas.width = 512
-  canvas.height = 512
+export function drawLetterToTex(letter: string | undefined, tex: THREE.CanvasTexture, flip: boolean) {
+  tex.needsUpdate = true
+  const canvas = tex.image as OffscreenCanvas
   const ctx = canvas.getContext('2d')!
+  ctx.clearRect(0, 0, canvas.width, canvas.height)
+  if (!letter) return
   if (flip) ctx.scale(-1, 1)
   ctx.font = '168px "Segoe UI", Candara, "Bitstream Vera Sans", "DejaVu Sans", "Bitstream Vera Sans", "Trebuchet MS", Verdana, "Verdana Ref", sans-serif'
   ctx.textAlign = 'center'
   ctx.fillStyle = 'white'
   ctx.fillText(letter, flip ? -256 : 256, 315)
-  return new THREE.CanvasTexture(canvas)
+}
+
+export function letterTexture(letter: string | undefined, flip: boolean) {
+  const tex = new THREE.CanvasTexture(new OffscreenCanvas(512, 512))
+  drawLetterToTex(letter, tex, flip)
+  return tex
 }

@@ -74,8 +74,7 @@
     'L40,10',
   ].join(' ')
 
-  const style =
-    side == 'Left' ? 'transform: rotate(45deg) scale(-1, 1)' : 'transform: rotate(-45deg)'
+  const style = side == 'Left' ? 'transform: rotate(45deg) scale(-1, 1)' : 'transform: rotate(-45deg)'
 </script>
 
 <svg viewBox="{minX} {minY} {maxX - minX} {maxY - minY}" height={180 * $mmToPx} {style}>

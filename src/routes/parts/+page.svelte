@@ -1,10 +1,11 @@
 <script lang="ts">
   import { base } from '$app/paths'
-  import { PART_NAMES } from '$lib/geometry/socketsParts'
+  import { allVariants, PART_INFO } from '$lib/geometry/socketsParts'
   import Checkbox from '$lib/presentation/Checkbox.svelte'
   import { developer } from '$lib/store'
   import Part from './Part.svelte'
   import SharedRenderer from '$lib/3d/SharedRenderer.svelte'
+  import { notNull, objEntries } from '$lib/worker/util'
 
   const BACK_COMPATIBLE = [
     'old-mx',
@@ -16,11 +17,18 @@
   ]
   const BLOCK = ['blank']
 
-  const firstEntries = Object.entries(PART_NAMES).filter(
-    ([part, _name]) => !BACK_COMPATIBLE.includes(part) && !BLOCK.includes(part)
+  const variantEntries = notNull(
+    objEntries(PART_INFO).map(([p, info]) => ('variants' in info ? ([p, info] as const) : null))
   )
-  const backEntries = Object.entries(PART_NAMES).filter(
-    ([part, _name]) => !!BACK_COMPATIBLE.includes(part) && !BLOCK.includes(part)
+  const nonVariantEntries = notNull(
+    objEntries(PART_INFO).map(([p, info]) => ('variants' in info ? null : ([p, info] as const)))
+  )
+
+  const firstEntries = nonVariantEntries.filter(
+    ([part, _info]) => !BACK_COMPATIBLE.includes(part) && !BLOCK.includes(part)
+  )
+  const backEntries = nonVariantEntries.filter(
+    ([part, _info]) => BACK_COMPATIBLE.includes(part) && !BLOCK.includes(part)
   )
 </script>
 
@@ -54,26 +62,35 @@
 
 {#if $developer}
   <div class="text-white mx-auto max-w-prose mt-6">
-    The <span class="text-teal">teal regions</span> represent the boundary around the socket (where
-    the adjacent walls will be located), and the
-    <span class="text-red">red regions</span> represent the boundaries of the mating part (which are
-    used to prevent the part from hitting the ground).
+    The <span class="text-teal">teal regions</span> represent the boundary around the socket (where the
+    adjacent walls will be located), and the
+    <span class="text-red">red regions</span> represent the boundaries of the mating part (which are used
+    to prevent the part from hitting the ground).
   </div>
 {/if}
 
 <main class="max-w-6xl mx-auto">
-  <SharedRenderer antialias alpha>
+  <SharedRenderer>
     <h2>Included Parts</h2>
     <section class="parts">
-      {#each firstEntries as [part, name]}
-        <Part {name} {part} dev={$developer} />
+      {#each firstEntries as [part, info]}
+        <Part name={info.partName} {part} dev={$developer} />
       {/each}
     </section>
 
+    {#each variantEntries as [part, info]}
+      <h2>{info.partName}</h2>
+      <section class="parts">
+        {#each allVariants(part) as variant}
+          <Part name={info.partName} {part} {variant} dev={$developer} />
+        {/each}
+      </section>
+    {/each}
+
     <h2>For Backwards Compatibility</h2>
     <section class="parts">
-      {#each backEntries as [part, name]}
-        <Part {name} {part} dev={$developer} />
+      {#each backEntries as [part, info]}
+        <Part name={info.partName} {part} dev={$developer} />
       {/each}
     </section>
   </SharedRenderer>

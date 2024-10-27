@@ -1,21 +1,10 @@
 import { sveltekit } from '@sveltejs/kit/vite'
-import { existsSync, readFileSync, writeFileSync } from 'fs'
-import { basename, dirname, resolve } from 'path'
+import { readFileSync, writeFileSync } from 'fs'
+import { basename, dirname } from 'path'
 import UnoCSS from 'unocss/vite'
 import { defineConfig, type PluginOption } from 'vite'
 
-const proDir = resolve(__dirname, './src/lib/worker/pro')
-const proPatchDir = resolve(__dirname, './src/lib/worker/pro-patch')
-const hasPro = existsSync(proDir)
-
 export default defineConfig({
-  resolve: {
-    alias: {
-      '$assets': resolve(__dirname, './src/assets'),
-      '$target': resolve(__dirname, './target'),
-      '@pro': hasPro ? proDir : proPatchDir,
-    },
-  },
   plugins: [
     removeFS(),
     artoolkit(),

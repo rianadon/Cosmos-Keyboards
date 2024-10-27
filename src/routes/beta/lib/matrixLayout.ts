@@ -1,5 +1,6 @@
 /** Optimization of matrix layout! */
 
+import { PART_INFO } from '$lib/geometry/socketsParts'
 import type { Cuttleform, CuttleKey } from '$lib/worker/config'
 import Trsf from '$lib/worker/modeling/transformation'
 import type TypeTrsf from '$lib/worker/modeling/transformation'
@@ -15,6 +16,12 @@ interface Problem {
 
 interface State {
   grid: KeyWithPosition[]
+}
+
+/** Does a key get wired */
+function shouldWireKey(key: CuttleKey) {
+  const category = PART_INFO[key.type].category
+  return category == 'Sockets' || category == 'Encoders'
 }
 
 /** Find children of this incomplete matrix. */
@@ -69,7 +76,7 @@ function branchAndBound(problem: Problem, initialSolution: State) {
   const fifo: State[] = [empty]
   let visited = 0
   while (fifo.length) {
-    const node = fifo.splice(fifo.length - 1, 1)[0]
+    const node = fifo.shift()!
     for (const child of children(problem, node)) {
       visited += 1
       const sc = score(problem, child)
@@ -106,7 +113,7 @@ function keyWithPosition(k: CuttleKey, i: number) {
 }
 
 export function keyLine(keys: CuttleKey[], direction: 'col' | 'row' = 'col') {
-  const keysWithPosition = keys.map(keyWithPosition)
+  const keysWithPosition = keys.filter(shouldWireKey).map(keyWithPosition)
   return matrixLine(keysWithPosition, direction)
 }
 
@@ -163,16 +170,19 @@ function matrixLine(keysWithPosition: KeyWithPosition[], direction: 'col' | 'row
   return columns
 }
 
-function bestGuess(conf: Cuttleform, keysWithPosition: KeyWithPosition[]): State {
-  const K = conf.keys.length
+function bestGuess(keysWithPosition: KeyWithPosition[]): State {
+  const K = keysWithPosition.length
   const q = Math.ceil(Math.sqrt(K))
   const q2 = Math.ceil(K / q)
   const Q = q * q2
 
+  // First make a guess, but take out anything ouside the grid
   const matRow = matrixLine(keysWithPosition, 'row').slice(0, q2)
   matRow.forEach((r, i) => matRow[i] = r.slice(0, q))
+  for (let i = matRow.length; i < q2; i++) matRow.push([])
   const taken = new Set(matRow.flatMap(r => r.map(k => k.key)))
 
+  // Place what didn't fit on the grid
   const queue = keysWithPosition.filter(k => !taken.has(k.key))
   while (queue.length) {
     const k = queue.shift()!
@@ -180,7 +190,7 @@ function bestGuess(conf: Cuttleform, keysWithPosition: KeyWithPosition[]): State
     let bestScore = Infinity
     for (const row of matRow) {
       if (row.length >= q) continue
-      const score = k.origin.clone().sub(row[row.length - 1].origin).length()
+      const score = row.length ? k.origin.clone().sub(row[row.length - 1].origin).length() : 1e10
       if (score < bestScore) {
         bestScore = score
         bestRow = row
@@ -198,10 +208,10 @@ function bestGuess(conf: Cuttleform, keysWithPosition: KeyWithPosition[]): State
   return { grid }
 }
 
-export function findMatrix(conf: Cuttleform) {
-  const keys = conf.keys.map(keyWithPosition)
+export function findMatrix(_keys: CuttleKey[]) {
+  const keys = _keys.filter(shouldWireKey).map(keyWithPosition)
 
-  const best = bestGuess(conf, keys)
+  const best = bestGuess(keys)
 
   const w = Math.ceil(Math.sqrt(keys.length))
   const h = Math.ceil(keys.length / w)
@@ -219,19 +229,19 @@ export function findMatrix(conf: Cuttleform) {
 
   distances.sort((a, b) => a - b)
   const problem = { w, h, keys, distanceMap, distances }
-  console.log('problem', problem)
+  // console.log('problem', problem)
 
   console.log(keys.length)
   console.time('Branch and bound')
-  // const solution = branchAndBound(problem, best)
-  const solution = best
+  const solution = branchAndBound(problem, best)
+  // const solution = best
   console.timeEnd('Branch and bound')
-  console.log('solution', solution)
+  // console.log('solution', solution)
   return unpackState(problem, solution)
 }
 
 function unpackState(p: Problem, s: State) {
-  console.log(s)
+  // console.log(s)
   const matRow: KeyWithPosition[][] = Array.from(new Array(p.h), _ => [])
   const matCol: KeyWithPosition[][] = Array.from(new Array(p.w), _ => [])
   for (let y = 0; y < p.h; y++) {
@@ -243,6 +253,6 @@ function unpackState(p: Problem, s: State) {
       }
     }
   }
-  console.log(matRow, matCol)
+  // console.log(matRow, matCol)
   return { matRow, matCol }
 }

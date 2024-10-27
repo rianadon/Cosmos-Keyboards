@@ -2,25 +2,21 @@
   import * as THREE from 'three'
 
   import Viewer from './Viewer.svelte'
-  import {
-    allScrewIndices,
-    estimatedCenter,
-    keyHolesTrsfs,
-    screwOrigin,
-  } from '$lib/worker/geometry'
-  import { rectangle, drawWall, drawLinedWall, drawBezierWall } from './viewerHelpers'
+  import { allScrewIndices, keyHolesTrsfs, screwOrigin } from '$lib/worker/geometry'
+  import { rectangle, drawWall, drawLinedWall, drawBezierWall, fullSizes } from './viewerHelpers'
   import { localHolderBounds } from '$lib/geometry/microcontrollers'
 
   import { isRenderable, type ConfError } from '$lib/worker/check'
   import Trsf from '$lib/worker/modeling/transformation'
-  import { boundingSize } from '$lib/loaders/geometry'
-  import type { Cuttleform, Geometry } from '$lib/worker/config'
+  import { fullEstimatedCenter, type Cuttleform, type Geometry } from '$lib/worker/config'
   import { Vector } from '$lib/worker/modeling/transformation'
   import { CanvasTexture, Color, NearestFilter } from 'three'
-  import { flip } from '$lib/store'
+  import { view } from '$lib/store'
+  import { mapObj, objEntries } from '$lib/worker/util'
+  import type { FullGeometry } from './viewer3dHelpers'
+  import { T } from '@threlte/core'
 
-  export let conf: Cuttleform
-  export let geometry: Geometry | null
+  export let geometry: FullGeometry | null
   export let confError: ConfError | undefined
   export let style: string = ''
   export let darkMode: boolean
@@ -30,11 +26,18 @@
     material: THREE.Material
   }
 
-  let center: [number, number, number] = [0, 0, 0]
+  $: centers = fullEstimatedCenter(geometry ?? undefined, false)
+  $: center = centers[$view]
 
   $: hasError = confError && !isRenderable(confError)
-  $: geometries = hasError || !geometry ? [] : drawState(conf, geometry)
-  $: size = boundingSize(geometries.map((g) => g.geometry))
+  $: allGeometries =
+    isRenderable(confError) && geometry ? drawStates(geometry) : ({} as ReturnType<typeof drawStates>)
+  $: sizes = fullSizes(allGeometries)
+  $: size = sizes[$view]
+
+  function drawStates(geometry: FullGeometry) {
+    return mapObj(geometry as Required<typeof geometry>, (g) => drawState(g!.c, g!))
+  }
 
   function drawState(config: Cuttleform, geo: Geometry): Geo[] {
     const geos: Geo[] = []
@@ -73,9 +76,9 @@
     // const connOrigin = originForConnector(config, geo.allWallCriticalPoints(), innerSurfaces, geo.connectorIndex)
 
     geos.push({
-      geometry: conf.rounded.side
+      geometry: config.rounded.side
         ? drawBezierWall(
-            conf,
+            config,
             walls2.map((w) => w.bi),
             walls2,
             geo.worldZ,
@@ -102,9 +105,9 @@
     // }))
 
     geos.push({
-      geometry: conf.rounded.side
+      geometry: config.rounded.side
         ? drawBezierWall(
-            conf,
+            config,
             walls2.map((w) => w.bo),
             walls2,
             geo.worldZ,
@@ -125,10 +128,10 @@
     //   }))
     // )
 
-    if (conf.microcontroller && geo.connectorOrigin) {
+    if (config.microcontroller && geo.connectorOrigin) {
       const connOrigin = geo.connectorOrigin
 
-      const hBnd = localHolderBounds(conf, false)
+      const hBnd = localHolderBounds(config, false)
       const holderPts: [number, number][] = [
         new Vector(hBnd.minx, hBnd.miny, 0),
         new Vector(hBnd.minx, hBnd.maxy, 0),
@@ -153,17 +156,17 @@
     const boardInd = geo.boardIndices
     const initialPos = [
       ...geo.boardIndicesThatAreScrewsToo.map((b) => boardInd[b]),
-      ...conf.screwIndices,
+      ...config.screwIndices,
     ].filter((i) => i != -1)
     const allScrewInd = [
       ...allScrewIndices(
-        conf,
+        config,
         walls2,
         geo.connectorOrigin,
         boardInd,
         initialPos,
         geo.worldZ,
-        conf.shell.type === 'stilts' ? -100 : geo.bottomZ
+        config.shell.type === 'stilts' ? -100 : geo.bottomZ
       ),
     ]
     const screwInd = geo.screwIndices
@@ -173,7 +176,7 @@
       let size = 1.5
       let color: number | number[] = 0xff0000
 
-      if (Object.values(boardInd).includes(i) && conf.microcontroller) {
+      if (Object.values(boardInd).includes(i) && config.microcontroller) {
         size = 3
         color = screwInd.includes(i) ? [0x33dd33, 0x0000ff] : 0x33dd33
       } else if (screwInd.includes(i)) {
@@ -185,7 +188,7 @@
         if (I % 10 != 5) continue
       }
 
-      const pos = screwOrigin(conf, i, walls2)
+      const pos = screwOrigin(config, i, walls2)
 
       geos.push({
         geometry: new THREE.CircleGeometry(size, 32).translate(...pos.xy(), 0),
@@ -222,20 +225,13 @@
     //     geometry: rectangle(...p.xy()),
     //     material: new THREE.MeshBasicMaterial({ color: 0x33aa33, side: THREE.DoubleSide })
     // })))
-
-    center = estimatedCenter(geo)
     return geos
   }
 </script>
 
-<div
-  class="opacity-0 absolute top-12 left-8 right-8 flex justify-between bg-white/80 dark:bg-gray-800/70 z-10"
->
+<div class="absolute top-12 left-8 right-8 flex justify-between z-10">
   <table>
-    <tr
-      ><td class="w-8"><div class="rounded-full bg-[#0000ff] w-4 h-4 mx-auto" /></td><td>Screw</td
-      ></tr
-    >
+    <tr><td class="w-8"><div class="rounded-full bg-[#0000ff] w-4 h-4 mx-auto" /></td><td>Screw</td></tr>
     <tr
       ><td class="w-8"><div class="rounded-full bg-[#33dd33] w-4 h-4 mx-auto" /></td><td
         >Board Holder Screw</td
@@ -266,13 +262,16 @@
       <div>Please fix the errors with your configuration first before using this viewer.</div>
     </div>
   {/if}
-  <Viewer
-    {geometries}
-    {center}
-    {size}
-    {style}
-    cameraPosition={[0, 0, 1]}
-    enableRotate={false}
-    flip={$flip}
-  />
+  <Viewer {size} {style} cameraPosition={[0, 0, 1]} enableRotate={false}>
+    {#each objEntries(allGeometries) as [kbd, geos] (kbd)}
+      {@const cent = center[kbd]}
+      {#if cent}
+        {#each geos as geometry}
+          <T.Group position={[-cent[0], -cent[1], -cent[2]]} scale.x={kbd == 'left' ? -1 : 1}>
+            <T.Mesh geometry={geometry.geometry} material={geometry.material} />
+          </T.Group>
+        {/each}
+      {/if}
+    {/each}
+  </Viewer>
 </div>

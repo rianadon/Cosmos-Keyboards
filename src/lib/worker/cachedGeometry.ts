@@ -154,7 +154,7 @@ export class BaseGeometry<C extends Cuttleform = SpecificCuttleform<BasicShell>>
 
   @Memoize()
   get bottomZ() {
-    return -additionalHeight(this.c, new Trsf())
+    return this.c.bottomZ ?? -additionalHeight(this.c, new Trsf())
   }
   get floorZ() {
     return this.bottomZ - PLATE_HEIGHT
@@ -184,7 +184,9 @@ export class BlockGeometry extends BaseGeometry<SpecificCuttleform<BlockShell>> 
 }
 
 export class TiltGeometry extends BaseGeometry<SpecificCuttleform<TiltShell>> {
+  @Memoize()
   get worldZ() {
+    console.log(this.keyHolesTrsfs.map(t => t.xyz()))
     if (Array.isArray(this.c.shell.tilt)) return new Vector(...this.c.shell.tilt).normalize()
     const angle = this.c.shell.tilt / 180 * Math.PI
     return new Vector(Math.sin(angle), 0, Math.cos(angle))
@@ -192,7 +194,7 @@ export class TiltGeometry extends BaseGeometry<SpecificCuttleform<TiltShell>> {
 
   @Memoize()
   get bottomZ() {
-    return bottomByNormal(this.c, this.worldZ, new Trsf()) - this.c.verticalClearance
+    return this.c.bottomZ ?? bottomByNormal(this.c, this.worldZ, new Trsf()) - this.c.verticalClearance
   }
   @Memoize()
   get floorZ() {

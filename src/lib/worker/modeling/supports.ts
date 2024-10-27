@@ -4,7 +4,7 @@ import { Vector3 } from 'three/src/math/Vector3'
 const NEEDS_SUPPORT_ANGLE = Math.PI / 6 // angles of > 30 degrees need support
 const SUPPORT_THRESH = -Math.sin(NEEDS_SUPPORT_ANGLE) // faces with normal.z < thresh need support
 
-export function supportMesh(mesh: ShapeMesh, minZ: number) {
+export function supportMesh(mesh: ShapeMesh, minZ: number): ShapeMesh {
   const eps = 1e-6
   const cb = new Vector3()
   const ab = new Vector3()
@@ -89,7 +89,7 @@ export function supportMesh(mesh: ShapeMesh, minZ: number) {
     addFace(new Vector3(pos[e1].x, pos[e1].y, minZ), new Vector3(pos[e0].x, pos[e0].y, minZ), pos[e1], mesh.triangles.length * 18 + i * 18 + 9)
   })
 
-  return { vertices, normals, volume }
+  return { vertices, normals, volume } as any
 }
 
 /** Return the volume of a polyhedron made up of triangle faces. */
@@ -104,5 +104,27 @@ function polyhedronVolume(faces: Vector3[][]) {
     ab.subVectors(face[0], face[1])
     volume += cb.cross(ab).dot(face[0])
   }
+  return volume / 6
+}
+
+export function meshVolume(mesh: ShapeMesh) {
+  const a = new Vector3()
+  const b = new Vector3()
+  const c = new Vector3()
+
+  const cb = new Vector3()
+  const ab = new Vector3()
+
+  let volume = 0
+  for (let t = 0; t < mesh.triangles.length; t += 3) {
+    a.fromArray(mesh.vertices, mesh.triangles[t] * 3)
+    b.fromArray(mesh.vertices, mesh.triangles[t + 1] * 3)
+    c.fromArray(mesh.vertices, mesh.triangles[t + 2] * 3)
+
+    cb.subVectors(c, b)
+    ab.subVectors(a, b)
+    volume += cb.cross(ab).dot(a)
+  }
+
   return volume / 6
 }

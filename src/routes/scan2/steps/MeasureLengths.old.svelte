@@ -432,11 +432,7 @@
     }
   }
 
-  function drawPath(
-    ctx: CanvasRenderingContext2D,
-    points: NormalizedLandmarkList,
-    closePath: boolean
-  ) {
+  function drawPath(ctx: CanvasRenderingContext2D, points: NormalizedLandmarkList, closePath: boolean) {
     const region = new Path2D()
     region.moveTo((1 - points[0].x) * canvas.width, points[0].y * canvas.height)
     for (let i = 1; i < points.length; i++) {

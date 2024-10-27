@@ -7,12 +7,9 @@
   import ViewerMatrix from './lib/viewers/ViewerMatrix.svelte'
   import ViewerBottom from './lib/viewers/ViewerBottom.svelte'
   import ViewerTiming from './lib/viewers/ViewerTiming.svelte'
-  import KeyboardMesh from '$lib/3d/KeyboardMesh.svelte'
-  import GroupMatrix from '$lib/3d/GroupMatrix.svelte'
   import Popover from 'svelte-easy-popover'
   import Icon from '$lib/presentation/Icon.svelte'
   import * as mdi from '@mdi/js'
-  import { boundingSize, fromGeometry } from '$lib/loaders/geometry'
   import { estimateFilament, SUPPORTS_DENSITY, type FilamentEstimate } from './lib/filament'
   import * as flags from '$lib/flags'
   import Performance from './lib/Performance.svelte'
@@ -21,119 +18,159 @@
   import BomView from './lib/dialogs/BomView.svelte'
   import KleView from './lib/dialogs/KleView.svelte'
   import HandFitView from './lib/dialogs/HandFitView.svelte'
-  import cuttleform from '$assets/cuttleform.json'
   import Dialog from '$lib/presentation/Dialog.svelte'
   import Footer from './lib/Footer.svelte'
   import Editor from './lib/editor/CodeEditor.svelte'
   import Preset from '$lib/presentation/Preset.svelte'
   import FilamentChart from './lib/FilamentChart.svelte'
   import DarkTheme from './lib/DarkTheme.svelte'
-  import { serialize, deserialize } from './lib/serialize'
+  import { serialize, deserialize, type State } from './lib/serialize'
   import { WorkerPool, type TaskError } from './lib/workerPool'
   import {
-    newGeometry,
+    fullEstimatedCenter,
+    fullEstimatedSize,
+    newFullGeometry,
+    setBottomZ,
     type Cuttleform,
-    type CuttleformProto,
-    type Geometry,
+    type FullCenter,
+    type FullCuttleform,
   } from '$lib/worker/config'
   import { checkConfig, type ConfError, isRenderable, isWarning } from '$lib/worker/check'
-  import VisualEditor from './lib/editor/VisualEditor.svelte'
-  import { Vector3, BufferGeometry, Matrix4 } from 'three'
-  import { estimatedCenter } from '$lib/worker/geometry'
+  import VisualEditor2 from './lib/editor/VisualEditor2.svelte'
+  import { Matrix4 } from 'three'
   import {
     codeError,
-    flip,
     protoConfig,
-    user,
-    theme,
     showHand,
     stiltsMsg,
     developer,
     showTiming,
     noWall,
     noBase,
+    tempConfig,
+    confError,
+    view,
+    noBlanks,
+    noLabels,
+    showGrid,
+    showHelp,
   } from '$lib/store'
   import { onDestroy } from 'svelte'
   import { browser } from '$app/environment'
   import { hasPro } from '@pro'
   import ViewerDev from './lib/viewers/ViewerDev.svelte'
   import DownloadDialog from './lib/dialogs/DownloadDialog.svelte'
+  import { fromCosmosConfig, toFullCosmosConfig } from '$lib/worker/config.cosmos'
+  import KeyboardModel from '$lib/3d/KeyboardModel.svelte'
+  import { type FullGeometry, type FullKeyboardMeshes } from './lib/viewers/viewer3dHelpers'
+  import { notNull, objEntriesNotNull, objKeys } from '$lib/worker/util'
+  import { T } from '@threlte/core'
+  import Checkbox from '$lib/presentation/Checkbox.svelte'
+  import type { unibody } from '$lib/worker/modeling/transformation-ext'
 
-  let supportGeometries: BufferGeometry[] = []
-  let center = [-35.510501861572266, -17.58449935913086, 35.66889877319336] as [
+  const DEF_CENTER = [-35.510501861572266, -17.58449935913086, 35.66889877319336] as [
     number,
     number,
     number
   ]
-  let size = new Vector3(140, 120, 100)
+  let centers: FullCenter = {
+    left: { left: DEF_CENTER, unibody: DEF_CENTER },
+    both: {
+      left: [0, DEF_CENTER[1], DEF_CENTER[2]],
+      right: [0, DEF_CENTER[1], DEF_CENTER[2]],
+      unibody: [0, DEF_CENTER[1], DEF_CENTER[2]],
+    },
+    right: { right: DEF_CENTER, unibody: DEF_CENTER },
+  }
+  $: center = centers[$view]
+  let sizes = fullEstimatedSize(undefined)
+  $: size = sizes[$view]
   let filament: FilamentEstimate | undefined
   let referenceElement
   let referenceElementTools: HTMLButtonElement
+  let referenceElementPrefs: HTMLButtonElement
   let darkMode: boolean
+  let prefsOpen: boolean
 
   let proOpen = false
   let editorContent: string
   let hideWall = false
+  let lastRenderNumber = 0
 
   // @ts-ignore
-  let state: { keyboard: string; options: CuttleformProto } = deserialize(
-    browser ? location.hash.substring(1) : '',
-    cuttleform
+  let state: State = deserialize(browser ? location.hash.substring(1) : '', () =>
+    deserialize('cm', null)
   )
+  if (state.error)
+    confError.set({ type: 'exception', error: state.error, side: 'right', when: 'parsing URL' })
+  $: if ($confError && $confError.type == 'exception') console.error($confError.error)
+  console.log('state', state)
   let initialEditorContent = state.content
 
   function onHashChange() {
-    console.log('change')
-    //  state = deserialize(location.hash.substring(1), cuttleform);
+    const newHash = location.hash.substring(1)
+    const oldHash = stateToHash()
+    if (!newHash.startsWith('cf')) {
+      console.log('URL CHANGE: Change state? =', oldHash != newHash)
+      if (oldHash != newHash) {
+        // The page navigated!
+        state = deserialize(location.hash.substring(1), () => deserialize('cm', null))
+        const newMode = state.content ? 'advanced' : 'basic'
+        if (state.content) initialEditorContent = state.content
+        if (mode === 'advanced' && newMode !== 'advanced') {
+          initialEditorContent = undefined // So the editor resets
+        }
+        mode = newMode
+      }
+    }
   }
 
   let ocError: TaskError | undefined
-  let modelOpacity = 1
-  let confError: ConfError | undefined
+  let generatorProgress = 1
   let showSupports = false
 
   let mode = state.content ? 'advanced' : 'basic'
   let viewer = '3d'
   let transparency = 95
   let errorMsg = false
-  $: cTransparency = showSupports ? 0 : transparency
-  $: plateTopOpacity = Math.pow(
-    plateBotBuf
-      ? Math.min(cTransparency / 50, Math.pow(cTransparency / 100, 0.2))
-      : cTransparency / 100,
-    2
-  )
-  $: plateScrewOpacity = Math.pow(
-    plateBotBuf ? Math.min(cTransparency / 50, 1) : cTransparency / 100,
-    2
-  )
 
   let downloading = false
   let urlView = false
   let bomView = false
   let kleView = false
   let showFit = false
+  let showUpgraded = true
+
+  $: cTransparency = showSupports ? 0 : transparency
 
   const pool = new WorkerPool<typeof import('$lib/worker/api')>(4, () => {
     return new Worker(new URL('$lib/worker?worker', import.meta.url), { type: 'module' })
   })
-  onDestroy(() => pool.reset())
+  const tempPool = new WorkerPool<typeof import('$lib/worker/api')>(1, () => {
+    return new Worker(new URL('$lib/worker?worker', import.meta.url), { type: 'module' })
+  })
+  onDestroy(() => {
+    pool.reset()
+    tempPool.reset()
+  })
+
+  function stateToHash() {
+    if (mode != 'advanced')
+      return serialize({
+        keyboard: 'cm',
+        options: $protoConfig,
+      })
+    return editorContent
+  }
 
   $: if ($protoConfig || (mode == 'advanced' && editorContent))
     try {
       config // Hack to force updates when config changes
       if (mode != 'advanced') {
-        console.log(
-          'Setting hash',
-          serialize({
-            keyboard: 'cf',
-            options: $protoConfig,
-          })
-        )
-        window.location.hash = serialize({
-          keyboard: 'cf',
-          options: $protoConfig,
-        })
+        console.log('Setting hash', stateToHash())
+        if (window.location.hash.startsWith('#cf'))
+          window.history.replaceState(null, '', '#' + stateToHash())
+        else window.location.hash = stateToHash()
       } else if (editorContent) {
         console.log('new editor content')
         if (window.location.hash.startsWith('#expert'))
@@ -145,52 +182,144 @@
     }
 
   //$: config = cuttleConf(state.options)
-  let config: Cuttleform
-  let geometry: Geometry | null = null
-  $: if (config && browser) process(config).catch((e) => console.error(e))
+  let config: FullCuttleform
+  let geometry: FullGeometry = {}
+  let microcontrollerGeometry: FullGeometry = {}
+  $: if (config && browser) {
+    debounceprocess2(config)
+  }
 
-  let wristBuf: BufferGeometry | undefined
-  let plateTopBuf: BufferGeometry | undefined
-  let plateBotBuf: BufferGeometry | undefined
-  let webBuf: BufferGeometry | undefined
-  let keyBufs: BufferGeometry | undefined
-  let wallBuf: BufferGeometry | undefined
-  let screwBaseBuf: BufferGeometry | undefined
-  let screwPlateBuf: BufferGeometry | undefined
-  let holderBuf: BufferGeometry | undefined
-  $: wristGeo = wristBuf
-    ? [
-        {
-          geometry: wristBuf,
-          // material: new KeyMaterial(cTransparency/100)
-        },
-      ]
-    : []
+  // Try to process ASAP, but if render queue is full wait 1 second then render
+  // in that 1 second, new renders can steal the work, cancelling the previous render task
+  let processTimer = 0
+  async function debounceprocess2(config: FullCuttleform) {
+    console.log('FULL PROCESS', pool.someAvailable())
+    if (pool.someAvailable()) process(config, true).catch((e) => console.error(e))
+    else {
+      // Use the temp renderer to make a render
+      microcontrollerGeometry = geometry = newFullGeometry(config)
+      if (tempPool.someAvailable()) await process(config, false)
+
+      if (processTimer) clearTimeout(processTimer)
+      processTimer = window.setTimeout(() => process(config, true).catch((e) => console.error(e)), 500)
+    }
+  }
+
+  $: if ($tempConfig && browser) {
+    debounceprocess(fromCosmosConfig($tempConfig), $tempConfig.fromProto).catch((e) => console.error(e))
+  }
+
+  async function debounceprocess(config: FullCuttleform, fromProto: boolean) {
+    if (fromProto) return
+    console.log('TEMP PROCESS', tempPool.someAvailable())
+    if (tempPool.someAvailable()) await process(config, false)
+    else geometry = newFullGeometry(config) // Otherwise still update geometry so keyboard changes
+  }
+
+  let meshes: FullKeyboardMeshes = {}
+
+  function cloneConfig(c: FullCuttleform) {
+    return {
+      left: c.left ? { ...c.left, shell: { ...c.left.shell } } : undefined,
+      right: c.right ? { ...c.right, shell: { ...c.right.shell } } : undefined,
+      unibody: c.unibody ? { ...c.unibody, shell: { ...c.unibody.shell } } : undefined,
+    }
+  }
 
   function areDifferent(c1: any, c2: any) {
+    if (c1 == undefined && c2 == undefined) return []
+    if (c1 == undefined && c2 != undefined) return ['everything']
+    if (c1 != undefined && c2 == undefined) return ['everything']
     const differences = []
 
     for (const prop of new Set([...Object.keys(c1), ...Object.keys(c2)])) {
+      if (prop == 'bottomZ') continue
       if (JSON.stringify(c1[prop]) != JSON.stringify(c2[prop])) differences.push(prop)
     }
     return differences
   }
 
-  let oldConfig: Cuttleform | null = null
-  async function process(conf: Cuttleform) {
-    if (oldConfig && geometry) {
-      const differences = areDifferent(oldConfig, conf)
-      if (differences.length == 0) return
-      oldConfig = conf
+  function areDifferent2(c1: FullCuttleform, c2: FullCuttleform) {
+    return [
+      ...new Set([
+        ...areDifferent(c1.left, c2.left),
+        ...areDifferent(c1.right, c2.right),
+        ...areDifferent(c1.unibody, c2.unibody),
+      ]),
+    ]
+  }
 
-      if (differences.length == 1 && differences[0] == 'wristRest') {
+  const calcOtherPromises = (conf: Cuttleform, side: 'left' | 'right' | 'unibody') => ({
+    intersectionsPromise: pool.execute(
+      (w) => w.intersections(conf, side) as Promise<ConfError | undefined>,
+      'Intersections'
+    ),
+    cutPromise: pool.execute((w) => w.cutWall(conf), 'Cut wall'),
+    holderPromise: pool.execute((w) => w.generateBoardHolder(conf), 'Holder'),
+    screwPromise: pool.execute((w) => w.generateScrewInserts(conf), 'Inserts'),
+    wristRestPromise:
+      hasPro && pool.execute((w) => w.generateWristRest(conf, side == 'left'), 'Wrist Rest'),
+    secondWristRestPromise:
+      hasPro &&
+      side == 'unibody' &&
+      pool.execute((w) => w.generateMirroredWristRest(conf), 'Wrist Rest 2'),
+    cutPlatePromise: pool.execute((w) => w.generatePlate(conf, true), 'Full Plate'),
+  })
+
+  function updateCenters(config: FullCuttleform, geo: FullGeometry) {
+    centers = fullEstimatedCenter(geo)
+    center = centers[$view]
+    sizes = fullEstimatedSize(geo)
+    console.log('sizes are', sizes)
+    size = sizes[$view]
+  }
+
+  let oldTempConfig: FullCuttleform | null = null
+  let oldConfig: FullCuttleform | null = null
+  async function process(conf: FullCuttleform, full: boolean) {
+    const kbdNames = objKeys(conf)
+      .filter((k) => !!conf[k])
+      .sort((a, b) => b.localeCompare(a)) // Make sure right keyboard comes first
+    if (oldConfig && geometry && full) {
+      const differences = areDifferent2(oldConfig, conf)
+      console.log('differences', differences)
+      if (differences.length == 0) return
+      oldConfig = cloneConfig(conf)
+      oldTempConfig = cloneConfig(conf)
+
+      if (
+        differences.every((d) => d == 'wristRestLeft' || d == 'wristRestRight' || d == 'wristRestOrigin')
+      ) {
+        const renderNumber = ++lastRenderNumber
+        console.log('PROCESSING WRIST REST', renderNumber)
         try {
           ocError = undefined
-          modelOpacity = 0.6
-          center = estimatedCenter(geometry, config.wristRest)
-          const wristMesh = await pool.executeNow((w) => w.generateWristRest(conf), 'Wrist Rest')
-          wristBuf = fromGeometry(wristMesh.mesh, cTransparency)
-          modelOpacity = 1
+          generatorProgress = 0.5
+          updateCenters(config, geometry)
+          if (conf.unibody) {
+            pool.reset(2)
+            const wristMeshes = await Promise.all([
+              pool.execute((w) => w.generateWristRest(conf.unibody!), 'Wrist Rest'),
+              pool.execute((w) => w.generateMirroredWristRest(conf.unibody!), 'Wrist Rest 2'),
+            ])
+            if (renderNumber >= lastRenderNumber) {
+              meshes.unibody!.wristBuf = wristMeshes[0].mesh ?? undefined
+              meshes.unibody!.secondWristBuf = wristMeshes[1].mesh ?? undefined
+            }
+          } else {
+            pool.reset(kbdNames.length)
+            const wristMeshes = await Promise.all(
+              kbdNames.map((k) =>
+                pool.execute((w) => w.generateWristRest(conf[k]!, k == 'left'), 'Wrist Rest')
+              )
+            )
+            if (renderNumber >= lastRenderNumber) {
+              wristMeshes.forEach((wristMesh, i) => {
+                meshes[kbdNames[i]]!.wristBuf = wristMesh.mesh ?? undefined
+              })
+            }
+          }
+          generatorProgress = 1
           ocError = undefined
         } catch (e) {
           console.error(e)
@@ -198,127 +327,164 @@
         }
         return
       }
+    } else if (full) {
+      oldConfig = cloneConfig(conf)
+      oldTempConfig = cloneConfig(conf)
     } else {
-      oldConfig = conf
+      if (oldTempConfig) {
+        const differences = areDifferent2(oldTempConfig, conf)
+        if (differences.length == 0) return
+      }
+      oldTempConfig = cloneConfig(conf)
     }
 
-    geometry = newGeometry(conf)
-    confError = checkConfig(conf, geometry)
-    if (confError) return
+    let originalErr: ConfError | undefined
+    for (const kbd of kbdNames) {
+      originalErr = checkConfig(conf[kbd]!, undefined, false, kbd)
+      if (originalErr) break
+    }
+    confError.set(originalErr)
+    if (originalErr) return
 
-    const settings = conf
+    const renderNumber = ++lastRenderNumber
+    console.log('PROCESSING', renderNumber)
+    try {
+      setBottomZ(conf)
+    } catch (e) {
+      confError.set({
+        type: 'exception',
+        error: e as Error,
+        side: 'right',
+        when: 'Setting keyboard bottom',
+      })
+      return
+    }
+    const newGeo = newFullGeometry(conf)
+    geometry = newGeo
+    microcontrollerGeometry = newGeo
+    console.log('GENERATING. conf incoming', conf)
+    for (const kbd of kbdNames) {
+      originalErr = checkConfig(conf[kbd]!, newGeo[kbd]!, full, kbd)
+      if (originalErr) break
+    }
+    confError.set(originalErr)
+    if (originalErr) return
 
     // Reset the state
     ocError = undefined
     console.log('Generating!')
-    modelOpacity = 0.2
+    // modelOpacity = 0.2
 
-    pool.reset()
+    const pl = full ? pool : tempPool
+    if (full) pool.reset()
     try {
-      const intersectionsPromise = pool.execute(
-        (w) => w.intersections(settings) as Promise<ConfError | undefined>,
-        'Intersections'
-      )
-      const wallPromise = pool.execute((w) => w.generateWalls(settings), 'Walls')
-      const webPromise = pool.execute((w) => w.generateWeb(settings), 'Web')
-      const keyPromise = pool.execute((w) => w.generateKeys(settings), 'Keys')
-      const platePromise = pool.execute((w) => w.generatePlate(settings), 'Plate')
+      const quickPromises = kbdNames.map((k) => pl.execute((w) => w.generateQuick(conf[k]!), 'Preview'))
+      const otherPromises =
+        !flags.fast && full ? kbdNames.map((k) => calcOtherPromises(conf[k]!, k)) : []
 
-      screwBaseBuf = undefined
-      screwPlateBuf = undefined
-      // wristBuf = undefined
-      holderBuf = undefined
-      wallBuf = undefined
-      webBuf = undefined
-      keyBufs = undefined
-      plateTopBuf = undefined
-      plateBotBuf = undefined
-
-      let cutPromise, holderPromise, screwPromise, wristRestPromise, cutPlatePromise
-      if (!flags.fast) {
-        cutPromise = pool.execute((w) => w.cutWall(settings), 'Cut wall')
-        holderPromise = pool.execute((w) => w.generateBoardHolder(settings), 'Holder')
-        screwPromise = pool.execute((w) => w.generateScrewInserts(settings), 'Inserts')
-        wristRestPromise = pool.execute((w) => w.generateWristRest(settings), 'Wrist Rest')
-        if (config.shell.type == 'stilts')
-          cutPlatePromise = pool.execute((w) => w.generatePlate(settings, true), 'Full Plate')
+      if (full) {
+        generatorProgress = 0.1
+        updateCenters(config, newGeo)
+      }
+      const quickResults = await Promise.all(quickPromises)
+      if (renderNumber >= lastRenderNumber) {
+        quickResults.forEach((prom, i) => {
+          meshes[kbdNames[i]] = {
+            ...meshes[kbdNames[i]],
+            webBuf: prom.web.mesh,
+            keyBufs: prom.keys.keys.map((k) => ({
+              ...k,
+              matrix: new Matrix4().copy(k.matrix),
+            })),
+            wallBuf: prom.wall.mesh,
+            plateTopBuf: prom.plate.top.mesh,
+            plateBotBuf: prom.plate.bottom.mesh || undefined,
+            holderBuf: undefined,
+            screwBaseBuf: undefined,
+            screwPlateBuf: undefined,
+          }
+          // size = boundingSize([...keyBufs!, webBuf!])
+        })
+        if (kbdNames.includes('right')) delete meshes.unibody
+        else {
+          delete meshes.left
+          delete meshes.right
+        }
       }
 
-      center = estimatedCenter(geometry, !!config.wristRest)
-      confError = await intersectionsPromise
-      const wallMesh = await wallPromise
-      const webMesh = await webPromise
-      const keyMesh = await keyPromise
-      let plateMesh = await platePromise
-
-      webBuf = fromGeometry(webMesh.mesh)
-      keyBufs = keyMesh.keys.map((k) => ({
-        ...k,
-        mesh: fromGeometry(k.mesh),
-        matrix: new Matrix4().copy(k.matrix),
-      }))
-      size = boundingSize([...keyBufs!, webBuf!])
-      const wallMeshMesh = fromGeometry(wallMesh.mesh)
-      wallBuf = wallMeshMesh
-      plateTopBuf = fromGeometry(plateMesh.top.mesh)
-      plateBotBuf = fromGeometry(plateMesh.bottom.mesh)
-      modelOpacity = 0.6
-
-      if (!flags.fast) {
-        let holderMesh, screwPlateMesh, screwBaseMesh, cutMesh, wristMesh
-        const queue = [holderPromise, screwPromise, cutPromise, wristRestPromise]
-        if (config.shell.type == 'stilts') queue.push(cutPlatePromise)
+      if (!flags.fast && full) {
+        const queue = otherPromises.flatMap((p, i) =>
+          notNull(Object.values(p)).map((q) => ({ i, kbd: kbdNames[i], prom: q }))
+        )
+        const initialLength = queue.length
         const errors: Error[] = []
+        generatorProgress = 0.2
         while (queue.length) {
           const { result, finished, error } = await Promise.race(
             queue.map((p) =>
-              p.then(
+              p.prom.then(
                 (res) => ({ result: res, finished: p }),
                 (error) => ({ error, finished: p })
               )
             )
           )
           queue.splice(queue.indexOf(finished), 1)
+          if (renderNumber >= lastRenderNumber)
+            generatorProgress = 0.2 + ((initialLength - queue.length) / initialLength) * 0.8
           if (error) {
             errors.push(error)
             continue
           }
-          if (finished == holderPromise) {
-            holderMesh = result
-            if (conf.microcontroller) holderBuf = fromGeometry(holderMesh.mesh)
-          } else if (finished == screwPromise) {
-            console.log(result)
-            screwBaseMesh = result.baseInserts
-            screwPlateMesh = result.plateInserts
-            screwBaseBuf = fromGeometry(screwBaseMesh.mesh)
-            screwPlateBuf = fromGeometry(screwPlateMesh.mesh)
-          } else if (finished == cutPromise) {
-            cutMesh = result
-            wallBuf = fromGeometry(cutMesh.mesh)
-          } else if (finished == wristRestPromise) {
-            wristMesh = result
-            wristBuf = fromGeometry(wristMesh.mesh)
-          } else if (finished == cutPlatePromise) {
-            plateMesh = result
-            plateTopBuf = fromGeometry(plateMesh.top.mesh)
-            plateBotBuf = fromGeometry(plateMesh.bottom.mesh)
+          if (finished.prom == otherPromises[finished.i].intersectionsPromise) {
+            if (!originalErr) confError.set(result)
+            originalErr = result
+          } else if (renderNumber >= lastRenderNumber) {
+            if (finished.prom == otherPromises[finished.i].holderPromise) {
+              if (conf[finished.kbd]!.microcontroller) meshes[finished.kbd]!.holderBuf = result.mesh
+            } else if (finished.prom == otherPromises[finished.i].screwPromise) {
+              meshes[finished.kbd]!.screwBaseBuf = result.baseInserts.mesh
+              meshes[finished.kbd]!.screwPlateBuf = result.plateInserts.mesh
+            } else if (finished.prom == otherPromises[finished.i].cutPromise) {
+              meshes[finished.kbd]!.wallBuf = result.mesh
+            } else if (finished.prom == otherPromises[finished.i].wristRestPromise) {
+              meshes[finished.kbd]!.wristBuf = result.mesh
+            } else if (finished.prom == otherPromises[finished.i].secondWristRestPromise) {
+              meshes[finished.kbd]!.secondWristBuf = result.mesh
+            } else if (finished.prom == otherPromises[finished.i].cutPlatePromise) {
+              meshes[finished.kbd]!.plateTopBuf = result.top.mesh
+              meshes[finished.kbd]!.plateBotBuf = result.bottom.mesh || undefined
+            }
           }
         }
         if (errors.length) throw errors[0]
 
-        const volume =
-          cutMesh.mass + webMesh.mass + keyMesh.mass + screwBaseMesh.mass + screwPlateMesh.mass
-        const supportVolume =
-          cutMesh.supports.volume + webMesh.supports.volume + keyMesh.supports.volume
-        filament = estimateFilament(volume, supportVolume)
-        supportGeometries = [
-          fromGeometry(cutMesh.supports)!,
-          fromGeometry(webMesh.supports)!,
-          fromGeometry(keyMesh.supports)!,
-        ]
-        // supportGeometries.forEach(g => g.material = new CaseMaterial(0.8, 0.5))
+        let volume = 0
+        let supportVolume = 0
+        for (let i = 0; i < otherPromises.length; i++) {
+          volume +=
+            (await otherPromises[i].cutPromise).mass +
+            quickResults[i].web.mass +
+            quickResults[i].keys.mass +
+            (await otherPromises[i].screwPromise).plateInserts.mass +
+            (await otherPromises[i].screwPromise).baseInserts.mass
+          supportVolume +=
+            (await otherPromises[i].cutPromise).supports.volume +
+            quickResults[i].web.supports.volume +
+            quickResults[i].keys.supports.volume
+        }
+
+        if (renderNumber >= lastRenderNumber) {
+          filament = estimateFilament(volume, supportVolume)
+          for (let i = 0; i < kbdNames.length; i++) {
+            meshes[kbdNames[i]]!.supportGeometries = [
+              (await otherPromises[i].cutPromise).supports,
+              quickResults[i].web.supports,
+              quickResults[i].keys.supports as any,
+            ]
+          }
+        }
       }
-      modelOpacity = 1
+      if (full && renderNumber >= lastRenderNumber) generatorProgress = 1
       ocError = undefined
     } catch (e) {
       console.error(e)
@@ -328,12 +494,21 @@
 
   function setMode(newMode: string) {
     if (mode === 'advanced' && newMode !== 'advanced') {
-      if (!confirm('Are you sure you wish to exit expert mode? Your work will not be saved.'))
-        return
-      initialEditorContent = undefined // So the editor resets
+      // if (!confirm('Are you sure you wish to exit expert mode? Your work will not be saved.')) return
+      try {
+        state.options = toFullCosmosConfig(config, true)
+        initialEditorContent = undefined // So the editor resets
+      } catch (e) {
+        console.error(e)
+        alert('Could not convert your expert mode config. Was there an error in it?')
+      }
     }
     mode = newMode
   }
+
+  $: keyboardEntries = objEntriesNotNull(meshes).filter(
+    ([s, v]) => s == 'unibody' || $view == 'both' || $view == s
+  )
 </script>
 
 <svelte:window on:popstate={onHashChange} />
@@ -344,7 +519,7 @@
   <h1 class="dark:text-slate-100 text-4xl font-semibold flex-1">
     Cosmos Keyboard Configurator <span class="text-purple-500 dark:text-pink-400"
       >{hasPro ? 'BETA' : 'OSS'}</span
-    >
+    ><span class="text-teal-500 dark:text-teal-400 absolute text-6xl mt--4">V3</span>
   </h1>
   <!--<a class="text-gray-800 dark:text-gray-100 mx-2 md:mx-4" href="/docs">
        <Book size="2em" />
@@ -367,10 +542,9 @@
   <div class="flex-1">
     {#if state.keyboard == 'lightcycle'}
       <div class="border-2 border-yellow-400 py-2 px-4 m-2 rounded bg-white dark:bg-gray-900">
-        Generating the Lightcycle case takes an extremeley long time, so it is disabled by default.
-        Turn on <span class="whitespace-nowrap bg-gray-200 dark:bg-gray-800 px-2 rounded"
-          >Include Case</span
-        > to generate it.
+        Generating the Lightcycle case takes an extremeley long time, so it is disabled by default. Turn
+        on <span class="whitespace-nowrap bg-gray-200 dark:bg-gray-800 px-2 rounded">Include Case</span> to
+        generate it.
       </div>
     {/if}
     <div class="viewer relative xs:sticky h-[100vh] top-0">
@@ -427,13 +601,7 @@
           selected={['board', 'thick', 'timing', 'dev'].includes(viewer)}
           bind:button={referenceElementTools}><Icon path={mdi.mdiToolboxOutline} /> ...</Preset
         >
-        <input
-          class="relative z-10 mx-2"
-          type="range"
-          min="0"
-          max="100"
-          bind:value={transparency}
-        />
+        <input class="relative z-10 mx-2" type="range" min="0" max="100" bind:value={transparency} />
         {#if flags.hand}<Preset
             purple
             square
@@ -441,13 +609,75 @@
             on:click={() => ($showHand = !$showHand)}
             selected={$showHand}><Icon path={mdi.mdiHandBackRightOutline} /></Preset
           >{/if}
-        <Preset purple square class="relative z-10 !px-2" on:click={() => ($flip = !$flip)}
-          ><Icon path={mdi.mdiFlipHorizontal} /></Preset
+        <Preset
+          purple
+          square
+          class="relative z-10 !px-2"
+          bind:button={referenceElementPrefs}
+          on:click={() => (prefsOpen = !prefsOpen)}
+          selected={prefsOpen}><Icon path={mdi.mdiCogOutline} /></Preset
         >
+      </div>
+      <div style="--z-index: 1000">
+        <Popover
+          referenceElement={referenceElementPrefs}
+          placement="bottom-end"
+          spaceAway={4}
+          bind:isOpen={prefsOpen}
+        >
+          <div
+            class="bg-[#f8f5ff]/80 dark:bg-gray-900/80 backdrop-blur-md px-2 py-1 mr-[-.5rem] rounded-2 text-small select-none"
+            in:fade={{ duration: 50 }}
+            out:fade={{ duration: 150 }}
+          >
+            <div>
+              <button
+                title="View Left Side Only"
+                class="basicbutton px-2 rounded-l"
+                on:click={() => ($view = 'left')}
+                class:selected={$view == 'left'}><Icon name="kb-left" /></button
+              >
+              <button
+                title="View Both Sides"
+                class="basicbutton px-2"
+                on:click={() => ($view = 'both')}
+                class:selected={$view == 'both'}><Icon name="kbs" /></button
+              >
+              <button
+                title="View Right Side Only"
+                class="basicbutton px-2 rounded-r"
+                on:click={() => ($view = 'right')}
+                class:selected={$view == 'right'}><Icon name="kb-right" /></button
+              >
+            </div>
+            <label class="flex items-center mt-2 mb-4">
+              <Checkbox small purple basic bind:value={$showGrid} /> Show Grid
+            </label>
+            <label class="flex items-center my-2">
+              <Checkbox small purple basic bind:value={$noWall} /> Hide Wall
+            </label>
+            <label class="flex items-center my-2">
+              <Checkbox small purple basic bind:value={$noBase} /> Hide Base
+            </label>
+            <label class="flex items-center my-2">
+              <Checkbox small purple basic bind:value={$noLabels} /> Hide Labels
+            </label>
+            <label class="flex items-center my-2">
+              <Checkbox small purple basic bind:value={$noBlanks} /> Hide Shapers
+            </label>
+            <button
+              class="text-center text-sm w-full opacity-70"
+              on:click={() => {
+                $showHelp = true
+                prefsOpen = false
+              }}>Show Help</button
+            >
+          </div>
+        </Popover>
       </div>
       <div class="xl:hidden" style="--z-index: 50">
         <Popover
-          triggerEvents={['click', 'focus']}
+          triggerEvents={['click']}
           referenceElement={referenceElementTools}
           placement="bottom-end"
           spaceAway={4}
@@ -457,17 +687,11 @@
             in:fade={{ duration: 50 }}
             out:fade={{ duration: 150 }}
           >
-            <Preset
-              purple
-              class="!px-2"
-              on:click={() => (viewer = 'board')}
-              selected={viewer == 'board'}>Base</Preset
+            <Preset purple class="!px-2" on:click={() => (viewer = 'board')} selected={viewer == 'board'}
+              >Base</Preset
             >
-            <Preset
-              purple
-              class="!px-2"
-              on:click={() => (viewer = 'thick')}
-              selected={viewer == 'thick'}>Thickness</Preset
+            <Preset purple class="!px-2" on:click={() => (viewer = 'thick')} selected={viewer == 'thick'}
+              >Thickness</Preset
             >
             {#if $showTiming}<Preset
                 purple
@@ -488,128 +712,74 @@
       </div>
       {#if viewer == '3d'}
         <Viewer3D
-          {geometry}
+          {darkMode}
+          geometry={microcontrollerGeometry}
           transparency={cTransparency}
-          conf={isRenderable(confError) ? config : undefined}
-          is3D
+          conf={isRenderable($confError) ? config?.right ?? config?.unibody : undefined}
           isExpert={mode == 'advanced'}
           {showSupports}
           {center}
-          {size}
           bind:showFit
-          style="opacity: {modelOpacity}"
           enableZoom={true}
-          flip={$flip}
           showHand={$showHand}
-          error={confError}
+          progress={generatorProgress}
+          {size}
         >
-          {#each keyBufs || [] as key}
-            <GroupMatrix matrix={key.matrix}>
-              <KeyboardMesh
-                kind="case"
-                scale={key.flip && $flip ? [-1, 1, 1] : [1, 1, 1]}
-                geometry={key.mesh}
-              />
-            </GroupMatrix>
+          {#each keyboardEntries as [kbd, mesh] (kbd)}
+            {@const cent = center[kbd]}
+            {#if cent}
+              <T.Group position={[-cent[0], -cent[1], -cent[2]]} scale.x={kbd == 'left' ? -1 : 1}>
+                <KeyboardModel
+                  side={kbd}
+                  {hideWall}
+                  {transparency}
+                  {showSupports}
+                  microcontrollerGeometry={microcontrollerGeometry[kbd]}
+                  meshes={mesh}
+                />
+              </T.Group>
+            {/if}
           {/each}
-          {#if !$noWall && !hideWall}<KeyboardMesh kind="case" geometry={wallBuf} />{/if}
-          <KeyboardMesh kind="case" geometry={webBuf} />
-          {#if !$noBase}
-            <KeyboardMesh kind="case" geometry={screwBaseBuf} />
-            <KeyboardMesh
-              kind="key"
-              geometry={plateTopBuf}
-              opacity={plateTopOpacity}
-              renderOrder="10"
-            />
-            <KeyboardMesh
-              kind="key"
-              geometry={plateBotBuf}
-              opacity={Math.pow((cTransparency - 50) / 50, 3)}
-              renderOrder="10"
-            />
-            <KeyboardMesh kind="key" geometry={screwPlateBuf} opacity={plateScrewOpacity} />
-            <KeyboardMesh kind="key" geometry={wristBuf} opacity={cTransparency / 100} />
-            <KeyboardMesh
-              kind="case"
-              geometry={holderBuf}
-              brightness={0.5}
-              opacity={0.9}
-              visible={!showSupports}
-            />
-          {/if}
-          {#if showSupports}
-            {#each supportGeometries as geo}
-              <KeyboardMesh kind="case" geometry={geo} brightness={0.5} opacity={0.8} />
-            {/each}
-          {/if}
         </Viewer3D>
       {:else if viewer == 'thick'}
         <Thick3D
-          {geometry}
-          conf={isRenderable(confError) ? config : undefined}
-          is3D
+          geometry={isRenderable($confError) ? geometry : undefined}
           {center}
-          {size}
-          style="opacity: {modelOpacity}"
           enableZoom={true}
-          flip={$flip}
           {darkMode}
+          {size}
         >
-          {#each keyBufs || [] as key}
-            <GroupMatrix matrix={key.matrix}>
-              <KeyboardMesh
-                kind="case"
-                scale={key.flip && $flip ? [-1, 1, 1] : [1, 1, 1]}
-                geometry={key.mesh}
-              />
-            </GroupMatrix>
+          {#each keyboardEntries as [kbd, mesh] (kbd)}
+            {@const cent = center[kbd]}
+            {#if cent}
+              <T.Group position={[-cent[0], -cent[1], -cent[2]]} scale.x={kbd == 'left' ? -1 : 1}>
+                <KeyboardModel
+                  side={kbd}
+                  noWeb
+                  {hideWall}
+                  {transparency}
+                  {showSupports}
+                  microcontrollerGeometry={microcontrollerGeometry[kbd]}
+                  meshes={mesh}
+                />
+              </T.Group>
+            {/if}
           {/each}
-          {#if !$noWall && !hideWall}<KeyboardMesh kind="case" geometry={wallBuf} />{/if}
-          {#if !$noBase}
-            <KeyboardMesh kind="case" geometry={screwBaseBuf} />
-            <KeyboardMesh
-              kind="key"
-              geometry={plateTopBuf}
-              opacity={plateTopOpacity}
-              renderOrder="10"
-            />
-            <KeyboardMesh
-              kind="key"
-              geometry={plateBotBuf}
-              opacity={Math.pow((cTransparency - 50) / 50, 3)}
-              renderOrder="10"
-            />
-            <KeyboardMesh kind="key" geometry={screwPlateBuf} opacity={plateScrewOpacity} />
-            <KeyboardMesh kind="key" geometry={wristBuf} opacity={cTransparency / 100} />
-            <KeyboardMesh
-              kind="case"
-              geometry={holderBuf}
-              brightness={0.5}
-              opacity={0.9}
-              visible={!showSupports}
-            />
-          {/if}
-          {#if showSupports}
-            {#each supportGeometries as geo}
-              <KeyboardMesh kind="case" geometry={geo} brightness={0.5} opacity={0.8} />
-            {/each}
-          {/if}
         </Thick3D>
       {:else if viewer == 'top'}
-        <ViewerLayout {geometry} {darkMode} conf={config} {confError} />
+        <ViewerLayout {geometry} {darkMode} conf={config} confError={$confError} />
       {:else if viewer == 'programming'}
-        <ViewerMatrix {geometry} {darkMode} conf={config} {confError} />
+        <ViewerMatrix {geometry} {darkMode} confError={$confError} />
       {:else if viewer == 'board'}
-        <ViewerBottom {geometry} {darkMode} conf={config} {confError} />
+        <ViewerBottom {geometry} {darkMode} confError={$confError} />
       {:else if viewer == 'timing'}
         <ViewerTiming {pool} {darkMode} />
       {:else if viewer == 'dev'}
         <ViewerDev />
       {/if}
-      {#if filament && config.shell?.type == 'basic'}
+      {#if filament && (config?.right ?? config?.unibody).shell?.type == 'basic'}
         <div
-          class="absolute bottom-0 right-0 text-right mb-2 bg-white/50 dark:bg-gray-800/50 rounded px-2 py-0.5"
+          class="absolute bottom-0 right-0 text-right mb-2 bg-white/50 dark:bg-gray-800/50 rounded px-2 py-0.5 z-10"
         >
           {filament.length.toFixed(1)}m
           <span class="text-gray-600 dark:text-gray-100">of filament</span>
@@ -631,9 +801,9 @@
               <FilamentChart fractionKeyboard={filament.fractionKeyboard} />
               <div>
                 <p class="whitespace-nowrap mb-2">
-                  Estimated using <span class="font-semibold text-teal-500 dark:text-teal-400"
-                    >100% infill</span
-                  >,<br /><span class="font-semibold text-purple-500 dark:text-purple-400"
+                  Estimated {#if config.right}for 2 halves{/if} using
+                  <span class="font-semibold text-teal-500 dark:text-teal-400">100% infill</span>,<br
+                  /><span class="font-semibold text-purple-500 dark:text-purple-400"
                     >{SUPPORTS_DENSITY * 100}% supports density</span
                   >.
                 </p>
@@ -643,7 +813,9 @@
                   >.
                 </p>
                 <p class="whitespace-nowrap text-sm">
-                  The keyboard itself uses {filament.keyboard.length.toFixed(1)}m.
+                  The keyboard itself uses {filament.keyboard.length.toFixed(1)}m ({filament.keyboard.mass.toFixed(
+                    0
+                  )}g).
                 </p>
               </div>
             </div>
@@ -655,107 +827,136 @@
           <h3 class="font-bold">There is an error with your code.</h3>
           <p class="mb-2">{$codeError.message}</p>
         </div>
-      {:else if confError && viewer == '3d'}
+      {:else if $confError && viewer == '3d'}
         <div
           class="errorMsg"
           class:expand={errorMsg}
-          class:custom={$protoConfig && $protoConfig.thumbCluster.oneofKind == 'customThumb'}
-          class:bg-red-700={!isWarning(confError)}
-          class:bg-yellow-700={isWarning(confError)}
+          class:bg-red-700={!isWarning($confError)}
+          class:bg-yellow-700={isWarning($confError)}
         >
           {#if errorMsg}<h3 class="font-bold">There is a problem with the configuration.</h3>{/if}
-          {#if confError.type == 'invalid'}
-            <p class="mb-2">
-              In your configuration, the property <code>{confError.item}</code> has the wrong data type.
-            </p>
-            <p class="mb-2">
-              Its value was found to be <code>{JSON.stringify(confError.value)}</code>, but it
-              should be one of: <code>{confError.valid.join(', ')}</code>.
-            </p>
-          {:else if confError.type == 'wrong'}
-            <p class="mb-2">
-              In your configuration, the property <code>{confError.item}</code> has the wrong data type.
-            </p>
-            <p class="mb-2">
-              Its value was found to be <code>{JSON.stringify(confError.value)}</code>.
-            </p>
-          {:else if confError.type == 'oob'}
-            <p class="mb-2">
-              In your configuration, the element with value <code>{confError.idx}</code> in
-              <code>{confError.item}</code> is out of bounds.
-            </p>
-            <p class="mb-2">The value must be less than <code>{confError.len}</code>.</p>
-          {:else if confError.type == 'exception'}
-            <p class="mb-2">When {confError.when}: <code>{confError.error.message}</code>.</p>
-          {:else if confError.type == 'nan'}
+          {#if $confError.type == 'invalid'}
+            <div>
+              <p class="mb-2">
+                In your configuration, the property <code>{$confError.item}</code> has the wrong data type.
+              </p>
+              <p class="mb-2">
+                Its value was found to be <code>{JSON.stringify($confError.value)}</code>, but it should
+                be one of: <code>{$confError.valid.join(', ')}</code>.
+              </p>
+            </div>
+          {:else if $confError.type == 'wrong'}
+            <div>
+              <p class="mb-2">
+                In your configuration, the property <code>{$confError.item}</code> has the wrong data type.
+              </p>
+              <p class="mb-2">
+                Its value was found to be <code>{JSON.stringify($confError.value)}</code>.
+              </p>
+            </div>
+          {:else if $confError.type == 'oob'}
+            <div>
+              <p class="mb-2">
+                In your configuration, the element with value <code>{$confError.idx}</code> in
+                <code>{$confError.item}</code> is out of bounds.
+              </p>
+              <p class="mb-2">The value must be less than <code>{$confError.len}</code>.</p>
+            </div>
+          {:else if $confError.type == 'exception'}
+            <p class="mb-2">When {$confError.when}: <code>{$confError.error.message}</code>.</p>
+          {:else if $confError.type == 'nan'}
             <p class="mb-2">
               One of the key positions has a value that's not a number. This often happens after an
-              update that adds new configuration options, so double check the Advanced tab and make
-              sure that every setting is set.
+              update that adds new configuration options, so double check the Advanced tab and make sure
+              that every setting is set.
             </p>
-          {:else if confError.type == 'nokeys'}
+          {:else if $confError.type == 'nokeys'}
             <p class="mb-2">
               You silly goose! You can't make a keyboard without keys. <br />That's like riding a
               snowboard without snow.
             </p>
-          {:else if confError.type == 'missing'}
-            <p class="mb-2">
-              In your configuration, the property <code>{confError.item}</code> is missing.
-            </p>
-            {#if confError.key}
-              <p class="mb-2">Check the key with this configuration:</p>
-              <pre class="text-xs"><code>{JSON.stringify(confError.key, null, 2)}</code></pre>
-            {/if}
+          {:else if $confError.type == 'missing'}
+            <div>
+              <p class="mb-2">
+                In your configuration, the property <code>{$confError.item}</code> is missing.
+              </p>
+              {#if $confError.key}
+                <p class="mb-2">Check the key with this configuration:</p>
+                <pre class="text-xs"><code>{JSON.stringify($confError.key, null, 2)}</code></pre>
+              {/if}
+            </div>
+          {:else if $confError.type == 'wrongformat'}
+            <div>
+              <p class="mb-2">The return type in Expert mode is incorrect.</p>
+              <p class="mb-2">Ensure the final lines of your code look like the following.</p>
+              <pre class="text-xs"><code
+                  >export default &lbrace;
+  right: &lbrace;
+    ...options,
+    keys: [...fingers, ...thumbs],
+    wristRestOrigin,
+  &rbrace;,
+  left: &lbrace;
+    ...options,
+    keys: mirror([...fingers, ...thumbs]),
+    wristRestOrigin,
+  &rbrace;,
+&rbrace;</code
+                ></pre>
+            </div>
           {:else if errorMsg}
             <div>
-              {#if confError.type == 'intersection'}
-                {#if confError.what == 'keycap' && (confError.i < 0 || confError.j < 0)}
+              {#if $confError.type == 'intersection'}
+                {#if $confError.what == 'keycap' && ($confError.i < 0 || $confError.j < 0)}
                   <p class="mb-2">
-                    One of the keycaps intersects the walls{#if confError.travel}&nbsp;when pressed
-                      down {confError.travel[0]}mm{/if}.
+                    One of the keycaps intersects the walls{#if $confError.travel}&nbsp;when pressed down {$confError
+                        .travel[0]}mm{/if}.
                   </p>
-                {:else if confError.what == 'keycap'}
+                {:else if $confError.what == 'keycap'}
                   <p class="mb-2">
-                    Two of the keycaps intersect, either in their current positions or when pressed
-                    down{#if confError.travel}&nbsp;with
-                      {confError.travel[0]}mm of travel{/if}.
+                    Two of the keycaps intersect, either in their current positions or when pressed down{#if $confError.travel}&nbsp;with
+                      {$confError.travel[0]}mm of travel{/if}.
                   </p>
-                {:else if confError.what == 'part'}
+                {:else if $confError.what == 'part'}
                   <p class="mb-2">
                     Two of the parts
-                    {#if config && (config.keys[confError.i].type == 'mx-pcb' || config.keys[confError.j].type == 'mx-pcb')}
+                    {#if config && ((config?.right ?? config?.unibody).keys[$confError.i].type == 'mx-pcb' || (config?.right ?? config?.unibody).keys[$confError.j].type == 'mx-pcb')}
                       (switches or PCBs)
                     {:else}
                       (switches)
                     {/if} intersect.
                   </p>
-                {:else if confError.what == 'socket' && (confError.i < 0 || confError.j < 0)}
+                {:else if $confError.what == 'socket' && ($confError.i < 0 || $confError.j < 0)}
                   <p class="mb-2">
                     One of the sockets intersects the walls. This is ok, but the exported model will
                     contains errors and might create problems when slicing.
                   </p>
-                {:else if confError.what == 'socket'}
+                {:else if $confError.what == 'socket'}
                   <p class="mb-2">
-                    Two of the key sockets intersect. This is ok, but the exported model will
-                    contain errors and might create problems when slicing.
+                    Two of the key sockets intersect. This is ok, but the exported model will contain
+                    errors and might create problems when slicing.
                   </p>
                 {/if}
                 <p class="mb-2">
                   If you're using Advanced mode, you can try adjusting the stagger, increasing the
                   spacing, or adding outwards arc to correct the issue.
-                  {#if confError.what != 'socket'}You can also try decreasing webMinThicknessFactor
-                    in expert mode.{/if}
+                  {#if $confError.what != 'socket'}You can also try decreasing webMinThicknessFactor in
+                    expert mode.{/if}
                 </p>
                 <p class="mb-2">
-                  If the issue is within the thumb cluster, increase the vertical and horizontal
-                  spacings in Advanced mode or switch to custom thumbs mode.
+                  If the issue is within the thumb cluster, increase the vertical and horizontal spacings
+                  in Advanced mode or switch to custom thumbs mode.
                 </p>
-              {:else if confError.type == 'wallBounds'}
+              {:else if $confError.type == 'wallBounds'}
                 <p class="mb-2">
-                  One of the keys sticks out past the wall boundary. The keyboard will print, but
-                  you may see a small hole in this spot.
+                  One of the keys sticks out past the wall boundary. The keyboard will print, but you may
+                  see a small hole in this spot.
                 </p>
                 <p>To correct this issue, try adjusting the stagger or moving the keys around.</p>
+              {:else if $confError.type == 'samePosition'}
+                <p class="mb-2">
+                  Two of keys have the exact same position. You should move one of them.
+                </p>
               {/if}
             </div>
             <div class="flex-0 pl-2 absolute top-[1rem] right-[1.5rem]">
@@ -765,20 +966,22 @@
             </div>
           {:else}
             <div>
-              {#if confError.type == 'intersection'}
-                {#if confError.what == 'keycap' && (confError.i < 0 || confError.j < 0)}
+              {#if $confError.type == 'intersection'}
+                {#if $confError.what == 'keycap' && ($confError.i < 0 || $confError.j < 0)}
                   Keycap + Walls Intersect
-                {:else if confError.what == 'keycap'}
+                {:else if $confError.what == 'keycap'}
                   Keycaps Intersect
-                {:else if confError.what == 'part'}
+                {:else if $confError.what == 'part'}
                   Parts Intersect
-                {:else if confError.what == 'socket' && (confError.i < 0 || confError.j < 0)}
+                {:else if $confError.what == 'socket' && ($confError.i < 0 || $confError.j < 0)}
                   Socket + Walls Intersect
-                {:else if confError.what == 'socket'}
+                {:else if $confError.what == 'socket'}
                   Sockets Intersect
                 {/if}
-              {:else if confError.type == 'wallBounds'}
+              {:else if $confError.type == 'wallBounds'}
                 Key Sticks Past Walls
+              {:else if $confError.type == 'samePosition'}
+                Keys have Same Position
               {/if}
             </div>
             <div class="flex-0 pl-2">
@@ -802,23 +1005,21 @@
             >
           </p>
         </div>
-      {:else if config?.shell?.type == 'stilts'}
+      {:else if (config?.right ?? config?.unibody)?.shell?.type == 'stilts'}
         {#if $stiltsMsg}
-          <div
-            class="absolute text-white m-4 left-0 right-0 rounded p-4 top-[5%] bg-yellow-700 flex"
-          >
+          <div class="absolute text-white m-4 left-0 right-0 rounded p-4 top-[5%] bg-yellow-700 flex">
             <div>
               <p>
-                Stilts mode is <b>very</b> tempermental. Not every model will work with it. Try to
-                keep very smooth curves between keys, and
+                Stilts mode is <b>very</b> tempermental. Not every model will work with it. Try to keep
+                very smooth curves between keys, and
                 <button class="underline" on:click={() => (hideWall = !hideWall)}
                   >{hideWall ? 'show' : 'hide'} the walls</button
                 > to check for bad geometry.
               </p>
               <p class="text-sm mt-2">
                 While I like hearing what kind of bugs you find, please don't tell be about bugs in
-                stilts mode. There are too many to keep track of and countless weeks to be spent
-                trying to fix them.
+                stilts mode. There are too many to keep track of and countless weeks to be spent trying
+                to fix them.
               </p>
             </div>
             <div class="flex-0 pl-2">
@@ -828,9 +1029,7 @@
             </div>
           </div>
         {:else}
-          <div
-            class="absolute text-white m-4 right-[80px] rounded p-4 top-[10%] bg-yellow-700 flex"
-          >
+          <div class="absolute text-white m-4 right-[80px] rounded p-4 top-[10%] bg-yellow-700 flex">
             <div>
               <p>Stilts mode is <b>very</b> tempermental.</p>
             </div>
@@ -857,12 +1056,7 @@
     {:else}
       <div class="flex items-center justify-between mr-2">
         <div>
-          <Preset
-            purple
-            on:click={() => setMode('basic')}
-            name="Basic"
-            selected={mode == 'basic'}
-          />
+          <Preset purple on:click={() => setMode('basic')} name="Basic" selected={mode == 'basic'} />
           <Preset
             purple
             on:click={() => setMode('intermediate')}
@@ -881,26 +1075,25 @@
       <div class="flex justify-between pr-2 mt-1">
         <button class="infobutton" on:click={() => (urlView = true)}>What's in the URL?</button>
         <div>
-          <button class="infobutton" on:click={() => (bomView = true)}
-            >View Bill of Materials</button
-          >
+          <button class="infobutton" on:click={() => (bomView = true)}>View Bill of Materials</button>
         </div>
       </div>
 
       {#if mode == 'basic' || mode == 'intermediate'}
-        <VisualEditor
-          basic={mode == 'basic'}
-          cuttleformConf={state.options}
-          bind:conf={config}
-          bind:geometry
-          on:goAdvanced={() => (mode = 'intermediate')}
-        />
+        {#if !state.error}
+          <VisualEditor2
+            basic={mode == 'basic'}
+            cosmosConf={state.options}
+            bind:conf={config}
+            on:goAdvanced={() => (mode = 'intermediate')}
+          />
+        {/if}
       {:else}
         <Editor
           bind:initialContent={initialEditorContent}
           bind:hashContent={editorContent}
           {darkMode}
-          manuformConf={state.options}
+          cosmosConf={state.options}
           bind:conf={config}
         />
       {/if}
@@ -924,18 +1117,18 @@
         <div class="bg-red-200 m-4 rounded p-4 dark:bg-red-700">
           Bill of Materials will not be available until the configuration is evaluated.
         </div>
-      {:else if !isRenderable(confError)}
+      {:else if !isRenderable($confError)}
         <div class="bg-red-200 m-4 rounded p-4 dark:bg-red-700">
           Bill of Materials will not be available until you fix the errors in your configuration.
         </div>
       {:else}
-        {#if config.shell.type != 'basic'}
+        {#if (config?.right ?? config?.unibody).shell.type != 'basic'}
           <div class="bg-yellow-200 m-4 rounded p-4 dark:bg-yellow-700">
-            Screw information is not yet finished non-standard cases. Make sure to check the model
-            for any additional screws needed.
+            Screw information is not yet finished non-standard cases. Make sure to check the model for
+            any additional screws needed.
           </div>
         {/if}
-        <BomView {geometry} conf={config} />
+        <BomView {geometry} />
       {/if}
     </div>
   </Dialog>
@@ -967,6 +1160,12 @@
     }}
   />
 {/if}
+<!-- {#if state.upgradedFrom == 'cf' && showUpgraded}
+  <Dialog big on:close={() => (showUpgraded = false)}>
+    <span slot="title">Your model has been upgraded!</span>
+    <div slot="content">Hey.</div>
+  </Dialog>
+{/if} -->
 
 <DarkTheme bind:darkMode />
 
@@ -992,8 +1191,15 @@
     --at-apply: 'bg-purple-100 dark:bg-gray-900/50 hover:bg-purple-200 dark:hover:bg-pink-900/70 rounded px-4 py-1 focus:outline-none border border-transparent focus:border-pink-500';
   }
 
+  .basicbutton {
+    --at-apply: 'bg-purple-100 dark:bg-gray-900/50 hover:bg-purple-200 dark:hover:bg-pink-900/70 py-1 focus:outline-none border border-transparent focus:border-pink-500';
+  }
+  .basicbutton.selected {
+    --at-apply: 'bg-purple-400 dark:bg-pink-700';
+  }
+
   .errorMsg {
-    --at-apply: 'absolute text-white m-4 right-[80px] rounded p-4 top-[5%] flex';
+    --at-apply: 'absolute text-white m-4 right-[80px] rounded p-4 top-[5%] flex z-40';
   }
   .errorMsg.custom {
     --at-apply: 'top-[10%]';
@@ -1003,5 +1209,38 @@
   }
   .errorMsg.expand.custom {
     --at-apply: 'top-[20%] left-0';
+  }
+
+  input[type='range'] {
+    --at-apply: 'appearance-none bg-transparent';
+  }
+
+  input[type='range']::-moz-range-track {
+    --at-apply: 'appearance-none bg-[#EFE8FF] dark:bg-slate-900 h-2 rounded';
+  }
+
+  input[type='range']::-webkit-slider-runnable-track {
+    --at-apply: 'appearance-none bg-[#EFE8FF] dark:bg-slate-900 h-2 rounded';
+  }
+
+  input[type='range']::-moz-range-thumb {
+    --at-apply: "appearance-none w-6 h-6 bg-purple-300 dark:bg-pink-600 rounded-full border-transparent bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSIxLjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTMuOSA4LjIgMyAxOC40QzMgMTguOCAzIDE5LjIgMy4yIDE5LjVMMy40IDE5LjlBMiAyIDAgMDA1LjIgMjFIMTguOEEyIDIgMCAwMDIwLjYgMTkuOUwyMC44IDE5LjVDMjAuOSAxOS4yIDIxIDE4LjggMjEgMTguNEwyMC4xIDguMkE0IDQgMCAwMDE5LjMgNi4xTDE3IDNTMTQgMy41IDEyIDMuNSA3IDMgNyAzTDQuNyA2LjFBNCA0IDAgMDAzLjkgOC4yWk03IDNzMyAuNSA1IC41IDUtLjUgNS0uNWwxIDlzLTMgMS02IDEtNi0xLTYtMWwxLTl6TTYgMTJsLTIuNSA4TTE4IDEybDIuNSA4Ii8+PC9zdmc+')] dark:bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTMuOSA4LjIgMyAxOC40QzMgMTguOCAzIDE5LjIgMy4yIDE5LjVMMy40IDE5LjlBMiAyIDAgMDA1LjIgMjFIMTguOEEyIDIgMCAwMDIwLjYgMTkuOUwyMC44IDE5LjVDMjAuOSAxOS4yIDIxIDE4LjggMjEgMTguNEwyMC4xIDguMkE0IDQgMCAwMDE5LjMgNi4xTDE3IDNTMTQgMy41IDEyIDMuNSA3IDMgNyAzTDQuNyA2LjFBNCA0IDAgMDAzLjkgOC4yWk03IDNzMyAuNSA1IC41IDUtLjUgNS0uNWwxIDlzLTMgMS02IDEtNi0xLTYtMWwxLTl6TTYgMTJsLTIuNSA4TTE4IDEybDIuNSA4Ii8+PC9zdmc+')]";
+    background-size: 1.3rem 1.3rem;
+    background-position: center 40%;
+    background-repeat: no-repeat;
+  }
+
+  input[type='range']::-webkit-slider-thumb {
+    --at-apply: "appearance-none w-6.8 h-6.8 bg-purple-300 dark:bg-pink-600 rounded-full border-transparent mt--2.4 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSIxLjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTMuOSA4LjIgMyAxOC40QzMgMTguOCAzIDE5LjIgMy4yIDE5LjVMMy40IDE5LjlBMiAyIDAgMDA1LjIgMjFIMTguOEEyIDIgMCAwMDIwLjYgMTkuOUwyMC44IDE5LjVDMjAuOSAxOS4yIDIxIDE4LjggMjEgMTguNEwyMC4xIDguMkE0IDQgMCAwMDE5LjMgNi4xTDE3IDNTMTQgMy41IDEyIDMuNSA3IDMgNyAzTDQuNyA2LjFBNCA0IDAgMDAzLjkgOC4yWk03IDNzMyAuNSA1IC41IDUtLjUgNS0uNWwxIDlzLTMgMS02IDEtNi0xLTYtMWwxLTl6TTYgMTJsLTIuNSA4TTE4IDEybDIuNSA4Ii8+PC9zdmc+')] dark:bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTMuOSA4LjIgMyAxOC40QzMgMTguOCAzIDE5LjIgMy4yIDE5LjVMMy40IDE5LjlBMiAyIDAgMDA1LjIgMjFIMTguOEEyIDIgMCAwMDIwLjYgMTkuOUwyMC44IDE5LjVDMjAuOSAxOS4yIDIxIDE4LjggMjEgMTguNEwyMC4xIDguMkE0IDQgMCAwMDE5LjMgNi4xTDE3IDNTMTQgMy41IDEyIDMuNSA3IDMgNyAzTDQuNyA2LjFBNCA0IDAgMDAzLjkgOC4yWk03IDNzMyAuNSA1IC41IDUtLjUgNS0uNWwxIDlzLTMgMS02IDEtNi0xLTYtMWwxLTl6TTYgMTJsLTIuNSA4TTE4IDEybDIuNSA4Ii8+PC9zdmc+')]";
+    background-size: 1.3rem 1.3rem;
+    background-position: center 40%;
+    background-repeat: no-repeat;
+  }
+
+  input[type='range']::-moz-range-thumb:hover {
+    --at-apply: 'bg-purple-400 dark:bg-pink-800';
+  }
+  input[type='range']::-webkit-slider-thumb:hover {
+    --at-apply: 'bg-purple-400 dark:bg-pink-800';
   }
 </style>

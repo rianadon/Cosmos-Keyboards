@@ -1,17 +1,25 @@
-<script>
-  import { setup } from 'svelte-cubed/utils/context'
-  import { Group, Matrix4 } from 'three'
+<script lang="ts">
+  import { T } from '@threlte/core'
+  import { Matrix4, Quaternion, Vector3, type Vector4Tuple } from 'three'
 
   export let matrix = new Matrix4()
-  export let renderOrder = 0
 
-  const { root, self } = setup(new Group())
+  const pos = new Vector3()
+  const quat = new Quaternion()
+  const sca = new Vector3()
+
+  let position = pos.toArray()
+  let quaternion = quat.toArray() as Vector4Tuple
+  let scale = sca.toArray()
 
   $: {
-    self.renderOrder = renderOrder
-    matrix.decompose(self.position, self.quaternion, self.scale)
-    root.invalidate()
+    matrix.decompose(pos, quat, sca)
+    position = pos.toArray()
+    quaternion = quat.toArray() as Vector4Tuple
+    scale = sca.toArray()
   }
 </script>
 
-<slot />
+<T.Group {...$$restProps} {position} {quaternion} {scale}>
+  <slot />
+</T.Group>

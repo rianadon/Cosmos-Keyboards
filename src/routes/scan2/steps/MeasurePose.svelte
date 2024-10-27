@@ -5,12 +5,20 @@
   import { remoteStream, step, stats, poseStats, mmToPx } from '../store'
   import calcStat, { INITIAL_STAT, statMedians } from '../lib/stats'
   import createDetector, { type Detector } from '../lib/detector'
-  import { calculateJoints, makeHand, type Hand, type PoseHand, handOrientation } from '../lib/hand'
+  import {
+    calculateJoints,
+    makeHand,
+    type Hand,
+    type PoseHand,
+    handOrientation,
+    SolvedHand,
+    type Joints,
+  } from '../lib/hand'
   import { browser } from '$app/environment'
   import { Camera } from '../lib/camera'
   import { drawKeypoints } from '../lib/measurementHelpers'
   import { base } from '$app/paths'
-  import { Euler, Quaternion } from 'three'
+  import { Euler, Matrix4, Quaternion } from 'three'
 
   let canvas: HTMLCanvasElement
   let transformation = 'none'
@@ -25,6 +33,7 @@
 
   const PHASES = 3
   let phase = 0
+  let curlPhase = false
 
   onMount(async () => {
     console.log('Remote stream', $remoteStream)
@@ -58,18 +67,20 @@
       hands.Left = makeHand(pHands.Left)
       $leftPoseStats = calcStat(hands.Left, $leftPoseStats)
       if (leftSuccess < SGOAL)
-        leftQuality = scoreQuality(
-          handOrientation(hands.Left).angleTo(leftReferences[phase] || new Quaternion())
-        )
+        leftQuality = curlPhase
+          ? curlQuality(hands.Left, leftJoints)
+          : scoreQuality(handOrientation(hands.Left).angleTo(leftReferences[phase] || new Quaternion()))
       if (leftQuality == 1) leftSuccess++
     }
     if (pHands.Right) {
       hands.Right = makeHand(pHands.Right)
       $rightPoseStats = calcStat(hands.Right, $rightPoseStats)
       if (rightSuccess < SGOAL)
-        rightQuality = scoreQuality(
-          handOrientation(hands.Right).angleTo(rightReferences[phase] || new Quaternion())
-        )
+        rightQuality = curlPhase
+          ? curlQuality(hands.Right, rightJoints)
+          : scoreQuality(
+              handOrientation(hands.Right).angleTo(rightReferences[phase] || new Quaternion())
+            )
       if (rightQuality == 1) rightSuccess++
     }
   }
@@ -86,7 +97,12 @@
         queuedPhaseInc = false
         leftSuccess = 0
         rightSuccess = 0
-        phase++
+
+        // Advance to curl phase or the next phase
+        if (curlPhase) {
+          phase++
+          curlPhase = false
+        } else curlPhase = true
       }, 300)
     }
 
@@ -125,6 +141,12 @@
   function scoreQuality(angle: number) {
     const closeness = 1 - angle / Math.PI
     return Math.min(1, closeness / 0.8) ** 3
+  }
+
+  function curlQuality(hand: Hand, joints: Joints) {
+    const solved = new SolvedHand(joints, new Matrix4())
+    solved.fromAllLimbs(hand.limbs, true)
+    return Math.min(1, solved.approximateCurl() / 80)
   }
 
   let leftQuality = 0
@@ -168,19 +190,28 @@
   <div slot="prose">
     {#if nLeft == 0 && nRight == 0 && phase == 0}
       <p class="mb-2">
-        Rest your phone on a vertical surface so that your hands are visible from the camera.
-        Leaning it on a laptop screen or wall works well.
+        Rest your phone on a vertical surface so that your hands are visible from the camera. Leaning it
+        on a laptop screen or wall works well.
       </p>
-      <p>With the phone in a stable position, place both hands in view of the camrea.</p>
+      <p>With the phone in a stable position, place both hands in view of the camera.</p>
+    {:else if curlPhase}
+      <p class="mx--2 px-6 py-2 bg-pink-700 rounded text-lg">
+        [{phase + 1}/{PHASES}] Now curl your fingers inwards.
+      </p>
     {:else if phase == 0}
       <p class="mx--2 px-6 py-2 bg-pink-700 rounded text-lg">
-        [1/{PHASES}] Stretch out your hands, point your fingertips towards each other, and rotate
-        your palms downwards.
+        [1/{PHASES}] Stretch out your hands, point your fingertips towards each other, and rotate your
+        palms downwards.
       </p>
     {:else if phase == 1}
       <p class="mx--2 px-6 py-2 bg-pink-700 rounded text-lg">
-        [1/{PHASES}] Stretch out your hands and point your fingertips towards the camera, keeping
-        your palms downwards.
+        [2/{PHASES}] Stretch out your hands and point your fingertips towards the camera, keeping your
+        palms downwards.
+      </p>
+    {:else if phase == 2}
+      <p class="mx--2 px-6 py-2 bg-pink-700 rounded text-lg">
+        [3/{PHASES}] Stretch out your hands and point your fingertips upwardsand your palms towards the
+        camera.
       </p>
     {/if}
   </div>
@@ -211,8 +242,7 @@
             <div
               class="absolute inset-0 rounded-45%"
               style="background: linear-gradient(#BE185D {50 * leftQuality}%, transparent {50 *
-                leftQuality}%, transparent {100 - 50 * leftQuality}%, #BE185D {100 -
-                50 * leftQuality}%)"
+                leftQuality}%, transparent {100 - 50 * leftQuality}%, #BE185D {100 - 50 * leftQuality}%)"
             />
             <div
               class="absolute inset-4 rounded-40%"

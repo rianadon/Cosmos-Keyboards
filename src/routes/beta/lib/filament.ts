@@ -10,13 +10,15 @@ export interface FilamentEstimate {
   keyboard: {
     length: number
     cost: number
+    mass: number
   }
 }
 
 export function filamentCost(volume: number) {
   const length = volume * VOLUME_MM2_TO_FILAMENT_M
-  const cost = length * LENGTH_M_TO_WEIGHT_G * WEIGHT_G_TO_COST_USD
-  return { length, cost }
+  const mass = length * LENGTH_M_TO_WEIGHT_G
+  const cost = mass * WEIGHT_G_TO_COST_USD
+  return { length, cost, mass }
 }
 
 export function estimateFilament(volume?: number, supportVolume?: number): FilamentEstimate | undefined {

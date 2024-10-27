@@ -1,139 +1,232 @@
 <script lang="ts">
-  import { flippedKey } from '$lib/geometry/keycaps'
-  import { keyHolesTrsfs } from '$lib/worker/geometry'
-  import Trsf from '$lib/worker/modeling/transformation'
-  import type { BufferGeometry, Matrix4 } from 'three'
   import { isWarning, type ConfError } from '$lib/worker/check'
   import KeyboardKey from './KeyboardKey.svelte'
-  import GroupMatrix from './GroupMatrix.svelte'
-  import type { CuttleKey, Cuttleform } from '$lib/worker/config'
-  import { switchInfo } from '$lib/geometry/switches'
+  import KeyboardMaterial from './KeyboardMaterial.svelte'
+  import KeyboardPartGeo from './KeyboardPartGeo.svelte'
+  import KeyboardKeycapGeo from './KeyboardKeycapGeo.svelte'
+  import type { CuttleKey, Geometry } from '$lib/worker/config'
   import * as flags from '$lib/flags'
-  import type { KeyStatus } from './keyboardKey'
-  import { keyGeometries } from '$lib/loaders/keycaps'
-  import { partGeometries } from '$lib/loaders/parts'
-  import { showKeyInts } from '$lib/store'
+  import { keyBrightness, type KeyStatus } from './keyboardKey'
+  import { hasKeyGeometry, keyUrl } from '$lib/loaders/keycaps'
+  import {
+    clickedKey,
+    confError,
+    hoveredKey,
+    noBlanks,
+    noLabels,
+    protoConfig,
+    selectMode,
+    showKeyInts,
+  } from '$lib/store'
+  import { nthIndex } from '$lib/worker/config.cosmos'
+  import { switchInfo } from '$lib/geometry/switches'
+  import { T } from '@threlte/core'
+  import { variantURL } from '$lib/geometry/socketsParts'
+  import { DefaultMap } from '$lib/worker/util'
+  import { Quaternion, Vector3, type Vector3Tuple, type Vector4Tuple } from 'three'
 
-  export let config: Cuttleform
+  export let geometry: Geometry | null
   export let transparency: number
   export let pressedLetter: string | null = null
   export let translation: number
   export let flip = true
-  export let reachability: boolean[]
-  export let error: ConfError
-  export let customThumbConfig: Matrix4[]
+  export let reachability: boolean[] | undefined
+  export let side: 'left' | 'right' | 'unibody'
 
-  interface Key {
-    geometry: BufferGeometry
-    brightness: number
-    translation: number
+  $: console.log('new intersections', $confError)
+
+  function keyStatus(reachability: boolean[] | undefined, error: ConfError | undefined, i: number) {
+    let status: KeyStatus = undefined
+    if (reachability && !reachability[i]) status = 'warning'
+    if (!error || error.side != side) return status
+    if (error.type == 'intersection' && (error.i == i || error.j == i))
+      status = isWarning(error) ? 'warning' : 'error'
+    if (error.type == 'wallBounds' && error.i == i) status = 'warning'
+    if (error.type == 'samePosition' && (error.i == i || error.j == i)) status = 'error'
+    return status
+  }
+
+  function partStatus(error: ConfError | undefined, i: number) {
+    let status: KeyStatus = undefined
+    if (!error || error.side != side) return status
+    if (error.type == 'intersection' && error.what == 'socket' && (error.i == i || error.j == i))
+      status = isWarning(error) ? 'warning' : 'error'
+    if (error.type == 'wallBounds' && error.i == i) status = 'warning'
+    if (error.type == 'samePosition' && (error.i == i || error.j == i)) status = 'error'
+    return status
+  }
+
+  type PartInfo = {
+    key: CuttleKey
+    pos: Vector3Tuple
+    rot: Vector4Tuple
+    i: number
     letter?: string
-    status?: KeyStatus
-    offset: number
-    matrix: Matrix4
-    renderOrder?: number
   }
 
-  let geos: Key[][] = []
+  const scale = new Vector3()
+  const rot = new Quaternion()
+  const pos = new Vector3()
 
-  $: if (config) {
-    updateKeyboard(reachability, pressedLetter, translation)
+  function gatherPartsAndVariants(geo: Geometry) {
+    const ids = new DefaultMap<string, PartInfo[]>(() => [])
+    geo.c.keys.forEach((key, i) => {
+      geo.keyHolesTrsfs[i].Matrix4().decompose(pos, rot, scale)
+      const id = key.type + variantURL(key)
+      ids.get(id).push({ key, pos: pos.toArray(), rot: rot.toArray() as Vector4Tuple, i })
+    })
+    return ids
   }
 
-  async function updateKeyboard(reachability, pressedLetter, translation) {
-    const p = keyHolesTrsfs(config, new Trsf())
-    const keyPromise = keyGeometries(p, config.keys)
-    const switchPromise = partGeometries(p, config.keys)
+  function gatherKeysAndVariants(geo: Geometry) {
+    const ids = new DefaultMap<string, PartInfo[]>(() => [])
+    geo.c.keys.forEach((key, i) => {
+      if (!hasKeyGeometry(key)) return false
+      geo.keyHolesTrsfs[i]
+        .pretranslated(0, 0, switchInfo(key.type).height)
+        .Matrix4()
+        .decompose(pos, rot, scale)
+      const url = keyUrl(key)
+      const letter = 'keycap' in key && key.keycap ? key.keycap.letter : undefined
+      if (url)
+        ids.get(url).push({ key, pos: pos.toArray(), rot: rot.toArray() as Vector4Tuple, i, letter })
+    })
+    return ids
+  }
 
-    const k = await keyPromise
-    const s = await switchPromise
-    console.log('got new geometry', k)
-    geos = config.keys.map((k) => [])
-    if (!flags.intersection)
-      k.forEach((x) => {
-        if (!x) throw new Error('oops')
-        const letter = 'keycap' in x.key ? x.key.keycap.letter : undefined
-        let status: KeyStatus = undefined
-        if (reachability && !reachability[x.i]) status = 'warning'
-        if (error && error.type == 'intersection' && (error.i == x.i || error.j == x.i))
-          status = isWarning(error) ? 'warning' : 'error'
-        if (error && error.type == 'wallBounds' && error.i == x.i) status = 'warning'
-        const offset = offsetHeight(config.keys[x.i])
-        geos[x.i].push({
-          geometry: x.geometry,
-          brightness: 1,
-          translation: pressedLetter && letter === pressedLetter ? translation : 0,
-          letter,
-          status,
-          offset,
-          matrix: x.matrix,
-          renderOrder: 5,
-        })
-      })
-    for (const x of s) {
-      if (!x) throw new Error('oops')
-      let status: KeyStatus = undefined
-      if (
-        error &&
-        error.type == 'intersection' &&
-        error.what == 'socket' &&
-        (error.i == x.i || error.j == x.i)
-      )
-        status = isWarning(error) ? 'warning' : 'error'
-      if (error && error.type == 'wallBounds' && error.i == x.i) status = 'warning'
-      geos[x.i].push({
-        geometry: x.geometry,
-        brightness: 0.7,
-        matrix: x.matrix,
-        offset: 0,
-        translation: 0,
-        status,
-      })
+  function gatherLetters(parts: PartInfo[]) {
+    const ids = new DefaultMap<string, PartInfo[]>(() => [])
+    for (const part of parts) {
+      ids.get(part.letter || '').push(part)
     }
+    return ids
   }
 
-  $: customStart = config
-    ? config.keys.length - (customThumbConfig ? customThumbConfig.length : 0)
-    : 0
-
-  function offsetHeight(k: CuttleKey) {
-    const switchHeight = switchInfo(k.type).height
-    return k.type == 'trackball' ? -4 : switchHeight
+  function adjustedPosition(key: PartInfo, translation: number) {
+    geometry!.keyHolesTrsfs[key.i]
+      .pretranslated(0, 0, switchInfo(key.key.type).height + translation)
+      .Matrix4()
+      .decompose(pos, rot, scale)
+    return pos.toArray()
   }
+
+  $: visible = transparency != 0
+
+  // This file has undergone a lot of optimization. Some perf benefits that are clear:
+  // - Order by part type to minimize changing of geomtries
+  // - Order by letter to minimize re-computing / changing of letter textures
+  // - Instancing was cool but a lot of work. Also doesn't play well with per-key textures
 </script>
 
-{#if transparency != 0 && !$showKeyInts}
-  {#each geos as g, i}
-    {#if customThumbConfig && i >= customStart && i - customStart < customThumbConfig.length}
-      {#each g as k}
-        <GroupMatrix matrix={customThumbConfig[i - customStart]}>
-          <KeyboardKey
-            index={i}
+{#if !$showKeyInts && geometry && !flags.intersection}
+  <!-- {#each geometry.keyHolesTrsfs as trsf, i (i + ' ' + geometry.c.keys[i].keycap?.letter + ' ' + (geometry.c.keys[i].type == 'blank'))}
+    {@const key = geometry.c.keys[i]}
+    <GroupMatrix matrix={trsf.pretranslated(0, 0, switchInfo(key.type).height).Matrix4()}>
+      {@const letter = 'keycap' in key && key.keycap ? key.keycap.letter : undefined}
+      <T.Group
+        position={[0, 0, pressedLetter && letter === pressedLetter ? translation : 0]}
+        scale.x={flip ? -1 : 1}
+      >
+        <KeyboardKey
+          index={nthIndex($protoConfig, side, i)}
+          opacity={transparency / 100}
+          brightness={1}
+          {letter}
+          status={keyStatus(reachability, $confError, i)}
+          renderOrder={5}
+        >
+          {#await keyGeometry(key) then k}
+            {#if k}
+              <T is={k} />
+            {/if}
+          {/await}
+        </KeyboardKey>
+      </T.Group>
+    </GroupMatrix>
+    <GroupMatrix matrix={trsf.Matrix4()}>
+      <T.Group scale.x={flip ? -1 : 1}>
+        <KeyboardKey
+          index={nthIndex($protoConfig, side, i)}
+          opacity={key.type == 'blank'
+            ? Math.max(0, (transparency - 50) / 200)
+            : transparency / 100}
+          brightness={0.7}
+          status={partStatus($confError, i)}
+        >
+          {#if key.type == 'blank'}
+            {#if !$noBlanks}
+              <T.BoxGeometry args={[key.size.width ?? 18.5, key.size.height ?? 18.5, 1]} />
+            {/if}
+          {:else}
+            {#await partGeometry(key.type, key.variant) then geo}
+              {#if geo}
+                <T is={geo} />
+              {/if}
+            {/await}
+          {/if}
+        </KeyboardKey>
+      </T.Group>
+    </GroupMatrix>
+  {/each} -->
+  {#each gatherKeysAndVariants(geometry) as [id, gkeys] (id)}
+    {#each gatherLetters(gkeys) as [lett, keys] (lett)}
+      {#each keys as key}
+        {@const index = nthIndex($protoConfig, side, key.i)}
+        <KeyboardKey
+          {index}
+          {visible}
+          position={pressedLetter && lett == pressedLetter
+            ? adjustedPosition(key, translation)
+            : key.pos}
+          quaternion={key.rot}
+          scale.x={flip ? -1 : 1}
+        >
+          <KeyboardKeycapGeo key={key.key} />
+          <KeyboardMaterial
+            textured
+            kind="key"
             opacity={transparency / 100}
-            brightness={k.brightness}
-            letter={flip ? flippedKey(k.letter) : k.letter}
-            status={k.status}
-            geometry={k.geometry}
-            position={[0, 0, k.offset + k.translation]}
-            renderOrder={k.renderOrder}
+            brightness={keyBrightness(index, $protoConfig, $selectMode, $clickedKey, $hoveredKey, 1)}
+            letter={$noLabels ? undefined : key.letter}
+            status={keyStatus(reachability, $confError, key.i)}
           />
-        </GroupMatrix>
+        </KeyboardKey>
       {/each}
-    {:else}
-      {#each g as k}
-        <GroupMatrix matrix={k.matrix}>
-          <KeyboardKey
-            index={i}
-            opacity={transparency / 100}
-            brightness={k.brightness}
-            letter={flip ? flippedKey(k.letter) : k.letter}
-            status={k.status}
-            geometry={k.geometry}
-            position={[0, 0, k.translation]}
-            renderOrder={k.renderOrder}
-          />
-        </GroupMatrix>
-      {/each}
-    {/if}
+    {/each}
+  {/each}
+  {#each gatherPartsAndVariants(geometry) as [id, keys] (id)}
+    {#each keys as key}
+      {@const index = nthIndex($protoConfig, side, key.i)}
+      <KeyboardKey
+        {index}
+        visible={visible && (key.key.type != 'blank' || !$noBlanks)}
+        position={key.pos}
+        quaternion={key.rot}
+        scale.x={flip ? -1 : 1}
+      >
+        {#if key.key.type == 'blank'}
+          <T.BoxGeometry args={[key.key.size.width ?? 18.5, key.key.size.height ?? 18.5, 1]} />
+        {:else}
+          <KeyboardPartGeo part={key.key.type} variant={key.key.variant} />
+        {/if}
+        <KeyboardMaterial
+          textured
+          kind="key"
+          opacity={key.key.type == 'blank' ? Math.max(0, (transparency - 50) / 200) : transparency / 100}
+          brightness={keyBrightness(index, $protoConfig, $selectMode, $clickedKey, $hoveredKey, 0.7)}
+          status={partStatus($confError, key.i)}
+        />
+      </KeyboardKey>
+    {/each}
   {/each}
 {/if}
+
+<!-- <InstancedMesh>
+      <KeyboardPartGeo part={keys[0].key.type} variant={keys[0].key.variant} />
+      <KeyboardMaterial instanced kind="key" opacity={transparency / 100} />
+
+      {#each keys as key}
+        {@const index = nthIndex($protoConfig, side, key.i)}
+        <KeyboardKeyInstance {index} brightness={0.7} position={key.pos} rotation={key.rot} />
+      {/each}
+    </InstancedMesh> -->

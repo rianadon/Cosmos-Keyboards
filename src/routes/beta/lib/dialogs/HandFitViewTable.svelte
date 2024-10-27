@@ -50,7 +50,6 @@
 
 <style>
   .input {
-    --at-apply: ' text-gray-700 bg-gray-100 dark:bg-gray-700 dark:text-gray-100';
-    --at-apply: 'appearance-none rounded ml-2.5 text-ellipsis px-2 w-14';
+    --at-apply: ' text-gray-700 bg-gray-100 dark:bg-gray-700 dark:text-gray-100 appearance-none rounded ml-2.5 text-ellipsis px-2 w-14';
   }
 </style>

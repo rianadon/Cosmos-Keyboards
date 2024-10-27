@@ -1,5 +1,5 @@
 .PHONY : build keycaps keycaps-simple keycaps2 keycaps-simple2 keyholes switches venv optimize docs docs-ci keyboards ci ci-base ci-setup vite-build quickstart npm-install dev
-build: target/proto/manuform.ts target/proto/lightcycle.ts target/proto/cuttleform.ts target/editorDeclarations.d.ts
+build: target/proto/manuform.ts target/proto/lightcycle.ts target/proto/cuttleform.ts target/proto/cosmos.ts target/editorDeclarations.d.ts target/cosmosStructs.ts
 
 BUN := $(shell command -v bun 2> /dev/null)
 ifdef BUN
@@ -24,8 +24,14 @@ target/proto/cuttleform.ts: src/proto/cuttleform.proto
 target/proto/lightcycle.ts: src/proto/lightcycle.proto
 	$(NPX) protoc --ts_out target --proto_path src $<
 
-target/editorDeclarations.d.ts: src/lib/worker/config.ts src/lib/worker/modeling/transformation-ext.ts
+target/proto/cosmos.ts: src/proto/cosmos.proto
+	$(NPX) protoc --ts_out target --proto_path src $<
+
+target/editorDeclarations.d.ts: src/lib/worker/config.ts src/lib/worker/modeling/transformation-ext.ts target/cosmosStructs.ts
 	$(NODE) src/model_gen/genEditorTypes.ts
+
+target/cosmosStructs.ts: src/proto/cosmosStructs.ts src/lib/geometry/socketsParts.ts
+	$(NODE) src/proto/cosmosStructs.ts
 
 target/KeyV2:
 	git clone -b choc https://github.com/rianadon/KeyV2 target/KeyV2
@@ -34,23 +40,23 @@ target/PseudoProfiles:
 target/PseudoProfiles/libraries: target/PseudoProfiles
 	cd target/PseudoProfiles && unzip libraries.zip && mv libraries/* .
 
-keycaps: target/KeyV2 target/PseudoProfiles/libraries
+keycaps: target/KeyV2 target/PseudoProfiles/libraries build
 	$(NODE) src/model_gen/keycaps.ts
-keycaps-simple: target/KeyV2 target/PseudoProfiles/libraries
+keycaps-simple: target/KeyV2 target/PseudoProfiles/libraries build
 	$(NODE) src/model_gen/keycaps-simple.ts
-keycaps2: target/KeyV2 target/PseudoProfiles/libraries
+keycaps2: target/KeyV2 target/PseudoProfiles/libraries build
 	$(NODE) src/model_gen/keycaps2.ts
-keycaps-simple2: target/KeyV2 target/PseudoProfiles/libraries
+keycaps-simple2: target/KeyV2 target/PseudoProfiles/libraries build
 	$(NODE) src/model_gen/keycaps-simple2.ts
-keyholes:
+keyholes: build
 	$(NODE) src/model_gen/keyholes.ts
-parts:
+parts: build
 	$(NODE) src/model_gen/parts.ts
-parts-simple:
+parts-simple: build
 	$(NODE) src/model_gen/parts-simple.ts
 optimize:
 	$(NODE) src/compress-media.ts
-keyboards:
+keyboards: build
 	$(NODE) src/model_gen/keyboards.ts
 
 dev:
@@ -65,7 +71,7 @@ docs-ci: venv
 
 # CI Specific tasks
 ci-setup:
-	mkdir -p target && mkdir -p docs/assets/target
+	mkdir -p target && mkdir -p docs/assets/target && mkdir -p .svelte-kit && cp src/assets/default-tsconfig.json .svelte-kit/tsconfig.json
 vite-build:
 	$(NPM) run build
 npm-install:

@@ -28,7 +28,7 @@ export class ProcessPool extends PromisePool {
       name: `worker ${i}...`,
       promise: new Promise<R>((resolve, reject) => {
         cp.once('message', (m: any) => {
-          if (m.error) reject(m.error)
+          if (m.error) reject(new Error(m.error))
           else if (m.result !== 'ready') reject(new Error('Worker did not ready'))
           else resolve()
         })
@@ -45,7 +45,7 @@ export class ProcessPool extends PromisePool {
       name: item.name,
       promise: new Promise<R>((resolve, reject) => {
         cp.once('message', (m: any) => {
-          if (m.error) reject(m.error)
+          if (m.error) reject(new Error(m.error + '\n' + m.stack))
           else resolve(m.result)
         })
       }),
@@ -66,10 +66,11 @@ export class ProcessPool extends PromisePool {
         process.on('message', (id: number) => {
           // Quit if the id < 1
           // Otherwise process the corresponding item in the queue
+          Error.stackTraceLimit = Infinity // Infinite stack traces!
           if (id < 0) return resolve()
           this.queue[id].f().then(
             result => process.send!({ id: process.argv[2], result }),
-            error => process.send!({ id: process.argv[2], error }),
+            error => process.send!({ id: process.argv[2], error: error.message, stack: error.stack }),
           )
         })
       })

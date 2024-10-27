@@ -1,15 +1,15 @@
 import { keyInfo } from '$lib/geometry/keycaps'
 import { boardElements, holderBoundsOrigin, holderOuterRadius, holderThickness, localHolderBounds } from '$lib/geometry/microcontrollers'
 import { SCREWS } from '$lib/geometry/screws'
-import { partBottom, socketSize } from '$lib/geometry/socketsParts'
+import { partBottom, socketHeight, socketSize } from '$lib/geometry/socketsParts'
 import { switchInfo } from '$lib/geometry/switches'
 import { wallBezier, wallCurveRounded, wallSurfacesInnerRoundedTop, wallSurfacesOuterRoundedTop } from '@pro/rounded'
 import cdt2d from 'cdt2d'
 import findBoundary from 'simplicial-complex-boundary'
-import { ExtrudeGeometry, Matrix3, Shape, Triangle } from 'three'
+import { ExtrudeGeometry, Matrix3, Shape, Triangle, type Vector3Tuple } from 'three'
 import { Vector2 } from 'three/src/math/Vector2.js'
 import concaveman from './concaveman'
-import { type Cuttleform, type CuttleKey, type Geometry, keyRoundSize } from './config'
+import { type Cuttleform, type CuttleKey, type Geometry } from './config'
 import { intersectLineCircle, intersectPolyPoly, intersectPtPoly, intersectTriCircle } from './geometry.intersections'
 import { PLATE_HEIGHT, screwInsertDimensions } from './model'
 import Trsf from './modeling/transformation'
@@ -55,7 +55,7 @@ export interface WallCriticalPoints {
 
 export const webThickness = (c: Cuttleform, key: CuttleKey) => {
   if (c.webThickness > 0) return c.webThickness
-  return socketSize(key).z
+  return socketHeight(key)
 }
 
 /** Like offsetAxisLerp(..., 0.5) = offsetAxis. The lerp parameter controsl which normal the given normal is closest to. */
@@ -131,11 +131,11 @@ export function offsetBisector(p1: Trsf, p2: Trsf, p3: Trsf, offset: number, z: 
 }
 
 export function keyCriticalPoints(c: Cuttleform, key: CuttleKey, hole: Trsf, offset = 0): CriticalPoints {
-  const roundSize = keyRoundSize(key)
-  if (roundSize) {
+  const size = socketSize(key)
+  if ('radius' in size) {
     const pts: Trsf[] = []
-    const r = roundSize.radius
-    const sides = roundSize.sides
+    const r = size.radius
+    const sides = (key as any).size?.sides ?? size.sides
     for (let j = 0; j < sides; j++) {
       pts.push(hole.pretranslated(r * Math.cos(2 * Math.PI / sides * -j), r * Math.sin(2 * Math.PI / sides * -j), 0))
     }
@@ -143,8 +143,8 @@ export function keyCriticalPoints(c: Cuttleform, key: CuttleKey, hole: Trsf, off
   }
 
   // Compute width and height of the key based on its aspect ratio
-  const width = socketSize(key).x * Math.max(1, key.aspect)
-  const height = socketSize(key).y * Math.max(1, 1 / key.aspect)
+  const width = size[0] * Math.max(1, key.aspect)
+  const height = size[1] * Math.max(1, 1 / key.aspect)
 
   // Return the points!
   return [
@@ -165,6 +165,18 @@ function p(v: any) {
 
 function xyAngle(a: Vector, b: Vector) {
   return Math.abs(a.x * b.x + a.y * b.y)
+}
+
+/** Find the normal of a triangle. */
+export function triangleNorm(a: Vector, b: Vector, c: Vector, reverse = false) {
+  const u = b.clone().sub(a)
+  const v = c.clone().sub(b)
+  const norm = u.cross(v).normalize()
+  if (reverse) norm.negate()
+  return norm
+}
+export function triangleNormTrsf(a: Trsf, b: Trsf, c: Trsf, reverse = false) {
+  return triangleNorm(a.origin(), b.origin(), c.origin(), reverse)
 }
 
 function offsetScale(c: Cuttleform, bisector: Trsf, pt: Trsf) {
@@ -635,7 +647,7 @@ export function wallXToY(walls: WallCriticalPoints[], x: number, start: number, 
   return null
 }
 
-export function originForConnector(c: Cuttleform, walls: WallCriticalPoints[], surfaces: Line[][], wall: number) {
+export function originForConnector(c: Cuttleform, initwalls: WallCriticalPoints[], surfaces: Line[][], wall: number) {
   const idx = Math.floor(wall)
   // const surf = surfaces[idx]
   // const next = surfaces[(idx + 1) % surfaces.length]
@@ -645,8 +657,16 @@ export function originForConnector(c: Cuttleform, walls: WallCriticalPoints[], s
 
   // let [horizTangent, vertTangent] = bezierTangentAtZ1(wallBiMi, idx)
   // vertTangent.normalize()
-  let vertTangent = walls[idx].mi.origin().sub(walls[idx].bi.origin()).normalize()
+  let vertTangent = initwalls[idx].mi.origin().sub(initwalls[idx].bi.origin()).normalize()
   let horizTangent = new Vector(vertTangent.z, 0, -vertTangent.x).normalize()
+
+  // Form the wrist rest by considering all walls roated by the wrist rest angle
+  // At the end of the function, everything is rotated back.
+  const transformation = new Trsf()
+    .coordSystemChange(new Vector(), horizTangent, vertTangent)
+    .rotate(c.microcontrollerAngle || 0, [0, 0, 0], vertTangent.xyz())
+  const walls = initwalls.map(p => transformCriticalPoint(p, transformation.inverted()))
+
   // if (vertTangent.z < 0) vertTangent.negate()
   vertTangent.normalize().add(new Vector(0, 0, 1))
   vertTangent.addScaledVector(horizTangent, -vertTangent.dot(horizTangent)).normalize()
@@ -665,8 +685,7 @@ export function originForConnector(c: Cuttleform, walls: WallCriticalPoints[], s
     }
     pos.add(new Vector(0, Math.min(...ys) - pos.y + BOARD_HOLDER_OFFSET, 0))
   }
-  return walls[0].bi.cleared()
-    .coordSystemChange(pos, horizTangent, vertTangent)
+  return new Trsf().translate(pos.xyz()).premultiply(transformation)
 }
 
 function cubicBezier(t: number, a: number, b: number, c: number, d: number) {
@@ -776,7 +795,7 @@ export function bottomByNormal(c: Cuttleform, normal: Vector, t: Trsf) {
   let j = Math.min(...c.keys.flatMap(k => {
     const swTop = keyHoleTrsf(c, k, t.cleared())
     const swBottom = keyHoleTrsf(c, k, t.cleared()).pretranslated(0, 0, -webThickness(c, k))
-    const pts = partBottom(k.type).flat()
+    const pts = partBottom(k).flat()
     return pts.map(p => swTop.pretranslated(p).origin().dot(normal))
       // See comment in additionalHeight about adding c.wallThickness / 2 as offset.
       .concat(keyCriticalPoints(c, k, swBottom, c.wallThickness / 2).map(p => p.origin().dot(normal)))
@@ -785,13 +804,13 @@ export function bottomByNormal(c: Cuttleform, normal: Vector, t: Trsf) {
   return j
 }
 
-export function additionalHeight(c: Cuttleform, t: Trsf) {
+export function additionalHeight(c: Cuttleform, t?: Trsf) {
   // Use both the bottom of the switch part
   // and the bottom of the web to calculate the lowest point on the model
   let z = Math.min(...c.keys.flatMap(k => {
-    const swTop = keyHoleTrsf(c, k, t.cleared())
-    const swBottom = keyHoleTrsf(c, k, t.cleared()).pretranslated(0, 0, -webThickness(c, k))
-    const pts = partBottom(k.type).flat()
+    const swTop = keyHoleTrsf(c, k, new Trsf())
+    const swBottom = keyHoleTrsf(c, k, new Trsf()).pretranslated(0, 0, -webThickness(c, k))
+    const pts = partBottom(k).flat()
     return pts.map(p => swTop.pretranslated(p).origin().z)
       // The c.wallThickness/2 is added as an additional offset because when keys are rotated vertically,
       // the wall will stick out below the key. However, the ti on these walls is not quite translated out by wallThickness
@@ -799,8 +818,8 @@ export function additionalHeight(c: Cuttleform, t: Trsf) {
       .concat(keyCriticalPoints(c, k, swBottom, c.wallThickness / 2).map(p => p.origin().z))
   }))
 
-  const pts2D = allKeyCriticalPoints(c, keyHolesTrsfs2D(c, t))
-  const keyholes = c.keys.map(k => keyHoleTrsf(c, k, t.cleared()))
+  const pts2D = allKeyCriticalPoints(c, keyHolesTrsfs2D(c, new Trsf()))
+  const keyholes = c.keys.map(k => keyHoleTrsf(c, k, new Trsf()))
   const pts3D = allKeyCriticalPoints(c, keyholes)
   const pts3Df = flattenKeyCriticalPoints(c, pts3D, [])
   const { boundary } = solveTriangularization(c, pts2D, pts3D, keyholes, 0, new Vector(0, 0, 1), {
@@ -954,20 +973,23 @@ export function solveTriangularization(c: Cuttleform, pts2D: CriticalPoints[], p
     if (area > 5 || area / perimeter > 0.1) {
       return true
     }
-    removedTriangles.push([a, b, c])
-    const idxA = boundary.indexOf(a)
-    const idxB = boundary.indexOf(b)
-    const idxC = boundary.indexOf(c)
-    if (idxA >= 0 && idxB >= 0) {
-      innerBoundary.splice(Math.min(idxA, idxB), 0, c)
-    } else if (idxB >= 0 && idxC >= 0) {
-      innerBoundary.splice(Math.min(idxB, idxC), 0, a)
-    } else if (idxC >= 0 && idxA >= 0) {
-      innerBoundary.splice(Math.min(idxC, idxA), 0, b)
-    } else {
-      throw new Error('Unexpected')
-    }
-    return false
+    return true // The code below results in fewer nonmanifold CAD models but also creates holes.
+    // Disabled for now since I care more about correct STL models than nice CAD export.
+
+    // removedTriangles.push([a, b, c])
+    // const idxA = boundary.indexOf(a)
+    // const idxB = boundary.indexOf(b)
+    // const idxC = boundary.indexOf(c)
+    // if (idxA >= 0 && idxB >= 0) {
+    //   innerBoundary.splice(Math.min(idxA, idxB), 0, c)
+    // } else if (idxB >= 0 && idxC >= 0) {
+    //   innerBoundary.splice(Math.min(idxB, idxC), 0, a)
+    // } else if (idxC >= 0 && idxA >= 0) {
+    //   innerBoundary.splice(Math.min(idxC, idxA), 0, b)
+    // } else {
+    //   throw new Error('Unexpected')
+    // }
+    // return false
   })
   return {
     boundary,
@@ -981,17 +1003,17 @@ export function solveTriangularization(c: Cuttleform, pts2D: CriticalPoints[], p
   }
 }
 
-export function estimatedCenter(geometry: Geometry, wristRest = false): [number, number, number] {
-  const pts = geometry.keyHolesTrsfs.map(t => t.xyz())
+export function estimatedBB(geometry: Geometry, wristRest = false, calcBottomZ = true): [number, number, number, number, number, number] {
+  const pts = geometry.allKeyCriticalPoints.flat().map(t => t.xyz())
   const x = pts.map(p => p[0])
   const y = pts.map(p => p[1])
   const z = pts.map(p => p[2])
+  return [Math.min(...x), Math.max(...x), Math.min(...y) + (wristRest ? -40 : 0), Math.max(...y), calcBottomZ ? geometry.floorZ : 0, Math.max(...z)]
+}
 
-  const cx = (Math.min(...x) + Math.max(...x)) / 2
-  let cy = (Math.min(...y) + Math.max(...y)) / 2
-  if (wristRest) cy -= 20
-  const cz = Math.max(...z) / 2 + geometry.floorZ / 2
-  return [cx, cy, cz]
+export function estimatedCenter(geometry: Geometry, wristRest = false): [number, number, number] {
+  const [x1, x2, y1, y2, z1, z2] = estimatedBB(geometry, wristRest)
+  return [(x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2]
 }
 
 function findClosestWall(
@@ -1042,7 +1064,7 @@ function findClosestWall(
 }
 
 function findBoardWalls(c: Cuttleform, walls: WallCriticalPoints[], origin: Trsf, select: string[], worldZ: Vector, bottomZ: number, optimize = false) {
-  const hBnd = localHolderBounds(c, true)
+  const hBnd = localHolderBounds(c, false) // was true before, but really needs to be false so board walls don't block the connector
   const bottomRadius = screwInsertDimensions(c).outerBottomRadius
 
   const p1 = new Vector(hBnd.minx - bottomRadius, hBnd.maxy, 0)
@@ -1093,7 +1115,7 @@ export interface LabeledBoardInd {
 }
 
 interface ScoreParams {
-  kiMax: number
+  heightMax: number
   insertHeight: number
   minDisplacement: number
   minHolderDisp: number
@@ -1105,7 +1127,7 @@ interface ScoreParams {
 }
 
 function screwScoreStilts(c: Cuttleform, walls: WallCriticalPoints[], s: number, params: ScoreParams) {
-  const { kiMax, insertHeight, minDisplacement, minHolderDisp, boardInd, holderBnd, worldZ, bottomZ } = params
+  const { heightMax, insertHeight, minDisplacement, minHolderDisp, boardInd, holderBnd, worldZ, bottomZ } = params
   // The score is based on how high the key is and displacement from the nearest
   // neighboring screw insert
   const idx = Math.floor(s)
@@ -1209,14 +1231,14 @@ function maxTip(c: Cuttleform, screwIndices: number[], walls: WallCriticalPoints
 }
 
 function screwScore(c: Cuttleform, walls: WallCriticalPoints[], s: number, params: ScoreParams) {
-  const { kiMax, insertHeight, minDisplacement, boardInd, holderBnd, bottomZ, worldZ } = params
+  const { heightMax, insertHeight, minDisplacement, boardInd, holderBnd, bottomZ, worldZ } = params
   // The score is based on how high the key is and displacement from the nearest
   // neighboring screw insert
   const idx = Math.floor(s)
   const avgKi = walls[idx].ki.origin().lerp(walls[(idx + 1) % walls.length].ki.origin(), s - idx)
   const avgHeight = avgKi.dot(worldZ) - bottomZ
   if (avgHeight < insertHeight) return -Infinity
-  const height = Math.sqrt(avgHeight / kiMax)
+  const height = Math.sqrt(avgHeight / heightMax)
   let nearestDispl = Infinity
   for (const i of params.otherPositions) {
     const diff = Math.abs(i - s)
@@ -1276,7 +1298,7 @@ export function* allScrewIndices(
   const insertHeight = insertDim.height
 
   const positions = new Set(initialPositions)
-  const holderBnd = (c.microcontroller || c.connector) && connOrigin ? holderBoundsOrigin(c, connOrigin.origin(), true) : undefined
+  const holderBnd = (c.microcontroller || c.connectors.length || c.connector) && connOrigin ? holderBoundsOrigin(c, connOrigin.origin(), true) : undefined
   while (true) {
     // Find position with the highest score
     let highestScore = -Infinity
@@ -1286,7 +1308,7 @@ export function* allScrewIndices(
       if (positions.has(iCenter)) continue
       const fn = c.shell.type == 'stilts' ? screwScoreStilts : screwScore
       const sc = fn(c, walls, iCenter, {
-        kiMax,
+        heightMax: kiMax - bottomZ,
         insertHeight,
         minDisplacement,
         boardInd,
@@ -1410,13 +1432,28 @@ export function boardPositions(c: Cuttleform, connOrigin: Trsf, walls: WallCriti
   return positionsImplMap(c, walls, z, boardIndices(c, connOrigin, walls, z, bottomZ, select) as any)
 }
 
-export function wristRestGeometry(c: Cuttleform, geo: Geometry) {
-  if (!c.wristRest) throw new Error('Wrist rest is not enabled')
+function transformCriticalPoint(pt: WallCriticalPoints, trsf: Trsf): WallCriticalPoints {
+  return {
+    ...pt,
+    ti: pt.ti.premultiplied(trsf),
+    to: pt.to.premultiplied(trsf),
+    mi: pt.mi.premultiplied(trsf),
+    ki: pt.ki.premultiplied(trsf),
+    mo: pt.mo.premultiplied(trsf),
+    bi: pt.bi.premultiplied(trsf),
+    bo: pt.bo.premultiplied(trsf),
+    si: pt.si?.premultiplied(trsf),
+    sm: pt.sm?.premultiplied(trsf),
+  }
+}
 
-  // Move walls out by 0.5mm so there's some margin
-  const trsfs = geo.keyHolesTrsfs
-  const pts = geo.allKeyCriticalPoints
-  const walls = geo.allWallCriticalPoints()
+export function wristRestGeometry(c: Cuttleform, geo: Geometry, wrSide: 'wristRestRight' | 'wristRestLeft') {
+  if (!c[wrSide]) throw new Error('Wrist rest is not enabled')
+
+  // Form the wrist rest by considering all walls roated by the wrist rest angle
+  // At the end of the function, everything is rotated back.
+  const origin = new ETrsf(c.wristRestOrigin.history).evaluate({ flat: false }).xyz()
+  const walls = geo.allWallCriticalPoints().map(p => transformCriticalPoint(p, new Trsf().rotate(-c[wrSide]!.angle, origin, [0, 0, 1])))
 
   const xMin = new Set<number>()
   const xMax = new Set<number>()
@@ -1424,7 +1461,7 @@ export function wristRestGeometry(c: Cuttleform, geo: Geometry) {
     const w = wall.bo.xyz()
     const wNext = walls[(i + 1) % walls.length].bo.xyz()
 
-    const isHorizontal = Math.abs(w[0] - wNext[0]) > Math.abs(w[1] - wNext[1])
+    const isHorizontal = Math.abs(w[0] - wNext[0]) * 2 > Math.abs(w[1] - wNext[1])
     if (w[0] > wNext[0] && isHorizontal) {
       xMax.add(Math.min(w[0], wall.to.xyz()[0] - 0.1))
       xMin.add(Math.max(wNext[0], walls[(i + 1) % walls.length].to.xyz()[0] + 0.1))
@@ -1433,11 +1470,8 @@ export function wristRestGeometry(c: Cuttleform, geo: Geometry) {
   })
   const midFrontWall = frontWalls[Math.floor(frontWalls.length / 2)]
 
-  const origin = new ETrsf(c.wristRestOrigin.history).evaluate({ flat: false }, pts[0][0].cleared()).xyz()
-  origin[2] += additionalHeight(c, pts[0][0])
-  console.log('origin', origin)
-  const left = Math.max(origin[0] + c.wristRest.xOffset - c.wristRest.maxWidth / 2, Math.min(...xMin))
-  const right = Math.min(origin[0] + c.wristRest.xOffset + c.wristRest.maxWidth / 2, Math.max(...xMax))
+  const left = Math.max(origin[0] - c[wrSide].maxWidth / 2, Math.min(...xMin))
+  const right = Math.min(origin[0] + c[wrSide].maxWidth / 2, Math.max(...xMax))
   if (left > right) throw new Error('Wrist rest is not wide enough')
 
   const leftWallY = wallXToY(walls, left, walls.indexOf(midFrontWall), 1, -1, 'to')
@@ -1447,9 +1481,9 @@ export function wristRestGeometry(c: Cuttleform, geo: Geometry) {
 
   if (!leftWallY || !rightWallY || !leftWallY2 || !rightWallY2) throw new Error('Could not locate walls for wrist rest')
 
-  const sinAngle = Math.sin(c.wristRest.angle * Math.PI / 180)
-  const cosAngle = Math.cos(c.wristRest.angle * Math.PI / 180)
-  const tanAngle = Math.tan(c.wristRest.angle * Math.PI / 180)
+  const sinAngle = Math.sin(c[wrSide].taper * Math.PI / 180)
+  const cosAngle = Math.cos(c[wrSide].taper * Math.PI / 180)
+  const tanAngle = Math.tan(c[wrSide].taper * Math.PI / 180)
 
   const leftStart = new Vector(left, Math.max(leftWallY.y, leftWallY2.y), 0)
   const rightStart = new Vector(right, Math.max(rightWallY.y, rightWallY2.y), 0)
@@ -1467,22 +1501,29 @@ export function wristRestGeometry(c: Cuttleform, geo: Geometry) {
   }
 
   const minY = Math.min(leftStart.y, rightStart.y)
-  const leftLength = (c.wristRest.length + leftStart.y - minY) / cosAngle
-  const rightLength = (c.wristRest.length + rightStart.y - minY) / cosAngle
+  const length = minY - origin[1] + c[wrSide].extension
+  const leftLength = (length + leftStart.y - minY) / cosAngle
+  const rightLength = (length + rightStart.y - minY) / cosAngle
 
   const leftEnd = new Vector(leftStart.x + sinAngle * leftLength, leftStart.y - cosAngle * leftLength, 0)
   const rightEnd = new Vector(rightStart.x - sinAngle * rightLength, rightStart.y - cosAngle * rightLength, 0)
 
-  if (leftEnd.x > rightEnd.x) throw new Error('Wrist rest width is not big enough to support taper angle')
+  if (leftEnd.x > rightEnd.x) {
+    const middle = (leftEnd.x + rightEnd.x) / 2
+    leftEnd.x = middle - 10
+    rightEnd.x = middle + 10
+    // throw new Error('Wrist rest width is not big enough to support taper angle')
+  }
+  const rotateBack = new Trsf().rotate(c[wrSide]!.angle, origin, [0, 0, 1])
   return {
-    leftStart,
-    leftEnd,
-    rightStart,
-    rightEnd,
-    intermediatePoints,
-    zOffset: origin[2] - 30 + c.wristRest.zOffset,
+    leftStart: rotateBack.apply(leftStart),
+    leftEnd: rotateBack.apply(leftEnd),
+    rightStart: rotateBack.apply(rightStart),
+    rightEnd: rotateBack.apply(rightEnd),
+    intermediatePoints: intermediatePoints.map(p => rotateBack.apply(p)),
+    // zOffset: origin[2] - 30 + c.wristRest.zOffset + additionalHeight(c, pts[0][0]),
     origin,
-    minY,
+    length,
   }
 }
 
@@ -1900,7 +1941,7 @@ export function topComponentBoxes(c: Cuttleform, keyholes: Trsf[]): ComponentBox
     return { origin, points }
   })
   const swPoints = keyholes.flatMap((trsf, i) => {
-    const boxes = partBottom(c.keys[i].type)
+    const boxes = partBottom(c.keys[i])
     return boxes.map(box => ({ origin: trsf, points: box.map(p => new Vector(...p)) }))
   })
   return holePts.concat(swPoints)

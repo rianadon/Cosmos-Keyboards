@@ -1,22 +1,31 @@
 import adapter from '@sveltejs/adapter-static'
-import { vitePreprocess } from '@sveltejs/kit/vite'
+import { vitePreprocess } from '@sveltejs/vite-plugin-svelte'
 import { preprocessor as documentPreprocessor } from '@sveltekit-addons/document'
-import { preprocessThrelte } from '@threlte/preprocess'
-import seqPreprocessor from 'svelte-sequential-preprocessor'
+import { existsSync } from 'fs'
+import { fileURLToPath } from 'url'
 
 const dev = process.argv.includes('dev')
+
+const proDir = fileURLToPath(new URL('./src/lib/worker/pro', import.meta.url))
+const proPatchDir = fileURLToPath(new URL('./src/lib/worker/pro-patch', import.meta.url))
+const hasPro = existsSync(proDir)
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
   // Consult https://kit.svelte.dev/docs/integrations#preprocessors
   // for more information about preprocessors
-  preprocess: seqPreprocessor([vitePreprocess(), preprocessThrelte(), documentPreprocessor()]),
+  preprocess: [vitePreprocess(), documentPreprocessor()],
 
   kit: {
     // adapter-auto only supports some environments, see https://kit.svelte.dev/docs/adapter-auto for a list.
     // If your environment is not supported or you settled on a specific environment, switch out the adapter.
     // See https://kit.svelte.dev/docs/adapters for more information about adapters.
     adapter: adapter(),
+    alias: {
+      '$assets': 'src/assets',
+      '$target': 'target',
+      '@pro': hasPro ? proDir : proPatchDir,
+    },
     paths: {
       base: dev ? '' : process.env.BASE_PATH,
     },
@@ -28,6 +37,11 @@ const config = {
         if (path.startsWith((process.env.BASE_PATH || '') + '/docs/')) return
 
         // otherwise fail the build
+        throw new Error(message)
+      },
+      handleMissingId: ({ path, id, message }) => {
+        // Ignore missing ids on the generator page.
+        if (path.startsWith((process.env.BASE_PATH || '') + '/beta')) return
         throw new Error(message)
       },
     },

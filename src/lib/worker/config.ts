@@ -1,7 +1,6 @@
 import type manuform from '$assets/manuform.json'
-import { hasPro } from '@pro/index'
-import { StiltsGeometry } from '@pro/stiltsGeo'
-import { Matrix4, Vector3 } from 'three'
+import { socketSize } from '$lib/geometry/socketsParts'
+import type { CuttleKey, MicrocontrollerName } from '$target/cosmosStructs'
 import {
   CONNECTOR,
   CONNECTOR_SIZE,
@@ -22,8 +21,13 @@ import {
   SCREW_SIZE,
   SCREW_TYPE,
   SWITCH,
-} from '../../../target/proto/cuttleform'
+} from '$target/proto/cuttleform'
+import { StiltsGeometry } from '@pro/stiltsGeo'
+import { Matrix4, Vector3 } from 'three'
+import type { FullGeometry } from '../../routes/beta/lib/viewers/viewer3dHelpers'
 import { BaseGeometry, BlockGeometry, TiltGeometry } from './cachedGeometry'
+import type { ConnectorMaybeCustom, CosmosCluster } from './config.cosmos'
+import { estimatedBB, estimatedCenter } from './geometry'
 import { DEFAULT_MWT_FACTOR } from './geometry.thickWebs'
 import Trsf from './modeling/transformation'
 import ETrsf, { Constant, keyPosition, mirror } from './modeling/transformation-ext'
@@ -35,6 +39,7 @@ type DeepRequired<T> = Required<
   }
 >
 
+export type { CuttleKey } from '$target/cosmosStructs'
 export type CuttleformProto = DeepRequired<CuttleformProtoP>
 
 // const MANUFORM_KEYCAP_TYPE = "xda"
@@ -47,7 +52,22 @@ const X: Point = [1, 0, 0]
 const Y: Point = [0, 1, 0]
 const Z: Point = [0, 0, 1]
 
-type _ETrsf = ETrsf // For code gen
+interface WristRest {
+  /** Angle at which the wrist rest is attached to the keyboard */
+  angle: number
+  /** Angle at which the wrist rest sides are tapered inwards */
+  taper: number
+  /** Maximum width of the wrist rest */
+  maxWidth: number
+  /** Angle at which the wrist rest is tented */
+  tenting: number
+  /** Angle at which the wrist rests slopes down towards the wrist */
+  slope: number
+  /** Amount by which the wrist rests sticks out past the wrist */
+  extension: number
+  stilts?: boolean
+}
+
 export interface SpecificCuttleform<S> {
   wallThickness: number
   wallShrouding: number
@@ -58,8 +78,11 @@ export interface SpecificCuttleform<S> {
   keys: CuttleKey[]
   /** The basis on which to compute  */
   keyBasis: Keycap['profile']
-  connector: 'usb' | 'trrs' | null
-  connectorSizeUSB: 'slim' | 'average' | 'big'
+  connectors: ConnectorMaybeCustom[]
+  /** @deprecated */
+  connector?: 'usb' | 'trrs' | null
+  /** @deprecated */
+  connectorSizeUSB?: 'slim' | 'average' | 'big'
   /** The index of the wall by which the connector is placed. */
   connectorIndex: number
   /** The indices of the walls at which to place screw inserts. */
@@ -67,31 +90,19 @@ export interface SpecificCuttleform<S> {
   screwType: 'screw insert' | 'tapered screw insert' | 'expanding screw insert' | 'tapped hole'
   screwSize: 'M3' | 'M4' | '#4-40' | '#6-32'
   screwCountersink: boolean
-  wristRest?: {
-    length: number
-    angle: number
-    maxWidth: number
-    xOffset: number
-    zOffset: number
-    tenting: number
-    stilts?: boolean
-  }
+  wristRestLeft?: WristRest
+  wristRestRight?: WristRest
   wristRestOrigin: ETrsf
-  microcontroller:
-    | 'pi-pico'
-    | 'promicro'
-    | 'promicro-usb-c'
-    | 'itsybitsy-adafruit'
-    | 'kb2040-adafruit'
-    | 'rp2040-black-usb-c-aliexpress'
-    | 'nrfmicro-or-nicenano'
-    | 'seeed-studio-xiao'
-    | 'waveshare-rp2040-zero'
-    | 'weact-studio-ch552t'
-    | null
+  microcontroller: MicrocontrollerName
+  /* Angle at which microcontroller should be placed */
+  microcontrollerAngle: number
   fastenMicrocontroller: boolean
+  /** Flip connectors positions if true. */
+  flipConnectors: boolean
   /** Additional height to add to the model. */
   verticalClearance: number
+  /* (Internal use only) Coordinate of the keyboard's bottom. */
+  bottomZ?: number
   clearScrews: boolean
   rounded: {
     side?: {
@@ -118,6 +129,12 @@ export interface SpecificCuttleform<S> {
 
 export type Cuttleform = SpecificCuttleform<AnyShell>
 
+export type FullCuttleform = {
+  left?: Cuttleform
+  right?: Cuttleform
+  unibody?: Cuttleform
+}
+
 export interface BasicShell {
   type: 'basic'
   lip: boolean
@@ -137,12 +154,13 @@ export interface TiltShell {
 }
 export type AnyShell = BasicShell | StiltsShell | BlockShell | TiltShell
 
-interface CuttleBaseKey {
+export interface CuttleBaseKey {
   /** The position at which to place the key. */
   position: ETrsf
   /** Aspect ratio of the key. Use 1.5 for 1.5u keys, etc. If the aspect is <1, the key will be placed vertically. */
   aspect: number
   cluster: string
+  variant?: Record<string, any>
 }
 
 export interface Keycap {
@@ -153,52 +171,6 @@ export interface Keycap {
   letter?: string
   /** The finger that rests on this key in home position. */
   home?: 'thumb' | 'index' | 'middle' | 'ring' | 'pinky'
-}
-
-interface CuttleKeycapKey extends CuttleBaseKey {
-  type: 'old-box' | 'old-mx' | 'mx-better' | 'old-mx-snap-in' | 'alps' | 'choc' | 'mx-pcb' | 'old-mx-hotswap' | 'old-mx-snap-in-hotswap' | 'choc-hotswap' | 'mx-hotswap'
-  keycap: Keycap
-}
-
-interface CuttleBasicKey extends CuttleBaseKey {
-  type: 'ec11' | 'oled-128x32-0.91in-adafruit' | 'oled-128x32-0.91in-dfrobot' | 'evqwgd001' | 'joystick-joycon-adafruit' | 'joystick-ps2-40x45'
-}
-
-interface CuttleBlankKey extends CuttleBaseKey {
-  type: 'blank'
-  keycap?: Keycap
-  size: { width: number; height: number }
-}
-
-type RoundSize = { radius: number; sides: number }
-interface CuttleTrackballKey extends CuttleBaseKey {
-  type: 'trackball'
-  size: RoundSize
-}
-
-interface CuttleTrackpadKey extends CuttleBaseKey {
-  type: 'cirque-23mm' | 'cirque-35mm' | 'cirque-40mm'
-  size: { sides: number }
-}
-
-export type CuttleKey = CuttleKeycapKey | CuttleBasicKey | CuttleTrackballKey | CuttleTrackpadKey | CuttleBlankKey
-
-export function keyRoundSize(key: CuttleKey): RoundSize | undefined {
-  switch (key.type) {
-    case 'trackball':
-      // @ts-ignore: for backwards compatibility.
-      return key.size ?? key.trackball
-    case 'cirque-23mm':
-    case 'cirque-35mm':
-    case 'cirque-40mm':
-      return {
-        // @ts-ignore: for backwards compatibility.
-        sides: key.size?.sides ?? key.trackball.sides,
-        radius: cirqueRadius(key.type),
-      }
-    default:
-      return undefined
-  }
 }
 
 export const MAP_SCREW_SIZE: Record<SCREW_SIZE, Cuttleform['screwSize']> = {
@@ -236,6 +208,7 @@ export const MAP_MICROCONTROLLER: Record<MICROCONTROLLER, Cuttleform['microcontr
   [MICROCONTROLLER.XIAO_BT]: 'seeed-studio-xiao',
   [MICROCONTROLLER.RP2040_ZERO]: 'waveshare-rp2040-zero',
   [MICROCONTROLLER.WEACT_CH552T]: 'weact-studio-ch552t',
+  [MICROCONTROLLER.ADAFRUIT_RP2040_FEATHER]: 'adafruit-rp2040-feather',
 }
 
 export const MAP_CONNECTOR: Record<CONNECTOR, Cuttleform['connector']> = {
@@ -342,17 +315,35 @@ export function cuttleConf(c: DeepRequired<CuttleformProto>): Cuttleform {
       top: c.wall.roundedTop ? { horizontal: 1 / 4, vertical: 2 / 3 } : undefined,
       side: c.wall.roundedSide ? { divisor: 3, concavity: 1.5 } : undefined,
     },
-    connector: MAP_CONNECTOR[c.wall.connector],
-    connectorSizeUSB: MAP_CONNECTOR_SIZE[c.wall.connectorSizeUsb],
+    connectors: convertToMaybeCustomConnectors({
+      connector: MAP_CONNECTOR[c.wall.connector],
+      connectorSizeUSB: MAP_CONNECTOR_SIZE[c.wall.connectorSizeUsb],
+    } as any),
     connectorIndex: -1,
-    wristRest: c.wall.wristRest && hasPro
+    wristRestRight: c.wall.wristRest
       ? {
-        length: c.wall.wristRestLength / 10,
+        // length: c.wall.wristRestLength / 10,
         maxWidth: c.wall.wristRestMaxWidth / 10,
-        xOffset: c.wall.wristRestXOffset / 10,
-        zOffset: c.wall.wristRestZOffset / 10,
-        angle: c.wall.wristRestAngle / 45,
+        // xOffset: c.wall.wristRestXOffset / 10,
+        // zOffset: c.wall.wristRestZOffset / 10,
+        angle: 0,
+        taper: c.wall.wristRestAngle / 45,
         tenting: c.curvature.tenting / 45 / 2 + c.wall.wristRestTenting / 45,
+        slope: 5,
+        extension: 8,
+      }
+      : undefined,
+    wristRestLeft: c.wall.wristRest
+      ? {
+        // length: c.wall.wristRestLength / 10,
+        maxWidth: c.wall.wristRestMaxWidth / 10,
+        // xOffset: c.wall.wristRestXOffset / 10,
+        // zOffset: c.wall.wristRestZOffset / 10,
+        angle: 0,
+        taper: c.wall.wristRestAngle / 45,
+        tenting: c.curvature.tenting / 45 / 2 + c.wall.wristRestTenting / 45,
+        slope: 5,
+        extension: 8,
       }
       : undefined,
     wristRestOrigin: thumbOrigin(c, true),
@@ -448,7 +439,7 @@ function keyType(m: Manuform): CuttleKey['type'] {
   return t as any
 }
 
-export function keycapType(c: DeepRequired<CuttleformProto>): Required<CuttleKeycapKey>['keycap']['profile'] {
+export function keycapType(c: DeepRequired<CuttleformProto>): Keycap['profile'] {
   if (c.upperKeys.keycapType == KEYCAP.MT3) return 'mt3'
   if (c.upperKeys.keycapType == KEYCAP.OEM) return 'oem'
   if (c.upperKeys.keycapType == KEYCAP.CHERRY) return 'cherry'
@@ -459,11 +450,12 @@ export function keycapType(c: DeepRequired<CuttleformProto>): Required<CuttleKey
   return 'dsa'
 }
 
-export function switchType(c: DeepRequired<CuttleformProto>): Required<CuttleKeycapKey>['type'] {
+export function switchType(c: DeepRequired<CuttleformProto>): CuttleKey['type'] {
   if (c.upperKeys.switchType == SWITCH.MX) return 'old-mx'
   if (c.upperKeys.switchType == SWITCH.MX_HOTSWAP) return 'mx-hotswap'
   if (c.upperKeys.switchType == SWITCH.MX_BETTER) return 'mx-better'
   if (c.upperKeys.switchType == SWITCH.MX_PCB) return 'mx-pcb'
+  if (c.upperKeys.switchType == SWITCH.MX_PCB_TWIST) return 'mx-pcb-twist'
   if (c.upperKeys.switchType == SWITCH.CHOC) return 'choc'
   if (c.upperKeys.switchType == SWITCH.ALPS) return 'alps'
   return 'box'
@@ -501,23 +493,33 @@ function mergedCurvature(c: CuttleformProto, pinky: boolean, curv: any): any {
   }
 }
 
-function keycapInfo(c: CuttleformProto, row: number, column: number): CuttleKeycapKey['keycap'] {
-  let home: CuttleKeycapKey['keycap']['home']
+function letterForKeycap(row: number, column: number) {
+  let letter = {
+    1: '67890',
+    2: 'yuiop',
+    3: "hjkl;'",
+    4: 'nm,./',
+    5: '{}[]\\',
+  }[row]?.charAt(column) || undefined
+  if (row == 0) letter = ['F6', 'F7', 'F8', 'F9', 'F10'][column] || undefined
+  return letter
+}
+
+function keycapInfo(c: CuttleformProto, row: number, column: number): Keycap {
+  let home: Keycap['home']
   if (row == 3) {
     home = ({
       1: 'index',
       2: 'middle',
       3: 'ring',
       4: 'pinky',
-    } as Record<number, CuttleKeycapKey['keycap']['home']>)[column]
+    } as Record<number, Keycap['home']>)[column]
   }
-  const letter = {
-    1: '67890',
-    2: 'yuiop',
-    3: "hjkl;'",
-    4: 'nm,./',
-  }[row]?.charAt(column) || undefined
-  return { profile: keycapType(c), row, home, letter }
+
+  // Row 5 is used for thumb keys (in MT3, the 5th row key has zero tilt)
+  // So don't use it for the non-thumb keys since it is special!
+  // (hence the Math.min(x, 4)
+  return { profile: keycapType(c), row: Math.min(row, 4), home, letter: letterForKeycap(row, column) }
 }
 
 export function decodeTuple(tuple: bigint) {
@@ -556,7 +558,7 @@ export function encodeTuple(values: number[]) {
   }
   let result = encode(values[0]) | encode(values[1]) | encode(values[2])
   if (values.length > 3 && values[3]) result |= encode(values[3])
-  console.log('Encoded tuple', result)
+  // console.log('Encoded tuple', result)
   return result
 }
 
@@ -570,9 +572,74 @@ export function tupleToRot(tuple: bigint) {
   return { alpha: decoded[0] / 45, beta: decoded[1] / 45, gamma: decoded[2] / 45, extra: decoded[3] }
 }
 
+export function tupletoRotOnly(tuple: bigint) {
+  const decoded = decodeTuple(tuple)
+  return [decoded[0] / 45, decoded[1] / 45, decoded[2] / 45] as [number, number, number]
+}
+
 export function tupleToXYZ(tuple: bigint) {
   const decoded = decodeTuple(tuple)
   return [decoded[0] / 10, decoded[1] / 10, decoded[2] / 10] as Point
+}
+
+export function cosmosFingers(nRows: number, nCols: number, side: 'left' | 'right', addExtraRow = true): CosmosCluster[] {
+  let columns = range(0, nCols)
+  if (nCols <= 4) columns = range(1, nCols + 1)
+  const rows = range(0, nRows)
+
+  const lastRow = nRows - 1
+  const lastCol = nCols - 1
+  const usesWidePinky = (col: number) => (col == lastCol && col > 4)
+  const pinkySize = 1.5
+
+  function dmColumnOffset(column: number): bigint {
+    if (column == 1) return 0n
+    if (column == 2) return 5191680n
+    if (column == 3) return 0n
+    if (column >= 4) return 2013430528n
+    else return 0n
+  }
+
+  const centerCol = nCols / 2
+  const centerRow = nRows - match(nRows, {
+    3: 2.5,
+    2: 2,
+  }, 3)
+
+  const row2Row = (r: number) => 6 - nRows + r
+  const multiplier = side == 'left' ? -1 : 1
+
+  const cosmosCols: CosmosCluster[] = columns.map(column => ({
+    name: 'fingers',
+    side: 'right',
+    type: 'matrix',
+    curvature: {},
+    profile: undefined,
+    partType: usesWidePinky(column) ? { aspect: pinkySize } : {},
+    clusters: [],
+    column: multiplier * (column - centerCol + (usesWidePinky(column) ? (pinkySize - 1) / 2 : 0)),
+    keys: rows.filter(row => row != lastRow || ([2, 3].includes(column) && addExtraRow)).map(row => ({
+      partType: {},
+      profile: {
+        row: Math.min(row2Row(row), 4),
+        home: row2Row(row) == 3
+          ? ({
+            1: 'index',
+            2: 'middle',
+            3: 'ring',
+            4: 'pinky',
+          } as Record<number, Keycap['home']>)[column] ?? null
+          : null,
+        letter: letterForKeycap(row2Row(row), column),
+      },
+      row: row - centerRow,
+      position: undefined,
+      rotation: undefined,
+    })),
+    position: dmColumnOffset(column),
+    rotation: undefined,
+  }))
+  return cosmosCols
 }
 
 export function fingers(c: DeepRequired<CuttleformProto>): CuttleKey[] {
@@ -602,16 +669,16 @@ export function fingers(c: DeepRequired<CuttleformProto>): CuttleKey[] {
 
   const keyPlane = upperKeysPlane(c)
 
-  // Row 5 is used for thumb keys (in MT3, the 5th row key has zero tilt)
-  // So don't use it for the non-thumb keys since it is special!
-  // (hence the Math.min(x, 4)
-  const row2Row = (r: number) => Math.min(6 - c.upperKeys.rows + r, 4)
+  const row2Row = (r: number) => 6 - c.upperKeys.rows + r
 
   let modifierKeys: CuttleKey[] = []
   if (c.upperKeys.extraColumn == EXTRA_COLUMN.KEYS) {
     modifierKeys = range(0, cornerRow).map(row => ({
       type: switchType(c),
-      keycap: { profile: keycapType(c), row: row2Row(row) },
+      // Row 5 is used for thumb keys (in MT3, the 5th row key has zero tilt)
+      // So don't use it for the non-thumb keys since it is special!
+      // (hence the Math.min(x, 4)
+      keycap: { profile: keycapType(c), row: Math.min(row2Row(row), 4) },
       aspect: 1,
       cluster: 'fingers',
       position: new ETrsf().placeOnMatrix(mergedCurvature(c, false, {
@@ -730,7 +797,7 @@ export function fingers(c: DeepRequired<CuttleformProto>): CuttleKey[] {
   const spreadOriginsBot = normalKeys.map(col => col.length > 0 ? keyPosition(posC, col[col.length - 1], false).pretranslate(8.75, -8.75, 0).premultiply(keyPlaneInv) : null)
   const spreadOriginsTop = normalKeys.map(col => col.length > 0 ? keyPosition(posC, col[0], false).pretranslate(8.75, 8.75, 0).premultiply(keyPlaneInv) : null)
   const spreadAngles = [stag.staggerInnerIndex, stag.staggerIndex, stag.staggerMiddle, stag.staggerRing, stag.staggerPinky].map(s => decodeTuple(s)[3] / 45)
-  console.log(spreadAngles)
+  // console.log(spreadAngles)
   normalKeys.forEach((col, i) => {
     for (let j = Math.min(i, spreadAngles.length - 1); j >= 0; j--) {
       const angle = spreadAngles[j]
@@ -785,6 +852,30 @@ export function upperKeysPlane(c: CuttleformProto) {
     .rotate(c.curvature.tenting / 45, CENTER, Y, false)
     .rotate(c.curvature.rotateX / 45, CENTER, X, false)
     .translate(0, 0, 0, false) as Constant
+}
+
+export function approximateCosmosThumbOrigin(nRows: number, nCols: number) {
+  const centerCol = nCols / 2
+  const centerRow = nRows - match(nRows, {
+    3: 2.5,
+    2: 2,
+  }, 3)
+  const cornerRow = nRows - 2
+
+  const origin = new ETrsf()
+  origin.translateBy(
+    new ETrsf()
+      .placeOnMatrix({
+        row: cornerRow - centerRow,
+        column: 1 - centerCol,
+        curvatureOfColumn: 0,
+        curvatureOfRow: 0,
+        spacingOfColumns: 21,
+        spacingOfRows: 21,
+      }), // .transformBy(upperKeysPlane(curvature)).translate(17.5 / 2, -17.5 / 2, 0),
+  )
+
+  return origin.evaluate({ flat: false }).origin()
 }
 
 export function thumbOrigin(c: DeepRequired<CuttleformProto>, wristRest = false) {
@@ -917,7 +1008,6 @@ export function decodeCustomKey(k: Cuttleform_CustomThumb_Key, keyType: KeyType,
   const customType = ID_TO_TYPE[customId] ?? keyType
 
   const rot = tupleToRot(k.rotation!)
-  console.log('decode aspect', rot.extra)
   let newKey = {
     type: customType,
     aspect: rot.extra < 0 ? -100 / rot.extra : rot.extra / 100,
@@ -934,15 +1024,19 @@ export function decodeCustomKey(k: Cuttleform_CustomThumb_Key, keyType: KeyType,
       ...newKey,
       type: customType,
       size: { sides: k.trackballSides },
-    } as CuttleTrackpadKey
+    } as CuttleCirqueKey
   }
   if (k.trackballRadius && k.trackballSides) {
     return {
       ...newKey,
       type: 'trackball',
       size: {
-        radius: k.trackballRadius / 10,
         sides: k.trackballSides,
+      },
+      variant: {
+        bearings: 'Roller',
+        sensor: 'Joe (QMK)',
+        size: '34mm',
       },
     }
   } else if (customId > 0) return newKey as CuttleKey
@@ -1313,7 +1407,7 @@ export function orbylThumbs(keyType: KeyType, capType: CapType, opts: Cuttleform
     ...thumbBase,
     aspect: 1,
     position: new ETrsf().placeOnSphere(mergeCurvature(curvature, {
-      angle: 10,
+      angle: 80,
       row: 1.85,
     }, 'thumbCurvature')).transformBy(offset),
   }, {
@@ -1321,21 +1415,21 @@ export function orbylThumbs(keyType: KeyType, capType: CapType, opts: Cuttleform
     aspect: 1,
     keycap: { profile: capType, row: 5, home: 'thumb' },
     position: new ETrsf().placeOnSphere(mergeCurvature(curvature, {
-      angle: -40,
+      angle: 130,
       row: 2,
     }, 'thumbCurvature')).transformBy(offset),
   }, {
     ...thumbBase,
     aspect: 1,
     position: new ETrsf().placeOnSphere(mergeCurvature(curvature, {
-      angle: -90,
+      angle: 180,
       row: 2,
     }, 'thumbCurvature')).transformBy(offset),
   }, {
     ...thumbBase,
     aspect: 1,
     position: new ETrsf().placeOnSphere(mergeCurvature(curvature, {
-      angle: -140,
+      angle: 230,
       row: 2,
     }, 'thumbCurvature')).transformBy(offset),
   }, {
@@ -1343,8 +1437,12 @@ export function orbylThumbs(keyType: KeyType, capType: CapType, opts: Cuttleform
     aspect: 1,
     cluster: 'thumbs',
     size: {
-      radius: 20.9,
       sides: 20,
+    },
+    variant: {
+      bearings: 'Roller',
+      sensor: 'Joe (QMK)',
+      size: '34mm',
     },
     position: new ETrsf()
       .rotate(30)
@@ -1355,7 +1453,8 @@ export function orbylThumbs(keyType: KeyType, capType: CapType, opts: Cuttleform
 export function matrixToRPY(R: Matrix4): [number, number, number] {
   const e = R.elements
   const Z_rot = Math.atan2(e[1], e[0])
-  const Y_rot = Math.atan2(-e[2], Math.sqrt(Math.pow(e[6], 2) + Math.pow(e[10], 2)))
+  // const Y_rot = Math.atan2(-e[2], Math.sqrt(Math.pow(e[6], 2) + Math.pow(e[10], 2)))
+  const Y_rot = Math.asin(-e[2])
   const X_rot = Math.atan2(e[6], e[10])
   return [X_rot * 180 / Math.PI, Y_rot * 180 / Math.PI, Z_rot * 180 / Math.PI]
 }
@@ -1366,25 +1465,18 @@ export function matrixToConfig(m: Matrix4, key: CuttleKey | undefined = undefine
   const aspect = key?.aspect || 1
   const keyType = key ? TYPE_TO_ID[key.type] : 0
 
-  const roundSize = key ? keyRoundSize(key) : undefined
+  const size = key ? socketSize(key) : undefined
+  const roundSize = size && 'radius' in size ? size : undefined
   return {
     position: encodeTuple([Math.round(translation.x * 10), Math.round(translation.y * 10), Math.round(translation.z * 10), keyType]),
     rotation: encodeTuple([Math.round(rpy[0] * 45), Math.round(rpy[1] * 45), Math.round(rpy[2] * 45), Math.round((aspect < 1 ? -1 / aspect : aspect) * 100)]),
     trackballRadius: key?.type == 'trackball' ? Math.round(roundSize!.radius * 10) : undefined,
-    /* @ts-ignore */
-    trackballSides: roundSize?.sides,
+    trackballSides: (key as any).size.sides,
   }
 }
 
 export function findKeyByAttr(config: Cuttleform, attr: 'home' | 'letter', value: string) {
   return config.keys.find(k => 'keycap' in k && k.keycap && k.keycap[attr] == value)
-}
-
-function cirqueRadius(type: string) {
-  if (type == 'cirque-23mm') return 12.4
-  if (type == 'cirque-35mm') return 18.4
-  if (type == 'cirque-40mm') return 20.9
-  throw new Error('Unknown trackpad type ' + type)
 }
 
 export type Geometry = BaseGeometry<Cuttleform>
@@ -1400,4 +1492,90 @@ export function newGeometry(c: Cuttleform): Geometry {
     return new TiltGeometry(c as SpecificCuttleform<TiltShell>)
   }
   return new BaseGeometry(c)
+}
+
+export function newFullGeometry(c: FullCuttleform): FullGeometry {
+  const geo: FullGeometry = {}
+  if (c.left) geo.left = newGeometry(c.left)
+  if (c.right) geo.right = newGeometry(c.right)
+  if (c.unibody) geo.unibody = newGeometry(c.unibody)
+  return geo
+}
+
+export function setBottomZ(conf: FullCuttleform) {
+  if (conf.left && conf.right) {
+    const botLeft = newGeometry(conf.left).bottomZ
+    const botRight = newGeometry(conf.right).bottomZ
+    conf.left.bottomZ = conf.right.bottomZ = Math.min(botLeft, botRight)
+  }
+}
+
+export type Center = {
+  left?: Point
+  right?: Point
+  unibody?: Point
+}
+export type FullCenter = Full<Center>
+
+const VIEW_SEPARATION = 40
+
+export function fullEstimatedCenter(geo: FullGeometry | undefined, withWristRest = true): FullCenter {
+  const defaultCenter = { left: [0, 0, 0] as Point, unibody: [0, 0, 0] as Point, right: [0, 0, 0] as Point }
+  if (!geo) return { left: defaultCenter, both: defaultCenter, right: defaultCenter }
+  if (geo.unibody) {
+    const center = estimatedCenter(geo.unibody, withWristRest && !!geo.unibody!.c.wristRestRight)
+    const modelCenters = { unibody: center }
+    return { left: modelCenters, both: modelCenters, right: modelCenters }
+  } else {
+    const leftBB = estimatedBB(geo.left!, withWristRest && !!geo.left!.c.wristRestRight)
+    const rightBB = estimatedBB(geo.right!, withWristRest && !!geo.right!.c.wristRestRight)
+    const sepDiff = (VIEW_SEPARATION - (rightBB[0] + leftBB[0])) / 2
+    return {
+      left: {
+        left: [-(leftBB[0] + leftBB[1]) / 2, (leftBB[2] + leftBB[3]) / 2, (leftBB[4] + leftBB[5]) / 2],
+      },
+      both: {
+        left: [
+          (rightBB[1] - leftBB[1]) / 2 + sepDiff,
+          (Math.min(leftBB[2], rightBB[2]) + Math.max(leftBB[3], rightBB[3])) / 2,
+          (Math.min(leftBB[4], rightBB[4]) + Math.max(leftBB[5], rightBB[5])) / 2,
+        ],
+        right: [
+          (rightBB[1] - leftBB[1]) / 2 - sepDiff,
+          (Math.min(leftBB[2], rightBB[2]) + Math.max(leftBB[3], rightBB[3])) / 2,
+          (Math.min(leftBB[4], rightBB[4]) + Math.max(leftBB[5], rightBB[5])) / 2,
+        ],
+      },
+      right: {
+        right: [(rightBB[0] + rightBB[1]) / 2, (rightBB[2] + rightBB[3]) / 2, (rightBB[4] + rightBB[5]) / 2],
+      },
+    }
+  }
+}
+
+type Full<T> = { left: T; both: T; right: T }
+export function fullEstimatedSize(geo: FullGeometry | undefined): Full<[number, number, number]> {
+  if (!geo) return { left: [100, 100, 100], both: [300, 100, 100], right: [100, 100, 100] }
+  if (geo.unibody) {
+    const [x1, x2, y1, y2, z1, z2] = estimatedBB(geo.unibody)
+    const size = [x2 - x1, y2 - y1, z2 - z1] as [number, number, number]
+    return { left: size, both: size, right: size }
+  } else {
+    const [lx1, lx2, ly1, ly2, lz1, lz2] = estimatedBB(geo.left!)
+    const [rx1, rx2, ry1, ry2, rz1, rz2] = estimatedBB(geo.right!)
+    const sep = VIEW_SEPARATION - (rx1 + lx1)
+    return {
+      left: [lx2 - lx1, ly2 - ly1, lz2 - lz1],
+      both: [sep + rx2 + lx2, Math.max(ly2, ry2) - Math.min(ly1, ry1), Math.max(lz2, rz2) - Math.min(lz1, rz1)],
+      right: [rx2 - rx1, ry2 - ry1, rz2 - rz1],
+    }
+  }
+}
+
+export function convertToMaybeCustomConnectors(c: Cuttleform): ConnectorMaybeCustom[] {
+  if (c.connector === null) return []
+  if (c.connector && !c.connectorSizeUSB) throw new Error('connectorSizeUSB not defined')
+  if (c.connector === 'usb') return [{ preset: 'usb', size: c.connectorSizeUSB! }]
+  if (c.connector === 'trrs') return [{ preset: 'trrs' }, { preset: 'usb', size: c.connectorSizeUSB! }]
+  return c.connectors
 }

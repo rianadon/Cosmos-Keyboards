@@ -34,6 +34,26 @@ export function for2<A, B, R>(a: A[], b: B[], ...cond: ((a: A, b: B) => boolean)
   }
 }
 
+export function for3<A, B, C>(a: A[], b: B[], c: C[], ...cond: ((a: A, b: B, c: C) => boolean)[]): (f: (a: A, b: B, c: C) => void) => void
+export function for3<A, B, C, R>(a: A[], b: B[], c: C[], ...cond: ((a: A, b: B, c: C) => boolean)[]): (f: (a: A, b: B, c: C) => R) => R[][][]
+export function for3<A, B, C, R>(a: A[], b: B[], c: C[], ...cond: ((a: A, b: B, c: C) => boolean)[]): (f: (a: A, b: B, c: C) => R) => R[][][] {
+  return (f) => {
+    const results: R[][][] = []
+    for (const i of a) {
+      const inner: R[][] = []
+      for (const j of b) {
+        const innerinner: R[] = []
+        for (const k of c) {
+          if (cond.every(c => c(i, j, k))) innerinner.push(f(i, j, k))
+        }
+        inner.push(innerinner)
+      }
+      results.push(inner)
+    }
+    return results
+  }
+}
+
 export function mapObj<K extends string, V, R>(obj: Record<K, V>, f: (a: V, k: K) => R): Record<K, R> {
   const newObj: any = {}
   for (const key of Object.keys(obj) as K[]) {
@@ -51,14 +71,14 @@ export function filterObj<V>(obj: Record<string, V>, f: (k: string, v: V) => boo
 }
 
 export function sum(n: number[]) {
-  return n.reduce((a, b) => a + b)
+  return n.reduce((a, b) => a + b, 0)
 }
 
 export function reverseMap<A extends string | number, B extends string | number>(m: Record<A, B>): Record<B, A> {
   return Object.fromEntries(Object.entries(m).map(([a, b]) => [b, a]))
 }
 
-export function notNull<E>(a: E[]): Exclude<E, undefined | null>[] {
+export function notNull<E>(a: readonly E[]): Exclude<E, undefined | null | false>[] {
   return a.filter(e => !!e) as Exclude<E, undefined | null>[]
 }
 
@@ -73,4 +93,55 @@ export class DefaultMap<K, V> extends Map<K, V> {
     super.set(k, v)
     return v
   }
+}
+
+export class TallyMap<K> extends DefaultMap<K, number> {
+  constructor() {
+    super(() => 0)
+  }
+
+  incr(k: K) {
+    this.set(k, this.get(k) + 1)
+  }
+
+  max(): K | undefined {
+    let maximum = -1
+    let best: K | undefined = undefined
+    for (const [k, tally] of this.entries()) {
+      if (tally > maximum) {
+        maximum = tally
+        best = k
+      }
+    }
+    return best
+  }
+}
+
+export function diff<T>(n: T, parent: T) {
+  if (n == parent) return undefined
+  return n
+}
+
+export function objKeys<T extends object>(obj: T) {
+  return Object.keys(obj) as (keyof T)[]
+}
+
+export function objEntries<T extends object>(obj: T) {
+  return Object.entries(obj) as [keyof T, T[keyof T]][]
+}
+
+export function objEntriesNotNull<T extends object>(obj: T) {
+  const entries = objEntries(obj)
+  return entries.filter(([k, v]) => v != null && typeof v != 'undefined') as [keyof T, Exclude<T[keyof T], null | undefined>][]
+}
+
+export function capitalize(str: string) {
+  return str[0].toUpperCase() + str.substring(1)
+}
+
+export function trimUndefined<T extends object>(a: T) {
+  for (const key of Object.keys(a) as (keyof T)[]) {
+    if (typeof a[key] === 'undefined') delete a[key]
+  }
+  return a
 }

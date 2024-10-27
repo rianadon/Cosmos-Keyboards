@@ -1,8 +1,8 @@
 <script lang="ts">
-  import type { Cuttleform, CuttleKey, Geometry } from '$lib/worker/config'
+  import { convertToMaybeCustomConnectors, type Cuttleform, type CuttleKey } from '$lib/worker/config'
   import Icon from '$lib/presentation/Icon.svelte'
   import { closestAspect, KEY_NAMES, UNIFORM } from '$lib/geometry/keycaps'
-  import { PART_NAMES } from '$lib/geometry/socketsParts'
+  import { bomName, extraBomItems, type BomItem } from '$lib/geometry/socketsParts'
   import {
     BOARD_PROPERTIES,
     holderScrewHeight,
@@ -10,16 +10,21 @@
   } from '$lib/geometry/microcontrollers'
   import { screwInsertHeight } from '$lib/geometry/screws'
   import * as mdi from '@mdi/js'
-  import { bomMultiplier as multiplier } from '$lib/store'
-  import MultiplierDropdown from './MultiplierDropdown.svelte'
+  import type { FullGeometry } from '../viewers/viewer3dHelpers'
+  import { objEntries } from '$lib/worker/util'
 
-  export let geometry: Geometry | null
-  export let conf: Cuttleform
+  export let geometry: FullGeometry
 
-  function keycaps(c: Cuttleform, multiplier: number) {
-    const caps = {}
-    for (const key of c.keys) {
-      if ('keycap' in key) {
+  $: conf = (geometry.unibody ?? geometry.right!).c
+  $: keys = geometry.unibody
+    ? geometry.unibody.c.keys
+    : [...geometry.right!.c.keys, ...geometry.left!.c.keys]
+  $: multiplier = Object.values(geometry).length
+
+  function keycaps(keys: CuttleKey[]) {
+    const caps: Record<any, any> = {}
+    for (const key of keys) {
+      if ('keycap' in key && key.keycap) {
         if (!caps[key.keycap.profile]) caps[key.keycap.profile] = {}
         const cap = caps[key.keycap.profile]
         const aspect = closestAspect(key.aspect)
@@ -30,8 +35,8 @@
             count: 0,
             rows: {},
           }
-        cap[aspect].count += multiplier
-        cap[aspect].rows[key.keycap.row] = multiplier + (cap[aspect].rows[key.keycap.row] || 0)
+        cap[aspect].count += 1
+        cap[aspect].rows[key.keycap.row] = 1 + (cap[aspect].rows[key.keycap.row] || 0)
       }
     }
     return Object.keys(caps)
@@ -43,7 +48,7 @@
       )
   }
 
-  $: console.log(keycaps(conf, Number($multiplier)))
+  $: console.log(keycaps(keys))
 
   function switchIcon(item: CuttleKey['type']) {
     if (item == 'ec11' || item == 'evqwgd001') return 'knob'
@@ -53,104 +58,79 @@
     return 'switch'
   }
 
-  function sockets(c: Cuttleform, multiplier: number) {
-    const sockets = {}
-    for (const key of c.keys) {
+  function addToBom(bom: Record<any, any>, key: string, item: any) {
+    if (bom[key]) {
+      bom[key] = { ...bom[key], count: bom[key].count + item.count }
+    } else {
+      bom[key] = item
+    }
+  }
+
+  function sockets(keys: CuttleKey[]) {
+    const sockets: Record<any, any> = {}
+    for (const key of keys) {
       if (key.type == 'blank') continue
-      if (!sockets[key.type])
-        sockets[key.type] = {
-          item: PART_NAMES[key.type],
-          icon: switchIcon(key.type),
-          count: 0,
-        }
-      sockets[key.type].count += multiplier
-    }
-    const nDiodes =
-      (sockets['old-mx']?.count || 0) +
-      (sockets['mx-hotswap']?.count || 0) +
-      (sockets['mx-better']?.count || 0) +
-      (sockets['mx-pcb']?.count || 0) +
-      (sockets['box']?.count || 0) +
-      (sockets['choc']?.count || 0)
-    const nPCB = sockets['mx-pcb']?.count || 0
-    if (nDiodes - nPCB > 0)
-      sockets['xdiodes'] = {
-        item: '1N4148 Diodes',
-        icon: 'diode',
-        count: nDiodes - nPCB,
-      }
-    if (nPCB > 0) {
-      sockets['xdiodes-pcb'] = {
-        item: '1N4148 Diodes (SOD-123)',
-        icon: 'diode',
-        count: nPCB,
-      }
-      sockets['pcb'] = {
-        item: 'Amoeba King PCBs',
-        icon: 'pcb',
-        count: sockets['mx-pcb'].count,
-      }
-      sockets['pcb-hotswap'] = {
-        item: 'Kailh Hotswap Sockets',
-        icon: 'hotswap',
-        count: sockets['mx-pcb'].count,
-      }
-      sockets['pcb-led'] = {
-        item: 'SK6812MINI-E LEDs (Optional)',
-        icon: 'led',
-        count: sockets['mx-pcb'].count,
-      }
-    }
-    const nHotswap = sockets['mx-hotswap']?.count || 0
-    if (nHotswap > 0) {
-      sockets['pcb-hotswap'] = {
-        item: 'Kailh Hotswap Sockets',
-        icon: 'hotswap',
-        count: nHotswap,
-      }
-    }
-    const nTrackball = sockets['trackball']?.count || 0
-    if (nTrackball > 0) {
-      sockets['trackball-dowel'] = {
-        item: '3 x 8 mm Dowel Pins',
-        icon: 'trackball',
-        count: 3 * nTrackball,
-      }
-      sockets['trackball-bearing'] = {
-        item: '3 x 6 x 2.5 mm Bearings',
-        icon: 'trackball',
-        count: 3 * nTrackball,
-      }
-      sockets['trackball-sensor'] = {
-        item: 'PMW3360 or PMW3389 Sensors',
-        icon: 'trackball',
-        info: 'Supports <a class="underline" href="https://www.tindie.com/products/citizenjoe/pmw3389-motion-sensor/">these PCBs</a> from Tindie',
-        count: nTrackball,
-      }
+      addToBom(sockets, key.type + bomName(key), {
+        item: bomName(key),
+        icon: switchIcon(key.type),
+        count: 1,
+      })
+      Object.entries(extraBomItems(key)).forEach(([key, item]) =>
+        addToBom(sockets, key + item.item, item)
+      )
     }
     return Object.keys(sockets)
       .sort()
       .map((s) => sockets[s])
   }
 
-  function nScrewInserts(c: Cuttleform, multiplier: number) {
-    const pos = geometry.screwIndices
-    if (c.microcontroller) return (pos.length - 1) * multiplier
-    return pos.length * multiplier
+  function connectorsForSide(conf: Cuttleform) {
+    const conn = convertToMaybeCustomConnectors(conf)
+    const nTrrs = conn.filter((c) => c.preset == 'trrs').length
+    const nUSB = conn.filter((c) => c.preset == 'usb').length
+    const nSecondaryUSB = Math.max(nUSB - 1, 0)
+    const nCustom = conn.filter((c) => !c.preset).length
+    const items: Record<string, BomItem> = {}
+    if (nTrrs > 0) items['trrs'] = { item: 'PJ-320A TRRS Connectors', icon: 'trrs', count: nTrrs }
+    if (nTrrs > 0) items['trrs-cable'] = { item: 'TRRS Cable', icon: 'cable', count: nTrrs / 2 }
+    if (nCustom > 0) items['custom'] = { item: 'Custom Connectors', icon: 'trrs', count: nCustom }
+    if (nSecondaryUSB > 0)
+      items['usb'] = { item: 'USB Connectors', icon: 'usb-port', count: nSecondaryUSB }
+    return items
   }
 
-  $: _nScrewInserts = nScrewInserts(conf, Number($multiplier))
+  function connectors(geometry: FullGeometry) {
+    const bom: Record<string, BomItem> = {}
+    Object.values(geometry).forEach((g) =>
+      objEntries(connectorsForSide(g.c)).forEach(([key, item]) => addToBom(bom, key, item))
+    )
+    return Object.keys(bom)
+      .sort()
+      .map((s) => bom[s])
+  }
+
+  function nScrewInserts(geo: FullGeometry) {
+    let n = 0
+    for (const g of Object.values(geo)) {
+      const pos = g.screwIndices
+      if (g.c.microcontroller) n += pos.length - 1
+      else n += pos.length
+    }
+    return n
+  }
+
+  $: _nScrewInserts = nScrewInserts(geometry)
 </script>
 
-<div class="text-center">
-  Building for <MultiplierDropdown />
-</div>
+{#if geometry.right}
+  <div class="text-center">The BOM includes parts for both left and right sides.</div>
+{/if}
 
 <div class="max-w-lg mx-auto md:columns-2 md:max-w-none">
   <div class="pt-2 break-inside-avoid">
     <h4 class="text-xl font-semibold mt-4 text-teal-500 dark:text-teal-300">Keys and Switches</h4>
     <ul class="mt-2">
-      {#each keycaps(conf, Number($multiplier)) as k}
+      {#each keycaps(keys) as k}
         <li class="item">
           <div class="icon-container"><div class="icon"><Icon size="24" name="keycap" /></div></div>
           <div class={UNIFORM.includes(k.profile) ? 'title-full' : 'title'}>
@@ -168,7 +148,7 @@
           {/if}
         </li>
       {/each}
-      {#each sockets(conf, Number($multiplier)) as s}
+      {#each sockets(keys) as s}
         <li class="item">
           <div class="icon-container"><div class="icon"><Icon size="24" name={s.icon} /></div></div>
           {#if s.info}
@@ -201,25 +181,25 @@
           </div>
           <div class="title-full">
             <div>
-              <span class="amount">{$multiplier}</span>
+              <span class="amount">{multiplier}</span>
               <span>{BOARD_PROPERTIES[conf.microcontroller].name} Boards</span>
             </div>
           </div>
         </li>
       {/if}
-      {#if conf.connector == 'trrs'}
+      {#each connectors(geometry) as conn}
         <li class="item">
           <div class="icon-container">
-            <div class="icon"><Icon size="24" path={mdi.mdiSquareCircleOutline} /></div>
+            <div class="icon"><Icon size="24" name={conn.icon} /></div>
           </div>
           <div class="title-full">
             <div>
-              <span class="amount">{$multiplier}</span>
-              <span>PJ-320A TRRS Connectors</span>
+              <span class="amount">{Math.round(conn.count)}</span>
+              <span>{conn.item}</span>
             </div>
           </div>
         </li>
-      {/if}
+      {/each}
       <li class="item">
         <div class="icon-container"><div class="icon"><Icon size="24" name="wire" /></div></div>
         <div class="title-full">
@@ -249,7 +229,7 @@
         <li class="item">
           <div class="icon-container"><div class="icon"><Icon size="24" name="screw" /></div></div>
           <div class="title">
-            <span class="amount">{_nScrewInserts + 2 * Number($multiplier)}</span>
+            <span class="amount">{_nScrewInserts + 2 * multiplier}</span>
             <span>{conf.screwSize} x {screwInsertHeight(conf)} Flat Head Screws</span>
           </div>
           <div class="info">For attaching the bottom plate and microcontroller holder</div>
@@ -257,7 +237,7 @@
         <li class="item">
           <div class="icon-container"><div class="icon"><Icon size="24" name="screw" /></div></div>
           <div class="title">
-            <span class="amount">{$multiplier}</span>
+            <span class="amount">{multiplier}</span>
             <span>{conf.screwSize} x {holderTallScrewHeight(conf)} Flat Head Screws</span>
           </div>
           <div class="info">For attaching microcontroller holder through bottom plate</div>
@@ -284,7 +264,7 @@
               <div class="icon"><Icon size="24" name="screw" /></div>
             </div>
             <div class="title">
-              <span class="amount">{2 * Number($multiplier)}</span>
+              <span class="amount">{2 * multiplier}</span>
               <span
                 >{conf.screwSize} x {holderScrewHeight(conf)} Flat Head Screws {#if !conf.screwCountersink}(Optional){/if}</span
               >
@@ -296,7 +276,7 @@
               <div class="icon"><Icon size="24" name="screw" /></div>
             </div>
             <div class="title">
-              <span class="amount">{$multiplier}</span>
+              <span class="amount">{multiplier}</span>
               <span
                 >{conf.screwSize} x {holderTallScrewHeight(conf)}
                 {#if conf.screwCountersink}Flat Head{/if} Screws</span
@@ -313,9 +293,7 @@
           </div>
           <div class="title-full">
             <div>
-              <span class="amount"
-                >{_nScrewInserts + (conf.microcontroller ? 3 * Number($multiplier) : 0)}</span
-              >
+              <span class="amount">{_nScrewInserts + (conf.microcontroller ? 3 * multiplier : 0)}</span>
               <span>{conf.screwSize} <span class="capitalize">{conf.screwType}s</span></span>
             </div>
           </div>
@@ -331,7 +309,7 @@
           <div class="icon"><Icon size="24" path={mdi.mdiPrinter3d} /></div>
         </div>
         <div class="title-full">
-          <span class="amount">{$multiplier}</span>
+          <span class="amount">1</span>
           <span>Pair 3D Printed Components</span>
         </div>
       </li>
@@ -340,7 +318,7 @@
           <div class="icon"><Icon size="24" path={mdi.mdiMoonWaxingGibbous} /></div>
         </div>
         <div class="title">
-          <span class="amount">{Number($multiplier) * 4}</span>
+          <span class="amount">{multiplier * 4}</span>
           <span>Rubber or Silicone Feet</span>
         </div>
         <div class="info">For stopping your keyboard from sliding</div>

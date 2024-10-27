@@ -21,10 +21,19 @@ export default class ChessboardDetector {
   public boardWidth = 0
   public boardHeight = 0
 
+  private corners: any
+  private ids: any
+  private charucoCorners: any
+  private charucoIds: any
+
   constructor(public cv: OpenCV, w: number, h: number, private scale = 0.7) {
     this.mat = new cv.Mat()
     // this.mat3 = new cv.Mat()
     this.gray = new cv.Mat()
+    this.corners = new this.cv.MatVector()
+    this.ids = new this.cv.Mat()
+    this.charucoCorners = new this.cv.Mat()
+    this.charucoIds = new this.cv.Mat()
 
     // const dict = Uint8Array.from(atob(DICTIONARY), c => c.charCodeAt(0))
     // const dictMat = new cv.Mat(50, 8, cv.CV_8U)
@@ -107,30 +116,25 @@ export default class ChessboardDetector {
     this.mat.data.set(imageData.data)
     this.cv.cvtColor(this.mat, this.gray, this.cv.COLOR_BGR2GRAY)
 
-    const corners = new this.cv.MatVector()
-    const ids = new this.cv.Mat()
-
-    this.cv.detectMarkers(this.gray, this.dictionary, corners, ids)
+    this.cv.detectMarkers(this.gray, this.dictionary, this.corners, this.ids)
     this.valid = false
     this.size = [imageData.width, imageData.height]
 
     // this.cv.cvtColor(this.mat, this.mat3, this.cv.COLOR_RGBA2RGB)
-    if (corners.size() > 0) {
+    if (this.corners.size() > 0) {
       const detectorPromise = hdetector.estimateHands(imageData as any, { flipHorizontal: true })
       // this.cv.drawDetectedMarkers(this.mat3, corners, ids)
 
-      const charucoCorners = new this.cv.Mat()
-      const charucoIds = new this.cv.Mat()
       this.cv.interpolateCornersCharuco(
-        corners,
-        ids,
+        this.corners,
+        this.ids,
         this.gray,
         this.board,
-        charucoCorners,
-        charucoIds,
+        this.charucoCorners,
+        this.charucoIds,
       )
 
-      if (charucoCorners.rows > 3) {
+      if (this.charucoCorners.rows > 3) {
         const width = this.mat.cols
         const height = this.mat.rows
 
@@ -147,8 +151,8 @@ export default class ChessboardDetector {
 
         // this.cv.drawDetectedCornersCharuco(this.mat3, charucoCorners, charucoIds)
         const valid = this.cv.estimatePoseCharucoBoard(
-          charucoCorners,
-          charucoIds,
+          this.charucoCorners,
+          this.charucoIds,
           this.board,
           cameraMatrix,
           distCoeffs,
@@ -168,6 +172,17 @@ export default class ChessboardDetector {
       }
       // this.cv.imshow(canvas, this.mat3)
       return false
+    }
+  }
+
+  public debugData() {
+    return {
+      charucoCorners: [...this.charucoCorners.data32F],
+      charucoIds: [...this.charucoIds.data32S],
+      matrix: this.markermatrix.elements,
+      corners: Array.from(Array(this.corners.size()), (_, i) => [...this.corners.get(i).data32F]),
+      ids: [...this.ids.data32S],
+      idsType: this.ids.type(),
     }
   }
 }
