@@ -197,7 +197,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     extraBomItems: { ...BOM_DIODE, ...BOM_CHOC_HOTSWAP },
   },
     'mx-skree': {
-      partName: 'MX-Compatible (Cherry, Gateron, ...)',
+      partName: 'MX Skree Flexible',
       bomName: 'MX-Compatible Switches',
       category: 'Sockets',
       stepFile: '/src/assets/key-mx-skree.step',
