@@ -25,7 +25,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     extraBomItems: { ...BOM_DIODE },
   },
   'mx-pcb-twist': {
-    partName: 'MX-Compat + Plum Twist PCBs (1.6mm)',
+    partName: 'MX-Compat + Plum Twist PCBs (old version)',
     bomName: 'MX-Compatible Switches',
     category: 'Sockets',
     stepFile: '/src/assets/key-mx-pcb-twist.step',
@@ -34,6 +34,17 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     partBottom: [box(18.7, 18.7, 9.5)],
     keycap: true,
     extraBomItems: { 'pcb': { item: 'Plum Twist PCBs, 1.6mm Thick', icon: 'pcb', count: 1 } },
+  },
+  'mx-pcb-plum': {
+    partName: 'MX-Compat + Plum Twist PCBs (1.2mm)',
+    bomName: 'MX-Compatible Switches',
+    category: 'Sockets',
+    stepFile: '/src/assets/key-mx-pcb-plum.step',
+    partOverride: MX_PART,
+    socketSize: [18.7, 18.7, 7.6],
+    partBottom: [box(18.7, 18.7, 9.1)],
+    keycap: true,
+    extraBomItems: { 'pcb': { item: 'Plum Twist PCBs, 1.2mm Thick (Standard Size)', icon: 'pcb', count: 1 } },
   },
   'mx-pcb': {
     partName: 'MX-Compatible + Amoeba King PCBs',

@@ -22,6 +22,7 @@ enumeration('PART', {
   8: 'blank',
   9: 'mx-klavgen',
   10: 'choc-hotswap',
+  11: 'mx-pcb-plum',
 
   // You wouldn't put many of these on a keyboard.
   16: 'ec11',
