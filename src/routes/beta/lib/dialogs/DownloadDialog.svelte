@@ -18,6 +18,8 @@
   import { partGeometries } from '$lib/loaders/parts'
   import { drawLetter } from '$lib/3d/materials'
   import { objKeys } from '$lib/worker/util'
+  import { boardGeometries } from '$lib/loaders/boardElement'
+  import { Mesh } from '@gltf-transform/core'
 
   const dispatch = createEventDispatcher()
 
@@ -27,6 +29,7 @@
   let showAllFormats = false
   let generatingSTEP = false
   let generatingSTL = false
+  let generatingGLB = false
   let generatingError: Error | undefined
 
   function downloadSTEP(side: 'left' | 'right' | 'unibody') {
@@ -116,15 +119,19 @@
   }
 
   async function downloadGLB(side: 'left' | 'right' | 'unibody') {
+    generatingGLB = true
     const conf = config[side]!
     const wall = pool.execute((p) => p.cutWall(conf))
     const web = pool.execute((p) => p.generateWeb(conf))
-    const key = pool.execute((p) => p.generateKeysMesh(conf))
-    const plate = pool.execute((p) => p.generatePlate(conf))
+    const key = pool.execute((p) => p.generateKeysMesh(conf, side == 'left'))
+    const plate = pool.execute((p) => p.generatePlate(conf, true))
+    const holder = pool.execute((p) => p.generateBoardHolder(conf))
+    const inserts = pool.execute((p) => p.generateScrewInserts(conf))
 
     const geo = newGeometry(conf)
     const keys = keyGeometries(geo.keyHolesTrsfs, conf.keys)
     const switches = partGeometries(geo.keyHolesTrsfs, conf.keys, false)
+    const microcontroller = boardGeometries(conf, geo)
 
     function node(name: string, geometry: THREE.BufferGeometry, material: THREE.Material) {
       const mesh = new THREE.Mesh(geometry, material)
@@ -137,6 +144,7 @@
     group.rotation.set(-Math.PI / 2, 0, 0)
     group.scale.setScalar(1 / 10)
     group.position.setY(-geo.floorZ / 10)
+    if (side == 'left') group.scale.x *= -1
     group.name = 'Keyboard'
     scene.add(group)
 
@@ -146,13 +154,39 @@
     kbMaterial.name = 'Keyboard'
     const plateMaterial = new THREE.MeshStandardMaterial({ color: '#999' })
     plateMaterial.name = 'Plate'
-    group.add(node('Wall', fromGeometry((await wall).mesh)!, kbMaterial))
-    group.add(node('Web', fromGeometry((await web).mesh)!, kbMaterial))
-    group.add(node('Sockets', fromGeometry(await key)!, kbMaterial))
-    group.add(node('Plate', fromGeometry((await plate).top.mesh)!, plateMaterial))
+    const caseGroup = new THREE.Group()
+    caseGroup.name = 'Case'
+    group.add(caseGroup)
+    caseGroup.add(node('Wall', fromGeometry((await wall).mesh)!, kbMaterial))
+    caseGroup.add(node('Web', fromGeometry((await web).mesh)!, kbMaterial))
+    caseGroup.add(node('Sockets', fromGeometry(await key)!, kbMaterial))
+    const plateResult = await plate
+    group.add(node('Plate', fromGeometry(plateResult.top.mesh)!, plateMaterial))
+    if (plateResult.bottom)
+      group.add(node('Plate Bottom', fromGeometry(plateResult.bottom.mesh)!, plateMaterial))
+    const insertsResult = await inserts
+    if (insertsResult.baseInserts.mesh)
+      group.add(node('Base Inserts', fromGeometry(insertsResult.baseInserts.mesh)!, kbMaterial))
+    if (insertsResult.plateInserts.mesh)
+      group.add(node('Plate Inserts', fromGeometry(insertsResult.plateInserts.mesh)!, kbMaterial))
+    if (conf.microcontroller) {
+      const microcontrollerGroup = new THREE.Group()
+      microcontrollerGroup.name = 'Microcontroller'
+      for (const g of await microcontroller) {
+        const mesh = new THREE.Mesh(g.board, switchMaterial)
+        g.matrix.decompose(mesh.position, mesh.quaternion, mesh.scale)
+        if (side == 'left') mesh.scale.x = -1
+        microcontrollerGroup.add(mesh)
+      }
+      group.add(microcontrollerGroup)
+      group.add(node('Microcontroller Holder', fromGeometry((await holder)!.mesh)!, kbMaterial))
+    }
+    const componentsGroup = new THREE.Group()
+    componentsGroup.name = 'Components'
+    group.add(componentsGroup)
     ;(await keys).forEach((k) => {
       const material = new THREE.MeshStandardMaterial()
-      if ('keycap' in k.key && k.key.keycap.letter) {
+      if ('keycap' in k.key && k.key.keycap && k.key.keycap.letter) {
         const canvas = document.createElement('canvas')
         canvas.width = 512
         canvas.height = 512
@@ -166,17 +200,20 @@
       }
       const n = node('Key', k.geometry, material)
       k.matrix.decompose(n.position, n.quaternion, n.scale)
-      group.add(n)
+      if (side == 'left') n.scale.x = -1
+      componentsGroup.add(n)
     })
     ;(await switches).forEach((k) => {
       const n = node('Part', k.geometry, switchMaterial)
       k.matrix.decompose(n.position, n.quaternion, n.scale)
-      group.add(n)
+      if (side == 'left') n.scale.x = -1
+      componentsGroup.add(n)
     })
     const exporter = new GLTFExporter()
     const result = await exporter.parseAsync(scene, { binary: true })
     const blob = new Blob([result as any], { type: 'model/gltf-binary' })
     download(blob, $modelName + side + '.glb')
+    generatingGLB = false
   }
 
   function iconPath(kbdName: 'left' | 'right' | 'unibody') {
@@ -376,7 +413,7 @@
           >
         </p>
       {/if}
-      {#if generatingSTEP || generatingSTL}
+      {#if generatingSTEP || generatingSTL || generatingGLB}
         <p class="mt-4">Generating... Please be patient.</p>
       {:else if generatingError}
         <div
