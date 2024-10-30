@@ -13,6 +13,7 @@
   import { estimateFilament, SUPPORTS_DENSITY, type FilamentEstimate } from './lib/filament'
   import * as flags from '$lib/flags'
   import Performance from './lib/Performance.svelte'
+  import { base } from '$app/paths'
 
   import UrlView from './lib/dialogs/URLView.svelte'
   import BomView from './lib/dialogs/BomView.svelte'
@@ -1084,7 +1085,7 @@
         <span class="font-medium">Buy Your Keyboard Assembled and Ready to Use.</span>
         <p class="text-sm mt-2 opacity-70">
           I'll be pairing up with a couple keyboard makers/enthusiasts so you can get your hands on your
-          dream keyboard faster &amp; easier. <a class="underline" href="/docs/assembly-service/"
+          dream keyboard faster &amp; easier. <a class="underline" href="{base}/docs/assembly-service/"
             >Learn more.</a
           >
         </p>
