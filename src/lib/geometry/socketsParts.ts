@@ -21,7 +21,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     partOverride: MX_PART,
     socketSize: [18, 18, 4.7],
     partBottom: [MX_BOTTOM],
-    keycap: true,
+    keycap: 'mx',
     extraBomItems: { ...BOM_DIODE },
   },
   'mx-pcb-twist': {
@@ -32,7 +32,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     partOverride: MX_PART,
     socketSize: [18.7, 18.7, 8],
     partBottom: [box(18.7, 18.7, 9.5)],
-    keycap: true,
+    keycap: 'mx',
     extraBomItems: { 'pcb': { item: 'Plum Twist PCBs, 1.6mm Thick', icon: 'pcb', count: 1 } },
   },
   'mx-pcb-plum': {
@@ -43,7 +43,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     partOverride: MX_PART,
     socketSize: [18.7, 18.7, 7.6],
     partBottom: [box(18.7, 18.7, 9.1)],
-    keycap: true,
+    keycap: 'mx',
     extraBomItems: { 'pcb': { item: 'Plum Twist PCBs, 1.2mm Thick (Standard Size)', icon: 'pcb', count: 1 } },
   },
   'mx-pcb': {
@@ -54,7 +54,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     partOverride: MX_PART,
     socketSize: [19.2, 19.2, 4.7],
     partBottom: [MX_BOTTOM, box(19.4, 19.4, 6.6)],
-    keycap: true,
+    keycap: 'mx',
     extraBomItems: {
       'xdiodes-pcb': { item: '1N4148 Diodes (SOD-123)', icon: 'diode', count: 1 },
       'pcb': { item: 'Amoeba King PCBs', icon: 'pcb', count: 1 },
@@ -71,7 +71,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     singlePartForVariants: true,
     socketSize: () => [18, 18, 5.85] as [number, number, number],
     partBottom: () => [box(16.9, 16.8, 8)],
-    keycap: true,
+    keycap: 'mx',
     extraBomItems: () => ({ ...BOM_MX_HOTSWAP, ...BOM_DIODE }),
     variants: {
       hotswap: ['Kailh', 'Gateron', 'Outemu'],
@@ -93,7 +93,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     partOverride: MX_PART,
     socketSize: [18.75, 18.75, 2.2],
     partBottom: [MX_BOTTOM, box(18.55, 18.55, 8)],
-    keycap: true,
+    keycap: 'mx',
     extraBomItems: { ...BOM_MX_HOTSWAP, ...BOM_DIODE },
   },
   'alps': {
@@ -104,42 +104,64 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     partOverride: '/src/assets/switch-alps.glb',
     socketSize: [18.6, 17, 5],
     partBottom: [box(15, 13, 8.6)],
-    keycap: true,
+    keycap: 'mx',
     extraBomItems: { ...BOM_DIODE },
   },
-  'choc': {
-    partName: 'Choc (Kailh)',
-    bomName: (v: Variant) => `Kailh Choc ${v.switch} Switches`,
+  'choc-v1': {
+    partName: 'Choc V1 (Kailh)',
+    bomName: 'Kailh Choc V1 Switches',
     category: 'Sockets',
-    stepFile: '/target/key-choc.step',
+    stepFile: '/target/key-choc-v1.step',
     partOverride: CHOC_PART,
-    singlePartForVariants: true,
-    socketSize: (v: Variant) => (v.switch == 'V2' ? [18, 18, 2.2] : [17.5, 16.5, 2.2]) as PartSize,
-    partBottom: () => [CHOC_BOTTOM],
-    keycap: true,
-    extraBomItems: () => ({ ...BOM_DIODE }),
-    variants: {
-      switch: ['V1', 'V2'],
-    },
-    encodeVariant: makeEncodeVariant('choc', { switch: 2 }),
-    decodeVariant: makeDecodeVariant('choc', { switch: 2 }),
+    socketSize: [17.5, 16.5, 2.2],
+    partBottom: [CHOC_BOTTOM],
+    keycap: 'choc',
+    extraBomItems: { ...BOM_DIODE },
   },
-  'choc-hotswap': {
-    partName: 'Choc (Kailh) + 3DP Hotswap',
-    bomName: (v: Variant) => `Kailh Choc ${v.switch} Switches`,
+  'choc-v2': {
+    partName: 'Choc V2 (Kailh)',
+    bomName: 'Kailh Choc V2 Switches',
     category: 'Sockets',
-    stepFile: '/target/key-choc-hotswap.step',
+    stepFile: '/target/key-choc-v2.step',
+    partOverride: CHOC_PART,
+    socketSize: [18, 18, 2.2],
+    partBottom: [CHOC_BOTTOM],
+    keycap: 'mx',
+    extraBomItems: { ...BOM_DIODE },
+  },
+  'choc-v1-hotswap': {
+    partName: 'Choc V1 (Kailh) + 3DP Hotswap',
+    bomName: (v: Variant) => `Kailh Choc V1 Switches`,
+    category: 'Sockets',
+    stepFile: '/target/key-choc-hotswap-v1.step',
     partOverride: CHOC_PART,
     singlePartForVariants: true,
-    socketSize: (v: Variant) => (v.switch == 'V2' ? [18, 18, 2.2] : [17.5, 16.5, 2.2]) as PartSize,
-    partBottom: (v: Variant) => [CHOC_BOTTOM, v.switch == 'V2' ? box(18, 18, 3.3) : box(17.5, 16.5, 3.3)],
-    keycap: true,
+    socketSize: (v: Variant) => [17.5, 16.5, 2.2] as PartSize,
+    partBottom: (v: Variant) => [CHOC_BOTTOM, box(17.5, 16.5, 3.3)],
+    keycap: 'choc',
     extraBomItems: () => ({ ...BOM_DIODE, ...BOM_CHOC_HOTSWAP }),
     variants: {
-      switch: ['V1', 'V2'],
+      led: ['North LED', 'South LED'],
     },
-    encodeVariant: makeEncodeVariant('choc-hotswap', { switch: 2 }),
-    decodeVariant: makeDecodeVariant('choc-hotswap', { switch: 2 }),
+    encodeVariant: makeEncodeVariant('choc-v1-hotswap', { led: 2 }),
+    decodeVariant: makeDecodeVariant('choc-v1-hotswap', { led: 2 }),
+  },
+  'choc-v2-hotswap': {
+    partName: 'Choc V2 (Kailh) + 3DP Hotswap',
+    bomName: (v: Variant) => `Kailh Choc V2 Switches`,
+    category: 'Sockets',
+    stepFile: '/target/key-choc-hotswap-v2.step',
+    partOverride: CHOC_PART,
+    singlePartForVariants: true,
+    socketSize: (v: Variant) => [18, 18, 2.2] as PartSize,
+    partBottom: (v: Variant) => [CHOC_BOTTOM, box(18, 18, 3.3)],
+    keycap: 'mx',
+    extraBomItems: () => ({ ...BOM_DIODE, ...BOM_CHOC_HOTSWAP }),
+    variants: {
+      led: ['North LED', 'South LED'],
+    },
+    encodeVariant: makeEncodeVariant('choc-v2-hotswap', { led: 2 }),
+    decodeVariant: makeDecodeVariant('choc-v2-hotswap', { led: 2 }),
   },
   'blank': {
     partName: 'Shaper (Blank key)',
@@ -151,7 +173,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     // @ts-ignore
     socketSize: (k: CuttleBlankKey) => [k.size?.width ?? 18.5, k.size?.height ?? 18.5, 5],
     partBottom: [],
-    keycap: true,
+    keycap: 'mx',
   },
   'old-mx': {
     partName: 'Old MX-Compatible',
@@ -161,7 +183,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     partOverride: MX_PART,
     socketSize: [18, 18, 5],
     partBottom: [MX_BOTTOM],
-    keycap: true,
+    keycap: 'mx',
     extraBomItems: { ...BOM_DIODE },
   },
   'old-mx-snap-in': {
@@ -172,7 +194,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     partOverride: MX_PART,
     socketSize: [18, 18, 5],
     partBottom: [MX_BOTTOM],
-    keycap: true,
+    keycap: 'mx',
     extraBomItems: { ...BOM_DIODE },
   },
   'old-mx-hotswap': {
@@ -183,7 +205,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     partOverride: MX_PART,
     socketSize: [18, 18, 5],
     partBottom: [MX_BOTTOM],
-    keycap: true,
+    keycap: 'mx',
     extraBomItems: { ...BOM_DIODE, ...BOM_MX_HOTSWAP },
   },
   'old-mx-snap-in-hotswap': {
@@ -194,7 +216,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     partOverride: MX_PART,
     socketSize: [18, 18, 5],
     partBottom: [MX_BOTTOM],
-    keycap: true,
+    keycap: 'mx',
     extraBomItems: { ...BOM_DIODE, ...BOM_MX_HOTSWAP },
   },
   'old-box': {
@@ -205,7 +227,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     partOverride: MX_PART,
     socketSize: [18, 18, 5],
     partBottom: [MX_BOTTOM],
-    keycap: true,
+    keycap: 'mx',
     extraBomItems: { ...BOM_DIODE },
   },
   'old-choc-hotswap': {
@@ -216,7 +238,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     partOverride: CHOC_PART,
     socketSize: [18, 18, 5],
     partBottom: [CHOC_BOTTOM],
-    keycap: true,
+    keycap: 'mx',
     extraBomItems: { ...BOM_DIODE, ...BOM_CHOC_HOTSWAP },
   },
   'ec11': {
@@ -411,7 +433,7 @@ type PartInfo = (PartInfoNonVariant | PartInfoVariant) & {
   partOverride?: string | null
   singlePartForVariants?: boolean
   category: string
-  keycap?: boolean
+  keycap?: 'choc' | 'mx'
   draft?: boolean
 }
 

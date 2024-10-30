@@ -80,24 +80,33 @@ async function main() {
       const stepName = join(targetDir, 'key-' + name + '.step')
       await writeModel(stepName, displaySocket(name, opts))
     })
-  const poolChocV1 = (name: CuttleKey['type']) =>
+  const poolChocV1 = (name: string, v1Name: CuttleKey['type'], v2Name: CuttleKey['type'], leds = false) =>
     pool.add(name + ' socket', async () => {
       const stepFile = await readFile(join(assetsDir, 'key-' + name + '.step'))
       const model = await importSTEP(new Blob([stepFile])) as Solid
-      const variantV1 = variantURL({ type: name, variant: { ...decodeVariant(name, 0), switch: 'V1' } } as any)
-      const variantV2 = variantURL({ type: name, variant: { ...decodeVariant(name, 0), switch: 'V2' } } as any)
-      const stepV1 = join(targetDir, `key-${name + variantV1}.step`.toLowerCase())
-      const stepV2 = join(targetDir, `key-${name + variantV2}.step`.toLowerCase())
+      const variantV1 = leds ? variantURL({ type: v1Name, variant: decodeVariant(v1Name, 0) } as any) : ''
+      const variantV2 = leds ? variantURL({ type: v2Name, variant: decodeVariant(v2Name, 0) } as any) : ''
+      const stepV1 = join(targetDir, `key-${v1Name + variantV1}.step`.toLowerCase())
+      const stepV2 = join(targetDir, `key-${v2Name + variantV2}.step`.toLowerCase())
       await writeModel(stepV2, model.clone().fuse(drawRectangle(18, 18).cut(drawRectangle(17.5, 16.5)).sketchOnPlane('XY').extrude(-2.2) as Solid))
       await writeModel(stepV1, model.intersect(makeBaseBox(17.5, 16.5, 100).translateZ(-50)))
+      if (leds) {
+        const newModel = model.rotate(180)
+        const variantV1 = variantURL({ type: v1Name, variant: { ...decodeVariant(v1Name, 0), led: 'South LED' } } as any)
+        const variantV2 = variantURL({ type: v2Name, variant: { ...decodeVariant(v2Name, 0), led: 'South LED' } } as any)
+        const stepV1 = join(targetDir, `key-${v1Name + variantV1}.step`.toLowerCase())
+        const stepV2 = join(targetDir, `key-${v2Name + variantV2}.step`.toLowerCase())
+        await writeModel(stepV2, newModel.clone().fuse(drawRectangle(18, 18).cut(drawRectangle(17.5, 16.5)).sketchOnPlane('XY').extrude(-2.2) as Solid))
+        await writeModel(stepV1, newModel.intersect(makeBaseBox(17.5, 16.5, 100).translateZ(-50)))
+      }
     })
 
   pool.add('Cherry MX Switch', () => genPart('switch-cherry-mx'))
   pool.add('ECQWGD001 Encoder', () => genPart('switch-evqwgd001'))
   pool.add('Joycon Joystick', () => genPart('switch-joystick-joycon-adafruit'))
 
-  poolChocV1('choc')
-  poolChocV1('choc-hotswap')
+  poolChocV1('choc', 'choc-v1', 'choc-v2')
+  poolChocV1('choc-hotswap', 'choc-v1-hotswap', 'choc-v2-hotswap', true)
 
   const defaults = { spacing: 2.54, diameter: 0.9 }
   poolUC('rp2040-black-usb-c-aliexpress', {}, [
@@ -161,19 +170,19 @@ async function main() {
   poolDisplaySocket('oled-128x32-0.91in-spi-adafruit', adafruitDisplayProps)
 
   // Make all combinations of trackballs
-  for (const v of allVariants('trackball') as TrackballVariant[]) {
-    const url = variantURL({ type: 'trackball', variant: v } as any)
-    pool.add(`${v.size} trackball, ${v.bearings}, ${v.sensor}`, async () => {
-      const stepName = join(targetDir, `key-trackball${url}.step`.toLowerCase())
-      await writeModel(stepName, trackballSocket({ diameter: parseFloat(v.size), bearings: v.bearings, sensor: v.sensor }))
-    })
-    if (v.bearings == 'BTU (7.5mm)' || v.bearings == 'BTU (9mm)') {
-      pool.add(`${v.size} trackball BTU Part, ${v.bearings}, ${v.sensor}`, async () => {
-        const glbName = join(targetDir, `switch-trackball${url}.glb`.toLowerCase())
-        await writeMesh(glbName, trackballPart({ diameter: parseFloat(v.size), bearings: v.bearings, sensor: v.sensor }))
-      })
-    }
-  }
+  // for (const v of allVariants('trackball') as TrackballVariant[]) {
+  //   const url = variantURL({ type: 'trackball', variant: v } as any)
+  //   pool.add(`${v.size} trackball, ${v.bearings}, ${v.sensor}`, async () => {
+  //     const stepName = join(targetDir, `key-trackball${url}.step`.toLowerCase())
+  //     await writeModel(stepName, trackballSocket({ diameter: parseFloat(v.size), bearings: v.bearings, sensor: v.sensor }))
+  //   })
+  //   if (v.bearings == 'BTU (7.5mm)' || v.bearings == 'BTU (9mm)') {
+  //     pool.add(`${v.size} trackball BTU Part, ${v.bearings}, ${v.sensor}`, async () => {
+  //       const glbName = join(targetDir, `switch-trackball${url}.glb`.toLowerCase())
+  //       await writeMesh(glbName, trackballPart({ diameter: parseFloat(v.size), bearings: v.bearings, sensor: v.sensor }))
+  //     })
+  //   }
+  // }
 
   // Check that all STEP files that need to be split are split
   const toSplit: CuttleKey['type'][] = []

@@ -783,6 +783,7 @@
             <div class="relative">
               <select
                 class="appearance-none bg-purple-200 dark:bg-pink-900/80 w-24 h-8 px-2"
+                class:w-30!={key == 'led'}
                 class:w-34!={key == 'sensor'}
                 value={nthPartVariant($protoConfig, $clickedKey)[key]}
                 on:change={(ev) => changeKeyVariant(ev, key)}
