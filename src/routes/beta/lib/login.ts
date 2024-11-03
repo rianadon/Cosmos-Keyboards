@@ -39,6 +39,7 @@ export async function sendVerificationEmail(email: string) {
     method: 'POST',
     mode: 'cors',
     credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email }),
   })
   if (!r.ok) throw new UserError(await r.text())
@@ -50,6 +51,7 @@ export async function verifyEmailCode(code: string) {
     method: 'POST',
     mode: 'cors',
     credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ code }),
   })
   if (!r.ok) throw new UserError(await r.text())
