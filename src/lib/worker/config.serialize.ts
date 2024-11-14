@@ -148,6 +148,11 @@ const INFERRED_HOMING = {
   [LETTERS.indexOf(';')]: 'pinky',
 } as const
 
+/** Determine if the legend is small enough to fit in the 7-bit key profile field. */
+function shouldLegendGoInProfile(legend: string) {
+  return legend.charCodeAt(0) < 128 && legend.length <= 1
+}
+
 export function encodeProfile(p: Partial<Profile>) {
   let row = p.row ?? 1
   if (typeof row !== 'undefined' && (row < 0 || row > 8)) throw new Error('Row out of bounds')
@@ -158,7 +163,9 @@ export function encodeProfile(p: Partial<Profile>) {
     if (LETTERS.includes(p.letter)) {
       letter = (LETTERS.indexOf(p.letter) << 1) | 1
       inferredHome = INFERRED_HOMING[letter >> 1]
-    } else letter = p.letter.charCodeAt(0) << 1
+    } else if (shouldLegendGoInProfile(p.letter)) {
+      letter = p.letter.charCodeAt(0) << 1
+    }
   }
   return encodeKeycap({
     profile: p.profile ?? null,
@@ -623,7 +630,7 @@ export function encodeCosmosCluster(clusterA: CosmosCluster): Cluster {
         position: key.position,
         sizeA: typeof key.sizeA != 'undefined' ? Math.round(key.sizeA * 10) : undefined,
         sizeB: typeof key.sizeB != 'undefined' ? Math.round(key.sizeB * 10) : undefined,
-        letter: key.profile.letter && key.profile.letter.length > 1 ? key.profile.letter : undefined,
+        letter: key.profile.letter && !shouldLegendGoInProfile(key.profile.letter) ? key.profile.letter : undefined,
       }
 
       let thisProfile: number | undefined = encodeProfile(key.profile)
