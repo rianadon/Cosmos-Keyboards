@@ -52,7 +52,7 @@ Cosmos will suggest a matrix in which to wire the keys under the _Programming_ t
 2. No two keys share _both_ the same row _and_ column wire.
 3. If your microcontroller has few pins, you'll need to be creative in how you minimize the total number of rows and columns.
 
-The image above is a Cosmos wiring diagram I fixed by adding the fatter squiggly lines. Once you've decided on a matrix, wire all the row wires to one side of the microcontroller and the column wires to the other side. I recommend you stay consistent between sides, so if you assign rows to D2-D8 on the left half of the keyboard, use D2-D8 for rows on the right half.
+The image above is a Cosmos wiring diagram I fixed by adding the fatter squiggly lines. Once you've decided on a matrix, wire all the row wires to one side of the microcontroller and the column wires to the other side. I recommend you stay consistent between the two keyboard halves, so if you assign rows to D2-D8 on the left half of the keyboard, use D2-D8 for rows also on the right half.
 
 ### TRRS Interconnection
 
