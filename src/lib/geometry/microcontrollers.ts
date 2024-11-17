@@ -8,7 +8,7 @@ import { closestScrewHeight, SCREWS } from './screws'
 const STOPPER_HEIGHT = 2 // Size of stopper used to align board
 export const STOPPER_WIDTH = 2
 const RAIL_WIDTH = 1.5 // Size of rails to add around the board
-const RAIL_RADIUS = 1 // How far in the rails stick
+const RAIL_RADIUS = 0.75 // How far in the rails stick
 const BACKSTOP_HEIGHT = 0.5 // How much extra backstop height to add
 
 const IN = 25.4 // in to mm
