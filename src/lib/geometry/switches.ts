@@ -11,10 +11,10 @@ export function switchInfo(sw: Switch | undefined): SwInfo {
   if (sw == 'mx-pcb') {
     return { height: 6.2, pressedHeight: 2.6 }
   }
-  if (sw == 'box' || sw?.startsWith('mx') || sw?.startsWith('old-mx')) {
+  if (sw?.startsWith('mx') || sw?.startsWith('old-mx')) {
     return { height: 6.2, pressedHeight: 2.6 }
   }
-  if (sw == 'choc') {
+  if (sw?.startsWith('choc')) {
     return { height: 5, pressedHeight: 2 }
   }
   if (sw == 'alps') {

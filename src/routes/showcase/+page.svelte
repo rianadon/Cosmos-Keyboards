@@ -25,7 +25,7 @@
   class="mx-8 my-6 grid sm:grid-cols-[repeat(2,18rem)] md:grid-cols-[repeat(2,21rem)] gap-2 justify-center"
 >
   {#each keyboards as kbd}
-    <a class="block bg-[#2e272d]/50 rounded-2 overflow-hidden citem" href="{base}/showcase/{kbd.key}">
+    <a class="block bg-[#2e272d]/50 rounded-2 overflow-hidden citem" href="{base}/showcase/{kbd.key}/">
       {#if browser}
         <div class="w-full aspect-[1.9/1] vignette">
           <img

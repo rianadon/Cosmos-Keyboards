@@ -1,5 +1,6 @@
 <script lang="ts">
   import { base } from '$app/paths'
+  import { page } from '$app/stores'
   import Header from '$lib/Header.svelte'
   import Icon from '$lib/presentation/Icon.svelte'
   import {
@@ -19,7 +20,7 @@
 
 <svelte:head>
   <title>{kbd.name} • Showcase • Cosmos Keyboard</title>
-  <link rel="canonical" href="https://ryanis.cool/cosmos/showcase" />
+  <link rel="canonical" href="https://ryanis.cool/cosmos/showcase/{$page.params.slug}/" />
   <link rel="icon" href="{base}/favicon.png" />
 </svelte:head>
 
