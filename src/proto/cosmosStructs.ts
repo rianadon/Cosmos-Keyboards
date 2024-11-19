@@ -78,6 +78,7 @@ enumeration('MICROCONTROLLER_NAME', [
   'weact-studio-ch552t',
   'feather-rp2040-adafruit',
   'cyboard-assimilator',
+  'promicro-usb-c-long',
 ])
 
 struct('PartVariant', {
