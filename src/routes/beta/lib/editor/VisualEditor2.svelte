@@ -184,26 +184,25 @@
     $protoConfig.mirrorConnectors = $protoConfig.microcontroller != 'cyboard-assimilator'
   }
 
-  let lastSwitch: PartType['type'] = 'mx-better'
-  let lastKeycap: Exclude<Profile, null> = 'xda'
+  let lastSwitch: Record<string, PartType['type']> = { choc: 'choc-v1', mx: 'mx-better' }
+  let lastProfile: Record<string, Exclude<Profile, null>> = { choc: 'choc', mx: 'xda' }
 
   function updateKeycaps() {
     $protoConfig.keyBasis = $protoConfig.profile
-    if ($protoConfig.profile == 'choc') {
-      lastSwitch = $protoConfig.partType.type!
-      $protoConfig.partType.type = 'choc'
-    } else if ($protoConfig.partType.type == 'choc') {
-      $protoConfig.partType.type = lastSwitch
+    const switchType = PART_INFO[$protoConfig.partType.type].keycap
+    const profileType = $protoConfig.profile == 'choc' ? 'choc' : 'mx'
+    if (switchType != profileType) {
+      lastSwitch[switchType] = $protoConfig.partType.type!
+      $protoConfig.partType.type = lastSwitch[profileType]
     }
   }
 
   function updateSwitch() {
-    if ($protoConfig.partType.type == 'choc') {
-      lastKeycap = $protoConfig.profile
-      $protoConfig.profile = 'choc'
-      $protoConfig.keyBasis = $protoConfig.profile
-    } else if ($protoConfig.profile == 'choc') {
-      $protoConfig.profile = lastKeycap
+    const switchType = PART_INFO[$protoConfig.partType.type].keycap
+    const profileType = $protoConfig.profile == 'choc' ? 'choc' : 'mx'
+    if (switchType != profileType) {
+      lastProfile[profileType] = $protoConfig.profile
+      $protoConfig.profile = lastProfile[switchType]
       $protoConfig.keyBasis = $protoConfig.profile
     }
   }
@@ -461,8 +460,8 @@
       {/each}
     </Select>
   </Field>
-  <Field name="Switches" icon="switch" on:change={updateSwitch}>
-    <Select bind:value={$protoConfig.partType.type}>
+  <Field name="Switches" icon="switch">
+    <Select bind:value={$protoConfig.partType.type} on:change={updateSwitch}>
       {#each objKeys(PART_INFO).filter((k) => PART_INFO[k].category == 'Sockets' && k != 'blank') as part}
         <option value={part}>{PART_INFO[part].partName}</option>
       {/each}
@@ -536,6 +535,13 @@
           href="https://github.com/klavgen/klavgen/blob/main/example_stls/switch_holder.stl"
           >Klavgen switch holder</a
         > for every key. These hold in the sockets better than the 3DP hotswap option but require extra printing.
+      </p>
+    </InfoBox>
+  {:else if $protoConfig.partType.type == 'choc-v1-hotswap' || $protoConfig.partType.type == 'choc-v2-hotswap'}
+    <InfoBox>
+      <p>
+        This variant requires Kailh Choc hotswap sockets and a well-tuned 3D printer. You'll need to glue
+        the sockets in place.
       </p>
     </InfoBox>
   {/if}

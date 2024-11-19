@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { T } from '@threlte/core'
+  import { T, useThrelte } from '@threlte/core'
   import {
     COLORCONFIG,
     FRAGMENT_SHADER,
@@ -22,6 +22,8 @@
   export let textured = false
   export let instanced = false
 
+  const { invalidate } = useThrelte()
+
   const saturation = new Vector3()
   const color = new Vector3()
 
@@ -32,6 +34,12 @@
   $: saturation.copy(COLORCONFIG[colorScheme][(kind + 'Saturation') as 'keySaturation'])
 
   $: if (texture) drawLetterToTex(letter, texture, flip)
+
+  let lastTheme = $theme
+  $: if ($theme != lastTheme) {
+    lastTheme = $theme
+    invalidate()
+  }
 
   onDestroy(() => {
     if (texture) texture.dispose()

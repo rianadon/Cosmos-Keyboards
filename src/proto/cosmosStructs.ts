@@ -17,10 +17,14 @@ enumeration('PART', {
   3: 'mx-pcb-twist',
   4: 'mx-hotswap',
   5: 'alps',
-  6: 'choc',
-  7: 'choc-hotswap',
+  6: 'choc-v1',
+  7: 'old-choc-hotswap',
   8: 'blank',
   9: 'mx-klavgen',
+  10: 'choc-v2',
+  11: 'choc-v1-hotswap',
+  12: 'choc-v2-hotswap',
+  13: 'mx-pcb-plum',
 
   // You wouldn't put many of these on a keyboard.
   16: 'ec11',

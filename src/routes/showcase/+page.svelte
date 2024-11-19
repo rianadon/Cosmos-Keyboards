@@ -25,7 +25,7 @@
   class="mx-8 my-6 grid sm:grid-cols-[repeat(2,18rem)] md:grid-cols-[repeat(2,21rem)] gap-2 justify-center"
 >
   {#each keyboards as kbd}
-    <a class="block bg-[#2e272d]/50 rounded-2 overflow-hidden citem" href="{base}/showcase/{kbd.key}">
+    <a class="block bg-[#2e272d]/50 rounded-2 overflow-hidden citem" href="{base}/showcase/{kbd.key}/">
       {#if browser}
         <div class="w-full aspect-[1.9/1] vignette">
           <img
@@ -36,7 +36,10 @@
         </div>
         <div class="flex gap-4 mx-2 my-2 items-center">
           <img src={kbd.authorImage} alt="Profile icon for {kbd.author}" class="h-6 w-6 rounded-full" />
-          {kbd.author}
+          <div>
+            {#if kbd.named}<span class="italic">{kbd.name}</span> <span class="mx-1">~</span> {/if}
+            {kbd.author}
+          </div>
         </div>
       {:else}
         <div class="w-full aspect-[1.9/1] bg-slate-800" />

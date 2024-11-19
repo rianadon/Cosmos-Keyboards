@@ -6,7 +6,7 @@ import { socketSize, variantURL } from '$lib/geometry/socketsParts'
 import masses from '$target/part-masses.json'
 import { BoxGeometry, BufferAttribute, BufferGeometry, InterleavedBufferAttribute } from 'three'
 import type { Cuttleform, CuttleKey } from '../worker/config'
-import type Trsf from '../worker/modeling/transformation'
+import Trsf from '../worker/modeling/transformation'
 import { makeAsyncCacher } from './cacher'
 import loadGLTF from './gltfLoader'
 
@@ -132,8 +132,9 @@ export async function keyHoleMeshes(c: Cuttleform, transforms: Trsf[]) {
   }
 }
 
-export async function combinedKeyHoleMesh(c: Cuttleform, transforms: Trsf[]) {
-  const keys = await Promise.all(transforms.map((t, i) => keyHole(c.keys[i], t)))
+export async function combinedKeyHoleMesh(c: Cuttleform, transforms: Trsf[], flip = false) {
+  const flipper = flip ? new Trsf().scaleIsDangerous(-1, 1, 1) : new Trsf()
+  const keys = await Promise.all(transforms.map((t, i) => keyHole(c.keys[i], t.multiply(flipper))))
   const merged = mergeBufferGeometries(keys.map(k => k.mesh.clone().applyMatrix4(k.matrix)))
   return merged
 }

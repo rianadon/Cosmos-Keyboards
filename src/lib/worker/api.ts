@@ -73,9 +73,9 @@ async function generateKeysQuick(config: Cuttleform, geo: Geometry) {
   return { keys: keys.keys.map(k => ({ ...k, mesh: toMesh(k.mesh) })), mass, supports }
 }
 
-export async function generateKeysMesh(config: Cuttleform) {
+export async function generateKeysMesh(config: Cuttleform, flip = false) {
   const geo = newGeometry(config)
-  const mesh = await combinedKeyHoleMesh(config, geo.keyHolesTrsfs.flat())
+  const mesh = await combinedKeyHoleMesh(config, geo.keyHolesTrsfs.flat(), flip)
   return toMesh(mesh)
 }
 

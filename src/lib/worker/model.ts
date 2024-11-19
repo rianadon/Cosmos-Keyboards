@@ -263,7 +263,7 @@ export function webSolid(c: Cuttleform, geo: Geometry) {
       const a = i + j
       const b = i + ((j + 1) % poly.length)
       if (triangleMap[a] && triangleMap[a][b]) {
-        surface.addQuad(topPts[a], topPts[b], botPts[b], botPts[a])
+        surface.addQuad(botPts[a], botPts[b], topPts[b], topPts[a])
       }
     }
     i += poly.length

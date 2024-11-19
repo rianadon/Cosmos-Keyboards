@@ -15,8 +15,8 @@ try {
 const keyCacher = makeAsyncCacher(async (key: CuttleKey) => {
   if (key.type == 'blank') return makeBaseBox(key.size?.width ?? 18.5, key.size?.height ?? 18.5, 5).translateZ(-5)
   const url = 'partOverride' in PART_INFO[key.type]
-    ? PART_INFO[key.type].stepFile.replace('.step', (PART_INFO[key.type].singlePartForVariants ? '' : variantURL(key)) + '.step')
-    : `/target/splitsocket-${key.type}${PART_INFO[key.type].singlePartForVariants ? '' : variantURL(key)}.step`
+    ? PART_INFO[key.type].stepFile.replace('.step', variantURL(key) + '.step')
+    : `/target/splitsocket-${key.type}${variantURL(key)}.step`
   if (!url) throw new Error(`No model for key ${key.type}`)
   const urls = keyUrls || JSON.parse(process.env.SOCKET_URLS!)
   if (!urls[url]) throw new Error(`Model for url ${url} does not exist`)

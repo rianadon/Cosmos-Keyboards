@@ -5,10 +5,10 @@ import { objEntries, objKeys } from '$lib/worker/util'
 import type { TrackballVariant } from '$target/cosmosStructs'
 import { readFile, writeFile } from 'fs/promises'
 import { basename, join } from 'path'
-import { type AnyShape, getOC, importSTEP } from 'replicad'
+import { type AnyShape, drawRectangle, getOC, importSTEP, makeBaseBox, Solid } from 'replicad'
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
 import { fileURLToPath } from 'url'
-import { allVariants, PART_INFO, variantURL, variantURLs } from '../lib/geometry/socketsParts'
+import { allVariants, decodeVariant, PART_INFO, variantURL, variantURLs } from '../lib/geometry/socketsParts'
 import { exportGLTF } from './exportGLTF'
 import { importSTEPSpecifically, serialize } from './modeling'
 import { setup } from './node-model'
@@ -80,10 +80,45 @@ async function main() {
       const stepName = join(targetDir, 'key-' + name + '.step')
       await writeModel(stepName, displaySocket(name, opts))
     })
+  const poolChocV1 = (name: string, v1Name: CuttleKey['type'], v2Name: CuttleKey['type'], leds = false) =>
+    pool.add(name + ' socket', async () => {
+      const stepFile = await readFile(join(assetsDir, 'key-' + name + '.step'))
+      const model = await importSTEP(new Blob([stepFile])) as Solid
+      const variantV1 = leds ? variantURL({ type: v1Name, variant: decodeVariant(v1Name, 0) } as any) : ''
+      const variantV2 = leds ? variantURL({ type: v2Name, variant: decodeVariant(v2Name, 0) } as any) : ''
+      const stepV1 = join(targetDir, `key-${v1Name + variantV1}.step`.toLowerCase())
+      const stepV2 = join(targetDir, `key-${v2Name + variantV2}.step`.toLowerCase())
+      await writeModel(stepV2, model.clone().fuse(drawRectangle(18, 18).cut(drawRectangle(17.5, 16.5)).sketchOnPlane('XY').extrude(-2.2) as Solid))
+      await writeModel(stepV1, model.intersect(makeBaseBox(17.5, 16.5, 100).translateZ(-50)))
+      if (leds) {
+        const newModel = model.rotate(180)
+        const variantV1 = variantURL({ type: v1Name, variant: { ...decodeVariant(v1Name, 0), led: 'South LED' } } as any)
+        const variantV2 = variantURL({ type: v2Name, variant: { ...decodeVariant(v2Name, 0), led: 'South LED' } } as any)
+        const stepV1 = join(targetDir, `key-${v1Name + variantV1}.step`.toLowerCase())
+        const stepV2 = join(targetDir, `key-${v2Name + variantV2}.step`.toLowerCase())
+        await writeModel(stepV2, newModel.clone().fuse(drawRectangle(18, 18).cut(drawRectangle(17.5, 16.5)).sketchOnPlane('XY').extrude(-2.2) as Solid))
+        await writeModel(stepV1, newModel.intersect(makeBaseBox(17.5, 16.5, 100).translateZ(-50)))
+      }
+    })
+  const poolLED = (name: CuttleKey['type']) =>
+    pool.add(name + ' socket', async () => {
+      const stepFile = await readFile(join(assetsDir, 'key-' + name + '.step'))
+      const model = await importSTEP(new Blob([stepFile])) as Solid
+      const variantV1 = variantURL({ type: name, variant: { led: 'North LED' } } as any)
+      const variantV2 = variantURL({ type: name, variant: { led: 'South LED' } } as any)
+      const stepV1 = join(targetDir, `key-${name + variantV1}.step`.toLowerCase())
+      const stepV2 = join(targetDir, `key-${name + variantV2}.step`.toLowerCase())
+      await writeModel(stepV1, model.clone())
+      await writeModel(stepV2, model.rotate(180))
+    })
 
   pool.add('Cherry MX Switch', () => genPart('switch-cherry-mx'))
   pool.add('ECQWGD001 Encoder', () => genPart('switch-evqwgd001'))
   pool.add('Joycon Joystick', () => genPart('switch-joystick-joycon-adafruit'))
+
+  poolChocV1('choc', 'choc-v1', 'choc-v2')
+  poolChocV1('choc-hotswap', 'choc-v1-hotswap', 'choc-v2-hotswap', true)
+  poolLED('mx-pcb-plum')
 
   const defaults = { spacing: 2.54, diameter: 0.9 }
   poolUC('rp2040-black-usb-c-aliexpress', {}, [

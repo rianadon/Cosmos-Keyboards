@@ -159,17 +159,51 @@ const _keyboards: Record<string, Keyboard> = {
     switches: 'Glorious Lynx',
     keycaps: 'Custom via KeyV2. <a href="../../jamgam%20keycap.stl">[STL]</a> or <a href="../../jamgam%20keycap%20with%20base%20for%20printing.stl">[STL with Base for Printing]</a>',
   },
+  'd85e682f': {
+    author: 'rianadon',
+    name: 'Limbo',
+    type: 'split',
+    modifiedInCAD: true,
+    details:
+      "<p>I wanted to make a Dactyl-style keyboard as compact as possible while preserving the standard curvature and functionality. The result is the Limbo. It's portable enough to throw in a backpack, but it still packs enough keys to get your work done.</p><p>If you're going to try this yourself, beware of the thumb cluster. The vertical cluster requires you to press with the pad of your thumb, which places more strain on your fingers than pressing with the side. I recommend doing a test print of just the thumb cluster before going all-in.</p><p><i>Note: The top case was printed as-is from Cosmos, but I added the logo and stars to the bottom plate in CAD.</i></p>",
+    config:
+      '#cm:CrYBCg0SBRCQQSATEgASADgxCh8SEQgIEIBLKKoBMB5AgIBMULUCEgIgExIAEgA4HUAACiISBRCQWSATEgASAxCwLxIMCAgQsF8gJCigATB4OAlAgJg9CiISBRCQZSATEgASAxCwOxIMCAgQsGsgJCigATBkOApAgKoEChMSBRCQcSATEgASADgeQICmi/ACChgSBBAQIBMSBBCggAoSAhAwODJAgM6L8AEYAEDohaCu8FVI2vCisAEKRQosEhQQwIACIABA/pyGsARIwpmglZC8ARISEEAgAECdhaCNwAdIrJ20vKA9OAAYAiIEGAAgAECFjdydwAdIl9HUvILTCxADGIYgIgYIuQEQuQE4A4IBAgQCSAVQAlhHYAFyBCAKMBR4yIOUlAE=',
+    filament: 'OVV3D PLA Tri-Color Red-Yellow-Blue',
+    switches: 'Choc Brown',
+    keycaps: 'YMDK Choc Keycaps',
+  },
+}
+
+function findImages(kbd: Keyboard) {
+  const authorSplit = kbd.author.split(' ')[0].toLowerCase().replace(/\W/g, '')
+  const kbdName = kbd.name?.replace(/\(.*\)/g, '').toLocaleLowerCase().replace(/\W/g, '')
+  const matcher = new RegExp(`/src/routes/showcase/assets/kbd(-${kbdName})?-${authorSplit}(-\\d+)?.jpg`)
+  const matchedPaths = Object.keys(images).filter(p => matcher.test(p)).sort((a, b) => {
+    const nA = Number((a.match(/-(\d+).jpg/) || [])[1] || 0)
+    const nB = Number((b.match(/-(\d+).jpg/) || [])[1] || 0)
+    return nA - nB
+  })
+  return matchedPaths.map(fullPath => {
+    const basename = fullPath.replace('/src/routes/showcase/assets/', '').replace('.jpg', '')
+    const fallback = images[fullPath].default
+    return {
+      image: images[`/target/media/${basename}.thumb.jpg`]?.default || fallback,
+      largeImage: images[`/target/media/${basename}.jpg`]?.default || fallback,
+    }
+  })
 }
 
 export const keyboards = Object.entries(_keyboards).map(([key, kbd]) => {
-  const authorSplit = kbd.author.split(' ')[0].toLowerCase()
-  const fallback = images[`/src/routes/showcase/assets/kbd-${authorSplit}.jpg`]?.default
+  const authorSplit = kbd.author.split(' ')[0].toLowerCase().replace(/\W/g, '')
+  const foundImages = findImages(kbd)
   return {
     ...kbd,
     key,
     name: kbd.name || `${kbd.author}'s Keyboard`,
-    image: images[`/target/media/kbd-${authorSplit}.thumb.jpg`]?.default || fallback,
-    largeImage: images[`/target/media/kbd-${authorSplit}.jpg`]?.default || fallback,
+    named: !!kbd.name,
+    images: foundImages,
+    image: foundImages[0].image,
+    largeImage: foundImages[0].largeImage,
     authorImage: images[`/src/routes/showcase/assets/author-${authorSplit}.jpg`]?.default,
   }
 })

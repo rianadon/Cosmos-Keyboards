@@ -8,3 +8,4 @@ nav:
   - qmk-rp2040.md
   - contributing.md
   - credits.md
+  - assembly-service.md
