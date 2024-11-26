@@ -39,12 +39,17 @@ interface BoardProperties {
   sidecutoutMaxY?: number
   /** Diameter of holes cut into the board holder used to attach the microcontroller. These should be tapped. */
   tappedHoleDiameter?: number
-  /** Names of pins each on the sides of the microcontroller.
+  /** Names of pins each on the left side of the microcontroller, when the USB is facing up.
    * If it could be side OR rear, it's a side pin. */
-  sidePins: number
+  leftSidePins: string[]
+  /** Names of pins each on the right side of the microcontroller, when the USB is facing up.
+   * If it could be side OR rear, it's a side pin. */
+  rightSidePins: string[]
   /** Names of pins on the rear side of the microcontroller (if any).
    * Connectors don't count. */
-  rearPins?: number
+  rearPins?: string[]
+  /** Regular expression to determine if a pin is gpio */
+  isGPIO: RegExp
   /** If the microcontroller has castellated holes. */
   castellated?: boolean
   /** Override height of the backstop. */
@@ -69,8 +74,10 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     ],
     sidecutout: 3,
     tappedHoleDiameter: 1.6,
-    sidePins: 20,
-    rearPins: 3,
+    leftSidePins: ['GP0', 'GP1', 'GND', 'GP2', 'GP3', 'GP4', 'GP5', 'GND', 'GP6', 'GP7', 'GP8', 'GP9', 'GND', 'GP10', 'GP11', 'GP12', 'GP13', 'GND', 'GP14', 'GP15'],
+    rightSidePins: ['VBUS', 'VSYS', 'GND', '3V3_EN', '3V3', 'ADC_VREF', 'GP28_A2', 'AGND', 'GP27_A1', 'GP26_A0', 'RUN', 'GP22', 'GND', 'GP21', 'GP20', 'GP19', 'GP18', 'GND', 'GP17', 'GP16'],
+    rearPins: ['SWCLK', 'GND', 'SWIO'],
+    isGPIO: /GP.*/,
     castellated: true,
   },
   'rp2040-black-usb-c-aliexpress': {
@@ -85,8 +92,10 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
       { origin: new Vector(0, -2.1 * IN / 2, 0), size: new Vector(6, 23, 0) },
     ],
     sidecutout: 4,
-    sidePins: 20,
-    rearPins: 4,
+    leftSidePins: ['0', '1', 'GND', '2', '3', '4', '5', 'GND', '6', '7', '8', '9', 'GND', '10', '11', '12', '13', 'GND', '14', '15'],
+    rightSidePins: ['Vout', 'Vin', 'GND', '23', '3V3', '29', '28', 'GND', '27', '26', 'RUN', '22', 'GND', '21', '20', '19', '18', 'GND', '17', '16'],
+    rearPins: ['3V3', 'SWDIO', 'SWDCLK', 'GND'],
+    isGPIO: /\d+/,
   },
   'promicro-usb-c': {
     name: 'Pro Micro - 34.7mm (USB-C)',
@@ -98,7 +107,9 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     holes: [],
     cutouts: [],
     sidecutout: 3.1,
-    sidePins: 12,
+    leftSidePins: ['TX', 'RX', 'GND', 'GND', '2', '3', '4', '5', '6', '7', '8', '9'],
+    rightSidePins: ['RAW', 'GND', 'RST', 'VCC', 'A3', 'A2', 'A1', 'A0', '15', '14', '16', '10'],
+    isGPIO: /TX|RX|A?\d+/,
   },
   'promicro-usb-c-long': {
     name: 'Pro Micro - 37mm (USB-C)',
@@ -110,7 +121,9 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     holes: [],
     cutouts: [],
     sidecutout: 3.1,
-    sidePins: 12,
+    leftSidePins: ['TX', 'RX', 'GND', 'GND', '2', '3', '4', '5', '6', '7', '8', '9'],
+    rightSidePins: ['RAW', 'GND', 'RST', 'VCC', 'A3', 'A2', 'A1', 'A0', '15', '14', '16', '10'],
+    isGPIO: /TX|RX|A?\d+/,
   },
   'promicro': {
     name: 'Pro Micro - 33mm',
@@ -122,7 +135,9 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     holes: [],
     cutouts: [],
     sidecutout: 0.1 * IN,
-    sidePins: 12,
+    leftSidePins: ['TX', 'RX', 'GND', 'GND', '2', '3', '4', '5', '6', '7', '8', '9'],
+    rightSidePins: ['RAW', 'GND', 'RST', 'VCC', 'A3', 'A2', 'A1', 'A0', '15', '14', '16', '10'],
+    isGPIO: /TX|RX|A?\d+/,
   },
   'itsybitsy-adafruit': {
     name: 'Adafruit ItsyBitsy RP2040/M0/M4/32u4',
@@ -133,8 +148,10 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     holes: [],
     cutouts: [],
     sidecutout: 0.1 * IN,
-    sidePins: 14,
-    rearPins: 5,
+    leftSidePins: ['RST', '3.3V', 'VHI', 'A0', 'A1', 'A2', 'A3', '24', '25', 'SCK', 'M0', 'MI'],
+    rightSidePins: ['BAT', 'G', 'USB', '13', '12', '11', '10', '9', '5', 'SCL', 'SDA', 'TX'],
+    rearPins: ['2', 'EN', 'SWDIO', 'SWCLK', '3', '4', 'RX'],
+    isGPIO: /TX|RX|S..|M.|A?\d+/,
   },
   'itsybitsy-adafruit-nrf52840': {
     name: 'Adafruit ItsyBitsy nRF52840',
@@ -146,8 +163,9 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     holes: [],
     cutouts: [],
     sidecutout: 0.1 * IN,
-    sidePins: 14,
-    rearPins: 5,
+    leftSidePins: ['RST', '3.3V', 'EN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'SCK', 'M0', 'MI', 'D2'],
+    rightSidePins: ['BAT', 'G', 'USB', '13', '12', '11', '10', '9', '7', '5', 'SCL', 'SDA', 'TX', 'RX'],
+    isGPIO: /TX|RX|S..|M.|A?\d+/,
   },
   'kb2040-adafruit': {
     name: 'Adafruit KB2040',
@@ -159,8 +177,10 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     holes: [],
     cutouts: [],
     sidecutout: 0.1 * IN,
-    sidePins: 13,
     castellated: true,
+    leftSidePins: ['D+', 'TX', 'RX', 'GND', 'GND', '2', '3', '4', '5', '6', '7', '8', '9'],
+    rightSidePins: ['D-', 'RAW', 'G', 'RST', '3V', 'A3', 'A2', 'A1', 'A0', 'CLK', 'MI', 'MO', '10'],
+    isGPIO: /TX|RX|CLK|M.|A?\d+/,
   },
   'nrfmicro-or-nicenano': {
     name: 'nRFMicro or Nice!Nano',
@@ -174,7 +194,9 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
       { size: new Vector(0.36 * IN, 100, 0), origin: new Vector(0, 50 - 2, 0) },
     ],
     sidecutout: 0.105 * IN,
-    sidePins: 13,
+    leftSidePins: ['GND', 'D1', 'D0', 'GND', 'GND', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D9'],
+    rightSidePins: ['BAT+', 'BAT-', 'GND', 'RST', '3V3', 'D21', 'D20', 'D19', 'D18', 'D15', 'D14', 'D16', 'D10'],
+    isGPIO: /D\d+/,
   },
   'seeed-studio-xiao': {
     name: 'Seeed Studio Xiao RP2040/SAMD21',
@@ -186,7 +208,9 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     holes: [],
     cutouts: [],
     sidecutout: 2,
-    sidePins: 7,
+    leftSidePins: ['0', '1', '2', '3', '4', '5', '6'],
+    rightSidePins: ['VCC', 'GND', '3V3', '10', '9', '8', '7'],
+    isGPIO: /\d+/,
   },
   'seeed-studio-xiao-nrf52840': {
     name: 'Seeed Studio Xiao nRF52840',
@@ -198,7 +222,9 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     holes: [],
     cutouts: [],
     sidecutout: 2,
-    sidePins: 7,
+    leftSidePins: ['0', '1', '2', '3', '4', '5', '6'],
+    rightSidePins: ['VUSB', 'GND', '3V3', '10', '9', '8', '7'],
+    isGPIO: /\d+/,
   },
   'waveshare-rp2040-zero': {
     name: 'WaveShare RP2040-Zero',
@@ -209,8 +235,10 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     holes: [],
     cutouts: [],
     sidecutout: 2.1,
-    sidePins: 9,
-    rearPins: 5,
+    leftSidePins: ['5V', 'GND', '3V3', '29', '28', '27', '26', '15', '14'],
+    rightSidePins: ['0', '1', '2', '3', '4', '5', '6', '7', '8'],
+    rearPins: ['13', '12', '11', '10', '9'],
+    isGPIO: /\d+/,
     castellated: true,
   },
   'weact-studio-ch552t': {
@@ -223,7 +251,9 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     holes: [],
     cutouts: [],
     sidecutout: 3.1,
-    sidePins: 10,
+    leftSidePins: ['32', '14', '15', '16', '17', 'RST', '10', '11', '31', '30'],
+    rightSidePins: ['3V3', '5V', 'GND', '12', '13', '37', '36', '35', '34', '33'],
+    isGPIO: /\d+/,
   },
   'feather-rp2040-adafruit': {
     name: 'Adafruit RP2040 Feather',
@@ -236,7 +266,9 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     holes: [new Vector(0.35 * IN, -0.1 * IN, 0), new Vector(-0.35 * IN, -0.1 * IN, 0), new Vector(0.35 * IN, -1.9 * IN, 0), new Vector(-0.35 * IN, -1.9 * IN, 0)],
     cutouts: [],
     sidecutout: 0.1 * IN,
-    sidePins: 16, // asymmetrical; only 12 on the I2C connector side
+    leftSidePins: ['RST', '3V3', '3V3', 'GND', 'A0', 'A1', 'A2', 'A3', 'D24', 'D25', 'SCK', 'MOSI', 'MISO', 'RX', 'TX', 'D4'],
+    rightSidePins: ['VBAT', 'EN', 'VBUS', 'D13', 'D12', 'D11', 'D10', 'D9', 'D6', 'D5', 'SCL', 'SDA'],
+    isGPIO: /SCK|MOSI|MISO|RX|TX|SCL|SDA|(A|D)?\d+/,
     backstopHeight: 0,
   },
   'cyboard-assimilator': {
@@ -251,7 +283,9 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     cutouts: [],
     sidecutout: 2,
     sidecutoutMaxY: -13,
-    sidePins: 3, // asymmetrical; only 6 on one side
+    leftSidePins: [],
+    rightSidePins: [],
+    isGPIO: /./,
     backstopHeight: 0,
     draft: true,
     dontCount: true,
@@ -449,4 +483,15 @@ export function holderTallScrewHeight(c: Cuttleform) {
   const min = PLATE_HEIGHT + holderThickness(elements) + screwInsertDimensions(c).height * 0.25
   const max = PLATE_HEIGHT + holderThickness(elements) + screwInsertDimensions(c).height * 0.25
   return closestScrewHeight(c, preferred, min, max)
+}
+
+export function numGPIO(mcu: Microcontroller) {
+  const info = BOARD_PROPERTIES[mcu]
+  const pins: string[] = []
+  if (info.leftSidePins) pins.push(...info.leftSidePins)
+  if (info.rightSidePins) pins.push(...info.rightSidePins)
+  if (info.rearPins) pins.push(...info.rearPins)
+
+  const isGPIO = new RegExp('^' + info.isGPIO.source + '$')
+  return pins.filter(p => isGPIO.test(p)).length
 }

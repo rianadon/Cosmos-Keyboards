@@ -1,6 +1,6 @@
-import { BOARD_PROPERTIES } from '$lib/geometry/microcontrollers'
+import { BOARD_PROPERTIES, numGPIO } from '$lib/geometry/microcontrollers'
 import { SCREWS } from '$lib/geometry/screws'
-import { socketHeight } from '$lib/geometry/socketsParts'
+import { PART_INFO, socketHeight } from '$lib/geometry/socketsParts'
 import { switchInfo } from '$lib/geometry/switches'
 import { simpleSocketTris } from '$lib/loaders/simpleparts'
 import type { Triangle } from 'three'
@@ -68,12 +68,19 @@ interface WallBoundsError {
   type: 'wallBounds'
   i: number
 }
+interface NotEnoughPinsError {
+  type: 'notEnoughPins'
+  needed: number
+  max: number
+}
 
 const PROPERTIES = ['aspect', 'type', 'position']
 
-export type ConfError = (IntersectionError | MissingError | WrongError | OobError | InvalidError | ExceptionError | NanError | NoKeysError | WallBoundsError | WrongFormatError | SamePositionError) & {
-  side: 'left' | 'right' | 'unibody'
-}
+export type ConfError =
+  & (IntersectionError | MissingError | WrongError | OobError | InvalidError | ExceptionError | NanError | NoKeysError | WallBoundsError | WrongFormatError | SamePositionError | NotEnoughPinsError)
+  & {
+    side: 'left' | 'right' | 'unibody'
+  }
 export type ConfErrors = ConfError[]
 
 export function isRenderableError(e: ConfError | undefined) {
@@ -135,6 +142,12 @@ export function checkConfig(conf: Cuttleform, geometry: Geometry | undefined, ch
   }
   if (errors.length) return errors
 
+  if (conf.microcontroller) {
+    const pinsNeeded = minPinsNeeded(conf)
+    const maxPins = numGPIO(conf.microcontroller)
+    if (pinsNeeded > maxPins) return [{ type: 'notEnoughPins', side, needed: pinsNeeded, max: maxPins }]
+  }
+
   const cpts = geometry.allKeyCriticalPoints2D
   const pts = cpts.map(a => a.map(x => new Vector2(...x.xy())))
 
@@ -195,6 +208,22 @@ export function checkConfig(conf: Cuttleform, geometry: Geometry | undefined, ch
 //     }
 //   }
 // }
+
+export function minPinsNeeded(conf: Cuttleform) {
+  let pins = 0
+  let keysInMatrix = 0
+  for (const key of conf.keys) {
+    const info = PART_INFO[key.type]
+    const wiredInMatrix = 'variants' in info ? info.wiredInMatrix && info.wiredInMatrix(key.variant!) : info.wiredInMatrix
+    const pinsNeeded = 'variants' in info ? info.pinsNeeded && info.pinsNeeded(key.variant!) : info.pinsNeeded
+    if (wiredInMatrix) keysInMatrix++
+    if (pinsNeeded) pins += pinsNeeded
+  }
+  const numCols = Math.ceil(Math.sqrt(keysInMatrix))
+  const numRows = Math.ceil(keysInMatrix / numCols)
+  pins += numCols + numRows
+  return pins
+}
 
 /** Return triangles covering a prism defined by its top face & depth.
  * The triangle is centered at XY and extrudes down, like a socket */

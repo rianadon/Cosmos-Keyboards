@@ -98,6 +98,11 @@ wristRestOrigin,
 &rbrace;</code
         ></pre>
     </div>
+  {:else if err.type == 'notEnoughPins'}
+    <p class="mb-2">
+      Your selected microcontroller does not have enough pins to support the keyboard. The keyboard
+      requires at least {err.needed} pins, but your microcontroller has only {err.max}.
+    </p>
   {:else if $showErrorMsg}
     <div class="max-h-[calc(100vh-16rem)] overflow-auto">
       {#each $confError as err}
