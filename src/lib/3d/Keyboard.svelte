@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { isWarning, type ConfError } from '$lib/worker/check'
+  import { isWarningError, type ConfErrors } from '$lib/worker/check'
   import KeyboardKey from './KeyboardKey.svelte'
   import KeyboardMaterial from './KeyboardMaterial.svelte'
   import KeyboardPartGeo from './KeyboardPartGeo.svelte'
@@ -35,24 +35,28 @@
 
   $: console.log('new intersections', $confError)
 
-  function keyStatus(reachability: boolean[] | undefined, error: ConfError | undefined, i: number) {
+  function keyStatus(reachability: boolean[] | undefined, errors: ConfErrors, i: number) {
     let status: KeyStatus = undefined
     if (reachability && !reachability[i]) status = 'warning'
-    if (!error || error.side != side) return status
-    if (error.type == 'intersection' && (error.i == i || error.j == i))
-      status = isWarning(error) ? 'warning' : 'error'
-    if (error.type == 'wallBounds' && error.i == i) status = 'warning'
-    if (error.type == 'samePosition' && (error.i == i || error.j == i)) status = 'error'
+    errors.forEach((error) => {
+      if (!error || error.side != side) return
+      if (error.type == 'intersection' && (error.i == i || error.j == i))
+        status = isWarningError(error) && status != 'error' ? 'warning' : 'error'
+      if (error.type == 'wallBounds' && error.i == i) status = 'warning'
+      if (error.type == 'samePosition' && (error.i == i || error.j == i)) status = 'error'
+    })
     return status
   }
 
-  function partStatus(error: ConfError | undefined, i: number) {
+  function partStatus(errors: ConfErrors, i: number) {
     let status: KeyStatus = undefined
-    if (!error || error.side != side) return status
-    if (error.type == 'intersection' && error.what == 'socket' && (error.i == i || error.j == i))
-      status = isWarning(error) ? 'warning' : 'error'
-    if (error.type == 'wallBounds' && error.i == i) status = 'warning'
-    if (error.type == 'samePosition' && (error.i == i || error.j == i)) status = 'error'
+    errors.forEach((error) => {
+      if (!error || error.side != side) return
+      if (error.type == 'intersection' && error.what == 'socket' && (error.i == i || error.j == i))
+        status = isWarningError(error) && status != 'error' ? 'warning' : 'error'
+      if (error.type == 'wallBounds' && error.i == i && status != 'error') status = 'warning'
+      if (error.type == 'samePosition' && (error.i == i || error.j == i)) status = 'error'
+    })
     return status
   }
 

@@ -30,7 +30,7 @@ export async function partGeometry(type: Switch, variant: Record<string, any> = 
 }
 
 async function partGeometry2(trsf: Trsf, k: CuttleKey) {
-  if (!(k.type in PART_URLS) || !PART_URLS[k.type]) return null
+  if (k.type == 'blank') return null
   return {
     geometry: await partGeometry(k.type, k.variant),
     matrix: trsf.Matrix4(),

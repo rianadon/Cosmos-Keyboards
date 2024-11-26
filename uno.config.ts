@@ -36,6 +36,11 @@ export default defineConfig({
       dynapuff: 'Dynapuff, sans-serif',
       loxley: 'Loxley, sans-serif',
     },
+    animation: {
+      keyframes: { wiggle: '{25%,75% {transform:rotate(-1deg)} 50% {transform:rotate(1deg) scale(1.02)}}' },
+      durations: { wiggle: '0.5s' },
+      timingFns: { wiggle: 'ease-in-out' },
+    },
   },
   presets: [presetUno({
     dark: 'media',

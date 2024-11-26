@@ -13,7 +13,7 @@ import { wristRest } from '@pro/wristRest'
 import type { BufferAttribute, BufferGeometry } from 'three'
 import { getUser } from '../../routes/beta/lib/login'
 import { ITriangle } from '../loaders/simplekeys'
-import { type ConfError, isPro, keycapIntersections, partIntersections, socketIntersections } from './check'
+import { type ConfError, type ConfErrors, isPro, keycapIntersections, partIntersections, socketIntersections } from './check'
 import { type Cuttleform, type CuttleKey, type Geometry, newGeometry } from './config'
 import { boardHolder, cutWithConnector, keyHoles, makeConnector, makePlate, makePlateMesh, makerScrewInserts, makeWalls, type ScrewInsertTypes, webSolid } from './model'
 import { Assembly } from './modeling/assembly'
@@ -359,7 +359,8 @@ export async function volume() {
   return props.Mass()
 }
 
-export async function intersections(conf: Cuttleform, side: 'left' | 'right' | 'unibody'): Promise<ConfError | undefined> {
+export async function intersections(conf: Cuttleform, side: 'left' | 'right' | 'unibody'): Promise<ConfErrors> {
+  const intersections: ConfErrors = []
   try {
     const geometry = newGeometry(conf)
     const trsfs3d = geometry.keyHolesTrsfs
@@ -376,18 +377,19 @@ export async function intersections(conf: Cuttleform, side: 'left' | 'right' | '
       )
     const tris = [...toTriangles(topReinf), ...toTriangles(botReinf)]
     for (const intersection of keycapIntersections(conf, trsfs3d, tris, side)) {
-      return intersection
+      intersections.push(intersection)
     }
     for (const intersection of partIntersections(conf, trsfs3d, side)) {
-      return intersection
+      intersections.push(intersection)
     }
     // if (geometry.reinforcedTriangles.topReinf.error) return geometry.reinforcedTriangles.topReinf.error
 
     for (const intersection of socketIntersections(conf, trsfs3d, geometry.allKeyCriticalPoints, tris, side)) {
-      return intersection
+      intersections.push(intersection)
     }
+    return intersections
   } catch (e) {
     console.error(e)
-    return { type: 'exception', when: 'laying out the walls', error: e as Error, side }
+    return [{ type: 'exception', when: 'laying out the walls', error: e as Error, side }]
   }
 }

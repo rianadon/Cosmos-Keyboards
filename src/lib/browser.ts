@@ -7,3 +7,9 @@ export function download(blob: Blob, filename: string) {
   a.click()
   document.body.removeChild(a)
 }
+
+/** Guesses country/region based on timezone */
+export function guessRegion() {
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+  return timeZone.split('/')[0]
+}
