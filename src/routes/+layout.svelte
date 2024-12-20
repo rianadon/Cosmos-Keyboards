@@ -1,6 +1,6 @@
 <script lang="ts">
-  import 'uno.css'
   import '@unocss/reset/tailwind.css'
+  import 'uno.css'
   import '$lib/fonts.css'
   import { browser } from '$app/environment'
   import { afterNavigate } from '$app/navigation'

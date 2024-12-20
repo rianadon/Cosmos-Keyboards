@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { modelName, user } from '$lib/store'
+  import { modelName, user, emailMinimized, emailScheduled, showScheduleEmail } from '$lib/store'
   import { isPro } from '$lib/worker/check'
   import { newFullGeometry, setBottomZ, type FullCuttleform } from '$lib/worker/config'
   import Dialog from '$lib/presentation/Dialog.svelte'
   import * as flags from '$lib/flags'
   import { createEventDispatcher } from 'svelte'
   import Icon from '$lib/presentation/Icon.svelte'
-  import { mdiHandBackLeft, mdiHandBackRight, mdiKeyboard, mdiStarShooting } from '@mdi/js'
+  import { mdiClose, mdiHandBackLeft, mdiHandBackRight, mdiKeyboard, mdiStarShooting } from '@mdi/js'
   import type { WorkerPool } from '../workerPool'
   import { download } from '$lib/browser'
   import { trackEvent } from '$lib/telemetry'
@@ -14,6 +14,7 @@
   import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'
   import { objKeys } from '$lib/worker/util'
   import { modelAsScene } from '../modelGLTF'
+  import { get } from 'svelte/store'
 
   const dispatch = createEventDispatcher()
 
@@ -26,7 +27,17 @@
   let generatingGLB = false
   let generatingError: Error | undefined
 
+  let numDownloaded = 0
+  $: if (numDownloaded >= 2) $showScheduleEmail = true
+  $: showFeedback =
+    $showScheduleEmail && !$emailScheduled && Date.now() - $emailMinimized > 14 * 24 * 3600 * 1000
+
+  const lastUser = get(user)
+  const defaultEmail = lastUser.success && lastUser.method == 'Email' ? lastUser.user.login : ''
+  console.log('defaultEmail', defaultEmail, lastUser)
+
   function downloadSTEP(side: 'left' | 'right' | 'unibody') {
+    numDownloaded += 1
     if (!config) {
       generatingError = new Error('Configuration has not yet been evaluated')
       return
@@ -44,6 +55,8 @@
           trackEvent('cosmos-step', {
             model: 'keyboard',
             time: window.performance.now() - begin,
+            hash: window.location.hash,
+            pro: isPro(config[side]!) ? 1 : 0,
           })
           download(blob, $modelName + side + '.step')
           generatingError = undefined
@@ -58,6 +71,7 @@
   }
 
   function downloadSTL(model: string, side: 'left' | 'right' | 'unibody') {
+    numDownloaded += 1
     if (!config) {
       generatingError = new Error('Configuration has not yet been evaluated')
       return
@@ -72,7 +86,12 @@
       .then(addMetadataToSTL)
       .then(
         (blob) => {
-          trackEvent('cosmos-stl', { model, time: window.performance.now() - begin })
+          trackEvent('cosmos-stl', {
+            model,
+            time: window.performance.now() - begin,
+            hash: window.location.hash,
+            pro: isPro(config[side]!) ? 1 : 0,
+          })
           if (model == 'model') model = 'case'
           download(blob, $modelName + '-' + model + side + '.stl')
           generatingError = undefined
@@ -113,6 +132,7 @@
   }
 
   async function downloadGLB(side: 'left' | 'right' | 'unibody') {
+    numDownloaded += 1
     generatingGLB = true
     const scene = await modelAsScene(pool, newFullGeometry(config), side)
     const exporter = new GLTFExporter()
@@ -137,6 +157,17 @@
     if (kbdName == 'left') return 'Left'
     if (kbdName == 'right') return 'Right'
     return 'Unibody'
+  }
+
+  function scheduleEmail(e: Event) {
+    e.preventDefault()
+    const input = document.getElementsByName('scheduleEmail')[0] as HTMLInputElement
+    trackEvent('scheduleEmail', { email: input.value })
+    $emailScheduled = true
+  }
+
+  function hideScheduleEmail() {
+    $emailMinimized = Date.now()
   }
 
   $: configKeys = objKeys(config).sort()
@@ -165,6 +196,40 @@
           and I'll send you the files.
         </p>{/if}
     {:else}
+      {#if showFeedback}
+        <div
+          class="relative bg-gradient-to-r from-purple-100 to-indigo-100 dark:(from-pink-900/50 to-purple-900/50) py-4 px-6 mb-6 text-start"
+        >
+          <p class="mb-1 font-bold">We're building a database of keyboard ergonomics!</p>
+          <p>
+            And we need your help finding which setups are best. Fill in your email, and in 3 months I'll
+            ask how your board feels. It'll be just one email :)
+          </p>
+          <form class="text-center mt-2" on:submit={scheduleEmail}>
+            <label class="text-purple-900/70 dark:text-pink-100/70">
+              Your Email:
+              <input
+                class="input px-2 py-0.5 w-60!"
+                type="email"
+                required
+                value={defaultEmail}
+                autocomplete="email"
+                name="scheduleEmail"
+              />
+            </label>
+            <button type="submit" class="button py-0.5! font-medium! mr-4">Submit</button>
+            {#if defaultEmail != ''}
+              <p class="text-xs mt-0.5 opacity-50">
+                Your email was automatically filled in from your login information.
+              </p>
+            {/if}
+          </form>
+
+          <button class="absolute right-2 top-3" on:click={hideScheduleEmail}>
+            <Icon path={mdiClose} size="24" class="text-gray-800 dark:text-gray-100" />
+          </button>
+        </div>
+      {/if}
       <div class="mt-[-0.5rem] mb-4 text-gray-500 dark:text-gray-200">
         File name for downloads: <input class="input px-2" bind:value={$modelName} />
       </div>

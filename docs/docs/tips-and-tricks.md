@@ -26,6 +26,22 @@ If your microcontroller is ending up in a weird spot, you can fix it by changing
 
 The method I have to do this is:
 
+1. Duplicate the tab. Then go to expert mode and look for these lines:
+   ```typescript
+   // In the basic/advanced tab, these values were:
+   // [left] screwIndices: [11.5, 2.5, 20.5, 24.5, 15.5, 6.5, 34.5]
+   // [left] connectorIndex: 31.2
+   // [right] screwIndices: [11.5, 2.5, 20.5, 24.5, 15.5, 6.5, 34.5]
+   // [right] connectorIndex: 31.2
+   ```
+   Pay attention to the lines with `connectorIndex`. This is your existing connector index.
+
+2. Close the tab with expert mode.
+3. Try setting _Advanced → Connector Index_ to this value, offset by increments of 1 or -1.
+4. When the connector is about in the correct spot, offset in increments of 0.1 or -0.1.
+
+Alternatively:
+
 1. Set connector index to something outrageously big, like 1000.
 2. The editor will complain and tell you what the maximum connector index actually is.
 3. Guess a few values between 0 and the maximum value.

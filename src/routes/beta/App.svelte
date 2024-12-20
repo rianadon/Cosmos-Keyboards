@@ -70,8 +70,8 @@
   import { T } from '@threlte/core'
   import Checkbox from '$lib/presentation/Checkbox.svelte'
   import type { unibody } from '$lib/worker/modeling/transformation-ext'
-  import { skreeFirst } from './lib/dialogs/assemblyOrder'
   import ConfError from './lib/ConfError.svelte'
+  import { SORTED_VENDORS } from '@pro/assemblyService'
 
   const DEF_CENTER = [-35.510501861572266, -17.58449935913086, 35.66889877319336] as [
     number,
@@ -537,6 +537,14 @@
        <Github size="2em" />
        </a>-->
 
+  <a class="hoverbtn" href="https://cosmos-store.ryanis.cool?utm_source=generator">
+    <Icon path={mdi.mdiShopping} />
+    Store
+  </a>
+  <a class="hoverbtn" href="showcase/">
+    <Icon path={mdi.mdiSealVariant} />
+    Showcase
+  </a>
   <a
     class="mr-6 flex items-center gap-2 border-2 px-3 py-1 rounded border-gray-500/20 hover:border-gray-500 transition-border-color text-gray-600 dark:text-gray-200"
     href="docs/"
@@ -959,13 +967,10 @@
                   >You can now get your hands on your dream keyboard faster &amp; easier. Ships globally
                   in 1–2 weeks from</span
                 >
-                {#if skreeFirst}
-                  <Icon class="inline-flag ml-1 mr-0.5 mt--0.5" size="1.3em" name="flag-united-states" />
-                  <Icon class="inline-flag mx-0.5 mt--0.5" size="1.3em" name="flag-germany" />
-                {:else}
-                  <Icon class="inline-flag mx-0.5 mt--0.5" size="1.3em" name="flag-germany" />
-                  <Icon class="inline-flag ml-1 mr-0.5 mt--0.5" size="1.3em" name="flag-united-states" />
-                {/if}
+                <span class="ml-0.5" />
+                {#each SORTED_VENDORS as vendor}
+                  <Icon class="inline-flag mx-0.5 mt--0.5" size="1.3em" name="flag-{vendor.flag}" />
+                {/each}
               </div>
               <div
                 class="rounded-full bg-teal-200 dark:bg-teal-600 flex items-center justify-center w-8 h-8 flex-none"
@@ -1143,5 +1148,12 @@
 
   :global(.inline-flag) {
     --at-apply: 'inline skew-x--5';
+  }
+
+  .hoverbtn {
+    --at-apply: 'mr-3 flex items-center justify-start gap-2 border-2 max-w-9 hover:max-w-32 px-1.5 hover:px-3 py-1 rounded border-gray-500/20 hover:border-gray-500 transition-border-color text-gray-600 dark:text-gray-200 transition-all overflow-hidden';
+  }
+  :global(.hoverbtn svg) {
+    --at-apply: 'flex-none';
   }
 </style>

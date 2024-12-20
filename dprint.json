@@ -27,7 +27,9 @@
     "**/*.wasm.js",
     "**/replicad_single*",
     "venv",
-    "opencv*"
+    "opencv*",
+    "!plum-twist",
+    "!pro"
   ],
   "plugins": [
     "https://plugins.dprint.dev/typescript-0.88.4.wasm",

@@ -48,7 +48,7 @@
   import Checkbox from '$lib/presentation/Checkbox.svelte'
   import CheckboxOpt from '$lib/presentation/CheckboxOptDef.svelte'
   import Select from '$lib/presentation/Select.svelte'
-  import { capitalize, notNull, objKeys } from '$lib/worker/util'
+  import { capitalize, notNull, objEntries, objKeys } from '$lib/worker/util'
   import { profileName, sortProfiles } from '../viewers/viewer3dHelpers'
   import { encodeVariant, PART_INFO } from '$lib/geometry/socketsParts'
   import DecimalInputInherit from './DecimalInputInherit.svelte'
@@ -87,6 +87,12 @@
   import ConnectorsView from '../dialogs/ConnectorsView.svelte'
   import * as flags from '$lib/flags'
   import SizeEditView from '../dialogs/SizeEditView.svelte'
+  import SelectThingy from './SelectThingy.svelte'
+  import SelectPartInner from './SelectPartInner.svelte'
+  import SelectPartLabel from './SelectPartLabel.svelte'
+  import SelectProfileInner from './SelectProfileInner.svelte'
+  import SelectProfileLabel from './SelectProfileLabel.svelte'
+  import SelectMicrocontrollerInner from './SelectMicrocontrollerInner.svelte'
 
   export let cosmosConf: CosmosKeyboard
   export let conf: FullCuttleform
@@ -178,6 +184,11 @@
         { preset: 'usb', size: 'average', x: -3.2 },
         { preset: 'usb', size: 'average', x: 9.4 },
       ]
+    else if ($protoConfig.microcontroller == 'lemon-wired')
+      $protoConfig.connectors = [
+        { preset: 'usb', size: 'average', x: -7 },
+        { preset: 'usb', size: 'average', x: 7 },
+      ]
     else if (isBluetooth) $protoConfig.connectors = [{ preset: 'usb', size: 'average' }]
     else $protoConfig.connectors = [{ preset: 'trrs' }, { preset: 'usb', size: 'average' }]
 
@@ -187,17 +198,20 @@
   let lastSwitch: Record<string, PartType['type']> = { choc: 'choc-v1', mx: 'mx-better' }
   let lastProfile: Record<string, Exclude<Profile, null>> = { choc: 'choc', mx: 'xda' }
 
-  function updateKeycaps() {
+  function updateKeycaps(ev: CustomEvent) {
+    $protoConfig.profile = ev.detail
     $protoConfig.keyBasis = $protoConfig.profile
     const switchType = PART_INFO[$protoConfig.partType.type].keycap
     const profileType = $protoConfig.profile == 'choc' ? 'choc' : 'mx'
+    console.log(switchType, profileType)
     if (switchType != profileType) {
       lastSwitch[switchType] = $protoConfig.partType.type!
       $protoConfig.partType.type = lastSwitch[profileType]
     }
   }
 
-  function updateSwitch() {
+  function updateSwitch(ev: CustomEvent) {
+    $protoConfig.partType.type = ev.detail
     const switchType = PART_INFO[$protoConfig.partType.type].keycap
     const profileType = $protoConfig.profile == 'choc' ? 'choc' : 'mx'
     if (switchType != profileType) {
@@ -454,18 +468,37 @@
     >
   </div>
   <Field name="Keycaps" icon="keycap">
-    <Select bind:value={$protoConfig.profile} on:change={updateKeycaps}>
+    <!-- <Select bind:value={$protoConfig.profile} on:change={updateKeycaps}>
       {#each notNull(PROFILE).sort(sortProfiles) as prof}
         <option value={prof}>{profileName(prof, true)}</option>
       {/each}
-    </Select>
+    </Select> -->
+    <SelectThingy
+      value={$protoConfig.profile}
+      on:change={updateKeycaps}
+      options={notNull(PROFILE)
+        .sort(sortProfiles)
+        .map((prof) => ({ key: prof, label: profileName(prof, true) }))}
+      component={SelectProfileInner}
+      labelComponent={SelectProfileLabel}
+      minWidth={200}
+    />
   </Field>
   <Field name="Switches" icon="switch">
-    <Select bind:value={$protoConfig.partType.type} on:change={updateSwitch}>
-      {#each objKeys(PART_INFO).filter((k) => PART_INFO[k].category == 'Sockets' && k != 'blank') as part}
-        <option value={part}>{PART_INFO[part].partName}</option>
-      {/each}
-    </Select>
+    <!-- <Select bind:value={$protoConfig.partType.type} on:change={updateSwitch}>
+           {#each objKeys(PART_INFO).filter((k) => PART_INFO[k].category == 'Sockets' && k != 'blank') as part}
+           <option value={part}>{PART_INFO[part].partName}</option>
+           {/each}
+           </Select> -->
+    <SelectThingy
+      value={$protoConfig.partType.type}
+      on:change={updateSwitch}
+      options={objEntries(PART_INFO)
+        .filter(([p, e]) => e.category == 'Sockets' && p != 'blank')
+        .map(([p, e]) => ({ ...e, key: p + '', label: e.partName }))}
+      component={SelectPartInner}
+      labelComponent={SelectPartLabel}
+    />
   </Field>
   {@const info = PART_INFO[$protoConfig.partType.type]}
   {#each Object.entries('variants' in info ? info.variants : {}) as [key, opt]}
@@ -511,10 +544,10 @@
         you'll need to tap the holes.
       </p>
     </InfoBox>
-  {:else if $protoConfig.partType.type == 'mx-pcb-twist'}
+  {:else if $protoConfig.partType.type == 'mx-pcb-twist' || $protoConfig.partType.type == 'mx-pcb-plum'}
     <InfoBox>
-      This variant requires Plum Twist or Spiral Galaxy PCBs. I'm still working on documentation, so
-      check the #pcbs channel on Discord for updates.
+      This variant requires Plum Twist or Spiral Galaxy PCBs. For more information and documentation
+      refer to the <a class="text-pink-600 underline" href="plum-twist">Plum Twist website</a>.
     </InfoBox>
   {:else if $protoConfig.partType.type == 'mx-hotswap'}
     <InfoBox>
@@ -998,7 +1031,26 @@
     </InfoBox>
   {/if}
   <Field name="Microcontroller" icon="microcontroller">
-    <Select bind:value={$protoConfig.microcontroller} on:change={updateMicrocontroller}>
+    <SelectThingy
+      bind:value={$protoConfig.microcontroller}
+      on:change={updateMicrocontroller}
+      options={Object.fromEntries(
+        MICROCONTROLLER_SIZES.map((s) => [
+          s,
+          notNull(MICROCONTROLLER_NAME)
+            .filter(
+              (m) => BOARD_PROPERTIES[m].sizeName == s && (flags.draftuc || !BOARD_PROPERTIES[m].draft)
+            )
+            .sort(sortMicrocontrollers)
+            .map((m) => ({
+              key: m,
+              label: BOARD_PROPERTIES[m].name + ' ' + (BOARD_PROPERTIES[m].extraName || ''),
+            })),
+        ])
+      )}
+      component={SelectMicrocontrollerInner}
+    />
+    <!-- <Select bind:value={$protoConfig.microcontroller} on:change={updateMicrocontroller}>
       {#each MICROCONTROLLER_SIZES as size}
         <optgroup label={size}>
           {#each notNull(MICROCONTROLLER_NAME)
@@ -1014,7 +1066,7 @@
       <optgroup label="More">
         <option value={null}>None</option>
       </optgroup>
-    </Select>
+    </Select> -->
   </Field>
   {#if rearPins($protoConfig)}
     <InfoBox>

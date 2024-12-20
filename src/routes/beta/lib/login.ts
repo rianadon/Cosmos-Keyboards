@@ -16,8 +16,8 @@ export type User = {
   }
 }
 
-export async function getUser(): Promise<User> {
-  const r = await fetch(API + '/user', { mode: 'cors', credentials: 'include', method: 'POST' })
+export async function getUser(qs = ''): Promise<User> {
+  const r = await fetch(API + '/user' + qs, { mode: 'cors', credentials: 'include', method: 'POST' })
   return await r.json()
 }
 

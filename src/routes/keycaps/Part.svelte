@@ -1,6 +1,6 @@
 <script lang="ts">
   import { keyGeometries } from '$lib/loaders/keycaps'
-  import { KEY_NAMES, UNIFORM, keyInfo } from '$lib/geometry/keycaps'
+  import { KEY_DESC, UNIFORM, keyInfo } from '$lib/geometry/keycaps'
   import { browser } from '$app/environment'
   import { drawLinedWall } from '../beta/lib/viewers/viewerHelpers'
   import { MeshBasicMaterial } from 'three'
@@ -11,9 +11,10 @@
   import { T } from '@threlte/core'
   import { OrbitControls } from '@threlte/extras'
   import KeyboardMaterial from '$lib/3d/KeyboardMaterial.svelte'
+  import type { Profile } from '$target/cosmosStructs'
 
   export let row: number
-  export let part: string
+  export let part: Exclude<Profile, null>
   export let dev = true
   let loading = true
   const KEY_WIDTH = 9
@@ -53,9 +54,9 @@
 >
   <div class="text-center text-lg mb-1">
     {#if UNIFORM.includes(part)}
-      {KEY_NAMES[part]}
+      {KEY_DESC[part].name}
     {:else}
-      {KEY_NAMES[part]} <span class="opacity-70 ml-1">- <span class="ml-1">R{row}</span></span>
+      {KEY_DESC[part].name} <span class="opacity-70 ml-1">- <span class="ml-1">R{row}</span></span>
     {/if}
   </div>
   <div class="flex">

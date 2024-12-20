@@ -301,18 +301,23 @@ function plateSketch(c: Cuttleform, geo: PlateParams, offset = 0) {
   return sketch
 }
 
-function screwCountersunkProfile(c: Cuttleform, height = PLATE_HEIGHT, margin = 1) {
-  const screwInfo = SCREWS[c.screwSize]
-  const countersunkHeight = (screwInfo.countersunkDiameter - screwInfo.plateDiameter) / 2 / Math.tan(screwInfo.countersunkAngle * Math.PI / 360)
+function genericScrewCountersunkProfile(innerD: number, outerD: number, angle: number, height: number, margin: number) {
+  const countersunkHeight = (outerD - innerD) / 2 / Math.tan(angle * Math.PI / 360)
   return draw()
     .movePointerTo([0, margin])
-    .hLineTo(screwInfo.plateDiameter / 2)
+    .hLineTo(innerD / 2)
     .vLineTo(-height + countersunkHeight)
-    .lineTo([screwInfo.countersunkDiameter / 2, -height])
+    .lineTo([outerD / 2, -height])
     .vLine(-margin)
     .lineTo([0, -height - margin])
     .close()
 }
+
+function screwCountersunkProfile(c: Cuttleform, height = PLATE_HEIGHT, margin = 1) {
+  const { plateDiameter, countersunkDiameter, countersunkAngle } = SCREWS[c.screwSize]
+  return genericScrewCountersunkProfile(plateDiameter, countersunkDiameter, countersunkAngle, height, margin)
+}
+
 export function screwStraightProfile(c: Cuttleform, height = PLATE_HEIGHT, diameter?: number) {
   const screwInfo = SCREWS[c.screwSize]
   return draw()
@@ -1016,7 +1021,8 @@ export function boardHolder(c: Cuttleform, geo: Geometry): Solid {
 
   // Cut out the cutout!
   for (const { origin, size } of boardProps.cutouts) {
-    rect = rect.cut(drawRoundedRectangle(size.x, size.y).translate(new Vector().add(origin).add(elements[0].offset).xy()))
+    const location = c.flipConnectors ? new Vector(-origin.x, origin.y, origin.z) : origin
+    rect = rect.cut(drawRoundedRectangle(size.x, size.y).translate(new Vector().add(location).add(elements[0].offset).xy()))
   }
   if (boardProps.sidecutout) {
     const minx = elements[0].offset.x - elements[0].size.x / 2
@@ -1040,10 +1046,12 @@ export function boardHolder(c: Cuttleform, geo: Geometry): Solid {
   rect = rect.fillet(1, () => new FilletFinder(2, 4))
   rect = rect.fillet(0.5, () => new FilletFinder(0, 2))
 
-  for (const hole of boardProps.holes) {
-    const location = hole
-    if (!boardProps.tappedHoleDiameter) throw new Error('Missing hole diameter')
-    rect = rect.cut(drawCircle(boardProps.tappedHoleDiameter / 2).translate(location.xy()))
+  if (!boardProps.countersinkHoles) {
+    for (const hole of boardProps.holes) {
+      const location = c.flipConnectors ? new Vector(-hole.x, hole.y, hole.z) : hole
+      if (!boardProps.tappedHoleDiameter) throw new Error('Missing hole diameter')
+      rect = rect.cut(drawCircle(boardProps.tappedHoleDiameter / 2).translate(location.xy()))
+    }
   }
 
   // Normal size hole for first boardPos
@@ -1056,6 +1064,23 @@ export function boardHolder(c: Cuttleform, geo: Geometry): Solid {
   let solid = rect.sketchOnPlane('XY').extrude(offset - BOARD_TOLERANCE_Z)
     .translateZ(BOARD_TOLERANCE_Z) as Solid
   const solidWallSurface = wallInnerSolidSurface(c, geo, BOARD_TOLERANCE_XY)
+
+  // Countersink the holes
+  if (boardProps.countersinkHoles) {
+    if (!boardProps.tappedHoleDiameter) throw new Error('Missing hole diameter')
+    const holeBody = genericScrewCountersunkProfile(
+      boardProps.tappedHoleDiameter,
+      boardProps.countersinkHoles.diameter,
+      boardProps.countersinkHoles.angle,
+      offset,
+      1,
+    ).sketchOnPlane('XZ').revolve().translateZ(offset) as Solid
+
+    for (const hole of boardProps.holes) {
+      const location = c.flipConnectors ? new Vector(-hole.x, hole.y, hole.z) : hole
+      solid = solid.cut(new Trsf().translate(...location.xy(), 0).transform(holeBody))
+    }
+  }
 
   // Carve out channels under the side channels for solder to slide through
   if (boardProps.sidecutout) {
@@ -1099,8 +1124,23 @@ export function boardHolder(c: Cuttleform, geo: Geometry): Solid {
   }
   splitter.perform()
 
-  const bestShape = splitter.takeBiggest()
+  let bestShape = splitter.takeBiggest()
   if (!bestShape) throw new Error('Could not generate a valid Microcontroller Holder')
+
+  // Add notches
+  for (const notch of boardProps.notches || []) {
+    bestShape = bestShape.fuse(
+      connOrigin.transform(boardBoxBox({
+        offset: new Vector(
+          c.flipConnectors ? -notch.origin.x : notch.origin.x,
+          notch.origin.y + notch.height / 2,
+          BOARD_TOLERANCE_Z,
+        ),
+        size: new Vector(notch.width, notch.height, elements[0].size.z + elements[0].offset.z),
+      })),
+    )
+  }
+
   return bestShape
 }
 

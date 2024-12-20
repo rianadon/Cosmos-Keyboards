@@ -110,7 +110,7 @@ export async function modelAsScene(pool: WorkerPool<typeof import('$lib/worker/a
   return scene
 }
 
-function cosmosMaterial(kind: 'key' | 'case', opts: { opacity?: number; brightness?: number; texture?: THREE.Texture } = {}) {
+export function cosmosMaterial(kind: 'key' | 'case', opts: { opacity?: number; brightness?: number; texture?: THREE.Texture } = {}) {
   const saturation = COLORCONFIG.purple[(kind + 'Saturation') as 'keySaturation']
   const color = COLORCONFIG.purple[(kind + 'Color') as 'keyColor']
 

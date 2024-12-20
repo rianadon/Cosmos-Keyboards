@@ -79,6 +79,7 @@ enumeration('MICROCONTROLLER_NAME', [
   'feather-rp2040-adafruit',
   'cyboard-assimilator',
   'promicro-usb-c-long',
+  'lemon-wired',
 ])
 
 struct('PartVariant', {

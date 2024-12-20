@@ -103,6 +103,8 @@
   import { fade } from 'svelte/transition'
   import Preset from '$lib/presentation/Preset.svelte'
   import { base } from '$app/paths'
+  import SelectThingy from '../editor/SelectThingy.svelte'
+  import SelectPartInner from '../editor/SelectPartInner.svelte'
 
   export let darkMode: boolean
   export let showSupports = false
@@ -168,9 +170,9 @@
     })
   }
 
-  function changeKey(e: Event) {
+  function changeKey(e: CustomEvent) {
     protoConfig.update((proto) => {
-      const newType: any = (e.target as HTMLInputElement).value
+      const newType: any = e.detail
       const { key, column } = nthKey(proto, $clickedKey!)
       if ($selectMode == 'key') {
         key.partType.type = newType
@@ -733,11 +735,14 @@
         {:else}
           <div class="relative">
             <div
-              class="pointer-events-none absolute inset-y-0 left-0 flex items-center px-4 text-gray-700 dark:text-gray-100"
+              class="z-1 pointer-events-none absolute inset-y-0 left-0 flex items-center px-4 text-gray-700 dark:text-gray-100"
             >
-              <Icon size="20px" name="keycap" />
+              <Icon
+                size="20px"
+                name={PART_INFO[nthPartType($protoConfig, $clickedKey, $selectMode)]?.icon || 'keycap'}
+              />
             </div>
-            <select
+            <!-- <select
               class="appearance-none bg-[#EFE8FF] dark:bg-gray-900 w-88 pl-20 h-8 pl-11!"
               class:w-64!={PART_INFO[nthPartType($protoConfig, $clickedKey, $selectMode)].partName
                 .length < 20}
@@ -751,7 +756,26 @@
                   {/each}
                 </optgroup>
               {/each}
-            </select>
+            </select> -->
+            <SelectThingy
+              pink
+              class="appearance-none bg-[#EFE8FF] dark:bg-gray-900 w-88 pl-20 h-8 pl-11! text-start {PART_INFO[
+                nthPartType($protoConfig, $clickedKey, $selectMode)
+              ].partName.length < 20
+                ? 'w-64!'
+                : ''}"
+              options={Object.fromEntries(
+                sortedCategories.map((cat) => [
+                  cat,
+                  notNull(objKeys(PART_INFO))
+                    .filter((v) => PART_INFO[v].category == cat)
+                    .map((p) => ({ key: p, label: PART_INFO[p].partName, ...PART_INFO[p] })),
+                ])
+              )}
+              on:change={changeKey}
+              value={nthPartType($protoConfig, $clickedKey, $selectMode)}
+              component={SelectPartInner}
+            />
             <div
               class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-700 dark:text-gray-100"
             >

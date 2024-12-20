@@ -32,7 +32,9 @@ interface BoardProperties {
   sizeName: typeof MICROCONTROLLER_SIZES[number]
   boundingBoxZ: number
   holes: Vector[]
+  countersinkHoles?: { diameter: number; angle: number }
   cutouts: { origin: Vector; size: Vector }[]
+  notches?: { origin: Vector; width: number; height: number }[]
   /** Amount to carve into the side to create the cutouts for pins */
   sidecutout: number
   /** (optional) to how far in the positive Y direction the side cutout goes. */
@@ -57,6 +59,7 @@ interface BoardProperties {
   /** Only enabled when ?draftuc is added to the url */
   draft?: boolean
   dontCount?: boolean
+  description?: string
 }
 
 type Microcontroller = Exclude<Cuttleform['microcontroller'], null>
@@ -79,6 +82,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     rearPins: ['SWCLK', 'GND', 'SWIO'],
     isGPIO: /GP.*/,
     castellated: true,
+    description: 'Why. Are. They. Still. Using. Micro-USB??',
   },
   'rp2040-black-usb-c-aliexpress': {
     name: 'RP2040 Black Board USB-C (Aliexpress)',
@@ -96,10 +100,11 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     rightSidePins: ['Vout', 'Vin', 'GND', '23', '3V3', '29', '28', 'GND', '27', '26', 'RUN', '22', 'GND', '21', '20', '19', '18', 'GND', '17', '16'],
     rearPins: ['3V3', 'SWDIO', 'SWDCLK', 'GND'],
     isGPIO: /\d+/,
+    description: 'My personal favorite. You can get these dirt cheap on AliExpress.',
   },
   'promicro-usb-c': {
     name: 'Pro Micro - 34.7mm (USB-C)',
-    extraName: '(Low Storage) ☆',
+    extraName: '(Low Storage)',
     size: new Vector(18.3, 34.7, 1.57),
     sizeName: 'Medium',
     boundingBoxZ: 5,
@@ -113,7 +118,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
   },
   'promicro-usb-c-long': {
     name: 'Pro Micro - 37mm (USB-C)',
-    extraName: '(Low Storage) ☆',
+    extraName: '(Low Storage)',
     size: new Vector(18.3, 37, 1.57),
     sizeName: 'Medium',
     boundingBoxZ: 5,
@@ -181,6 +186,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     leftSidePins: ['D+', 'TX', 'RX', 'GND', 'GND', '2', '3', '4', '5', '6', '7', '8', '9'],
     rightSidePins: ['D-', 'RAW', 'G', 'RST', '3V', 'A3', 'A2', 'A1', 'A0', 'CLK', 'MI', 'MO', '10'],
     isGPIO: /TX|RX|CLK|M.|A?\d+/,
+    description: `A good balance of price, capability, and size.`,
   },
   'nrfmicro-or-nicenano': {
     name: 'nRFMicro or Nice!Nano',
@@ -197,10 +203,10 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     leftSidePins: ['GND', 'D1', 'D0', 'GND', 'GND', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D9'],
     rightSidePins: ['BAT+', 'BAT-', 'GND', 'RST', '3V3', 'D21', 'D20', 'D19', 'D18', 'D15', 'D14', 'D16', 'D10'],
     isGPIO: /D\d+/,
+    description: "The best option if you're willing to spend on Bluetooth.",
   },
   'seeed-studio-xiao': {
     name: 'Seeed Studio Xiao RP2040/SAMD21',
-    extraName: '☆',
     size: new Vector(17.5, 21, 1.2),
     sizeName: 'Small',
     boundingBoxZ: 5,
@@ -225,6 +231,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     leftSidePins: ['0', '1', '2', '3', '4', '5', '6'],
     rightSidePins: ['VUSB', 'GND', '3V3', '10', '9', '8', '7'],
     isGPIO: /\d+/,
+    description: `The cheapest Bluetooth board here. It's also ridiculously small.`,
   },
   'waveshare-rp2040-zero': {
     name: 'WaveShare RP2040-Zero',
@@ -240,6 +247,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     rearPins: ['13', '12', '11', '10', '9'],
     isGPIO: /\d+/,
     castellated: true,
+    description: `A good option if you need lots of pins in a small space.`,
   },
   'weact-studio-ch552t': {
     name: 'WeAct Studio CH552T',
@@ -254,6 +262,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     leftSidePins: ['32', '14', '15', '16', '17', 'RST', '10', '11', '31', '30'],
     rightSidePins: ['3V3', '5V', 'GND', '12', '13', '37', '36', '35', '34', '33'],
     isGPIO: /\d+/,
+    description: `Likely the cheapest board here, but it lacks processing power and storage. You'll need to use <a href="https://github.com/semickolon/fak">FAK</a> to program it.`,
   },
   'feather-rp2040-adafruit': {
     name: 'Adafruit RP2040 Feather',
@@ -274,18 +283,37 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
   'cyboard-assimilator': {
     name: 'Cyboard Assimilator',
     extraName: '(Flex PCB)',
-    size: new Vector(29.9, 31.13, 1.57),
+    size: new Vector(29.9, 41.13, 1.57),
     sizeName: 'Large',
     boundingBoxZ: 5,
     offset: new Vector(0, 0, 5 - 3.21),
     tappedHoleDiameter: 2.5,
-    holes: [new Vector(-11.45, -9.09, 0), new Vector(11.45, -9.09, 0)],
-    cutouts: [],
+    holes: [new Vector(-11.45, -9.09, 0)],
+    countersinkHoles: { diameter: 5, angle: 90 },
+    notches: [{ origin: new Vector(13.9, -10.9, 0), width: 2.3, height: 2.6 }],
+    cutouts: [{ origin: new Vector(-4.538, -15.418, 0), size: new Vector(4.5, 2.5, 0) }],
     sidecutout: 2,
     sidecutoutMaxY: -13,
     leftSidePins: [],
     rightSidePins: [],
     isGPIO: /./,
+    backstopHeight: 0,
+    draft: true,
+    dontCount: true,
+  },
+  'lemon-wired': {
+    name: 'Lemon',
+    extraName: '(Dual USB-C)',
+    size: new Vector(31.94, 36, 1.57),
+    sizeName: 'Large',
+    boundingBoxZ: 5,
+    offset: new Vector(0, 0, 1.835),
+    holes: [],
+    cutouts: [],
+    sidecutout: 0.1 * IN,
+    leftSidePins: ['Vled', 'GND', 'GP2', 'GP3', 'GP4', 'GP5', 'GP6', 'GP7', 'GP8', 'GP9', 'GP10'],
+    rightSidePins: ['5V', '3V3', 'GND', 'GP29', 'GP28', 'GP27', 'GP26', 'GP25', 'GP24', 'GP23', 'GP22', 'GP21', 'GP20'],
+    isGPIO: /GP\d+/,
     backstopHeight: 0,
     draft: true,
     dontCount: true,
@@ -298,7 +326,7 @@ export function sortMicrocontrollers(a: Microcontroller, b: Microcontroller) {
     if (BOARD_PROPERTIES[m].extraName?.includes('☆')) s += 100
     if (BOARD_PROPERTIES[m].extraName?.includes('Low Storage')) s -= 10
     if (BOARD_PROPERTIES[m].extraName?.includes('USB-C')) s += 1
-    if (m == 'promicro') return 1 // Pro Micro is still popular
+    if (m.includes('promicro')) return 0.9 // Pro Micro is still popular
     return s
   }
   return score(b) - score(a)
@@ -418,10 +446,12 @@ export function boardElements(config: Cuttleform, layout: boolean): BoardElement
       rails: {
         width: RAIL_WIDTH,
         backstopHeight: BOARD_PROPERTIES[config.microcontroller].backstopHeight ?? BACKSTOP_HEIGHT,
-        clamps: [
-          { side: 'left', radius: RAIL_RADIUS },
-          { side: 'right', radius: RAIL_RADIUS },
-        ],
+        clamps: config.fastenMicrocontroller && !BOARD_PROPERTIES[config.microcontroller].notches
+          ? [
+            { side: 'left', radius: RAIL_RADIUS },
+            { side: 'right', radius: RAIL_RADIUS },
+          ]
+          : [],
       },
     },
     ...offset.connectors,

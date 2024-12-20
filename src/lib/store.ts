@@ -19,6 +19,7 @@ export const codeError = writable<Error | null>(null)
 
 export const hoveredKey = writable<number | null>(null)
 export const clickedKey = writable<number | null>(null)
+export const lastKeycap = writable<number>(0)
 
 export const showGrid = writable(false)
 export const noWall = writable(false)
@@ -37,6 +38,9 @@ export const discordMsg = storable('discordMsg', true)
 export const enableUndo = storable('enableUndo', false)
 export const showHelp = storable('showHelp', true)
 export const assemblyIsNew = storable('assemblyIsNew', true)
+export const showScheduleEmail = storable('showScheduleEmail', false)
+export const emailScheduled = storable('emailScheduled', false)
+export const emailMinimized = storable('emailMinimized', 0)
 
 export const developer = storable('developer', browser && location.origin.includes('localhost'))
 export const showTiming = andcondition(developer, storable('developer.timing', false))

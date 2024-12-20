@@ -1,33 +1,30 @@
 <script lang="ts">
-  import { createEventDispatcher, onDestroy } from 'svelte'
+  import { createEventDispatcher, onDestroy, onMount } from 'svelte'
   import { mdiChevronLeft, mdiChevronRight } from '@mdi/js'
   import Icon from '$lib/presentation/Icon.svelte'
   import type { FullGeometry, KeyboardMeshes } from '../viewers/viewer3dHelpers'
   import type { Center } from '$lib/worker/config'
   import * as THREE from 'three'
   import { renderedModelsAsScene } from '../modelGLTF'
-  import { skreeFirst } from './assemblyOrder'
-  import { pricingSkree, selectionsSkree, VENDORS } from '@pro/assemblyService'
+  import { SORTED_VENDORS } from '@pro/assemblyService'
+  import { trackEvent } from '$lib/telemetry'
 
   export let center: Center
   export let meshes: ['left' | 'right' | 'unibody', KeyboardMeshes][]
   export let geometry: FullGeometry
   export let size: [number, number, number]
 
-  const sortedVendors = skreeFirst ? [VENDORS.skree, VENDORS.tukon] : [VENDORS.tukon, VENDORS.skree]
-  $: vendorData = sortedVendors.map((v) => {
-    if (v.name == 'TheBigSkree')
-      try {
-        const price = '$' + pricingSkree(geometry).toFixed(2)
-        const link =
-          'https://skree.us/products/wireless-cosmos-dactyl?selections=' +
-          selectionsSkree(geometry) +
-          '&ref=cosmos'
-        return { ...v, price, link, error: undefined }
-      } catch (e) {
-        return { ...v, price: 'n/a', error: (e as Error).message, link: null }
-      }
-    return { ...v, price: '€301.43', error: undefined, link: 'https://ryanis.cool/secret' }
+  $: vendorData = SORTED_VENDORS.map((v) => {
+    try {
+      const price = '$' + v.pricing(geometry).toFixed(2)
+      const link =
+        'https://skree.us/products/custom-cosmos-dactyl?selections=' +
+        v.selections(geometry) +
+        '&ref=cosmos'
+      return { ...v, price, link, error: undefined }
+    } catch (e) {
+      return { ...v, price: 'n/a', error: (e as Error).message, link: null }
+    }
   })
 
   let modelImg = ''
@@ -41,6 +38,7 @@
   renderer.setSize(1440, 800)
   const camera = new THREE.PerspectiveCamera(45, 1.8)
   onDestroy(() => renderer.dispose())
+  onMount(() => trackEvent('assemblyservice-visit', {}))
 
   $: {
     renderedModelsAsScene(geometry, meshes, center, true).then((model) => {
@@ -66,7 +64,10 @@
 
 <main class="dark:text-slate-100 flex flex-col xs:flex-row">
   <div class="xs:w-80 md:w-[24rem] xl:w-[32rem] bg-slate-100 dark:bg-slate-900 px-8 rounded-r-2">
-    <button class="flex items-center font-bold my-8" on:click={() => dispatch('close')}>
+    <button
+      class="flex items-center font-bold my-8 hover:bg-teal-200/70 dark:hover:bg-pink-900/70 rounded pr-2 py-0.5"
+      on:click={() => dispatch('close')}
+    >
       <Icon size={24} path={mdiChevronLeft} />
       Back to Generator
     </button>
@@ -79,12 +80,17 @@
     {#each vendorData as vendor}
       <a
         href={vendor.link}
-        class="flex items-center gap-10 p-4 pb-0 mb-2 rounded-2"
+        on:click={() => trackEvent('assemblyservice-order', { vendor: vendor.name })}
+        class="flex items-center gap-10 p-4 pb-0 mb-2 rounded-2 <lg:flex-col overflow-hidden"
         class:hoverable={!vendor.error}
         class:opacity-50={vendor.error}
       >
         <div>
-          <h2 class="text-2xl font-medium my-3">Order from {vendor.name}</h2>
+          <div class="flex items-center gap-4 my--1">
+            <img src={vendor.logo} class="size-12 rounded-2 pointer-events-none flex-none" />
+            <h2 class="text-2xl font-medium my-3 flex-shrink-0">Order from {vendor.name}</h2>
+            <img src={vendor.banner} class="h-12 pointer-events-none flex-grow self-start flex-grow-0" />
+          </div>
           <p class="my-3 text-justify">{vendor.description}</p>
           <p class="my-3 text-gray-600 dark:text-gray-400">
             Ships globally in 1–2 weeks from {vendor.location}
@@ -96,7 +102,7 @@
           <span class="text-2xl font-bold">{vendor.price}</span>
         </div>
         <div
-          class="rounded-full bg-teal-200 dark:bg-teal-600 flex items-center justify-center w-8 h-8 flex-none"
+          class="rounded-full bg-teal-200 dark:bg-teal-600 flex items-center justify-center w-8 h-8 flex-none <lg:(w-full mb-2)"
         >
           <Icon size={24} path={mdiChevronRight} />
         </div>
@@ -109,11 +115,25 @@
       {/if}
       <div class="flex gap-2 text-sm mb-16 mx-4" class:opacity-50={vendor.error}>
         {#each vendor.testimonials as test}
-          <div class="bg-slate-200/50 dark:bg-slate-900 rounded-2 px-3 py-1">
-            <p class="mb-0.5">{test[0]}</p>
-            <p class="text-gray-600 dark:text-gray-400">{test[1]}</p>
+          <div class="bg-slate-200/50 dark:bg-slate-900 rounded-2 px-3 py-2">
+            <p class="mb-0.5 line-height-tight">{test[0]}</p>
+            <p class="text-gray-600 dark:text-gray-400">
+              {test[1]}
+              <span class="mx-1">&bullet;</span>
+              {test[2]}
+            </p>
           </div>
         {/each}
+        <a
+          href="https://www.etsy.com/shop/TheBigSkree#reviews"
+          target="_blank"
+          class="bg-slate-200/50 dark:bg-slate-900 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-2 px-3 py-1 flex flex-col justify-center w-40 flex-basis-200"
+        >
+          <p class="font-medium line-height-tight">Read More Reviews on Skree's Etsy Store</p>
+          <p class="text-gray-600 text-xs dark:text-gray-400 mt-2 line-height-tight">
+            Skree owns both an Etsy shop and the offical skree.us site.
+          </p>
+        </a>
       </div>
     {/each}
   </div>
@@ -121,6 +141,6 @@
 
 <style>
   .hoverable {
-    --at-apply: 'hover:bg-slate-100 dark:hover:bg-slate-900';
+    --at-apply: 'hover:bg-teal-100/90 dark:hover:bg-teal-900/70';
   }
 </style>

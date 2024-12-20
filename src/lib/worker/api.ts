@@ -135,7 +135,7 @@ export async function generateQuick(config: Cuttleform) {
 }
 
 export async function generate(config: Cuttleform, geo: Geometry, stitchWalls: boolean, flip: boolean) {
-  if (isPro(config) && !(await getUser()).sponsor) {
+  if (isPro(config) && !(await getUser('?download')).sponsor) {
     throw new Error('No pro account')
   }
   await ensureOC()

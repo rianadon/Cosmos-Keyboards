@@ -85,7 +85,7 @@ export type ConfErrors = ConfError[]
 
 export function isRenderableError(e: ConfError | undefined) {
   if (!e) return true
-  return e.type == 'intersection' || e.type == 'wallBounds'
+  return e.type == 'intersection' || e.type == 'wallBounds' || e.type == 'notEnoughPins'
 }
 export const isRenderable = (e: ConfErrors) => e.every(s => isRenderableError(s))
 
@@ -209,7 +209,7 @@ export function checkConfig(conf: Cuttleform, geometry: Geometry | undefined, ch
 //   }
 // }
 
-export function minPinsNeeded(conf: Cuttleform) {
+export function minPinsNeeded(conf: Cuttleform, includeMatrix = true) {
   let pins = 0
   let keysInMatrix = 0
   for (const key of conf.keys) {
@@ -219,9 +219,11 @@ export function minPinsNeeded(conf: Cuttleform) {
     if (wiredInMatrix) keysInMatrix++
     if (pinsNeeded) pins += pinsNeeded
   }
-  const numCols = Math.ceil(Math.sqrt(keysInMatrix))
-  const numRows = Math.ceil(keysInMatrix / numCols)
-  pins += numCols + numRows
+  if (includeMatrix) {
+    const numCols = Math.ceil(Math.sqrt(keysInMatrix))
+    const numRows = Math.ceil(keysInMatrix / numCols)
+    pins += numCols + numRows
+  }
   return pins
 }
 
@@ -349,8 +351,8 @@ function* treeIntersections(
   }
 }
 
-export function isPro(conf: Cuttleform) {
-  return conf.rounded.side || conf.rounded.top || conf.shell?.type == 'stilts'
+export function isPro(conf: Cuttleform): boolean {
+  return !!conf.rounded.side || !!conf.rounded.top || conf.shell?.type == 'stilts'
 }
 
 // https://stackoverflow.com/questions/7113344/find-whether-two-triangles-intersect-or-not
