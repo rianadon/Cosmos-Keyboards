@@ -522,7 +522,7 @@ function keycapInfo(c: CuttleformProto, row: number, column: number): Keycap {
   return { profile: keycapType(c), row: Math.min(row, 4), home, letter: letterForKeycap(row, column) }
 }
 
-export function decodeTuple(tuple: bigint) {
+export function decodeTuple(tuple: bigint): [number, number, number, number] {
   if (typeof tuple === 'string') tuple = BigInt(tuple)
   const sint32 = (u: number) => u >>> 1 ^ -(u & 1) | 0
 

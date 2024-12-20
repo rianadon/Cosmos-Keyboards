@@ -262,7 +262,8 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     leftSidePins: ['32', '14', '15', '16', '17', 'RST', '10', '11', '31', '30'],
     rightSidePins: ['3V3', '5V', 'GND', '12', '13', '37', '36', '35', '34', '33'],
     isGPIO: /\d+/,
-    description: `Likely the cheapest board here, but it lacks processing power and storage. You'll need to use <a href="https://github.com/semickolon/fak">FAK</a> to program it.`,
+    description:
+      `Likely the cheapest board here, but it lacks processing power, storage, and it can only be re-programmed 200 times. You'll need to use <a href="https://github.com/semickolon/fak">FAK</a> to program it.`,
   },
   'feather-rp2040-adafruit': {
     name: 'Adafruit RP2040 Feather',
@@ -282,28 +283,30 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
   },
   'cyboard-assimilator': {
     name: 'Cyboard Assimilator',
-    extraName: '(Flex PCB)',
+    extraName: '(USB-C, Flex PCB)',
     size: new Vector(29.9, 41.13, 1.57),
     sizeName: 'Large',
     boundingBoxZ: 5,
     offset: new Vector(0, 0, 5 - 3.21),
-    tappedHoleDiameter: 2.5,
+    tappedHoleDiameter: 3.4,
     holes: [new Vector(-11.45, -9.09, 0)],
-    countersinkHoles: { diameter: 5, angle: 90 },
+    countersinkHoles: { diameter: 6.3, angle: 90 },
     notches: [{ origin: new Vector(13.9, -10.9, 0), width: 2.3, height: 2.6 }],
     cutouts: [{ origin: new Vector(-4.538, -15.418, 0), size: new Vector(4.5, 2.5, 0) }],
     sidecutout: 2,
     sidecutoutMaxY: -13,
-    leftSidePins: [],
-    rightSidePins: [],
-    isGPIO: /./,
+    leftSidePins: ['R1', 'R2', 'R3', 'R4', 'R5', 'R6'],
+    rightSidePins: ['C1', 'C2', 'C3', 'C4', 'C5', 'C6'],
+    isGPIO: /(R|C)\d+/,
     backstopHeight: 0,
     draft: true,
     dontCount: true,
+    description:
+      "For use with Cyboard's Dactyl Flex PCBs. The Microcontroller has one native USB-C port and one fake one (good for connecting halves but not for plugging in).\nSupports both wired and wireless (longer) versions.",
   },
   'lemon-wired': {
     name: 'Lemon',
-    extraName: '(Dual USB-C)',
+    extraName: '(Dual USB-C, Flex PCB)',
     size: new Vector(31.94, 36, 1.57),
     sizeName: 'Large',
     boundingBoxZ: 5,
@@ -326,6 +329,7 @@ export function sortMicrocontrollers(a: Microcontroller, b: Microcontroller) {
     if (BOARD_PROPERTIES[m].extraName?.includes('☆')) s += 100
     if (BOARD_PROPERTIES[m].extraName?.includes('Low Storage')) s -= 10
     if (BOARD_PROPERTIES[m].extraName?.includes('USB-C')) s += 1
+    if (BOARD_PROPERTIES[m].extraName?.includes('Flex PCB')) s += 1
     if (m.includes('promicro')) return 0.9 // Pro Micro is still popular
     return s
   }

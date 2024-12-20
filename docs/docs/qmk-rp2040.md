@@ -91,11 +91,13 @@ You do not need to connect the MT pin (motion trigger).
 
 ### LEDS
 
-If you are using SK6812 MINI-E LEDs and following the specifications to the T, what you should do is connect the LED power to 5V and add a 3.3V-to-5V level translator between the first LED's data input and the pin on the microcontroller you've chosen for LED data. A cheap way to get a level translator is to use one of the LEDs as the level translator, or "sacrificial LED". It might not light up, but all LEDs afterwards in the chain should.
+If you are using SK6812 MINI-E LEDs and following the specifications to the T, what you should do is connect the LED power to 5V and add a 3.3V-to-5V level translator between the first LED's data input and the pin on the microcontroller you've chosen for LED data. A cheap way to get a level translator is to use one of the LEDs as the level translator (referred to as a "sacrificial LED"). It might not light up, but all LEDs afterwards in the chain should.
 
 Some microcontrollers like the [Sea Picro](https://github.com/joshajohnson/sea-picro) and the upcoming [Lemon microcontroller](https://github.com/rianadon/Cosmos-Keyboard-PCBs/?tab=readme-ov-file#lemon-microcontroller) have built-in level translators for LEDs. So just make sure you're using 5V and the proper LED pin.
 
 The other option which I begrugingly recommend to you is to power the LEDs off of the 3V3 supply. This empirically works reliably even though it's out-of-spec. The one downside that you must take into account is that white LEDs on full brightness can consume a lot of power, but the 5V -> 3V regulator on microcontrollers are typically rated to less than 1 amp. So before you turn the LEDs up to full brightness, look up what voltage regulator your microcontroller is using and its maximum current and keep in mind that a single LED uses ~50mA when turned white on full brightness. For example, a Pi Pico's voltage regulator has an 800mA limit, so you can potentially fry your microcontroller if running more than 16 LEDs on 100% white.
+
+Now, consider whether you really need such bright lights. Most people don't (personally I use non-white colors on 20% brightness), and so 3.3V power works just fine.
 
 ## QMK Setup
 

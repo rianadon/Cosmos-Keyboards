@@ -1,10 +1,12 @@
 import { adjacentKeycapLetter, UNIFORM } from '$lib/geometry/keycaps'
-import type { Geometry } from '$lib/worker/config'
+import { decodeTuple, type Geometry } from '$lib/worker/config'
 import { type CosmosCluster, type CosmosKey, type CosmosKeyboard, cosmosKeyPosition, nthKey } from '$lib/worker/config.cosmos'
-import { Vector } from '$lib/worker/modeling/transformation'
+import Trsf, { Vector } from '$lib/worker/modeling/transformation'
 import type { ShapeMesh } from 'replicad'
-import type { Homing, Profile } from 'target/cosmosStructs'
+import { type Readable } from 'svelte/store'
+import type { Profile } from 'target/cosmosStructs'
 import { Matrix4 } from 'three'
+import { TupleBaseStore } from '../editor/tuple'
 
 export type KeyboardMeshes = {
   wristBuf?: ShapeMesh
@@ -250,4 +252,80 @@ export function shouldFlipKey(side: 'left' | 'right' | 'both', clickedKey: numbe
   if (clickedKey == null) return false
   const { cluster } = nthKey(keyboard, clickedKey)
   return side == 'left' && cluster.side == 'right'
+}
+
+/** Returns the position of a key in the keyboard, either in world space or relative to the key's parent column. */
+export function keyPos(config: CosmosKeyboard, n: number, absolute: boolean) {
+  const { cluster, column, key } = nthKey(config, n)
+  const keyPos = decodeTuple(key.position || 0n)
+  if (!absolute) return [keyPos[0] / 10, keyPos[1] / 10, keyPos[2] / 10]
+  return cosmosKeyPosition(key, column, cluster, config).evaluate({ flat: false })
+    .xyz().map(x => Math.round(x * 10) / 10)
+}
+
+/** Returns the position of a key in the keyboard, either in world space or relative to the key's parent column. */
+export function keyRot(config: CosmosKeyboard, n: number, absolute: boolean) {
+  const { cluster, column, key } = nthKey(config, n)
+  const keyRot = decodeTuple(key.rotation || 0n)
+  if (!absolute) return [Math.round(keyRot[0] / 4.5) / 10, Math.round(keyRot[1] / 4.5) / 10, Math.round(keyRot[2] / 4.5) / 10]
+  return cosmosKeyPosition(key, column, cluster, config).evaluate({ flat: false })
+    .eulerZYXDeg().map(x => Math.round(x * 10) / 10)
+}
+
+export class AbsPositionStore extends TupleBaseStore {
+  private _keyboard: CosmosKeyboard = undefined as any
+  private _nthKey: number | null = null
+
+  constructor(keyboard: Readable<CosmosKeyboard>, nthKey: Readable<number | null>) {
+    super(-1n)
+    keyboard.subscribe(k => this._keyboard = k)
+    nthKey.subscribe(k => this._nthKey = k)
+  }
+
+  protected transformFrom(v0: number, v1: number, v2: number, v3: number): [number, number, number, number] {
+    if (this._nthKey == null) return [-1, -1, -1, -1]
+    const { cluster, column, key } = nthKey(this._keyboard, this._nthKey)
+    const parentKey = { ...key, position: 0n }
+    const [x, y, z] = cosmosKeyPosition(parentKey, column, cluster, this._keyboard).evaluate({ flat: false }).pretranslate(v0 / 10, v1 / 10, v2 / 10)
+      .xyz().map(x => Math.round(x * 10) / 10)
+    return [x, y, z, 0]
+  }
+
+  protected transformInto(v0: number, v1: number, v2: number, v3: number): [number, number, number, number] {
+    if (this._nthKey == null) return [-1, -1, -1, -1]
+    const { cluster, column, key } = nthKey(this._keyboard, this._nthKey)
+    const parentKey = { ...key, position: 0n }
+    const parentTransform = cosmosKeyPosition(parentKey, column, cluster, this._keyboard).evaluate({ flat: false })
+    const [x, y, z] = new Trsf().translate(v0, v1, v2).premultiply(parentTransform.invert()).xyz()
+    return [x * 10, y * 10, z * 10, 0]
+  }
+}
+
+export class AbsRotationStore extends TupleBaseStore {
+  private _keyboard: CosmosKeyboard = undefined as any
+  private _nthKey: number | null = null
+
+  constructor(keyboard: Readable<CosmosKeyboard>, nthKey: Readable<number | null>) {
+    super(-1n)
+    keyboard.subscribe(k => this._keyboard = k)
+    nthKey.subscribe(k => this._nthKey = k)
+  }
+
+  protected transformFrom(v0: number, v1: number, v2: number, v3: number): [number, number, number, number] {
+    if (this._nthKey == null) return [-1, -1, -1, -1]
+    const { cluster, column, key } = nthKey(this._keyboard, this._nthKey)
+    const parentKey = { ...key, rotation: 0n }
+    const [x, y, z] = cosmosKeyPosition(parentKey, column, cluster, this._keyboard).evaluate({ flat: false }).rotateEulerZYX(v0 / 45, v1 / 45, v2 / 45)
+      .eulerZYXDeg().map(x => Math.round(x * 10) / 10)
+    return [x, y, z, 0]
+  }
+
+  protected transformInto(v0: number, v1: number, v2: number, v3: number): [number, number, number, number] {
+    if (this._nthKey == null) return [-1, -1, -1, -1]
+    const { cluster, column, key } = nthKey(this._keyboard, this._nthKey)
+    const parentKey = { ...key, rotation: 0n }
+    const parentTransform = cosmosKeyPosition(parentKey, column, cluster, this._keyboard).evaluate({ flat: false })
+    const [x, y, z] = new Trsf().rotateEulerZYX(v0, v1, v2).multiply(parentTransform.invert()).eulerZYXDeg()
+    return [x * 45, y * 45, z * 45, 0]
+  }
 }

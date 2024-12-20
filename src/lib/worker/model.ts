@@ -1087,7 +1087,7 @@ export function boardHolder(c: Cuttleform, geo: Geometry): Solid {
     const minx = elements[0].offset.x - elements[0].size.x / 2
     const maxx = elements[0].offset.x + elements[0].size.x / 2
     const miny = elements[0].offset.y - elements[0].size.y
-    const maxy = elements[0].offset.y + 100 // Add extra material to clear everything in the holder
+    const maxy = Math.min(elements[0].offset.y + 100, boardProps.sidecutoutMaxY ?? Infinity) // Add extra material to clear everything in the holder
     const depth = Math.max(-0.6, 1 - elements[0].offset.z) // Leave minimum 1mm material at bottom
     solid = solid.cut(drawRectangleByBounds(minx - BOARD_COMPONENT_TOL, minx + boardProps.sidecutout, miny, maxy).sketchOnPlane('XY', elements[0].offset.z).extrude(depth) as Solid)
     solid = solid.cut(drawRectangleByBounds(maxx - boardProps.sidecutout, maxx + BOARD_COMPONENT_TOL, miny, maxy).sketchOnPlane('XY', elements[0].offset.z).extrude(depth) as Solid)
