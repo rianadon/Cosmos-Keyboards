@@ -325,6 +325,17 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     wiredInMatrix: true,
     description: DESC_BACKCOMPAT,
   },
+  'mx-skree': {
+    partName: 'MX Skree Flexible',
+    bomName: 'MX-Compatible Switches',
+    category: 'Sockets',
+    stepFile: '/src/assets/key-mx-skree.step',
+    partOverride: MX_PART,
+    socketSize: [18, 18, 4.7],
+    partBottom: [box(18.7, 18.7, 7.5)],
+    keycap: 'mx',
+    extraBomItems: { ...BOM_DIODE },
+  },
   'ec11': {
     partName: 'EC11 Encoder',
     bomName: 'EC11 Encoders',

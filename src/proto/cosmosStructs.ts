@@ -25,6 +25,8 @@ enumeration('PART', {
   11: 'choc-v1-hotswap',
   12: 'choc-v2-hotswap',
   13: 'mx-pcb-plum',
+  // 14 reserved for mx-pumpkin
+  15: 'mx-skree',
 
   // You wouldn't put many of these on a keyboard.
   16: 'ec11',
