@@ -285,7 +285,7 @@ export class AbsPositionStore extends TupleBaseStore {
   protected transformFrom(v0: number, v1: number, v2: number, v3: number): [number, number, number, number] {
     if (this._nthKey == null) return [-1, -1, -1, -1]
     const { cluster, column, key } = nthKey(this._keyboard, this._nthKey)
-    const parentKey = { ...key, position: 0n }
+    const parentKey = { ...key, position: 0n, rotation: 0n }
     const [x, y, z] = cosmosKeyPosition(parentKey, column, cluster, this._keyboard).evaluate({ flat: false }).pretranslate(v0 / 10, v1 / 10, v2 / 10)
       .xyz().map(x => Math.round(x * 10) / 10)
     return [x, y, z, 0]
@@ -294,7 +294,7 @@ export class AbsPositionStore extends TupleBaseStore {
   protected transformInto(v0: number, v1: number, v2: number, v3: number): [number, number, number, number] {
     if (this._nthKey == null) return [-1, -1, -1, -1]
     const { cluster, column, key } = nthKey(this._keyboard, this._nthKey)
-    const parentKey = { ...key, position: 0n }
+    const parentKey = { ...key, position: 0n, rotation: 0n }
     const parentTransform = cosmosKeyPosition(parentKey, column, cluster, this._keyboard).evaluate({ flat: false })
     const [x, y, z] = new Trsf().translate(v0, v1, v2).premultiply(parentTransform.invert()).xyz()
     return [x * 10, y * 10, z * 10, 0]
@@ -314,7 +314,7 @@ export class AbsRotationStore extends TupleBaseStore {
   protected transformFrom(v0: number, v1: number, v2: number, v3: number): [number, number, number, number] {
     if (this._nthKey == null) return [-1, -1, -1, -1]
     const { cluster, column, key } = nthKey(this._keyboard, this._nthKey)
-    const parentKey = { ...key, rotation: 0n }
+    const parentKey = { ...key, position: 0n, rotation: 0n }
     const [x, y, z] = cosmosKeyPosition(parentKey, column, cluster, this._keyboard).evaluate({ flat: false }).rotateEulerZYX(v0 / 45, v1 / 45, v2 / 45)
       .eulerZYXDeg().map(x => Math.round(x * 10) / 10)
     return [x, y, z, 0]
@@ -323,7 +323,7 @@ export class AbsRotationStore extends TupleBaseStore {
   protected transformInto(v0: number, v1: number, v2: number, v3: number): [number, number, number, number] {
     if (this._nthKey == null) return [-1, -1, -1, -1]
     const { cluster, column, key } = nthKey(this._keyboard, this._nthKey)
-    const parentKey = { ...key, rotation: 0n }
+    const parentKey = { ...key, osition: 0n, rotation: 0n }
     const parentTransform = cosmosKeyPosition(parentKey, column, cluster, this._keyboard).evaluate({ flat: false })
     const [x, y, z] = new Trsf().rotateEulerZYX(v0, v1, v2).multiply(parentTransform.invert()).eulerZYXDeg()
     return [x * 45, y * 45, z * 45, 0]

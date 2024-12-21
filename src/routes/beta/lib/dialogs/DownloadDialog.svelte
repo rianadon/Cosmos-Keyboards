@@ -30,7 +30,7 @@
   let numDownloaded = 0
   $: if (numDownloaded >= 2) $showScheduleEmail = true
   $: showFeedback =
-    $showScheduleEmail && !$emailScheduled && Date.now() - $emailMinimized > 14 * 24 * 3600 * 1000
+    $showScheduleEmail && !$emailScheduled && Date.now() - $emailMinimized > 30 * 24 * 3600 * 1000
 
   const lastUser = get(user)
   const defaultEmail = lastUser.success && lastUser.method == 'Email' ? lastUser.user.login : ''
@@ -162,7 +162,12 @@
   function scheduleEmail(e: Event) {
     e.preventDefault()
     const input = document.getElementsByName('scheduleEmail')[0] as HTMLInputElement
-    trackEvent('scheduleEmail', { email: input.value })
+    trackEvent('scheduleEmail', { email: input.value }).then((success) => {
+      if (!success) {
+        alert('Network Error scheduling email')
+        $emailScheduled = false
+      }
+    })
     $emailScheduled = true
   }
 
@@ -203,7 +208,7 @@
           <p class="mb-1 font-bold">We're building a database of keyboard ergonomics!</p>
           <p>
             And we need your help finding which setups are best. Fill in your email, and in 3 months I'll
-            ask how your board feels. It'll be just one email :)
+            ask how your board feels. No marketing or nasties.
           </p>
           <form class="text-center mt-2" on:submit={scheduleEmail}>
             <label class="text-purple-900/70 dark:text-pink-100/70">

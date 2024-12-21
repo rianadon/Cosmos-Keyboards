@@ -64,7 +64,7 @@
       if (key.type == 'blank') continue
       addToBom(sockets, key.type + bomName(key), {
         item: bomName(key),
-        icon: PART_INFO[key.type].icon || 'switch',
+        icon: PART_INFO[key.type].bomIcon || PART_INFO[key.type].icon || 'switch',
         count: 1,
       })
       Object.entries(extraBomItems(key)).forEach(([key, item]) =>
@@ -73,7 +73,10 @@
     }
     return Object.keys(sockets)
       .sort()
-      .map((s) => sockets[s])
+      .map((s) => {
+        sockets[s].count = Math.ceil(sockets[s].count)
+        return sockets[s]
+      })
   }
 
   function connectorsForSide(conf: Cuttleform) {

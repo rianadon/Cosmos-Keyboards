@@ -1213,6 +1213,7 @@
                   <button
                     class="text-sm underline opacity-70 px-2 py-0.5 rounded"
                     class:bg-pink-300={$useAbsolute}
+                    class:dark:bg-pink-800={$useAbsolute}
                     on:click={() => ($useAbsolute = !$useAbsolute)}
                   >
                     Show {#if $useAbsolute}relative{:else}absolute{/if} coords

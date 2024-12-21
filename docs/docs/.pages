@@ -1,11 +1,6 @@
 nav:
   - ...
-  - hand-scans.md
-  - hand-fitting.md
   - recovery.md
-  - cad.md
-  - expert.md
   - qmk-rp2040.md
   - contributing.md
   - credits.md
-  - assembly-service.md

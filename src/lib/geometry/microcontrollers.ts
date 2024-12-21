@@ -299,7 +299,6 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     rightSidePins: ['C1', 'C2', 'C3', 'C4', 'C5', 'C6'],
     isGPIO: /(R|C)\d+/,
     backstopHeight: 0,
-    draft: true,
     dontCount: true,
     description:
       "For use with Cyboard's Dactyl Flex PCBs. The Microcontroller has one native USB-C port and one fake one (good for connecting halves but not for plugging in).\nSupports both wired and wireless (longer) versions.",

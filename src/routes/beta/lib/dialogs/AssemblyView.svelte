@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher, onDestroy, onMount } from 'svelte'
-  import { mdiChevronLeft, mdiChevronRight } from '@mdi/js'
+  import { mdiChevronLeft, mdiChevronRight, mdiInformationOutline } from '@mdi/js'
   import Icon from '$lib/presentation/Icon.svelte'
   import type { FullGeometry, KeyboardMeshes } from '../viewers/viewer3dHelpers'
   import type { Center } from '$lib/worker/config'
@@ -74,6 +74,16 @@
     <img src={modelImg} class="w-full" />
     <p class="my-8">
       Your Keyboard arrives pre-assembled, pre-programmed, and ready to immediately start typing on!
+    </p>
+    <p class="flex justify-center">
+      <a
+        href="docs/assembly-service/"
+        target="_blank"
+        class="flex gap-2 items-center bg-white dark:bg-slate-800 font-medium mb-4 hover:bg-teal-200/70 dark:hover:bg-pink-900/70 rounded px-4 py-1"
+      >
+        <Icon path={mdiInformationOutline} />
+        About Assembly Service
+      </a>
     </p>
   </div>
   <div class="flex-1 px-4">

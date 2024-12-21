@@ -952,7 +952,7 @@
 
         {#if flags.assembly}
           <button
-            class="relative bg-teal-500/10 hover:bg-teal-500/30 rounded mt-8 px-4 py-2 mx--2 text-start"
+            class="relative bg-teal-500/10 hover:bg-teal-500/30 rounded mt-8 px-4 py-2 ml--2 text-start"
             class:hover:animate-wiggle={$assemblyIsNew}
             on:click={() => (assemblyOpen = true) && ($assemblyIsNew = false)}
           >
@@ -969,7 +969,7 @@
                 >
                 <span class="ml-0.5" />
                 {#each SORTED_VENDORS as vendor}
-                  <Icon class="inline-flag mx-0.5 mt--0.5" size="1.3em" name="flag-{vendor.flag}" />
+                  <Icon class="inline mx-0.5 mt--0.5" size="1.3em" name="flag-{vendor.flag}" />
                 {/each}
               </div>
               <div

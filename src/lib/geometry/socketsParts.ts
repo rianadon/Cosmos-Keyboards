@@ -28,8 +28,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     keycap: 'mx',
     extraBomItems: { ...BOM_DIODE },
     wiredInMatrix: true,
-    description:
-      'The simplest and most compatible switch socket in Cosmos. Use these to if soldering directly to your MX switches, or if you are using SU120 or MxLEDBit PCBs.\nAlso use these if you are using column flex PCBs such as the ones Skree sells.'
+    description: 'The simplest and most compatible switch socket in Cosmos. Use these to if soldering directly to your MX switches, or if you are using SU120, MxLEDBit, or Cyboard PCBs.'
       + DESC_MX,
     icon: 'mx',
     bomIcon: 'switch',
@@ -45,7 +44,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     keycap: 'mx',
     extraBomItems: { 'pcb': { item: 'Plum Twist PCBs, 1.6mm Thick', icon: 'pcb', count: 1 } },
     wiredInMatrix: true,
-    description: "Don't use this. Or you know what you're doing." + DESC_MX,
+    description: "Don't use this. Or do if you know what you're doing." + DESC_MX,
     icon: 'plum-twist',
     bomIcon: 'switch',
   },
@@ -73,6 +72,29 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     icon: 'plum-twist',
     bomIcon: 'switch',
   },
+  'mx-skree': {
+    partName: 'MX + Skree Flexible PCBs',
+    bomName: () => 'MX-Compatible Switches',
+    category: 'Sockets',
+    stepFile: '/target/key-mx-skree.step',
+    partOverride: MX_PART,
+    singlePartForVariants: true,
+    socketSize: () => [18, 18, 4.7] as PartSize,
+    partBottom: () => [box(18.7, 18.7, 7.5)],
+    keycap: 'mx',
+    extraBomItems: () => ({ 'pcb': { item: 'Skree Flex PCBs', icon: 'pcb', count: 1 / 42 } }),
+    variants: {
+      led: ['North LED', 'South LED'],
+    },
+    encodeVariant: makeEncodeVariant('mx-skree', { led: 2 }),
+    decodeVariant: makeDecodeVariant('mx-skree', { led: 2 }),
+    wiredInMatrix: () => true,
+    description:
+      'Flex PCBs eliminate needing to carefully solder wires to every switch, saving you hours of time. These PCBs are sold by TheBigSkree, and the socket in Cosmos has alignment guides designed to line up and help hold in the flex PCBs.'
+      + DESC_MX,
+    icon: 'skree',
+    bomIcon: 'switch',
+  },
   'mx-pcb': {
     partName: 'MX + Amoeba King PCBs',
     bomName: 'MX-Compatible Switches',
@@ -92,7 +114,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     icon: 'amoeba-king',
     bomIcon: 'switch',
     description:
-      'A socket with alignment guides for the open-source <a href="https://github.com/JKing-B16/keyboard-pcbs/tree/master/amoeba-king">Amoeba King PCB</a>. These only work with the Kings, so make sure you have the right PCBs.\n[warn]I do not recommend buying new Amoebas because there are better options (Direct Solder with flex PCBs or Plum Twists)'
+      'A socket with alignment guides for the open-source <a href="https://github.com/JKing-B16/keyboard-pcbs/tree/master/amoeba-king">Amoeba King PCB</a>. These only work with the Kings, so make sure you have the right PCBs.\n[warn]I do not recommend buying new Amoebas because there are better options (Skree Flexible PCBs or Plum Twists)'
       + DESC_MX,
   },
   'mx-hotswap': {
@@ -325,17 +347,6 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     wiredInMatrix: true,
     description: DESC_BACKCOMPAT,
   },
-  'mx-skree': {
-    partName: 'MX Skree Flexible',
-    bomName: 'MX-Compatible Switches',
-    category: 'Sockets',
-    stepFile: '/src/assets/key-mx-skree.step',
-    partOverride: MX_PART,
-    socketSize: [18, 18, 4.7],
-    partBottom: [box(18.7, 18.7, 7.5)],
-    keycap: 'mx',
-    extraBomItems: { ...BOM_DIODE },
-  },
   'ec11': {
     partName: 'EC11 Encoder',
     bomName: 'EC11 Encoders',
@@ -507,7 +518,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     wiredInMatrix: true,
     pinsNeeded: 2,
     icon: 'joystick',
-    description: 'A small joystick for gaming or moving the mouse.',
+    description: 'A small joystick from Adafruit for gaming or moving the mouse.',
   },
   'joystick-ps2-40x45': {
     partName: 'PS2 Style Joystick Module',
@@ -520,7 +531,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     wiredInMatrix: true,
     pinsNeeded: 2,
     icon: 'joystick',
-    description: 'A large joystick for gaming or moving the mouse.',
+    description: 'A large joystick for gaming or moving the mouse. Supports <a href="https://www.amazon.ca/gp/product/B089VXPHDH">this joystock on Amazon</a>.',
   },
 }
 

@@ -93,6 +93,7 @@
   import SelectProfileInner from './SelectProfileInner.svelte'
   import SelectProfileLabel from './SelectProfileLabel.svelte'
   import SelectMicrocontrollerInner from './SelectMicrocontrollerInner.svelte'
+  import { trackEvent } from '$lib/telemetry'
 
   export let cosmosConf: CosmosKeyboard
   export let conf: FullCuttleform
@@ -548,6 +549,14 @@
     <InfoBox>
       This variant requires Plum Twist or Spiral Galaxy PCBs. For more information and documentation
       refer to the <a class="text-pink-600 underline" href="plum-twist">Plum Twist website</a>.
+    </InfoBox>
+  {:else if $protoConfig.partType.type == 'mx-skree'}
+    <InfoBox>
+      This variant requires Skree Flex PCBs with MX hotswaps, which you can purchase from <a
+        class="text-pink-600 underline"
+        on:click={() => trackEvent('skree', { prodcut: 'claw-flexible-pcbs' })}
+        href="https://skree.us/products/claw-flexible-pcbs?ref=cosmos">TheBigSkree website</a
+      >.
     </InfoBox>
   {:else if $protoConfig.partType.type == 'mx-hotswap'}
     <InfoBox>
