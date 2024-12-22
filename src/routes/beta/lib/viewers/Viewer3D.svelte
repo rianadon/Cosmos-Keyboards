@@ -1606,6 +1606,7 @@
       <TransformControls
         snap={snapRotation}
         visible={!showSupports}
+        useAbsolute={$useAbsolute}
         on:move={(e) => onMove(e.detail, false)}
         on:change={(e) => onMove(e.detail, true)}
       />

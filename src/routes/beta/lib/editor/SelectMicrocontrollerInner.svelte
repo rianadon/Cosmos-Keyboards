@@ -34,7 +34,7 @@
   <span>{option.label}</span>
 </div>
 
-{#if $tooltipOpen}
+{#if $tooltipOpen && option.key !== null}
   <div
     use:melt={$content}
     transition:fade={{ duration: 50 }}
