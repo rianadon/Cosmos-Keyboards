@@ -1,5 +1,6 @@
 import type { gp_Pnt, OpenCascadeInstance, TopoDS_Vertex } from '$assets/replicad_single'
 import { type AnyShape, cast, getOC, type Solid, Transformation as OCCTransformation } from 'replicad'
+import { Euler } from 'three/src/math/Euler.js'
 import { Matrix4 } from 'three/src/math/Matrix4.js'
 import { Vector3 } from 'three/src/math/Vector3.js'
 
@@ -104,6 +105,12 @@ export default class Trsf {
     this._vertex = null
     this._point = null
     return this
+  }
+
+  rotateEulerZYX(x: number, y: number, z: number, position: Point = [0, 0, 0]) {
+    return this.rotate(x, position, [1, 0, 0])
+      .rotate(y, position, [0, 1, 0])
+      .rotate(z, position, [0, 0, 1])
   }
 
   rotated(angle: number, position: Point = [0, 0, 0], direction: Point = [0, 0, 1]) {
@@ -269,5 +276,12 @@ export default class Trsf {
 
   clone() {
     return new Trsf(new Matrix4().copy(this.wrapped))
+  }
+
+  eulerZYXRad(): Point {
+    return new Euler().setFromRotationMatrix(this.Matrix4(), 'ZYX').toArray().slice(0, 3) as Point
+  }
+  eulerZYXDeg(): Point {
+    return this.eulerZYXRad().map(x => x * 180 / Math.PI) as Point
   }
 }

@@ -62,6 +62,11 @@ export function mapObj<K extends string, V, R>(obj: Record<K, V>, f: (a: V, k: K
   return newObj
 }
 
+export function mapMap<K extends string, V, R>(map: Map<K, V>, f: (a: V, k: K) => R): Map<K, R> {
+  const newEntries: [K, R][] = Array.from(map, ([key, value]) => [key, f(value, key)])
+  return new Map(newEntries)
+}
+
 export function filterObj<V>(obj: Record<string, V>, f: (k: string, v: V) => boolean): Record<string, V> {
   const newObj: Record<string, V> = {}
   for (const key of Object.keys(obj)) {
@@ -144,4 +149,10 @@ export function trimUndefined<T extends object>(a: T) {
     if (typeof a[key] === 'undefined') delete a[key]
   }
   return a
+}
+
+export function count<T>(items: T[]): TallyMap<T> {
+  const map = new TallyMap<T>()
+  items.forEach(i => map.incr(i))
+  return map
 }

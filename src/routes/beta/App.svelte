@@ -15,6 +15,7 @@
   import Performance from './lib/Performance.svelte'
   import { base } from '$app/paths'
 
+  import AssemblyView from './lib/dialogs/AssemblyView.svelte'
   import UrlView from './lib/dialogs/URLView.svelte'
   import BomView from './lib/dialogs/BomView.svelte'
   import KleView from './lib/dialogs/KleView.svelte'
@@ -36,7 +37,7 @@
     type FullCenter,
     type FullCuttleform,
   } from '$lib/worker/config'
-  import { checkConfig, type ConfError, isRenderable, isWarning } from '$lib/worker/check'
+  import { checkConfig, type ConfErrors, isRenderable, isWarning, salientError } from '$lib/worker/check'
   import VisualEditor2 from './lib/editor/VisualEditor2.svelte'
   import { Matrix4 } from 'three'
   import {
@@ -55,6 +56,7 @@
     noLabels,
     showGrid,
     showHelp,
+    assemblyIsNew,
   } from '$lib/store'
   import { onDestroy } from 'svelte'
   import { browser } from '$app/environment'
@@ -68,6 +70,8 @@
   import { T } from '@threlte/core'
   import Checkbox from '$lib/presentation/Checkbox.svelte'
   import type { unibody } from '$lib/worker/modeling/transformation-ext'
+  import ConfError from './lib/ConfError.svelte'
+  import { SORTED_VENDORS } from '@pro/assemblyService'
 
   const DEF_CENTER = [-35.510501861572266, -17.58449935913086, 35.66889877319336] as [
     number,
@@ -92,6 +96,7 @@
   let referenceElementPrefs: HTMLButtonElement
   let darkMode: boolean
   let prefsOpen: boolean
+  let assemblyOpen: boolean
 
   let proOpen = false
   let editorContent: string
@@ -103,8 +108,10 @@
     deserialize('cm', null)
   )
   if (state.error)
-    confError.set({ type: 'exception', error: state.error, side: 'right', when: 'parsing URL' })
-  $: if ($confError && $confError.type == 'exception') console.error($confError.error)
+    confError.set([{ type: 'exception', error: state.error, side: 'right', when: 'parsing URL' }])
+  $: $confError.forEach((e) => {
+    if (e && e.type == 'exception') console.error(e.error)
+  })
   console.log('state', state)
   let initialEditorContent = state.content
 
@@ -133,7 +140,6 @@
   let mode = state.content ? 'advanced' : 'basic'
   let viewer = '3d'
   let transparency = 95
-  let errorMsg = false
 
   let downloading = false
   let urlView = false
@@ -252,7 +258,7 @@
 
   const calcOtherPromises = (conf: Cuttleform, side: 'left' | 'right' | 'unibody') => ({
     intersectionsPromise: pool.execute(
-      (w) => w.intersections(conf, side) as Promise<ConfError | undefined>,
+      (w) => w.intersections(conf, side) as Promise<ConfErrors>,
       'Intersections'
     ),
     cutPromise: pool.execute((w) => w.cutWall(conf), 'Cut wall'),
@@ -339,25 +345,27 @@
       oldTempConfig = cloneConfig(conf)
     }
 
-    let originalErr: ConfError | undefined
+    let originalErr: ConfErrors = []
     for (const kbd of kbdNames) {
       originalErr = checkConfig(conf[kbd]!, undefined, false, kbd)
-      if (originalErr) break
+      if (originalErr.length) break
     }
     confError.set(originalErr)
-    if (originalErr) return
+    if (!isRenderable(originalErr)) return
 
     const renderNumber = ++lastRenderNumber
     console.log('PROCESSING', renderNumber)
     try {
       setBottomZ(conf)
     } catch (e) {
-      confError.set({
-        type: 'exception',
-        error: e as Error,
-        side: 'right',
-        when: 'Setting keyboard bottom',
-      })
+      confError.set([
+        {
+          type: 'exception',
+          error: e as Error,
+          side: 'right',
+          when: 'Setting keyboard bottom',
+        },
+      ])
       return
     }
     const newGeo = newFullGeometry(conf)
@@ -366,10 +374,10 @@
     console.log('GENERATING. conf incoming', conf)
     for (const kbd of kbdNames) {
       originalErr = checkConfig(conf[kbd]!, newGeo[kbd]!, full, kbd)
-      if (originalErr) break
+      if (originalErr.length) break
     }
     confError.set(originalErr)
-    if (originalErr) return
+    if (!isRenderable(originalErr)) return
 
     // Reset the state
     ocError = undefined
@@ -437,8 +445,8 @@
             continue
           }
           if (finished.prom == otherPromises[finished.i].intersectionsPromise) {
-            if (!originalErr) confError.set(result)
-            originalErr = result
+            originalErr = [...originalErr, ...result]
+            confError.set(originalErr)
           } else if (renderNumber >= lastRenderNumber) {
             if (finished.prom == otherPromises[finished.i].holderPromise) {
               if (conf[finished.kbd]!.microcontroller) meshes[finished.kbd]!.holderBuf = result.mesh
@@ -529,6 +537,14 @@
        <Github size="2em" />
        </a>-->
 
+  <a class="hoverbtn" href="https://cosmos-store.ryanis.cool?utm_source=generator">
+    <Icon path={mdi.mdiShopping} />
+    Store
+  </a>
+  <a class="hoverbtn" href="showcase/">
+    <Icon path={mdi.mdiSealVariant} />
+    Showcase
+  </a>
   <a
     class="mr-6 flex items-center gap-2 border-2 px-3 py-1 rounded border-gray-500/20 hover:border-gray-500 transition-border-color text-gray-600 dark:text-gray-200"
     href="docs/"
@@ -539,160 +555,57 @@
     <Login bind:dialogOpen={proOpen} />
   {/if}
 </header>
-<main class="px-8 dark:text-slate-100 flex flex-col xs:flex-row-reverse">
-  <div class="flex-1">
-    {#if state.keyboard == 'lightcycle'}
-      <div class="border-2 border-yellow-400 py-2 px-4 m-2 rounded bg-white dark:bg-gray-900">
-        Generating the Lightcycle case takes an extremeley long time, so it is disabled by default. Turn
-        on <span class="whitespace-nowrap bg-gray-200 dark:bg-gray-800 px-2 rounded">Include Case</span> to
-        generate it.
-      </div>
-    {/if}
-    <div class="viewer relative xs:sticky h-[100vh] top-0">
-      <div class="flex gap-1 justify-center items-center h-[42px]">
-        <Preset
-          purple
-          class="relative z-10 !px-2"
-          on:click={() => (viewer = '3d')}
-          selected={viewer == '3d'}>3D</Preset
-        >
-        <Preset
-          purple
-          class="relative z-10 !px-2"
-          on:click={() => (viewer = 'top')}
-          selected={viewer == 'top'}>Keys</Preset
-        >
-        <Preset
-          purple
-          class="relative z-10 !px-2"
-          on:click={() => (viewer = 'programming')}
-          selected={viewer == 'programming'}>Program</Preset
-        >
-        <div class="preset-overflow <xl:hidden">
+{#if assemblyOpen}
+  <AssemblyView
+    {size}
+    {center}
+    meshes={keyboardEntries}
+    geometry={microcontrollerGeometry}
+    on:close={() => (assemblyOpen = false)}
+  />
+{:else}
+  <main class="px-8 dark:text-slate-100 flex flex-col xs:flex-row-reverse">
+    <div class="flex-1">
+      {#if state.keyboard == 'lightcycle'}
+        <div class="border-2 border-yellow-400 py-2 px-4 m-2 rounded bg-white dark:bg-gray-900">
+          Generating the Lightcycle case takes an extremeley long time, so it is disabled by default.
+          Turn on <span class="whitespace-nowrap bg-gray-200 dark:bg-gray-800 px-2 rounded"
+            >Include Case</span
+          > to generate it.
+        </div>
+      {/if}
+      <div class="viewer relative xs:sticky h-[100vh] top-0">
+        <div class="flex gap-1 justify-center items-center h-[42px]">
           <Preset
             purple
             class="relative z-10 !px-2"
-            on:click={() => (viewer = 'board')}
-            selected={viewer == 'board'}>Base</Preset
+            on:click={() => (viewer = '3d')}
+            selected={viewer == '3d'}>3D</Preset
           >
           <Preset
             purple
             class="relative z-10 !px-2"
-            on:click={() => (viewer = 'thick')}
-            selected={viewer == 'thick'}>Thickness</Preset
+            on:click={() => (viewer = 'top')}
+            selected={viewer == 'top'}>Keys</Preset
           >
-          {#if $showTiming}<Preset
-              purple
-              class="relative z-10 !px-2"
-              on:click={() => (viewer = 'timing')}
-              selected={viewer == 'timing'}>Timing</Preset
-            >{/if}
-          {#if $developer}
+          <Preset
+            purple
+            class="relative z-10 !px-2"
+            on:click={() => (viewer = 'programming')}
+            selected={viewer == 'programming'}>Program</Preset
+          >
+          <div class="preset-overflow <xl:hidden">
             <Preset
               purple
               class="relative z-10 !px-2"
-              on:click={() => (viewer = 'dev')}
-              selected={viewer == 'dev'}>Dev</Preset
+              on:click={() => (viewer = 'board')}
+              selected={viewer == 'board'}>Base</Preset
             >
-          {/if}
-        </div>
-        <Preset
-          purple
-          class="xl:hidden relative z-10 !px-2 flex items-center gap-2"
-          selected={['board', 'thick', 'timing', 'dev'].includes(viewer)}
-          bind:button={referenceElementTools}><Icon path={mdi.mdiToolboxOutline} /> ...</Preset
-        >
-        <input class="relative z-10 mx-2" type="range" min="0" max="100" bind:value={transparency} />
-        {#if flags.hand}<Preset
-            purple
-            square
-            class="relative z-10"
-            on:click={() => ($showHand = !$showHand)}
-            selected={$showHand}><Icon path={mdi.mdiHandBackRightOutline} /></Preset
-          >{/if}
-        <Preset
-          purple
-          square
-          class="relative z-10 !px-2"
-          bind:button={referenceElementPrefs}
-          on:click={() => (prefsOpen = !prefsOpen)}
-          selected={prefsOpen}><Icon path={mdi.mdiCogOutline} /></Preset
-        >
-      </div>
-      <div style="--z-index: 1000">
-        <Popover
-          referenceElement={referenceElementPrefs}
-          placement="bottom-end"
-          spaceAway={4}
-          bind:isOpen={prefsOpen}
-        >
-          <div
-            class="bg-[#f8f5ff]/80 dark:bg-gray-900/80 backdrop-blur-md px-2 py-1 mr-[-.5rem] rounded-2 text-small select-none"
-            in:fade={{ duration: 50 }}
-            out:fade={{ duration: 150 }}
-          >
-            <div>
-              <button
-                title="View Left Side Only"
-                class="basicbutton px-2 rounded-l"
-                on:click={() => ($view = 'left')}
-                class:selected={$view == 'left'}><Icon name="kb-left" /></button
-              >
-              <button
-                title="View Both Sides"
-                class="basicbutton px-2"
-                on:click={() => ($view = 'both')}
-                class:selected={$view == 'both'}><Icon name="kbs" /></button
-              >
-              <button
-                title="View Right Side Only"
-                class="basicbutton px-2 rounded-r"
-                on:click={() => ($view = 'right')}
-                class:selected={$view == 'right'}><Icon name="kb-right" /></button
-              >
-            </div>
-            <label class="flex items-center mt-2 mb-4">
-              <Checkbox small purple basic bind:value={$showGrid} /> Show Grid
-            </label>
-            <label class="flex items-center my-2">
-              <Checkbox small purple basic bind:value={$noWall} /> Hide Wall
-            </label>
-            <label class="flex items-center my-2">
-              <Checkbox small purple basic bind:value={$noBase} /> Hide Base
-            </label>
-            <label class="flex items-center my-2">
-              <Checkbox small purple basic bind:value={$noLabels} /> Hide Labels
-            </label>
-            <label class="flex items-center my-2">
-              <Checkbox small purple basic bind:value={$noBlanks} /> Hide Shapers
-            </label>
-            <button
-              class="text-center text-sm w-full opacity-70"
-              on:click={() => {
-                $showHelp = true
-                prefsOpen = false
-              }}>Show Help</button
-            >
-          </div>
-        </Popover>
-      </div>
-      <div class="xl:hidden" style="--z-index: 50">
-        <Popover
-          triggerEvents={['click']}
-          referenceElement={referenceElementTools}
-          placement="bottom-end"
-          spaceAway={4}
-        >
-          <div
-            class="bg-white/50 dark:bg-gray-800/50 px-2 py-1 mr-[-.5rem] rounded"
-            in:fade={{ duration: 50 }}
-            out:fade={{ duration: 150 }}
-          >
-            <Preset purple class="!px-2" on:click={() => (viewer = 'board')} selected={viewer == 'board'}
-              >Base</Preset
-            >
-            <Preset purple class="!px-2" on:click={() => (viewer = 'thick')} selected={viewer == 'thick'}
-              >Thickness</Preset
+            <Preset
+              purple
+              class="relative z-10 !px-2"
+              on:click={() => (viewer = 'thick')}
+              selected={viewer == 'thick'}>Thickness</Preset
             >
             {#if $showTiming}<Preset
                 purple
@@ -709,409 +622,399 @@
               >
             {/if}
           </div>
-        </Popover>
-      </div>
-      {#if viewer == '3d'}
-        <Viewer3D
-          {darkMode}
-          geometry={microcontrollerGeometry}
-          transparency={cTransparency}
-          conf={isRenderable($confError) ? config?.right ?? config?.unibody : undefined}
-          isExpert={mode == 'advanced'}
-          {showSupports}
-          {center}
-          bind:showFit
-          enableZoom={true}
-          showHand={$showHand}
-          progress={generatorProgress}
-          {size}
-        >
-          {#each keyboardEntries as [kbd, mesh] (kbd)}
-            {@const cent = center[kbd]}
-            {#if cent}
-              <T.Group position={[-cent[0], -cent[1], -cent[2]]} scale.x={kbd == 'left' ? -1 : 1}>
-                <KeyboardModel
-                  side={kbd}
-                  {hideWall}
-                  {transparency}
-                  {showSupports}
-                  microcontrollerGeometry={microcontrollerGeometry[kbd]}
-                  meshes={mesh}
-                />
-              </T.Group>
-            {/if}
-          {/each}
-        </Viewer3D>
-      {:else if viewer == 'thick'}
-        <Thick3D
-          geometry={isRenderable($confError) ? geometry : undefined}
-          {center}
-          enableZoom={true}
-          {darkMode}
-          {size}
-        >
-          {#each keyboardEntries as [kbd, mesh] (kbd)}
-            {@const cent = center[kbd]}
-            {#if cent}
-              <T.Group position={[-cent[0], -cent[1], -cent[2]]} scale.x={kbd == 'left' ? -1 : 1}>
-                <KeyboardModel
-                  side={kbd}
-                  noWeb
-                  {hideWall}
-                  {transparency}
-                  {showSupports}
-                  microcontrollerGeometry={microcontrollerGeometry[kbd]}
-                  meshes={mesh}
-                />
-              </T.Group>
-            {/if}
-          {/each}
-        </Thick3D>
-      {:else if viewer == 'top'}
-        <ViewerLayout {geometry} {darkMode} conf={config} confError={$confError} />
-      {:else if viewer == 'programming'}
-        <ViewerMatrix {geometry} {darkMode} confError={$confError} />
-      {:else if viewer == 'board'}
-        <ViewerBottom {geometry} {darkMode} confError={$confError} />
-      {:else if viewer == 'timing'}
-        <ViewerTiming {pool} {darkMode} />
-      {:else if viewer == 'dev'}
-        <ViewerDev />
-      {/if}
-      {#if filament && (config?.right ?? config?.unibody).shell?.type == 'basic'}
-        <div
-          class="absolute bottom-0 right-0 text-right mb-2 bg-white/50 dark:bg-gray-800/50 rounded px-2 py-0.5 z-10"
-        >
-          {filament.length.toFixed(1)}m
-          <span class="text-gray-600 dark:text-gray-100">of filament</span>
-          <button class="s-help" bind:this={referenceElement}>
-            <Icon path={mdi.mdiInformation} size="20px" />
-          </button>
+          <Preset
+            purple
+            class="xl:hidden relative z-10 !px-2 flex items-center gap-2"
+            selected={['board', 'thick', 'timing', 'dev'].includes(viewer)}
+            bind:button={referenceElementTools}><Icon path={mdi.mdiToolboxOutline} /> ...</Preset
+          >
+          <input class="relative z-10 mx-2" type="range" min="0" max="100" bind:value={transparency} />
+          {#if flags.hand}<Preset
+              purple
+              square
+              class="relative z-10"
+              on:click={() => ($showHand = !$showHand)}
+              selected={$showHand}><Icon path={mdi.mdiHandBackRightOutline} /></Preset
+            >{/if}
+          <Preset
+            purple
+            square
+            class="relative z-10 !px-2"
+            bind:button={referenceElementPrefs}
+            on:click={() => (prefsOpen = !prefsOpen)}
+            selected={prefsOpen}><Icon path={mdi.mdiCogOutline} /></Preset
+          >
+        </div>
+        <div style="--z-index: 1000">
           <Popover
-            triggerEvents={['hover', 'focus']}
-            {referenceElement}
-            placement="top"
+            referenceElement={referenceElementPrefs}
+            placement="bottom-end"
             spaceAway={4}
-            on:change={({ detail: { isOpen } }) => (showSupports = isOpen)}
+            bind:isOpen={prefsOpen}
           >
             <div
-              class="flex gap-4 items-end rounded bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 px-2 py-1 mx-4 text-gray-600 dark:text-gray-100"
-              in:fade={{ duration: 100 }}
-              out:fade={{ duration: 250 }}
+              class="bg-[#f8f5ff]/80 dark:bg-gray-900/80 backdrop-blur-md px-2 py-1 mr-[-.5rem] rounded-2 text-small select-none"
+              in:fade={{ duration: 50 }}
+              out:fade={{ duration: 150 }}
             >
-              <FilamentChart fractionKeyboard={filament.fractionKeyboard} />
               <div>
-                <p class="whitespace-nowrap mb-2">
-                  Estimated {#if config.right}for 2 halves{/if} using
-                  <span class="font-semibold text-teal-500 dark:text-teal-400">100% infill</span>,<br
-                  /><span class="font-semibold text-purple-500 dark:text-purple-400"
-                    >{SUPPORTS_DENSITY * 100}% supports density</span
-                  >.
-                </p>
-                <p class="whitespace-nowrap mb-1">
-                  This will cost about <span class="font-semibold text-black dark:text-white"
-                    >${filament.cost.toFixed(2)}</span
-                  >.
-                </p>
-                <p class="whitespace-nowrap text-sm">
-                  The keyboard itself uses {filament.keyboard.length.toFixed(1)}m ({filament.keyboard.mass.toFixed(
-                    0
-                  )}g).
-                </p>
+                <button
+                  title="View Left Side Only"
+                  class="basicbutton px-2 rounded-l"
+                  on:click={() => ($view = 'left')}
+                  class:selected={$view == 'left'}><Icon name="kb-left" /></button
+                >
+                <button
+                  title="View Both Sides"
+                  class="basicbutton px-2"
+                  on:click={() => ($view = 'both')}
+                  class:selected={$view == 'both'}><Icon name="kbs" /></button
+                >
+                <button
+                  title="View Right Side Only"
+                  class="basicbutton px-2 rounded-r"
+                  on:click={() => ($view = 'right')}
+                  class:selected={$view == 'right'}><Icon name="kb-right" /></button
+                >
               </div>
+              <label class="flex items-center mt-2 mb-4">
+                <Checkbox small purple basic bind:value={$showGrid} /> Show Grid
+              </label>
+              <label class="flex items-center my-2">
+                <Checkbox small purple basic bind:value={$noWall} /> Hide Wall
+              </label>
+              <label class="flex items-center my-2">
+                <Checkbox small purple basic bind:value={$noBase} /> Hide Base
+              </label>
+              <label class="flex items-center my-2">
+                <Checkbox small purple basic bind:value={$noLabels} /> Hide Labels
+              </label>
+              <label class="flex items-center my-2">
+                <Checkbox small purple basic bind:value={$noBlanks} /> Hide Shapers
+              </label>
+              <button
+                class="text-center text-sm w-full opacity-70"
+                on:click={() => {
+                  $showHelp = true
+                  prefsOpen = false
+                }}>Show Help</button
+              >
             </div>
           </Popover>
         </div>
-      {/if}
-      {#if $codeError && viewer == '3d'}
-        <div class="absolute text-white m-4 left-0 right-0 rounded p-4 top-[10%] bg-red-700">
-          <h3 class="font-bold">There is an error with your code.</h3>
-          <p class="mb-2">{$codeError.message}</p>
-        </div>
-      {:else if $confError && viewer == '3d'}
-        <div
-          class="errorMsg"
-          class:expand={errorMsg}
-          class:bg-red-700={!isWarning($confError)}
-          class:bg-yellow-700={isWarning($confError)}
-        >
-          {#if errorMsg}<h3 class="font-bold">There is a problem with the configuration.</h3>{/if}
-          {#if $confError.type == 'invalid'}
-            <div>
-              <p class="mb-2">
-                In your configuration, the property <code>{$confError.item}</code> has the wrong data type.
-              </p>
-              <p class="mb-2">
-                Its value was found to be <code>{JSON.stringify($confError.value)}</code>, but it should
-                be one of: <code>{$confError.valid.join(', ')}</code>.
-              </p>
-            </div>
-          {:else if $confError.type == 'wrong'}
-            <div>
-              <p class="mb-2">
-                In your configuration, the property <code>{$confError.item}</code> has the wrong data type.
-              </p>
-              <p class="mb-2">
-                Its value was found to be <code>{JSON.stringify($confError.value)}</code>.
-              </p>
-            </div>
-          {:else if $confError.type == 'oob'}
-            <div>
-              <p class="mb-2">
-                In your configuration, the element with value <code>{$confError.idx}</code> in
-                <code>{$confError.item}</code> is out of bounds.
-              </p>
-              <p class="mb-2">The value must be less than <code>{$confError.len}</code>.</p>
-            </div>
-          {:else if $confError.type == 'exception'}
-            <p class="mb-2">When {$confError.when}: <code>{$confError.error.message}</code>.</p>
-          {:else if $confError.type == 'nan'}
-            <p class="mb-2">
-              One of the key positions has a value that's not a number. This often happens after an
-              update that adds new configuration options, so double check the Advanced tab and make sure
-              that every setting is set.
-            </p>
-          {:else if $confError.type == 'nokeys'}
-            <p class="mb-2">
-              You silly goose! You can't make a keyboard without keys. <br />That's like riding a
-              snowboard without snow.
-            </p>
-          {:else if $confError.type == 'missing'}
-            <div>
-              <p class="mb-2">
-                In your configuration, the property <code>{$confError.item}</code> is missing.
-              </p>
-              {#if $confError.key}
-                <p class="mb-2">Check the key with this configuration:</p>
-                <pre class="text-xs"><code>{JSON.stringify($confError.key, null, 2)}</code></pre>
-              {/if}
-            </div>
-          {:else if $confError.type == 'wrongformat'}
-            <div>
-              <p class="mb-2">The return type in Expert mode is incorrect.</p>
-              <p class="mb-2">Ensure the final lines of your code look like the following.</p>
-              <pre class="text-xs"><code
-                  >export default &lbrace;
-  right: &lbrace;
-    ...options,
-    keys: [...fingers, ...thumbs],
-    wristRestOrigin,
-  &rbrace;,
-  left: &lbrace;
-    ...options,
-    keys: mirror([...fingers, ...thumbs]),
-    wristRestOrigin,
-  &rbrace;,
-&rbrace;</code
-                ></pre>
-            </div>
-          {:else if errorMsg}
-            <div>
-              {#if $confError.type == 'intersection'}
-                {#if $confError.what == 'keycap' && ($confError.i < 0 || $confError.j < 0)}
-                  <p class="mb-2">
-                    One of the keycaps intersects the walls{#if $confError.travel}&nbsp;when pressed down {$confError
-                        .travel[0]}mm{/if}.
-                  </p>
-                {:else if $confError.what == 'keycap'}
-                  <p class="mb-2">
-                    Two of the keycaps intersect, either in their current positions or when pressed down{#if $confError.travel}&nbsp;with
-                      {$confError.travel[0]}mm of travel{/if}.
-                  </p>
-                {:else if $confError.what == 'part'}
-                  <p class="mb-2">
-                    Two of the parts
-                    {#if config && ((config?.right ?? config?.unibody).keys[$confError.i].type == 'mx-pcb' || (config?.right ?? config?.unibody).keys[$confError.j].type == 'mx-pcb')}
-                      (switches or PCBs)
-                    {:else}
-                      (switches)
-                    {/if} intersect.
-                  </p>
-                {:else if $confError.what == 'socket' && ($confError.i < 0 || $confError.j < 0)}
-                  <p class="mb-2">
-                    One of the sockets intersects the walls. This is ok, but the exported model will
-                    contains errors and might create problems when slicing.
-                  </p>
-                {:else if $confError.what == 'socket'}
-                  <p class="mb-2">
-                    Two of the key sockets intersect. This is ok, but the exported model will contain
-                    errors and might create problems when slicing.
-                  </p>
-                {/if}
-                <p class="mb-2">
-                  If you're using Advanced mode, you can try adjusting the stagger, increasing the
-                  spacing, or adding outwards arc to correct the issue.
-                  {#if $confError.what != 'socket'}You can also try decreasing webMinThicknessFactor in
-                    expert mode.{/if}
-                </p>
-                <p class="mb-2">
-                  If the issue is within the thumb cluster, increase the vertical and horizontal spacings
-                  in Advanced mode or switch to custom thumbs mode.
-                </p>
-              {:else if $confError.type == 'wallBounds'}
-                <p class="mb-2">
-                  One of the keys sticks out past the wall boundary. The keyboard will print, but you may
-                  see a small hole in this spot.
-                </p>
-                <p>To correct this issue, try adjusting the stagger or moving the keys around.</p>
-              {:else if $confError.type == 'samePosition'}
-                <p class="mb-2">
-                  Two of keys have the exact same position. You should move one of them.
-                </p>
-              {/if}
-            </div>
-            <div class="flex-0 pl-2 absolute top-[1rem] right-[1.5rem]">
-              <button on:click={() => (errorMsg = !errorMsg)}
-                ><Icon path={mdi.mdiArrowCollapseUp} /></button
+        <div class="xl:hidden" style="--z-index: 50">
+          <Popover
+            triggerEvents={['click']}
+            referenceElement={referenceElementTools}
+            placement="bottom-end"
+            spaceAway={4}
+          >
+            <div
+              class="bg-white/50 dark:bg-gray-800/50 px-2 py-1 mr-[-.5rem] rounded"
+              in:fade={{ duration: 50 }}
+              out:fade={{ duration: 150 }}
+            >
+              <Preset
+                purple
+                class="!px-2"
+                on:click={() => (viewer = 'board')}
+                selected={viewer == 'board'}>Base</Preset
               >
+              <Preset
+                purple
+                class="!px-2"
+                on:click={() => (viewer = 'thick')}
+                selected={viewer == 'thick'}>Thickness</Preset
+              >
+              {#if $showTiming}<Preset
+                  purple
+                  class="relative z-10 !px-2"
+                  on:click={() => (viewer = 'timing')}
+                  selected={viewer == 'timing'}>Timing</Preset
+                >{/if}
+              {#if $developer}
+                <Preset
+                  purple
+                  class="relative z-10 !px-2"
+                  on:click={() => (viewer = 'dev')}
+                  selected={viewer == 'dev'}>Dev</Preset
+                >
+              {/if}
+            </div>
+          </Popover>
+        </div>
+        {#if viewer == '3d'}
+          <Viewer3D
+            {darkMode}
+            geometry={microcontrollerGeometry}
+            transparency={cTransparency}
+            conf={isRenderable($confError) ? config?.right ?? config?.unibody : undefined}
+            isExpert={mode == 'advanced'}
+            {showSupports}
+            {center}
+            bind:showFit
+            enableZoom={true}
+            showHand={$showHand}
+            progress={generatorProgress}
+            {size}
+          >
+            {#each keyboardEntries as [kbd, mesh] (kbd)}
+              {@const cent = center[kbd]}
+              {#if cent}
+                <T.Group position={[-cent[0], -cent[1], -cent[2]]} scale.x={kbd == 'left' ? -1 : 1}>
+                  <KeyboardModel
+                    side={kbd}
+                    {hideWall}
+                    {transparency}
+                    {showSupports}
+                    microcontrollerGeometry={microcontrollerGeometry[kbd]}
+                    meshes={mesh}
+                  />
+                </T.Group>
+              {/if}
+            {/each}
+          </Viewer3D>
+        {:else if viewer == 'thick'}
+          <Thick3D
+            geometry={isRenderable($confError) ? geometry : undefined}
+            {center}
+            enableZoom={true}
+            {darkMode}
+            {size}
+          >
+            {#each keyboardEntries as [kbd, mesh] (kbd)}
+              {@const cent = center[kbd]}
+              {#if cent}
+                <T.Group position={[-cent[0], -cent[1], -cent[2]]} scale.x={kbd == 'left' ? -1 : 1}>
+                  <KeyboardModel
+                    side={kbd}
+                    noWeb
+                    {hideWall}
+                    {transparency}
+                    {showSupports}
+                    microcontrollerGeometry={microcontrollerGeometry[kbd]}
+                    meshes={mesh}
+                  />
+                </T.Group>
+              {/if}
+            {/each}
+          </Thick3D>
+        {:else if viewer == 'top'}
+          <ViewerLayout {geometry} {darkMode} conf={config} confError={$confError} />
+        {:else if viewer == 'programming'}
+          <ViewerMatrix {geometry} {darkMode} confError={$confError} />
+        {:else if viewer == 'board'}
+          <ViewerBottom {geometry} {darkMode} confError={$confError} />
+        {:else if viewer == 'timing'}
+          <ViewerTiming {pool} {darkMode} />
+        {:else if viewer == 'dev'}
+          <ViewerDev />
+        {/if}
+        {#if filament && (config?.right ?? config?.unibody).shell?.type == 'basic'}
+          <div
+            class="absolute bottom-0 right-0 text-right mb-2 bg-white/50 dark:bg-gray-800/50 rounded px-2 py-0.5 z-10"
+          >
+            {filament.length.toFixed(1)}m
+            <span class="text-gray-600 dark:text-gray-100">of filament</span>
+            <button class="s-help" bind:this={referenceElement}>
+              <Icon path={mdi.mdiInformation} size="20px" />
+            </button>
+            <Popover
+              triggerEvents={['hover', 'focus']}
+              {referenceElement}
+              placement="top"
+              spaceAway={4}
+              on:change={({ detail: { isOpen } }) => (showSupports = isOpen)}
+            >
+              <div
+                class="flex gap-4 items-end rounded bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 px-2 py-1 mx-4 text-gray-600 dark:text-gray-100"
+                in:fade={{ duration: 100 }}
+                out:fade={{ duration: 250 }}
+              >
+                <FilamentChart fractionKeyboard={filament.fractionKeyboard} />
+                <div>
+                  <p class="whitespace-nowrap mb-2">
+                    Estimated {#if config.right}for 2 halves{/if} using
+                    <span class="font-semibold text-teal-500 dark:text-teal-400">100% infill</span>,<br
+                    /><span class="font-semibold text-purple-500 dark:text-purple-400"
+                      >{SUPPORTS_DENSITY * 100}% supports density</span
+                    >.
+                  </p>
+                  <p class="whitespace-nowrap mb-1">
+                    This will cost about <span class="font-semibold text-black dark:text-white"
+                      >${filament.cost.toFixed(2)}</span
+                    >.
+                  </p>
+                  <p class="whitespace-nowrap text-sm">
+                    The keyboard itself uses {filament.keyboard.length.toFixed(1)}m ({filament.keyboard.mass.toFixed(
+                      0
+                    )}g).
+                  </p>
+                </div>
+              </div>
+            </Popover>
+          </div>
+        {/if}
+        {#if $codeError && viewer == '3d'}
+          <div class="absolute text-white m-4 left-0 right-0 rounded p-4 top-[10%] bg-red-700">
+            <h3 class="font-bold">There is an error with your code.</h3>
+            <p class="mb-2">{$codeError.message}</p>
+          </div>
+        {:else if $confError.length && viewer == '3d'}
+          <ConfError {config} />
+        {:else if ocError && viewer == '3d'}
+          <div class="absolute text-white m-4 left-0 right-0 rounded p-4 top-[10%] bg-red-700">
+            <p>There are some rough edges in this tool, and you've found one of them.</p>
+            <p class="mb-2">The set of options you've chosen cannot be previewed.</p>
+            <p class="mb-2">Here's some technical information:</p>
+            <p class="text-sm"><code>During processing of <b>{ocError.task}</b></code></p>
+            <p class="text-sm">
+              <code
+                >{ocError}<br />{ocError.stack
+                  ? ocError.stack.split('\n').slice(0, 5).join('\n')
+                  : ''}</code
+              >
+            </p>
+          </div>
+        {:else if (config?.right ?? config?.unibody)?.shell?.type == 'stilts'}
+          {#if $stiltsMsg}
+            <div class="absolute text-white m-4 left-0 right-0 rounded p-4 top-[5%] bg-yellow-700 flex">
+              <div>
+                <p>
+                  Stilts mode is <b>very</b> tempermental. Not every model will work with it. Try to keep
+                  very smooth curves between keys, and
+                  <button class="underline" on:click={() => (hideWall = !hideWall)}
+                    >{hideWall ? 'show' : 'hide'} the walls</button
+                  > to check for bad geometry.
+                </p>
+                <p class="text-sm mt-2">
+                  While I like hearing what kind of bugs you find, please don't tell be about bugs in
+                  stilts mode. There are too many to keep track of and countless weeks to be spent trying
+                  to fix them.
+                </p>
+              </div>
+              <div class="flex-0 pl-2">
+                <button on:click={() => ($stiltsMsg = !$stiltsMsg)}
+                  ><Icon path={mdi.mdiArrowCollapseUp} /></button
+                >
+              </div>
             </div>
           {:else}
-            <div>
-              {#if $confError.type == 'intersection'}
-                {#if $confError.what == 'keycap' && ($confError.i < 0 || $confError.j < 0)}
-                  Keycap + Walls Intersect
-                {:else if $confError.what == 'keycap'}
-                  Keycaps Intersect
-                {:else if $confError.what == 'part'}
-                  Parts Intersect
-                {:else if $confError.what == 'socket' && ($confError.i < 0 || $confError.j < 0)}
-                  Socket + Walls Intersect
-                {:else if $confError.what == 'socket'}
-                  Sockets Intersect
-                {/if}
-              {:else if $confError.type == 'wallBounds'}
-                Key Sticks Past Walls
-              {:else if $confError.type == 'samePosition'}
-                Keys have Same Position
-              {/if}
-            </div>
-            <div class="flex-0 pl-2">
-              <button on:click={() => (errorMsg = !errorMsg)}
-                ><Icon path={mdi.mdiArrowExpandDown} /></button
-              >
+            <div class="absolute text-white m-4 right-[80px] rounded p-4 top-[10%] bg-yellow-700 flex">
+              <div>
+                <p>Stilts mode is <b>very</b> tempermental.</p>
+              </div>
+              <div class="flex-0 pl-2">
+                <button on:click={() => ($stiltsMsg = !$stiltsMsg)}
+                  ><Icon path={mdi.mdiArrowExpandDown} /></button
+                >
+              </div>
             </div>
           {/if}
-        </div>
-      {:else if ocError && viewer == '3d'}
-        <div class="absolute text-white m-4 left-0 right-0 rounded p-4 top-[10%] bg-red-700">
-          <p>There are some rough edges in this tool, and you've found one of them.</p>
-          <p class="mb-2">The set of options you've chosen cannot be previewed.</p>
-          <p class="mb-2">Here's some technical information:</p>
-          <p class="text-sm"><code>During processing of <b>{ocError.task}</b></code></p>
-          <p class="text-sm">
-            <code
-              >{ocError}<br />{ocError.stack
-                ? ocError.stack.split('\n').slice(0, 5).join('\n')
-                : ''}</code
-            >
-          </p>
-        </div>
-      {:else if (config?.right ?? config?.unibody)?.shell?.type == 'stilts'}
-        {#if $stiltsMsg}
-          <div class="absolute text-white m-4 left-0 right-0 rounded p-4 top-[5%] bg-yellow-700 flex">
-            <div>
-              <p>
-                Stilts mode is <b>very</b> tempermental. Not every model will work with it. Try to keep
-                very smooth curves between keys, and
-                <button class="underline" on:click={() => (hideWall = !hideWall)}
-                  >{hideWall ? 'show' : 'hide'} the walls</button
-                > to check for bad geometry.
-              </p>
-              <p class="text-sm mt-2">
-                While I like hearing what kind of bugs you find, please don't tell be about bugs in
-                stilts mode. There are too many to keep track of and countless weeks to be spent trying
-                to fix them.
-              </p>
-            </div>
-            <div class="flex-0 pl-2">
-              <button on:click={() => ($stiltsMsg = !$stiltsMsg)}
-                ><Icon path={mdi.mdiArrowCollapseUp} /></button
-              >
-            </div>
+        {/if}
+      </div>
+    </div>
+    <div class="xs:w-80 md:w-[32rem]">
+      {#if viewer == 'programming'}
+        <button class="infobutton" on:click={() => (kleView = true)}>Download KLE Layout</button>
+        <p class="mt-4 mb-2">Some things that will happen here in the future:</p>
+        <ul class="list-disc pl-4">
+          <li>The thumb cluster matrix will be wired more efficiently</li>
+          <li>The thumb cluster matrix will be connected to the larger key matrix</li>
+          <li>The generator will make a QMK template for you to use</li>
+          <li>And maybe a generated assembly / wiring guide</li>
+        </ul>
+      {:else}
+        <div class="flex items-center justify-between mr-2">
+          <div>
+            <Preset purple on:click={() => setMode('basic')} name="Basic" selected={mode == 'basic'} />
+            <Preset
+              purple
+              on:click={() => setMode('intermediate')}
+              name="Advanced"
+              selected={mode == 'intermediate'}
+            />
+            <Preset
+              purple
+              on:click={() => setMode('advanced')}
+              name="Expert"
+              selected={mode == 'advanced'}
+            />
           </div>
+          <button class="button" on:click={() => (downloading = true)}>Download</button>
+        </div>
+        <div class="flex justify-between pr-2 mt-1">
+          <button class="infobutton" on:click={() => (urlView = true)}>What's in the URL?</button>
+          <div>
+            <button class="infobutton" on:click={() => (bomView = true)}>View Bill of Materials</button>
+          </div>
+        </div>
+
+        {#if flags.assembly}
+          <button
+            class="relative bg-teal-500/10 hover:bg-teal-500/30 rounded mt-8 px-4 py-2 ml--2 text-start"
+            class:hover:animate-wiggle={$assemblyIsNew}
+            on:click={() => (assemblyOpen = true) && ($assemblyIsNew = false)}
+          >
+            {#if $assemblyIsNew}
+              <div class="absolute right-2 top--3 bg-teal-600 text-white px-2 rotate-5 rounded">NEW</div>
+            {/if}
+            <b class="text-teal-600 dark:text-teal-400">No Time to Tinker?</b>
+            <span class="font-medium">Buy Keyboard Assembled and Ready to Use.</span>
+            <div class="mt-2 flex gap-4 items-center">
+              <div class="text-sm">
+                <span class="opacity-70"
+                  >You can now get your hands on your dream keyboard faster &amp; easier. Ships globally
+                  in 1–2 weeks from</span
+                >
+                <span class="ml-0.5" />
+                {#each SORTED_VENDORS as vendor}
+                  <Icon class="inline mx-0.5 mt--0.5" size="1.3em" name="flag-{vendor.flag}" />
+                {/each}
+              </div>
+              <div
+                class="rounded-full bg-teal-200 dark:bg-teal-600 flex items-center justify-center w-8 h-8 flex-none"
+              >
+                <Icon size={24} path={mdi.mdiChevronRight} />
+              </div>
+            </div>
+          </button>
         {:else}
-          <div class="absolute text-white m-4 right-[80px] rounded p-4 top-[10%] bg-yellow-700 flex">
-            <div>
-              <p>Stilts mode is <b>very</b> tempermental.</p>
-            </div>
-            <div class="flex-0 pl-2">
-              <button on:click={() => ($stiltsMsg = !$stiltsMsg)}
-                ><Icon path={mdi.mdiArrowExpandDown} /></button
+          <div class="bg-teal-500/10 rounded my-4 px-4 py-2 mx--2">
+            <b class="text-teal-600">Coming Soon!</b>
+            <span class="font-medium">Buy Your Keyboard Assembled and Ready to Use.</span>
+            <p class="text-sm mt-2 opacity-70">
+              I'll be pairing up with a couple keyboard makers/enthusiasts so you can get your hands on
+              your dream keyboard faster &amp; easier. <a
+                class="underline"
+                href="{base}/docs/assembly-service/">Learn more.</a
               >
-            </div>
+            </p>
           </div>
+        {/if}
+
+        {#if mode == 'basic' || mode == 'intermediate'}
+          {#if !state.error}
+            <VisualEditor2
+              basic={mode == 'basic'}
+              cosmosConf={state.options}
+              bind:conf={config}
+              on:goAdvanced={() => (mode = 'intermediate')}
+            />
+          {/if}
+        {:else}
+          <Editor
+            bind:initialContent={initialEditorContent}
+            bind:hashContent={editorContent}
+            {darkMode}
+            cosmosConf={state.options}
+            bind:conf={config}
+          />
         {/if}
       {/if}
     </div>
-  </div>
-  <div class="xs:w-80 md:w-[32rem]">
-    {#if viewer == 'programming'}
-      <button class="infobutton" on:click={() => (kleView = true)}>Download KLE Layout</button>
-      <p class="mt-4 mb-2">Some things that will happen here in the future:</p>
-      <ul class="list-disc pl-4">
-        <li>The thumb cluster matrix will be wired more efficiently</li>
-        <li>The thumb cluster matrix will be connected to the larger key matrix</li>
-        <li>The generator will make a QMK template for you to use</li>
-        <li>And maybe a generated assembly / wiring guide</li>
-      </ul>
-    {:else}
-      <div class="flex items-center justify-between mr-2">
-        <div>
-          <Preset purple on:click={() => setMode('basic')} name="Basic" selected={mode == 'basic'} />
-          <Preset
-            purple
-            on:click={() => setMode('intermediate')}
-            name="Advanced"
-            selected={mode == 'intermediate'}
-          />
-          <Preset
-            purple
-            on:click={() => setMode('advanced')}
-            name="Expert"
-            selected={mode == 'advanced'}
-          />
-        </div>
-        <button class="button" on:click={() => (downloading = true)}>Download</button>
-      </div>
-      <div class="flex justify-between pr-2 mt-1">
-        <button class="infobutton" on:click={() => (urlView = true)}>What's in the URL?</button>
-        <div>
-          <button class="infobutton" on:click={() => (bomView = true)}>View Bill of Materials</button>
-        </div>
-      </div>
-
-      <div class="bg-teal-500/10 rounded my-4 px-4 py-2 mx--2">
-        <b class="text-teal-600">Coming Soon!</b>
-        <span class="font-medium">Buy Your Keyboard Assembled and Ready to Use.</span>
-        <p class="text-sm mt-2 opacity-70">
-          I'll be pairing up with a couple keyboard makers/enthusiasts so you can get your hands on your
-          dream keyboard faster &amp; easier. <a class="underline" href="{base}/docs/assembly-service/"
-            >Learn more.</a
-          >
-        </p>
-      </div>
-
-      {#if mode == 'basic' || mode == 'intermediate'}
-        {#if !state.error}
-          <VisualEditor2
-            basic={mode == 'basic'}
-            cosmosConf={state.options}
-            bind:conf={config}
-            on:goAdvanced={() => (mode = 'intermediate')}
-          />
-        {/if}
-      {:else}
-        <Editor
-          bind:initialContent={initialEditorContent}
-          bind:hashContent={editorContent}
-          {darkMode}
-          cosmosConf={state.options}
-          bind:conf={config}
-        />
-      {/if}
-    {/if}
-  </div>
-</main>
+  </main>
+{/if}
 <footer class="px-8 pb-8 pt-16">
   <Footer />
 </footer>
@@ -1210,19 +1113,6 @@
     --at-apply: 'bg-purple-400 dark:bg-pink-700';
   }
 
-  .errorMsg {
-    --at-apply: 'absolute text-white m-4 right-[80px] rounded p-4 top-[5%] flex z-40';
-  }
-  .errorMsg.custom {
-    --at-apply: 'top-[10%]';
-  }
-  .errorMsg.expand {
-    --at-apply: 'top-[5%] left-0 right-0 block';
-  }
-  .errorMsg.expand.custom {
-    --at-apply: 'top-[20%] left-0';
-  }
-
   input[type='range'] {
     --at-apply: 'appearance-none bg-transparent';
   }
@@ -1254,5 +1144,16 @@
   }
   input[type='range']::-webkit-slider-thumb:hover {
     --at-apply: 'bg-purple-400 dark:bg-pink-800';
+  }
+
+  :global(.inline-flag) {
+    --at-apply: 'inline skew-x--5';
+  }
+
+  .hoverbtn {
+    --at-apply: 'mr-3 flex items-center justify-start gap-2 border-2 max-w-9 hover:max-w-32 px-1.5 hover:px-3 py-1 rounded border-gray-500/20 hover:border-gray-500 transition-border-color text-gray-600 dark:text-gray-200 transition-all overflow-hidden';
+  }
+  :global(.hoverbtn svg) {
+    --at-apply: 'flex-none';
   }
 </style>

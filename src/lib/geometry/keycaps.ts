@@ -1,4 +1,5 @@
 import type { CuttleKey } from '$lib/worker/config'
+import type { Profile } from '$target/cosmosStructs'
 
 export const UNIFORM = ['xda', 'dsa', 'choc', 'ma']
 
@@ -65,16 +66,52 @@ export const KEY_INFO: Record<string, Record<number, { depth: number; tilt: numb
   },
 }
 
-export const KEY_NAMES: Record<string, string> = {
-  mt3: 'MT3',
-  dsa: 'DSA',
-  xda: 'XDA',
-  choc: 'Kailh Choc',
-  sa: 'SA',
-  oem: 'OEM',
-  cherry: 'Cherry',
-  des: 'DES',
-  ma: 'MA',
+export interface KeyDescription {
+  name: string
+  description: string
+}
+
+export const KEY_DESC: Record<Exclude<Profile, null>, KeyDescription> = {
+  mt3: {
+    name: 'MT3',
+    description: 'A tall sculpted keycap. A lot of these are sold on Drop.',
+  },
+  dsa: {
+    name: 'DSA',
+    description: 'A uniform keycap with lower profile than XDA but harder to find.',
+  },
+  xda: {
+    name: 'XDA',
+    description: "The easiest to find uniform keycap. It's the default for a reason.",
+  },
+  choc: {
+    name: 'Kailh Choc',
+    description:
+      "A low-profile keycap that's just as thin as the choc switches it sits on.\nThey're approximately equal in size to MBK keycaps, which I recommend buying.\nIf you are looking into 3D-printing your own Choc keycaps, there are so many different options. This one should do a good job standing in for most keycaps",
+  },
+  sa: {
+    name: 'SA',
+    description: 'A tall sculpted keycap.',
+  },
+  oem: {
+    name: 'OEM',
+    description:
+      "A bit of a wacky keycap due to its very aggressive tilting, but its irregularities are canceled out by Cosmos.\nThese go on sale on Drop often, so they're a good choice if you're on a budget.",
+  },
+  cherry: {
+    name: 'Cherry',
+    description:
+      'The quintessential keycap profile. Like OEM keycaps, these have aggressive tilting but any irregularities are canceled out by Cosmos.\nYou can often buy these super cheap on AliExpress.',
+  },
+  des: {
+    name: 'DES',
+    description:
+      "Perhaps the most comfortable keycap, but you've got to search online for them or print them yourself. The other keycaps have mostly flat tops, but DES keycaps are highly contoured, kind of like the keyboard you're designing.",
+  },
+  ma: {
+    name: 'MA',
+    description: 'A very tall and round keycap found on AliExpress.',
+  },
 }
 
 export function keyInfo(k: CuttleKey) {

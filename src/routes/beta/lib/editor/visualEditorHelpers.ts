@@ -310,7 +310,7 @@ export function mapKeys<T>(kbd: CosmosKeyboard, predicate: (k: CosmosKey) => T):
 function alphaColumns(kbd: CosmosKeyboard, cluster: CosmosCluster) {
   const columns = cluster.clusters.map((col, index) => ({
     index,
-    column: col.column || -1000,
+    column: col.column ?? -1000,
     nLetters: col.keys
       .filter(k => PART_INFO[k.partType.type || col.partType.type || kbd.partType.type!].keycap && LETTERS.includes(k.profile.letter!))
       .length,

@@ -57,6 +57,27 @@
     reader.readAsText(file)
   }
 
+  function copyScan() {
+    if (!active) return
+    console.log(active)
+    const result = `Version: ${active.version}
+Left  / thumb:  ${active.left.thumb.map((l: any) => l.length.toFixed(2)).join(', ')}
+      / index:  ${active.left.indexFinger.map((l: any) => l.length.toFixed(2)).join(', ')}
+      / middle: ${active.left.middleFinger.map((l: any) => l.length.toFixed(2)).join(', ')}
+      / ring:   ${active.left.ringFinger.map((l: any) => l.length.toFixed(2)).join(', ')}
+      / pinky:  ${active.left.pinky.map((l: any) => l.length.toFixed(2)).join(', ')}
+
+Right / thumb:  ${active.right.thumb.map((l: any) => l.length.toFixed(2)).join(', ')}
+      / index:  ${active.right.indexFinger.map((l: any) => l.length.toFixed(2)).join(', ')}
+      / middle: ${active.right.middleFinger.map((l: any) => l.length.toFixed(2)).join(', ')}
+      / ring:   ${active.right.ringFinger.map((l: any) => l.length.toFixed(2)).join(', ')}
+      / pinky:  ${active.right.pinky.map((l: any) => l.length.toFixed(2)).join(', ')}
+    `
+    navigator.clipboard
+      .writeText(result)
+      .catch((e) => prompt('Unable to copy to clipboard. Please copy from here', result))
+  }
+
   function deleteAll() {
     if (confirm('Are you sure you wish to remove all hand data from this device?')) {
       hands = []
@@ -86,6 +107,9 @@
     {/each}
     <div class="flex gap-2 justify-center">
       <button class="button2" on:click={() => fileSelector.click()}>Import</button>
+      {#if active}
+        <button class="button2" on:click={() => copyScan()}>Copy Active Scan</button>
+      {/if}
       <button class="button2" on:click={deleteAll}>Delete All</button>
     </div>
   </ul>

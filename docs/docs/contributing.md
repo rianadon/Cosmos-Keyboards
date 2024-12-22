@@ -115,11 +115,16 @@ Here's how to add a new socket to the codebase:
       stepFile: '/src/assets/key-ec11.step',
       socketSize: [14.5, 14.5, 4.5],
       partBottom: [box(12, 12, 14.5)],
+      wiredInMatrix: true,
+      pinsNeeded: 2,
+      icon: 'knob',
+      description: 'A vertical knob that you can...',
    },
    ```
    The part/socket pair has two names: `partName` is the name shown in the editor, whereas `bomName` is shown in the bill of materials. Unlike `partName`, `bomName` is plural. Usually these are similar, but it's helpful to include vendors and part numbers in the `bomName`, whereas `partName` should be concise.<p></p>
    The field `stepFile` is the location where you saved the STEP file (`src/assets/key-(name).step`), and `socketSize` refers to the part boundary from step 3. The order of dimensions is `[x, y, z]`.</p><p>
    Finally, `partBottom` is a box describing the boundary of the part, referenced from the top of the socket. This is used to raise the model high enough so that your part doesn't collide with the ground!<p></p>
+   There are also a few more fields to keep in mind. `wiredInMatrix` and `pinsNeeded` are used to count the total number of pins used on the microcontroller. Only set `wiredInMatrix` true if the part is wired into the switch matrix (in the case of encoders, the encoder "button" is wired as a normal switch). For most parts you should omit `wiredInMatrix` (it is false by default). The encoder has A & B pins that connect to the microcontroller, so `pinsNeeded` is set to 2. The `icon` and `description` set how the part appears in the BOM and parts dropdown respectively.
 
 5. Edit `src/proto/cosmosStructs.ts` and add your socket/part to the `enumeration('PART', {` declaration. You'll need to give your part a unique number used to identify it in the URL. Switches get numbers from 1–15, and everything else uses 16–109.
 
@@ -173,6 +178,9 @@ The trackball model in Cosmos supports multiple different sizes, sensors, and be
     sides: 20,
   }),
   partBottom: () => [box(10, 10, 2)],
+  pinsNeeded: () => 4,
+  icon: 'knob',
+  description: 'A small circular trackpad. These only...',
   variants: {
     size: ['23mm', '35mm', '40mm'],
   },
@@ -189,9 +197,19 @@ The trackball model in Cosmos supports multiple different sizes, sensors, and be
 
 There is one new property here, `variants`, that describes the types of trackpad model. For this model the only configurable variable is `size`, which indicates the trackpad diameter. You can have as many variables as you like and name them anything you want. The values of these variables are appended to the filename, in the order that they are defined, so that one of the Cirque trackpads might be located at `/src/assets/key-cirque-23mm.step`.
 
-The `bomName`, `socketSize`, and `partBottom` fields are all functions of the variant information so that you can customize them for each variation. In this example some TypeScript casting, using the types generated after re-running `make`, are used to make the compiler happy.
+The `bomName`, `socketSize`, `partBottom`, and `pinsNeeded` fields are all functions of the variant information so that you can customize them for each variation. In this example some TypeScript casting, using the types generated after re-running `make`, are used to make the compiler happy.
 
 The `encodeVariant` and `decodeVariant` functions determine how to map between the variant configurations and nonnegative integers. This mapping should be 1:1. If the part has two configurable variables in its variants and each variable has three possible values, then you'll need to map to 2 × 3 = 6 integers, `0`–`5`. By convention `0` is mapped to the default configuration.
+
+!!! tip "Helper Functions"
+
+    I've added two helper functions to simplify writing `encodeVariant` and `decodeVariant`. Call them using the part's name (used to look up variant info) and a mapping between variant fields and the number of allocated bits. The default variant is formed by choosing the first option of every variant field.
+
+    In the case of the Plum Twist, the North/South facing LED option is encoded using 2 bits to account for four possibilities: the two current options as well as options added in the future.
+    ```typescript
+    encodeVariant: makeEncodeVariant('mx-pcb-plum', { led: 2 }),
+    decodeVariant: makeDecodeVariant('mx-pcb-plum', { led: 2 }),
+    ```
 
 #### Extra BOM Items
 

@@ -1,8 +1,8 @@
 <script lang="ts">
   import { convertToMaybeCustomConnectors, type Cuttleform, type CuttleKey } from '$lib/worker/config'
   import Icon from '$lib/presentation/Icon.svelte'
-  import { closestAspect, KEY_NAMES, UNIFORM } from '$lib/geometry/keycaps'
-  import { bomName, extraBomItems, type BomItem } from '$lib/geometry/socketsParts'
+  import { closestAspect, KEY_DESC, UNIFORM } from '$lib/geometry/keycaps'
+  import { bomName, extraBomItems, PART_INFO, type BomItem } from '$lib/geometry/socketsParts'
   import {
     BOARD_PROPERTIES,
     holderScrewHeight,
@@ -50,14 +50,6 @@
 
   $: console.log(keycaps(keys))
 
-  function switchIcon(item: CuttleKey['type']) {
-    if (item == 'ec11' || item == 'evqwgd001') return 'knob'
-    if (item == 'trackball') return 'trackball'
-    if (item == 'oled-128x32-0.91in-adafruit') return 'oled'
-    if (item.startsWith('cirque')) return 'knob'
-    return 'switch'
-  }
-
   function addToBom(bom: Record<any, any>, key: string, item: any) {
     if (bom[key]) {
       bom[key] = { ...bom[key], count: bom[key].count + item.count }
@@ -72,7 +64,7 @@
       if (key.type == 'blank') continue
       addToBom(sockets, key.type + bomName(key), {
         item: bomName(key),
-        icon: switchIcon(key.type),
+        icon: PART_INFO[key.type].bomIcon || PART_INFO[key.type].icon || 'switch',
         count: 1,
       })
       Object.entries(extraBomItems(key)).forEach(([key, item]) =>
@@ -81,7 +73,10 @@
     }
     return Object.keys(sockets)
       .sort()
-      .map((s) => sockets[s])
+      .map((s) => {
+        sockets[s].count = Math.ceil(sockets[s].count)
+        return sockets[s]
+      })
   }
 
   function connectorsForSide(conf: Cuttleform) {
@@ -136,7 +131,7 @@
           <div class={UNIFORM.includes(k.profile) ? 'title-full' : 'title'}>
             <div>
               <span class="amount">{k.count}</span>
-              <span>{k.aspect}u {KEY_NAMES[k.profile]} Keycaps</span>
+              <span>{k.aspect}u {KEY_DESC[k.profile].name} Keycaps</span>
             </div>
           </div>
           {#if !UNIFORM.includes(k.profile)}

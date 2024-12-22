@@ -1,21 +1,18 @@
+import { preprocessMeltUI, sequence } from '@melt-ui/pp'
 import adapter from '@sveltejs/adapter-static'
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte'
 import { preprocessor as documentPreprocessor } from '@sveltekit-addons/document'
 import { existsSync } from 'fs'
 import { fileURLToPath } from 'url'
-
 const dev = process.argv.includes('dev')
-
 const proDir = fileURLToPath(new URL('./src/lib/worker/pro', import.meta.url))
 const proPatchDir = fileURLToPath(new URL('./src/lib/worker/pro-patch', import.meta.url))
 const hasPro = existsSync(proDir)
-
-/** @type {import('@sveltejs/kit').Config} */
+/** @type {import('@sveltejs/kit').Config}*/
 const config = {
   // Consult https://kit.svelte.dev/docs/integrations#preprocessors
   // for more information about preprocessors
-  preprocess: [vitePreprocess(), documentPreprocessor()],
-
+  preprocess: sequence([vitePreprocess(), documentPreprocessor(), preprocessMeltUI()]),
   kit: {
     // adapter-auto only supports some environments, see https://kit.svelte.dev/docs/adapter-auto for a list.
     // If your environment is not supported or you settled on a specific environment, switch out the adapter.
@@ -35,7 +32,6 @@ const config = {
         // These are handled by mkdocs, and sveltekit does not know about them
         if (path.startsWith((process.env.BASE_PATH || '') + '/blog/')) return
         if (path.startsWith((process.env.BASE_PATH || '') + '/docs/')) return
-
         // otherwise fail the build
         throw new Error(message)
       },
@@ -47,5 +43,4 @@ const config = {
     },
   },
 }
-
 export default config

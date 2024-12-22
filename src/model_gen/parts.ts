@@ -80,6 +80,7 @@ async function main() {
       const stepName = join(targetDir, 'key-' + name + '.step')
       await writeModel(stepName, displaySocket(name, opts))
     })
+  /** Add task to generate both Choc V1 and Choc V2 variants of a part. It should work given either variant as input. */
   const poolChocV1 = (name: string, v1Name: CuttleKey['type'], v2Name: CuttleKey['type'], leds = false) =>
     pool.add(name + ' socket', async () => {
       const stepFile = await readFile(join(assetsDir, 'key-' + name + '.step'))
@@ -100,6 +101,7 @@ async function main() {
         await writeModel(stepV1, newModel.intersect(makeBaseBox(17.5, 16.5, 100).translateZ(-50)))
       }
     })
+  /** Add task to generate both north-facing and south-facing variants. Assumes the STEP is north-facing. */
   const poolLED = (name: CuttleKey['type']) =>
     pool.add(name + ' socket', async () => {
       const stepFile = await readFile(join(assetsDir, 'key-' + name + '.step'))
@@ -119,6 +121,7 @@ async function main() {
   poolChocV1('choc', 'choc-v1', 'choc-v2')
   poolChocV1('choc-hotswap', 'choc-v1-hotswap', 'choc-v2-hotswap', true)
   poolLED('mx-pcb-plum')
+  poolLED('mx-skree')
 
   const defaults = { spacing: 2.54, diameter: 0.9 }
   poolUC('rp2040-black-usb-c-aliexpress', {}, [

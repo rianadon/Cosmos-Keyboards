@@ -1,4 +1,4 @@
-import { KEY_NAMES } from '$lib/geometry/keycaps.js'
+import { KEY_DESC } from '$lib/geometry/keycaps.js'
 import { PART_INFO } from '$lib/geometry/socketsParts.js'
 import { type CosmosKeyboard, fromCosmosConfig } from '$lib/worker/config.cosmos.js'
 import { sum } from '$lib/worker/util.js'
@@ -38,7 +38,7 @@ export const load = ({ params }) => {
     unibody: 'Unibody Keyboard',
   }[keyboard.type]
 
-  const keycaps = deserialized ? KEY_NAMES[deserialized.profile] : undefined
+  const keycaps = deserialized ? KEY_DESC[deserialized.profile].name : undefined
 
   return {
     keyboard,

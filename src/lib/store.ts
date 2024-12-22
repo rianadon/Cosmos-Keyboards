@@ -3,13 +3,14 @@ import type { CosmosKeyboard } from '$lib/worker/config.cosmos'
 import { derived, type Readable, type Writable, writable } from 'svelte/store'
 import type { User } from '../routes/beta/lib/login'
 import type { ColorScheme } from './3d/materials'
-import type { ConfError } from './worker/check'
+import type { ConfErrors } from './worker/check'
 
 export type TempConfig = CosmosKeyboard & { fromProto: boolean }
 
 export const protoConfig = writable<CosmosKeyboard>(undefined)
 export const tempConfig = writable<TempConfig>(undefined)
-export const confError = writable<ConfError | undefined>(undefined)
+export const confError = writable<ConfErrors>([])
+export const showErrorMsg = writable<boolean>(false)
 protoConfig.subscribe(c => tempConfig.set(c ? { ...c, fromProto: true } : c))
 export const transformMode = writable<'translate' | 'rotate' | 'select'>('select')
 export const selectMode = writable<'key' | 'column' | 'cluster'>('key')
@@ -18,6 +19,7 @@ export const codeError = writable<Error | null>(null)
 
 export const hoveredKey = writable<number | null>(null)
 export const clickedKey = writable<number | null>(null)
+export const lastKeycap = writable<number>(0)
 
 export const showGrid = writable(false)
 export const noWall = writable(false)
@@ -35,6 +37,10 @@ export const modelName = storable('modelName', 'cosmotyl')
 export const discordMsg = storable('discordMsg', true)
 export const enableUndo = storable('enableUndo', false)
 export const showHelp = storable('showHelp', true)
+export const assemblyIsNew = storable('assemblyIsNew', true)
+export const showScheduleEmail = storable('showScheduleEmail', false)
+export const emailScheduled = storable('emailScheduled', false)
+export const emailMinimized = storable('emailMinimized', 0)
 
 export const developer = storable('developer', browser && location.origin.includes('localhost'))
 export const showTiming = andcondition(developer, storable('developer.timing', false))

@@ -68,7 +68,7 @@ There is no recommended way to wire a TRRS as long as you are consistent between
 
     Some boards have both Vin and Vout pins. Vout is directly connected to microcontroller power, whereas Vin has extra circuitry that ensures current only flows *in* to Vin. This prevents backpowering (e.g. if you've connected Vin to 4V and plugged in USB (5V), these power sources won't be shorted. Nevertheless, we'd like to be able to power our keyboards from either half, and the only power the keyboard receives is from USB, so it's safe to connect Vout to Vout.
 
-    Vout is 5V power, and on other microcontrollers it's called **RAW** or **VSYS**. I don't recommend using the 3.3V pin in its place, unless you are absolutely sure you won't be adding LEDs and have a robust cable (voltage drop from resistance within the cable/connectors is ok over the 5V wire but not ok over 3.3V). LEDs go on the 5V pin because they will use more power than the 5V -> 3.3V regulator can provide, and connecting 5V allows you to put LEDs on both halves.
+    Vout is 5V power, and on other microcontrollers it's called **RAW** or **VBUS** or if neither of those apply then **VSYS**. I don't recommend using the 3.3V pin in its place, unless you are absolutely sure you won't be adding LEDs and have a robust cable (voltage drop from resistance within the cable/connectors is ok over the 5V wire but not ok over 3.3V).
 
 ### Encoders
 
@@ -88,6 +88,16 @@ I cover the PMW3360 and PMW3389 sensors. PCBs for these have the same pinouts an
 - GD: GND
 
 You do not need to connect the MT pin (motion trigger).
+
+### LEDS
+
+If you are using SK6812 MINI-E LEDs and following the specifications to the T, what you should do is connect the LED power to 5V and add a 3.3V-to-5V level translator between the first LED's data input and the pin on the microcontroller you've chosen for LED data. A cheap way to get a level translator is to use one of the LEDs as the level translator (referred to as a "sacrificial LED"). It might not light up, but all LEDs afterwards in the chain should.
+
+Some microcontrollers like the [Sea Picro](https://github.com/joshajohnson/sea-picro) and the upcoming [Lemon microcontroller](https://github.com/rianadon/Cosmos-Keyboard-PCBs/?tab=readme-ov-file#lemon-microcontroller) have built-in level translators for LEDs. So just make sure you're using 5V and the proper LED pin.
+
+The other option which I begrugingly recommend to you is to power the LEDs off of the 3V3 supply. This empirically works reliably even though it's out-of-spec. The one downside that you must take into account is that white LEDs on full brightness can consume a lot of power, but the 5V -> 3V regulator on microcontrollers are typically rated to less than 1 amp. So before you turn the LEDs up to full brightness, look up what voltage regulator your microcontroller is using and its maximum current and keep in mind that a single LED uses ~50mA when turned white on full brightness. For example, a Pi Pico's voltage regulator has an 800mA limit, so you can potentially fry your microcontroller if running more than 16 LEDs on 100% white.
+
+Now, consider whether you really need such bright lights. Most people don't (personally I use non-white colors on 20% brightness), and so 3.3V power works just fine.
 
 ## QMK Setup
 

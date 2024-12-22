@@ -1,4 +1,4 @@
-import { CaseMaterial, type ColorScheme, drawLetter, KeyMaterial } from '$lib/3d/materials'
+import { CaseMaterial, COLORCONFIG, type ColorScheme, drawLetter, FRAGMENT_SHADER, KeyMaterial, VERTEX_SHADER } from '$lib/3d/materials'
 import { boundingSize, fromGeometry } from '$lib/loaders/geometry'
 import { keyGeometries } from '$lib/loaders/keycaps'
 import { partGeometries } from '$lib/loaders/parts'
@@ -170,11 +170,32 @@ interface RenderOpts {
 }
 
 export async function renderGLTF(gltf: ArrayBuffer, page: Page, options: RenderOpts) {
+  const opts = { COLORCONFIG, FRAGMENT_SHADER, VERTEX_SHADER }
+
   const url = await page.evaluate(
     async (args) => {
-      const [g, width, height] = args
+      const [g, width, height, opts] = args
       const THREE = await import('three')
       const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js')
+
+      const { COLORCONFIG, FRAGMENT_SHADER, VERTEX_SHADER } = opts
+      function cosmosMaterial(kind: 'key' | 'case', opts: { opacity?: number; brightness?: number; texture?: THREE.Texture } = {}) {
+        const saturation = COLORCONFIG.purple[(kind + 'Saturation') as 'keySaturation']
+        const color = COLORCONFIG.purple[(kind + 'Color') as 'keyColor']
+
+        return new THREE.ShaderMaterial({
+          fragmentShader: FRAGMENT_SHADER,
+          vertexShader: VERTEX_SHADER,
+          uniforms: {
+            uOpacity: { value: opts.opacity || 1 },
+            uBrightness: { value: opts.brightness || 1 },
+            uSaturation: { value: saturation },
+            uAmbient: { value: 0.8 },
+            uColor: { value: color },
+            tLetter: { value: opts.texture },
+          },
+        })
+      }
 
       const canvas = document.createElement('canvas')
       canvas.width = width
@@ -202,11 +223,18 @@ export async function renderGLTF(gltf: ArrayBuffer, page: Page, options: RenderO
 
       const loader = new GLTFLoader()
       const { scene, cameras } = await loader.parseAsync(g, 'model.gltf')
+      scene.traverse((object) => {
+        if (object instanceof THREE.Mesh && object.material instanceof THREE.MeshBasicMaterial) {
+          if (object.material.color.equals(new THREE.Color('pink'))) {
+            object.material = cosmosMaterial('key')
+          }
+        }
+      })
 
       renderer.render(scene, cameras[0])
       return canvas.toDataURL()
     },
-    [gltf, options.width, options.height] as const,
+    [gltf, options.width, options.height, opts] as const,
   )
   return {
     dataURL: url,

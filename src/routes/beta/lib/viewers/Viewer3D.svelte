@@ -88,11 +88,15 @@
     kbdOffset,
     flipMatrixX,
     shouldFlipKey,
+    keyPos,
+    keyRot,
+    AbsPositionStore,
+    AbsRotationStore,
   } from './viewer3dHelpers'
   import Field from '$lib/presentation/Field.svelte'
   import DecimalInput from '../editor/DecimalInput.svelte'
   import Select from '$lib/presentation/Select.svelte'
-  import { TupleStore } from '../editor/tuple'
+  import { TupleStore, TupleMux } from '../editor/tuple'
   import DecimalInputInherit from '../editor/DecimalInputInherit.svelte'
   import SelectInherit from '$lib/presentation/SelectInherit.svelte'
   import { encodeVariant, PART_INFO, sortedCategories } from '$lib/geometry/socketsParts'
@@ -103,6 +107,9 @@
   import { fade } from 'svelte/transition'
   import Preset from '$lib/presentation/Preset.svelte'
   import { base } from '$app/paths'
+  import SelectThingy from '../editor/SelectThingy.svelte'
+  import SelectPartInner from '../editor/SelectPartInner.svelte'
+  import { writable } from 'svelte/store'
 
   export let darkMode: boolean
   export let showSupports = false
@@ -122,6 +129,7 @@
   export let conf: Cuttleform | undefined
   let fitConf: Cuttleform | undefined
   let snapRotation = false
+  const useAbsolute = writable<boolean>(false)
 
   $: flip = $view == 'left'
   $: if (conf && $showHelp) $clickedKey = 0
@@ -168,9 +176,9 @@
     })
   }
 
-  function changeKey(e: Event) {
+  function changeKey(e: CustomEvent) {
     protoConfig.update((proto) => {
-      const newType: any = (e.target as HTMLInputElement).value
+      const newType: any = e.detail
       const { key, column } = nthKey(proto, $clickedKey!)
       if ($selectMode == 'key') {
         key.partType.type = newType
@@ -360,12 +368,20 @@
   let pressedLetter: string | null = null
   let reachabilityArr = undefined
 
-  const positionStore = new TupleStore(-1n)
+  const positionStore = new TupleMux(
+    useAbsolute,
+    new TupleStore(-1n),
+    new AbsPositionStore(tempConfig, clickedKey)
+  )
   const [positionX, positionY, positionZ, _] = positionStore.components()
   positionStore.tuple.subscribe((t) => updateTuple('position', t, 'key'))
   $: if ($clickedKey != null) positionStore.update(nthKey($tempConfig, $clickedKey).key.position || 0n)
 
-  const rotationStore = new TupleStore(-1n, 45)
+  const rotationStore = new TupleMux(
+    useAbsolute,
+    new TupleStore(-1n, 45),
+    new AbsRotationStore(tempConfig, clickedKey)
+  )
   const [rotationX, rotationY, rotationZ, __] = rotationStore.components()
   rotationStore.tuple.subscribe((t) => updateTuple('rotation', t, 'key'))
   $: if ($clickedKey != null) rotationStore.update(nthKey($tempConfig, $clickedKey).key.rotation || 0n)
@@ -401,10 +417,10 @@
   $: keyIsHovered = $hoveredKey == null ? null : nthKey($protoConfig, $hoveredKey).key
   $: columnIsHovered = $hoveredKey == null ? null : nthKey($protoConfig, $hoveredKey).column
   $: clusterIsHovered = $hoveredKey == null ? null : nthKey($protoConfig, $hoveredKey).cluster
-  $: hoveredPosition = keyIsHovered == null ? null : decodeTuple(keyIsHovered.position || 0n)
+  $: hoveredPosition = $hoveredKey == null ? null : keyPos($protoConfig, $hoveredKey, $useAbsolute)
   $: hoveredCPosition = columnIsHovered == null ? null : decodeTuple(columnIsHovered.position || 0n)
   $: hoveredLPosition = clusterIsHovered == null ? null : decodeTuple(clusterIsHovered.position || 0n)
-  $: hoveredRotation = keyIsHovered == null ? null : decodeTuple(keyIsHovered.rotation || 0n)
+  $: hoveredRotation = $hoveredKey == null ? null : keyRot($protoConfig, $hoveredKey, $useAbsolute)
   $: hoveredCRotation = columnIsHovered == null ? null : decodeTuple(columnIsHovered.rotation || 0n)
   $: hoveredLRotation = clusterIsHovered == null ? null : decodeTuple(clusterIsHovered.rotation || 0n)
 
@@ -733,11 +749,14 @@
         {:else}
           <div class="relative">
             <div
-              class="pointer-events-none absolute inset-y-0 left-0 flex items-center px-4 text-gray-700 dark:text-gray-100"
+              class="z-1 pointer-events-none absolute inset-y-0 left-0 flex items-center px-4 text-gray-700 dark:text-gray-100"
             >
-              <Icon size="20px" name="keycap" />
+              <Icon
+                size="20px"
+                name={PART_INFO[nthPartType($protoConfig, $clickedKey, $selectMode)]?.icon || 'keycap'}
+              />
             </div>
-            <select
+            <!-- <select
               class="appearance-none bg-[#EFE8FF] dark:bg-gray-900 w-88 pl-20 h-8 pl-11!"
               class:w-64!={PART_INFO[nthPartType($protoConfig, $clickedKey, $selectMode)].partName
                 .length < 20}
@@ -751,7 +770,26 @@
                   {/each}
                 </optgroup>
               {/each}
-            </select>
+            </select> -->
+            <SelectThingy
+              pink
+              class="appearance-none bg-[#EFE8FF] dark:bg-gray-900 w-88 pl-20 h-8 pl-11! text-start {PART_INFO[
+                nthPartType($protoConfig, $clickedKey, $selectMode)
+              ].partName.length < 20
+                ? 'w-64!'
+                : ''}"
+              options={Object.fromEntries(
+                sortedCategories.map((cat) => [
+                  cat,
+                  notNull(objKeys(PART_INFO))
+                    .filter((v) => PART_INFO[v].category == cat)
+                    .map((p) => ({ key: p, label: PART_INFO[p].partName, ...PART_INFO[p] })),
+                ])
+              )}
+              on:change={changeKey}
+              value={nthPartType($protoConfig, $clickedKey, $selectMode)}
+              component={SelectPartInner}
+            />
             <div
               class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-700 dark:text-gray-100"
             >
@@ -1113,19 +1151,34 @@
                   {:else}<span class="fallback">-</span>{/if}
                 </Field>
                 <div class="my-2" />
-                <Field small name="Offset X" icon="movex" iconColor="#ff3653">
+                <Field
+                  small
+                  name={$useAbsolute ? 'Position X' : 'Offset X'}
+                  icon="movex"
+                  iconColor="#ff3653"
+                >
                   {#if $clickedKey != null}<DecimalInput small bind:value={$positionX} />
-                  {:else if hoveredPosition}<span class="fallback">{hoveredPosition[0] / 10}</span>
+                  {:else if hoveredPosition}<span class="fallback">{hoveredPosition[0]}</span>
                   {:else}<span class="fallback">-</span>{/if}
                 </Field>
-                <Field small name="Offset Y" icon="movey" iconColor="#8adb00">
+                <Field
+                  small
+                  name={$useAbsolute ? 'Position Y' : 'Offset Y'}
+                  icon="movey"
+                  iconColor="#8adb00"
+                >
                   {#if $clickedKey != null}<DecimalInput small bind:value={$positionY} />
-                  {:else if hoveredPosition}<span class="fallback">{hoveredPosition[1] / 10}</span>
+                  {:else if hoveredPosition}<span class="fallback">{hoveredPosition[1]}</span>
                   {:else}<span class="fallback">-</span>{/if}
                 </Field>
-                <Field small name="Offset Z" icon="movez" iconColor="#2c8fff">
+                <Field
+                  small
+                  name={$useAbsolute ? 'Position Z' : 'Offset Z'}
+                  icon="movez"
+                  iconColor="#2c8fff"
+                >
                   {#if $clickedKey != null}<DecimalInput small bind:value={$positionZ} />
-                  {:else if hoveredPosition}<span class="fallback">{hoveredPosition[2] / 10}</span>
+                  {:else if hoveredPosition}<span class="fallback">{hoveredPosition[2]}</span>
                   {:else}<span class="fallback">-</span>{/if}
                 </Field>
                 <div class="my-2" />
@@ -1133,7 +1186,7 @@
                   {#if $clickedKey != null}
                     <AngleInput small bind:value={$rotationX} />
                   {:else if hoveredRotation}
-                    <span class="fallback">{Math.round(hoveredRotation[0] / 4.5) / 10}&deg;</span>
+                    <span class="fallback">{hoveredRotation[0]}&deg;</span>
                   {:else}
                     <span class="fallback">-</span>
                   {/if}
@@ -1142,7 +1195,7 @@
                   {#if $clickedKey != null}
                     <AngleInput small bind:value={$rotationY} />
                   {:else if hoveredRotation}
-                    <span class="fallback">{Math.round(hoveredRotation[1] / 4.5) / 10}&deg;</span>
+                    <span class="fallback">{hoveredRotation[1]}&deg;</span>
                   {:else}
                     <span class="fallback">-</span>
                   {/if}
@@ -1151,11 +1204,21 @@
                   {#if $clickedKey != null}
                     <AngleInput small bind:value={$rotationZ} />
                   {:else if hoveredRotation}
-                    <span class="fallback">{Math.round(hoveredRotation[2] / 4.5) / 10}&deg;</span>
+                    <span class="fallback">{hoveredRotation[2]}&deg;</span>
                   {:else}
                     <span class="fallback">-</span>
                   {/if}
                 </Field>
+                <p class="text-center">
+                  <button
+                    class="text-sm underline opacity-70 px-2 py-0.5 rounded"
+                    class:bg-pink-300={$useAbsolute}
+                    class:dark:bg-pink-800={$useAbsolute}
+                    on:click={() => ($useAbsolute = !$useAbsolute)}
+                  >
+                    Show {#if $useAbsolute}relative{:else}absolute{/if} coords
+                  </button>
+                </p>
               </div>
             </div>
           {:else if $selectMode == 'column'}
