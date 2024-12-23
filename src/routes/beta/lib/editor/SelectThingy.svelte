@@ -15,11 +15,10 @@
   export let options: Option[] | Record<string, Option[]>
   const allOptions = Array.isArray(options) ? options : Object.values(options).flat()
 
-  const toOption = (option: Option): SelectOptionProps<string> => ({
-    value: option.key,
-    label: option.label,
-    disabled: false,
-  })
+  const toOption = (option: Option | undefined): SelectOptionProps<string> =>
+    option
+      ? { value: option.key, label: option.label, disabled: false }
+      : { value: '', label: '', disabled: true }
 
   export let value: string
   export let clazz: string = ''
@@ -41,7 +40,7 @@
 
   // This DX is pretty bad.
   const sync = createSync({ selected })
-  $: sync.selected(toOption(allOptions.find((opt) => opt.key == value)!), (v) => v && (value = v.value))
+  $: sync.selected(toOption(allOptions.find((opt) => opt.key == value)), (v) => v && (value = v.value))
 
   export let component: ComponentType<SvelteComponent<{ option: Option }>>
   export let labelComponent: ComponentType<SvelteComponent<{ option: { label: string; value: string } }>>
@@ -51,15 +50,11 @@
 </script>
 
 <div class="relative">
-  <button
-    use:melt={$trigger}
-    class={clazz || 's-input pl-2 pr-8 truncate text-start'}
-    placeholder="Choose Switch"
-  >
+  <button use:melt={$trigger} class={clazz || 's-input pl-2 pr-8 truncate text-start'}>
     {#if labelComponent && $selected}
       <svelte:component this={labelComponent} option={$selected} />
     {:else}
-      {$selectedLabel || 'Select a Switch'}
+      {$selectedLabel || 'Choose One'}
     {/if}
   </button>
   <div class="absolute right-4 top-1/2 z-10 -translate-y-1/2">

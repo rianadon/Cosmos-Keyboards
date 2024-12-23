@@ -1043,20 +1043,23 @@
     <SelectThingy
       bind:value={$protoConfig.microcontroller}
       on:change={updateMicrocontroller}
-      options={Object.fromEntries(
-        MICROCONTROLLER_SIZES.map((s) => [
-          s,
-          notNull(MICROCONTROLLER_NAME)
-            .filter(
-              (m) => BOARD_PROPERTIES[m].sizeName == s && (flags.draftuc || !BOARD_PROPERTIES[m].draft)
-            )
-            .sort(sortMicrocontrollers)
-            .map((m) => ({
-              key: m,
-              label: BOARD_PROPERTIES[m].name + ' ' + (BOARD_PROPERTIES[m].extraName || ''),
-            })),
-        ])
-      )}
+      options={{
+        ...Object.fromEntries(
+          MICROCONTROLLER_SIZES.map((s) => [
+            s,
+            notNull(MICROCONTROLLER_NAME)
+              .filter(
+                (m) => BOARD_PROPERTIES[m].sizeName == s && (flags.draftuc || !BOARD_PROPERTIES[m].draft)
+              )
+              .sort(sortMicrocontrollers)
+              .map((m) => ({
+                key: m,
+                label: BOARD_PROPERTIES[m].name + ' ' + (BOARD_PROPERTIES[m].extraName || ''),
+              })),
+          ])
+        ),
+        More: [{ key: null, label: 'None' }],
+      }}
       component={SelectMicrocontrollerInner}
     />
     <!-- <Select bind:value={$protoConfig.microcontroller} on:change={updateMicrocontroller}>

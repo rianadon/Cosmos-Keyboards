@@ -14,6 +14,7 @@
 
   export let visible = true
   export let snap: boolean
+  export let useAbsolute = false
   let controls: TC
 
   const dispatch = createEventDispatcher()
@@ -58,7 +59,10 @@
     <TransformControls
       object={ref}
       size={0.9}
-      space={$transformMode == 'translate' && $selectMode == 'cluster' ? 'world' : 'local'}
+      space={($transformMode == 'translate' && $selectMode == 'cluster') ||
+      (useAbsolute && $selectMode == 'key')
+        ? 'world'
+        : 'local'}
       mode={$transformMode}
       rotationSnap={snap ? Math.PI / 2 : undefined}
       bind:controls
