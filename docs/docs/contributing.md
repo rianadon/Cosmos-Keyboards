@@ -23,7 +23,7 @@ If you'd like to run the dev servers for the generator and docs simultaneously, 
 The `make quickstart` command recommended in the README bundles together several useful commands in the `Makefile`:
 
 ```bash
-npm install --omit=optional # Installs dependencies
+npm install # Installs dependencies
 mkdir target
 make # Compiles protobuf files and expert mode autocompletions
 make parts # Generates the mx switch geometry

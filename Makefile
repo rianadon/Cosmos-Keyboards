@@ -75,7 +75,7 @@ ci-setup:
 vite-build:
 	$(NPM) run build
 npm-install:
-	$(NPM) install --omit=optional
+	$(NPM) install
 ci-base: build keycaps-simple2 keycaps2 parts parts-simple
 ci: ci-setup ci-base vite-build docs-ci
 quickstart: npm-install ci-setup ci-base

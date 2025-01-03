@@ -57,6 +57,7 @@
     "ml-matrix": "^6.10.4",
     "node-three-gltf": "^1.8.2",
     "openscad-parser": "^0.6.1",
+    "playwright": "^1.45.1",
     "simple-git-hooks": "^2.11.1",
     "svelte": "^4.2.17",
     "svelte-check": "^3.8.1",
@@ -67,9 +68,6 @@
     "typescript-memoize": "^1.1.1",
     "unocss": "^0.61.3",
     "vite": "^5.3.3"
-  },
-  "optionalDependencies": {
-    "playwright": "^1.45.1"
   },
   "type": "module",
   "simple-git-hooks": {
