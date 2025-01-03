@@ -458,7 +458,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
         items['trackball-dowel'] = { item: '3 x 8 mm Dowel Pins', icon: 'trackball', count: 3 }
         items['trackball-bearing'] = { item: '3 x 6 x 2.5 mm Bearings', icon: 'trackball', count: 3 }
       } else if (variant.bearings == 'Ball') {
-        items['trackball-bearing'] = { item: '1/8" diameter (3.175mm) Ceramic Ball Bearings', icon: 'trackball', count: 3 }
+        items['trackball-bearing'] = { item: '1/8" diameter (3.175mm) Si3N4/Zr02 Ceramic Ball Bearings', icon: 'trackball', count: 3 }
       } else if (variant.bearings == 'BTU (7.5mm)') {
         items['trackball-bearing'] = { item: '7.5mm diameter BTUs', icon: 'trackball', count: 3, info: btuInfo }
       } else if (variant.bearings == 'BTU (9mm)') {
