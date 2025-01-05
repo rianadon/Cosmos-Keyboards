@@ -57,7 +57,7 @@
       {$selectedLabel || 'Choose One'}
     {/if}
   </button>
-  <div class="absolute right-4 top-1/2 z-10 -translate-y-1/2">
+  <div class="absolute right-4 top-1/2 z-10 -translate-y-1/2 pointer-events-none">
     {#if $open}
       <Icon path={mdiChevronUp} size="20px" />
     {:else}
