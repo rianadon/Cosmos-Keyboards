@@ -429,12 +429,12 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
       return [box(pcbWidth, pcbHeight, 28.3), box(16, 11, 30.8)] // 34mm variant
     },
     variants: {
-      size: ['25mm', '34mm', '43mm', '55mm'],
+      size: ['25mm', '34mm', '55mm', '43mm'],
       bearings: ['Roller', 'Ball', 'BTU (7.5mm)', 'BTU (9mm)'],
       sensor: ['Joe (QMK)', 'Skree (ZMK)'],
     },
     encodeVariant: (variant: Variant) => {
-      const size = ['34mm', '25mm', '43mm', '55mm'].indexOf(variant.size)
+      const size = ['34mm', '25mm', '55mm', '43mm'].indexOf(variant.size)
       const bearings = ['Roller', 'Ball', 'BTU (7.5mm)', 'BTU (9mm)'].indexOf(variant.bearings)
       const sensor = ['Joe (QMK)', 'Skree (ZMK)'].indexOf(variant.sensor)
       return size + (bearings << 3) + (sensor << 6)
