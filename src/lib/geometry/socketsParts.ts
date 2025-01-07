@@ -444,7 +444,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
       const bearings = (variant >> 3) & 0x7
       const sensor = (variant >> 6) & 0x3
       return {
-        size: ['34mm', '25mm', '43mm', '55mm'][size] || '34mm',
+        size: ['34mm', '25mm', '55mm', '43mm'][size] || '34mm',
         bearings: ['Roller', 'Ball', 'BTU (7.5mm)', 'BTU (9mm)'][bearings] || 'Roller',
         sensor: ['Joe (QMK)', 'Skree (ZMK)'][sensor] || 'Joe (QMK)',
       }
