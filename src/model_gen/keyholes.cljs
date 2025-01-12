@@ -303,7 +303,7 @@
 
         diode-wire-dia 0.75
         diode-wire-channel-depth (* 1.5 diode-wire-dia)
-        diode-body-width 1.95
+        diode-body-width 2.2
         diode-body-length 4
         diode-corner-hole (->> (cylinder diode-wire-dia (* 2 hotswap-z))
                               (with-fn ROUND-RES)
