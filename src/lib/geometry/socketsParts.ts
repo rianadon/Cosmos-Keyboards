@@ -409,12 +409,12 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'trackball': {
     partName: 'Trackball',
-    bomName: (v: Variant) => `${v.size || '25/34/55mm'} Trackballs`,
+    bomName: (v: Variant) => `${v.size || '25/34/43/55mm'} Trackballs`,
     category: 'Trackballs & Trackpads',
     stepFile: '/target/key-trackball.step',
     partOverride: '/target/switch-trackball.glb',
     socketSize: (v: Variant) => ({
-      radius: { '25mm': 16.4, '34mm': 20.9, '55mm': 31.4 }[v.size as TrackballVariant['size']],
+      radius: { '25mm': 16.4, '34mm': 20.9, '43mm': 25.4, '55mm': 31.4 }[v.size as TrackballVariant['size']],
       height: 4,
       sides: 20,
     }),
@@ -424,16 +424,17 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
       const pcbHeight = { 'Joe (QMK)': 21.3, 'Skree (ZMK)': 24 }[v.sensor as TrackballVariant['sensor']]
 
       if (v.size == '25mm') return [box(pcbWidth, pcbHeight, 23.8), box(16, 11, 26.3)]
+      if (v.size == '43mm') return [box(pcbWidth, pcbHeight, 33.0), box(16, 11, 35.6)]
       if (v.size == '55mm') return [box(pcbWidth, pcbHeight, 38.8), box(16, 11, 41.3)]
       return [box(pcbWidth, pcbHeight, 28.3), box(16, 11, 30.8)] // 34mm variant
     },
     variants: {
-      size: ['25mm', '34mm', '55mm'],
+      size: ['25mm', '34mm', '55mm', '43mm'],
       bearings: ['Roller', 'Ball', 'BTU (7.5mm)', 'BTU (9mm)'],
       sensor: ['Joe (QMK)', 'Skree (ZMK)'],
     },
     encodeVariant: (variant: Variant) => {
-      const size = ['34mm', '25mm', '55mm'].indexOf(variant.size)
+      const size = ['34mm', '25mm', '55mm', '43mm'].indexOf(variant.size)
       const bearings = ['Roller', 'Ball', 'BTU (7.5mm)', 'BTU (9mm)'].indexOf(variant.bearings)
       const sensor = ['Joe (QMK)', 'Skree (ZMK)'].indexOf(variant.sensor)
       return size + (bearings << 3) + (sensor << 6)
@@ -443,7 +444,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
       const bearings = (variant >> 3) & 0x7
       const sensor = (variant >> 6) & 0x3
       return {
-        size: ['34mm', '25mm', '55mm'][size] || '34mm',
+        size: ['34mm', '25mm', '55mm', '43mm'][size] || '34mm',
         bearings: ['Roller', 'Ball', 'BTU (7.5mm)', 'BTU (9mm)'][bearings] || 'Roller',
         sensor: ['Joe (QMK)', 'Skree (ZMK)'][sensor] || 'Joe (QMK)',
       }
