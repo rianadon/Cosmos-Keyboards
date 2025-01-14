@@ -2,7 +2,12 @@
   import * as THREE from 'three'
 
   import Viewer from './Viewer.svelte'
-  import { allScrewIndices, keyHolesTrsfs, screwOrigin } from '$lib/worker/geometry'
+  import {
+    allScrewIndices,
+    keyHolesTrsfs,
+    possibleScrewIndices,
+    screwOrigin,
+  } from '$lib/worker/geometry'
   import { rectangle, drawWall, drawLinedWall, drawBezierWall, fullSizes } from './viewerHelpers'
   import { localHolderBounds } from '$lib/geometry/microcontrollers'
 
@@ -169,10 +174,13 @@
         config.shell.type === 'stilts' ? -100 : geo.bottomZ
       ),
     ]
+    const indices = new Set(possibleScrewIndices(geo.c, walls2))
     const screwInd = geo.screwIndices
+    screwInd.forEach((i) => indices.add(i))
+    allScrewInd.forEach((i) => indices.add(i))
+    Object.values(boardInd).forEach((i) => indices.add(i))
 
-    for (let I = 0; I < walls2.length * 10; I++) {
-      const i = I / 10
+    for (const i of indices) {
       let size = 1.5
       let color: number | number[] = 0xff0000
 
@@ -184,8 +192,6 @@
         color = 0x0000ff
       } else if (allScrewInd.includes(i)) {
         color = 0xaaaaaa
-      } else {
-        if (I % 10 != 5) continue
       }
 
       const pos = screwOrigin(config, i, walls2)

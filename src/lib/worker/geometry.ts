@@ -561,15 +561,24 @@ export function flattenKeyCriticalPoints(c: Cuttleform, pts: CriticalPoints[], t
 //         .xyz()
 // }
 
-export function connectorIndex(c: Cuttleform, walls: WallCriticalPoints[], innerSurfaces: Line[][], worldZ: Vector, bottomZ: number, selectB: string[], screwDiameter?: number): number {
+function* possibleBestWallsForConnector(c: Cuttleform, walls: WallCriticalPoints[]) {
   const ys = walls.map(w => w.bo.xyz()[1])
   if (ys.some(isNaN)) throw new Error('NaN point coordinates')
   const midY = (Math.min(...ys) + Math.max(...ys)) / 2
 
-  // First find the wall with the highest score.
-  let bestError = Infinity
-  let bestWall = 0
+  for (let i = 0; i < walls.length; i++) {
+    if (walls[i].bi.origin().y < midY) continue // Only work with walls in upper half of model
+    const nextI = (i + 1) % walls.length
+    // If the length of the wall is big, split it into multiple subdivisions
+    // For short walls, subidvisions = 1, and the loop only yields i (the current wall index)
+    const subdivisions = Math.floor(walls[i].bi.origin().distanceTo(walls[nextI].bi.origin()) / 40) + 1
+    for (let k = 0; k < subdivisions; k++) {
+      yield i + k / subdivisions
+    }
+  }
+}
 
+export function connectorIndex(c: Cuttleform, walls: WallCriticalPoints[], innerSurfaces: Line[][], worldZ: Vector, bottomZ: number, selectB: string[], screwDiameter?: number): number {
   function calcError(wall: number) {
     const origin = originForConnector(c, walls, innerSurfaces, wall)
     const hBnd = localHolderBounds(c, true)
@@ -598,14 +607,17 @@ export function connectorIndex(c: Cuttleform, walls: WallCriticalPoints[], inner
     return error
   }
 
-  walls.forEach((_, i) => {
-    if (walls[i].bi.origin().y < midY) return // Only work with walls in upper half of model
+  // First find the wall with the highest score.
+  let bestError = Infinity
+  let bestWall = 0
+
+  for (const i of possibleBestWallsForConnector(c, walls)) {
     const error = calcError(i)
     if (error < bestError) {
       bestWall = i
       bestError = error
     }
-  })
+  }
   if (bestError == Infinity) throw new Error('Could not find a spot to place the microcontroller holder. Try setting both the microcontroller and connector to None (basic/adanced) or null (expert)".')
 
   // Then interpolate between walls to refine the index into decimals.
@@ -1278,6 +1290,18 @@ function screwScore(c: Cuttleform, walls: WallCriticalPoints[], s: number, param
   return 10 * Math.sqrt(nearestDispl) + height
 }
 
+export function* possibleScrewIndices(c: Cuttleform, walls: WallCriticalPoints[]) {
+  for (let i = 0; i < walls.length; i++) {
+    const nextI = (i + 1) % walls.length
+    // If the length of the wall is big, split it into multiple subdivisions
+    // For short walls, subidvisions = 1, and the loop only yields i (the current wall index)
+    const subdivisions = Math.floor(walls[i].bi.origin().distanceTo(walls[nextI].bi.origin()) / 40) + 1
+    for (let k = 0; k < subdivisions; k++) {
+      yield i + (k + 1) / (subdivisions + 1)
+    }
+  }
+}
+
 export function* allScrewIndices(
   c: Cuttleform,
   walls: WallCriticalPoints[],
@@ -1299,12 +1323,12 @@ export function* allScrewIndices(
 
   const positions = new Set(initialPositions)
   const holderBnd = (c.microcontroller || c.connectors.length || c.connector) && connOrigin ? holderBoundsOrigin(c, connOrigin.origin(), true) : undefined
+  const possibleIndices = Array.from(possibleScrewIndices(c, walls))
   while (true) {
     // Find position with the highest score
     let highestScore = -Infinity
     let bestPosition = 0
-    for (let i = 0; i < walls.length; i++) {
-      const iCenter = i + 0.5
+    for (const iCenter of possibleIndices) {
       if (positions.has(iCenter)) continue
       const fn = c.shell.type == 'stilts' ? screwScoreStilts : screwScore
       const sc = fn(c, walls, iCenter, {
