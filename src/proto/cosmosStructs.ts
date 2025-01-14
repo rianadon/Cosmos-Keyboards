@@ -38,6 +38,7 @@ enumeration('PART', {
   22: 'trackball',
   23: 'trackpad-cirque',
   24: 'oled-128x32-0.91in-spi-adafruit',
+  25: 'trackpad-azoteq',
 
   // Old stuff no one should be using.
   110: 'old-mx',

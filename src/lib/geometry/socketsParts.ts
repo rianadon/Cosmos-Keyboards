@@ -481,6 +481,29 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     description:
       'Move your mouse from your keyboard! Integrating a trackball to your keyboard can help you switch between typing and navigating faster and with less hand movement.\nI personally recommend using ball bearings with trackballs, as they are the most consistent. Roller Bearings and BTUs are more spinny but also more noisy.',
   },
+  'trackpad-azoteq': {
+    partName: 'Azoteq Trackpad',
+    bomName: (v: Variant) => `Azoteq ${v.size || 'TPS65'} Trackpads`,
+    category: 'Trackballs & Trackpads',
+    stepFile: '/src/assets/key-trackpad-azoteq.step',
+    partOverride: '/target/switch-trackpad-azoteq.glb',
+    socketSize: (v: Variant) => [70, 54, 4] as PartSize,
+    partBottom: () => [box(10, 10, 2)],
+    variants: {
+      size: ['TPS65'],
+    },
+    encodeVariant: (variant: Variant) => {
+      return ['TPS65'].indexOf(variant.size)
+    },
+    decodeVariant: (variant: number) => {
+      return {
+        size: ['TPS65'][variant] || 'TPS65',
+      }
+    },
+    pinsNeeded: () => 2,
+    icon: 'knob',
+    description: 'A rectangular I2C trackpad.',
+  },
   'trackpad-cirque': {
     partName: 'Cirque Flat Circle Trackpad',
     bomName: (v: Variant) => `Cirque Flat Circle ${v.size || '23/35/40mm'} Trackpads`,
