@@ -27,6 +27,7 @@ enumeration('PART', {
   13: 'mx-pcb-plum',
   // 14 reserved for mx-pumpkin
   15: 'mx-skree',
+  26: 'niz',
 
   // You wouldn't put many of these on a keyboard.
   16: 'ec11',

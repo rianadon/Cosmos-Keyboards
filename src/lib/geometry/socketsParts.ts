@@ -11,6 +11,8 @@ const CHOC_PART = '/src/assets/switch-choc.glb'
 const BOM_MX_HOTSWAP = { 'pcb-hotswap': { item: 'Kailh Hotswap Sockets', icon: 'hotswap', count: 1 } }
 const BOM_CHOC_HOTSWAP = { 'pcb-hotswap': { item: 'Kailh Choc Hotswap Sockets', icon: 'hotswap', count: 1 } }
 const BOM_DIODE = { 'xdiodes': { item: '1N4148 Diodes', icon: 'diode', count: 1 } }
+const BOM_HE_SWITCH = { 'heswitch': { item: 'Hall-Effect Switch (AH3572)', icon: 'diode', count: 1 } }
+const BOM_DISC_MAGNET = { 'discmagnet': { item: 'Disc Magnet (2mm x 1mm)', icon: 'diode', count: 1 } }
 
 const DESC_MX = '\nAll MX Sockets in Cosmos are compatible with Cherry MX switches and its clones. That includes Gateron switches (with the exception of low profile), Gazzew, Outemu, Akko, etc.'
 const DESC_DISPLAY = 'Display your current layer, your keymap, battery information, or whatever you like.'
@@ -250,6 +252,21 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     wiredInMatrix: () => true,
     description:
       "Choc V2 is quite similar to Kailh Choc V1 except for the fact that it uses taller MX-style keycaps instead of the smaller Choc-style keycaps. This socket is dimensionally equivalent to the Choc&nbsp;V1 socket but includes more clearance around the hole. It also has a 3D-printed mount for Choc hotswap sockets.\nIf your Choc Switches have the MX '+'-shaped stem, then they're V2.",
+    icon: 'choc',
+    bomIcon: 'switch',
+  },
+  'niz': {
+    partName: 'NIZ: Direct Solder',
+    bomName: 'NIZ Switches',
+    category: 'Sockets',
+    stepFile: '/src/assets/key-niz.step',
+    partOverride: '/target/switch-niz.glb',
+    socketSize: [20.6, 19.95, 6.5],
+    partBottom: [box(14, 14, 8.5)],
+    keycap: 'mx',
+    extraBomItems: { ...BOM_DIODE, ...BOM_HE_SWITCH, ...BOM_DISC_MAGNET },
+    wiredInMatrix: true,
+    description: 'NIZ uses a rubber dome and a spring. Switching is accomplished with a hall-effect switch and a magnet.',
     icon: 'choc',
     bomIcon: 'switch',
   },
