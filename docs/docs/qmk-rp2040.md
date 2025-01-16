@@ -223,7 +223,7 @@ QMK is a little confusing in that a lot of settings are configurable _both_ in `
 
 7. Edit `rules.mk`
 
-   ```makefile title="mcuconf.h"
+   ```makefile title="rules.mk"
    # Build Options
    #   change yes to no to disable
 
@@ -246,7 +246,7 @@ QMK is a little confusing in that a lot of settings are configurable _both_ in `
 
    As before, omit the trackball and encoder sections if they are not applicable to you.
 
-8. At this point you should have 6 items in your folder: `config.h`, `info.json`, `keymaps`, `mcucont.h`, `readme.md`, and `rules.mk`. If there are any other files, delete them.
+8. At this point you should have 6 items in your folder: `config.h`, `info.json`, `keymaps`, `mcuconf.h`, `readme.md`, and `rules.mk`. If there are any other files, delete them.
 
 ### The Keymap
 

@@ -39,7 +39,7 @@ Modifies the Dactyl Manuform to have a thumb cluster more similar to the origina
 
 I also owe my gratitude to the many contributors to the Cosmos generator:
 
-<a href="https://github.com/rianadon/Cosmos-Keyboards/graphs/contributors"><img id="contributors" src="" alt="Profiles of Contributors" width="320" /></a>
+<a href="https://github.com/rianadon/Cosmos-Keyboards/graphs/contributors"><img id="contributors" src="" alt="Profiles of Contributors" width="480" /></a>
 
 <!-- Bypasses the caching of images -->
 <script>document.getElementById('contributors').src = "https://contrib" + ".rocks/image?repo=rianadon/cosmos-keyboards"</script>
