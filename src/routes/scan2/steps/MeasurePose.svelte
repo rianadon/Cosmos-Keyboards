@@ -181,6 +181,20 @@
     )
   }
   onMount(resize)
+
+  function skip() {
+    if (
+      confirm(
+        "This button exists because hand scanning still has bugs. The results of this step don't affect the quality of hand fitting in Cosmos–they only improve the accuracy of the 3D hand in the keyboard render preview.\n\nThat said, I intend to eventually use these results in hand fitting. Please do come back and take another scan when I make those changes."
+      )
+    ) {
+      leftSuccess = 0
+      rightSuccess = 0
+
+      phase++
+      curlPhase = false
+    }
+  }
 </script>
 
 <svelte:window on:resize={resize} />
@@ -213,6 +227,9 @@
         [3/{PHASES}] Stretch out your hands and point your fingertips upwardsand your palms towards the
         camera.
       </p>
+    {/if}
+    {#if !(nLeft == 0 && nRight == 0 && phase == 0)}
+      <button on:click={skip} class="opacity-70 mt-0.5 ml-4">Skip this step</button>
     {/if}
   </div>
   <div slot="content">

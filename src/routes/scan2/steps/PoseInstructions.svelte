@@ -10,7 +10,8 @@
       The next step estimates the directions in which your fingers and thumb bend. If you're using a
       laptop, rest the camera against your screen, with the lens pointing towards you. Otherwise, rest
       the phone against a surface. Unlike the previous steps, the camera should be facing towards your
-      torso.
+      torso. This test only works with AUTO ROTATE LOCK OFF. Your phone must be in landscape mode (A fix
+      for this is in the works).
     </p>
     <p class="mb-2">
       As data is collected on each hand, the red circles will close. A fully red circle indicates your
