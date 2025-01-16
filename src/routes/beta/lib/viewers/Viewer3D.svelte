@@ -564,7 +564,10 @@
       return
     }
     playing = true
-    play(sentence)
+    const filteredSentence = Array.from(sentence)
+      .filter((letter) => !!findKeyByAttr(conf, 'letter', letter))
+      .join('')
+    play(filteredSentence)
   }
 
   let playing = false
