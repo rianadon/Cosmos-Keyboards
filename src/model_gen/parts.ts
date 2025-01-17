@@ -210,7 +210,6 @@ async function main() {
   const toSplit: CuttleKey['type'][] = []
   for (const [socket, info] of objEntries(PART_INFO)) {
     if ('partOverride' in info) continue // Skip parts with a specified part model
-    // if ('variant' in info) continue // Variants not supported for now
     if (info.stepFile.startsWith('/target')) continue // Generated models not supported for now
     const stepFiles = findStepFiles(socket, info)
     await stepFiles.forEach(async (stepFile: string) => {
