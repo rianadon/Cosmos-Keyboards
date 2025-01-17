@@ -501,8 +501,8 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     partName: 'Azoteq Trackpad',
     bomName: (v: Variant) => `Azoteq ${v.size || 'TPS65'} Trackpads`,
     category: 'Trackballs & Trackpads',
-    stepFile: '/src/assets/trackpad-65x49-azoteq.step',
-    socketSize: (v: Variant) => [65.4, 49.2, 4] as PartSize,
+    stepFile: '/src/assets/trackpad-azoteq.step',
+    socketSize: (v: Variant) => [65.2, 49, 4] as PartSize,
     partBottom: () => [box(10, 10, 2)],
     variants: {
       size: ['TPS65'],

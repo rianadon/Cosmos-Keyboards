@@ -9,6 +9,7 @@ import { type AnyShape, drawRectangle, getOC, importSTEP, makeBaseBox, Solid } f
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
 import { fileURLToPath } from 'url'
 import { allVariants, decodeVariant, PART_INFO, variantURL, variantURLs } from '../lib/geometry/socketsParts'
+import type { PartInfo } from '../lib/geometry/socketsParts'
 import { exportGLTF } from './exportGLTF'
 import { importSTEPSpecifically, serialize } from './modeling'
 import { setup } from './node-model'
@@ -56,6 +57,12 @@ async function writeMesh(filename: string, model: AnyShape) {
   }
   await exportGLTF(filename, geometry)
   return mass
+}
+
+function findStepFiles(socket: CuttleKey['type'], info: PartInfo): string[] {
+  if (!('variants' in info)) return [info.stepFile]
+
+  return variantURLs(socket).map(variantURL => info.stepFile.replace('.step', `${variantURL}.step`))
 }
 
 type Microcontroller = Exclude<Cuttleform['microcontroller'], null>
@@ -203,23 +210,26 @@ async function main() {
   const toSplit: CuttleKey['type'][] = []
   for (const [socket, info] of objEntries(PART_INFO)) {
     if ('partOverride' in info) continue // Skip parts with a specified part model
-    if ('variant' in info) continue // Variants not supported for now
+    // if ('variant' in info) continue // Variants not supported for now
     if (info.stepFile.startsWith('/target')) continue // Generated models not supported for now
-    const contents = await readFile('.' + info.stepFile, { encoding: 'utf-8' })
-    const names = [...contents.matchAll(/PRODUCT\('(.*?)'/g)].map(m => m[1])
-    const hasSocket = names.includes('Socket')
-    const hasPart = names.includes('Part')
-    if (!hasSocket || !hasPart) {
-      console.error(`The STEP file for part ${socket}, ${info.stepFile} does not a specify a partOverride,`)
-      console.error('so the file will be split into part and socket models based on component names in the assembly.')
-      console.error('The following names are missing:')
-      if (!hasPart) console.error(' - "Socket" for the socket')
-      if (!hasPart) console.error(' - "Part" for the part')
-      console.error(`PLease rename the components ${JSON.stringify(names)} to "Part" and "Socket".`)
-      console.error()
-    } else {
-      toSplit.push(socket)
-    }
+    const stepFiles = findStepFiles(socket, info)
+    await stepFiles.forEach(async (stepFile: string) => {
+      const contents = await readFile('.' + stepFile, { encoding: 'utf-8' })
+      const names = [...contents.matchAll(/PRODUCT\('(.*?)'/g)].map(m => m[1])
+      const hasSocket = names.includes('Socket')
+      const hasPart = names.includes('Part')
+      if (!hasSocket || !hasPart) {
+        console.error(`The STEP file for part ${socket}, ${info.stepFile} does not a specify a partOverride,`)
+        console.error('so the file will be split into part and socket models based on component names in the assembly.')
+        console.error('The following names are missing:')
+        if (!hasPart) console.error(' - "Socket" for the socket')
+        if (!hasPart) console.error(' - "Part" for the part')
+        console.error(`Please rename the components ${JSON.stringify(names)} to "Part" and "Socket".`)
+        console.error()
+      } else {
+        toSplit.push(socket)
+      }
+    })
   }
 
   await pool.run()

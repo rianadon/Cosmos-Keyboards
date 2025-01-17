@@ -1,10 +1,12 @@
 # NIZ Switches
 
+Warning: These are not traditional 2 leg switches.
+
 ![A model imported into OnShape](../assets/niz-exploded.png)
 
-These are not regular switches. They use a halleffect sensor attached to the socket and a magnet attached to the rubber dome to detect key presses. If you're a fan of Topre switches, these are the closes Cosmos has to offer. These do not have a physical switch. These switches are classified as tactile (depending on the rubber dome used) and are pretty quiet. The rubber dome helps dampen the bottoming out of the keypress as well.
+These switches use a halleffect sensor attached to the socket and a magnet attached to the rubber dome to detect key presses. They are along the lines of [Topre switches](https://deskthority.net/wiki/Topre_switch). These do not have a physical switch. These switches are classified as tactile (depending on the rubber dome used) and are pretty quiet. The rubber dome helps dampen the bottoming out of the keypress as well.
 
-Traditionally, thses switches have been used with capacitive switches, but Cosmos does not support those at this time.
+Traditionally, thses switches have been used with capacitive switches, but this article does not cover using capacitive sensors.
 
 ## Tested Combinations
 
