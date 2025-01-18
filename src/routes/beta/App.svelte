@@ -350,6 +350,9 @@
       originalErr = checkConfig(conf[kbd]!, undefined, false, kbd)
       if (originalErr.length) break
     }
+    if (kbdNames.length == 0) originalErr = [{ type: 'nokeys', side: 'unibody' }]
+    if (!!conf.left != !!conf.right)
+      originalErr = [{ type: 'nokeys', side: !conf.left ? 'left' : 'right' }]
     confError.set(originalErr)
     if (!isRenderable(originalErr)) return
 
@@ -810,7 +813,7 @@
         {:else if viewer == 'dev'}
           <ViewerDev />
         {/if}
-        {#if filament && (config?.right ?? config?.unibody).shell?.type == 'basic'}
+        {#if filament && isRenderable($confError) && (config?.right ?? config?.unibody).shell?.type == 'basic'}
           <div
             class="absolute bottom-0 right-0 text-right mb-2 bg-white/50 dark:bg-gray-800/50 rounded px-2 py-0.5 z-10"
           >

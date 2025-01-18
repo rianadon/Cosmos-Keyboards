@@ -1015,7 +1015,8 @@ export function solveTriangularization(c: Cuttleform, pts2D: CriticalPoints[], p
   }
 }
 
-export function estimatedBB(geometry: Geometry, wristRest = false, calcBottomZ = true): [number, number, number, number, number, number] {
+export function estimatedBB(geometry: Geometry | undefined, wristRest = false, calcBottomZ = true): [number, number, number, number, number, number] {
+  if (!geometry) return [0, 0, 0, 0, 0, 0]
   const pts = geometry.allKeyCriticalPoints.flat().map(t => t.xyz())
   const x = pts.map(p => p[0])
   const y = pts.map(p => p[1])

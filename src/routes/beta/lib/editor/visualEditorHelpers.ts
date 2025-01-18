@@ -50,8 +50,11 @@ export function setClusterSize(keyboard: CosmosKeyboard, side: 'left' | 'right',
 }
 
 export function clusterSeparation(c: CosmosKeyboard) {
-  const rightBB = estimatedBB(newGeometry(sideFromCosmosConfig(c, 'right', false)!), false, false)
-  const leftBB = estimatedBB(newGeometry(sideFromCosmosConfig(c, 'left', false)!), false, false)
+  const rightSide = sideFromCosmosConfig(c, 'right', false)
+  const leftSide = sideFromCosmosConfig(c, 'left', false)
+  if (!leftSide || !rightSide) return 0
+  const rightBB = estimatedBB(newGeometry(rightSide), false, false)
+  const leftBB = estimatedBB(newGeometry(leftSide), false, false)
   return rightBB[0] - leftBB[1]
 }
 

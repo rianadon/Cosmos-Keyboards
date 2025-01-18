@@ -1527,8 +1527,8 @@ export function fullEstimatedCenter(geo: FullGeometry | undefined, withWristRest
     const modelCenters = { unibody: center }
     return { left: modelCenters, both: modelCenters, right: modelCenters }
   } else {
-    const leftBB = estimatedBB(geo.left!, withWristRest && !!geo.left!.c.wristRestRight)
-    const rightBB = estimatedBB(geo.right!, withWristRest && !!geo.right!.c.wristRestRight)
+    const leftBB = estimatedBB(geo.left, withWristRest && !!geo.left?.c.wristRestRight)
+    const rightBB = estimatedBB(geo.right, withWristRest && !!geo.right?.c.wristRestRight)
     const sepDiff = (VIEW_SEPARATION - (rightBB[0] + leftBB[0])) / 2
     return {
       left: {
@@ -1561,8 +1561,8 @@ export function fullEstimatedSize(geo: FullGeometry | undefined): Full<[number, 
     const size = [x2 - x1, y2 - y1, z2 - z1] as [number, number, number]
     return { left: size, both: size, right: size }
   } else {
-    const [lx1, lx2, ly1, ly2, lz1, lz2] = estimatedBB(geo.left!)
-    const [rx1, rx2, ry1, ry2, rz1, rz2] = estimatedBB(geo.right!)
+    const [lx1, lx2, ly1, ly2, lz1, lz2] = estimatedBB(geo.left)
+    const [rx1, rx2, ry1, ry2, rz1, rz2] = estimatedBB(geo.right)
     const sep = VIEW_SEPARATION - (rx1 + lx1)
     return {
       left: [lx2 - lx1, ly2 - ly1, lz2 - lz1],
