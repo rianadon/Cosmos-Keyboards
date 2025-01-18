@@ -481,31 +481,35 @@ export function sideFromCosmosConfig(c: CosmosKeyboard, side: 'left' | 'right' |
   for (const clusterA of clusters) {
     for (const clusterB of clusterA.clusters) {
       for (const key of clusterB.keys) {
-        const cuttleKey: CuttleKey = {
-          type: key.partType.type || clusterB.partType.type || clusterA.partType.type || c.partType.type,
-          aspect: key.partType.aspect || clusterB.partType.aspect || clusterA.partType.aspect || c.partType.aspect,
-          cluster: clusterB.name || clusterA.name,
-          position: cosmosKeyPosition(key, clusterB, clusterA, c, flipLeft),
-        } as any
-        cuttleKey.variant = decodeVariant(cuttleKey.type, key.partType.variant ?? clusterB.partType.variant ?? clusterA.partType.variant ?? c.partType.variant!)
-        if (PART_INFO[cuttleKey.type].keycap) {
-          ;(cuttleKey as CuttleKeycapKey).keycap = {
-            letter: key.profile.letter,
-            home: key.profile.home ?? undefined,
-            row: key.profile.row!,
-            profile: key.profile.profile || clusterB.profile || clusterA.profile || c.profile,
-          }
-        } else {
-          cuttleKey.aspect = 1
-        }
-        if (cuttleKey.type == 'blank') cuttleKey.size = { width: key.sizeA!, height: key.sizeB! }
-        // @ts-ignore
-        if (ROUND_PARTS.includes(cuttleKey.type)) cuttleKey.size = { sides: key.sizeB }
-        conf.keys.push(cuttleKey)
+        conf.keys.push(toCuttleKey(c, clusterA, clusterB, key, flipLeft))
       }
     }
   }
   return conf.keys.length ? conf : undefined
+}
+
+export function toCuttleKey(c: CosmosKeyboard, cluster: CosmosCluster, col: CosmosCluster, key: CosmosKey, flipLeft: boolean) {
+  const cuttleKey: CuttleKey = {
+    type: key.partType.type || col.partType.type || cluster.partType.type || c.partType.type,
+    aspect: key.partType.aspect || col.partType.aspect || cluster.partType.aspect || c.partType.aspect,
+    cluster: col.name || cluster.name,
+    position: cosmosKeyPosition(key, col, cluster, c, flipLeft),
+  } as any
+  cuttleKey.variant = decodeVariant(cuttleKey.type, key.partType.variant ?? col.partType.variant ?? cluster.partType.variant ?? c.partType.variant!)
+  if (PART_INFO[cuttleKey.type].keycap) {
+    ;(cuttleKey as CuttleKeycapKey).keycap = {
+      letter: key.profile.letter,
+      home: key.profile.home ?? undefined,
+      row: key.profile.row!,
+      profile: key.profile.profile || col.profile || cluster.profile || c.profile,
+    }
+  } else {
+    cuttleKey.aspect = 1
+  }
+  if (cuttleKey.type == 'blank') cuttleKey.size = { width: key.sizeA!, height: key.sizeB! }
+  // @ts-ignore
+  if (ROUND_PARTS.includes(cuttleKey.type)) cuttleKey.size = { sides: key.sizeB }
+  return cuttleKey
 }
 
 export function fromCosmosConfig(c: CosmosKeyboard, flipLeft = true): FullCuttleform {

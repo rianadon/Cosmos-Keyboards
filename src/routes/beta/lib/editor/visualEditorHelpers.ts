@@ -290,17 +290,19 @@ function filterClusters<T extends CosmosCluster | CosmosKeyboard>(c: T, fn: (c: 
 }
 
 /** Returns a copy of the config, where only keys matching the predicate are kept */
-export function filterKeys(kbd: CosmosKeyboard, predicate: (k: CosmosKey) => boolean): CosmosKeyboard {
+export function filterKeys(kbd: CosmosKeyboard, predicate: (k: CosmosKey, col: CosmosCluster, cl: CosmosCluster, index: number) => boolean): CosmosKeyboard {
+  let i = 0
   return mapClusters(kbd, cluster =>
     mapClusters(cluster, col => ({
       ...col,
-      keys: col.keys.filter(predicate),
+      keys: col.keys.filter(k => predicate(k, col, cluster, i++)),
     })))
 }
 
 /** Map over keys */
-export function mapKeys<T>(kbd: CosmosKeyboard, predicate: (k: CosmosKey) => T): T[] {
-  return kbd.clusters.flatMap(cluster => cluster.clusters.flatMap(col => col.keys.map(predicate)))
+export function mapKeys<T>(kbd: CosmosKeyboard, predicate: (k: CosmosKey, col: CosmosCluster, cl: CosmosCluster, index: number) => T): T[] {
+  let i = 0
+  return kbd.clusters.flatMap(cluster => cluster.clusters.flatMap(col => col.keys.map(k => predicate(k, col, cluster, i++))))
 }
 
 /** Find the indices of the five alpha/letter columns.

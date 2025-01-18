@@ -861,7 +861,7 @@
             <p class="mb-2">{$codeError.message}</p>
           </div>
         {:else if $confError.length && viewer == '3d'}
-          <ConfError {config} />
+          <ConfError {config} {mode} />
         {:else if ocError && viewer == '3d'}
           <div class="absolute text-white m-4 left-0 right-0 rounded p-4 top-[10%] bg-red-700">
             <p>There are some rough edges in this tool, and you've found one of them.</p>

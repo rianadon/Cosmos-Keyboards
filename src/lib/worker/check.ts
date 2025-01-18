@@ -148,9 +148,6 @@ export function checkConfig(conf: Cuttleform, geometry: Geometry | undefined, ch
     if (pinsNeeded > maxPins) return [{ type: 'notEnoughPins', side, needed: pinsNeeded, max: maxPins }]
   }
 
-  const cpts = geometry.allKeyCriticalPoints2D
-  const pts = cpts.map(a => a.map(x => new Vector2(...x.xy())))
-
   // for (const intersection of holeIntersections(pts)) {
   //   return intersection
   // }

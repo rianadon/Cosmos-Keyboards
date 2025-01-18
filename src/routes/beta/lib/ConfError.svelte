@@ -1,15 +1,54 @@
 <script lang="ts">
   import { isWarning, salientError } from '$lib/worker/check'
-  import { confError, showErrorMsg } from '$lib/store'
+  import { confError, protoConfig, showErrorMsg } from '$lib/store'
   import Icon from '$lib/presentation/Icon.svelte'
   import { mdiArrowCollapseUp, mdiArrowExpandDown } from '@mdi/js'
   import type { FullCuttleform } from '$lib/worker/config'
+  import { cosmosKeyPosition, toCuttleKey } from '$lib/worker/config.cosmos'
+  import { filterKeys, mapKeys } from './editor/visualEditorHelpers'
+  import { keyCriticalPoints, separateSockets2D, type CriticalPoints } from '$lib/worker/geometry'
+  import { intersectPolyPoly } from '$lib/worker/geometry.intersections'
+  import { Vector2 } from 'three/src/math/Vector2.js'
+  import type Trsf from '$lib/worker/modeling/transformation'
 
   export let config: FullCuttleform
+  export let mode: string
 
   function assert<T>(t: T | undefined): T {
     if (typeof t == 'undefined') throw new Error('Expected non-undefined')
     return t
+  }
+
+  function fixUnseparated() {
+    protoConfig.update((p) => {
+      const trsfs: Trsf[] = []
+      const sides: ('left' | 'right')[] = []
+      const cpts = mapKeys(p, (k, col, c) => {
+        const trsf = cosmosKeyPosition(k, col, c, p).evaluate({ flat: true })
+        trsfs.push(trsf)
+        sides.push(c.side)
+        return keyCriticalPoints(null as any, toCuttleKey(p, c, col, k, false), trsf)
+      })
+
+      try {
+        separateSockets2D(trsfs, cpts)
+      } catch (e) {
+        // Do nothing. The statement above has side effects
+      }
+
+      const polys = cpts.map((c) => c.map((x) => new Vector2(...x.xy())))
+
+      return filterKeys(p, (_k, _col, _cluster, i) => {
+        for (let j = 0; j < polys.length; j++) {
+          if (j == i) continue
+          if (sides[j] != sides[i]) continue
+          if (intersectPolyPoly(polys[i], polys[j])) {
+            return false
+          }
+        }
+        return true
+      })
+    })
   }
 
   $: err = salientError($confError)
@@ -57,7 +96,13 @@
       <p class="mb-2">The value must be less than <code>{err.len}</code>.</p>
     </div>
   {:else if err.type == 'exception'}
-    <p class="mb-2">When {err.when}: <code>{err.error.message}</code>.</p>
+    <p class="mb-2">
+      When {err.when}: <code>{err.error.message}</code>.
+      {#if err.error.message.startsWith('Could not separate all sockets') && mode != 'advanced'}
+        <button on:click={fixUnseparated} class="underline">Auto-fix.</button>
+        If auto-fix removes too much, undo then fix the issue.
+      {/if}
+    </p>
   {:else if err.type == 'nan'}
     <p class="mb-2">
       One of the key positions has a value that's not a number. This often happens after an update that
