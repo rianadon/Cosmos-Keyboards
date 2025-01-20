@@ -12,7 +12,9 @@ Traditionally, thses switches have been used with capacitive switches, but this 
 
 Only been able to get direct pin wiring to work. It did not work for me in a traditional matrix (columns and rows) setup. You will have to make sure you have enough GPIOs for direct wiring.
 
-If you find a way to get matrix wiring to work, please share on the Cosmos Discord.
+QMK: You can't [mix and match direct pin and matrix wiring](https://docs.qmk.fm/porting_your_keyboard_to_qmk#direct-pin-matrix). Not sure about other firmware.
+
+If you find a way to get matrix wiring to work, please share how you did it on the Cosmos Discord.
 
 ## Tested Combinations
 
