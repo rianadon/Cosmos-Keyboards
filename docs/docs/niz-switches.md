@@ -8,6 +8,12 @@ These switches use a halleffect sensor attached to the socket and a magnet attac
 
 Traditionally, thses switches have been used with capacitive switches, but this article does not cover using capacitive sensors.
 
+## Wiring Warning
+
+Only been able to get direct pin wiring to work. It did not work for me in a traditional matrix (columns and rows) setup. You will have to make sure you have enough GPIOs for direct wiring.
+
+If you find a way to get matrix wiring to work, please share on the Cosmos Discord.
+
 ## Tested Combinations
 
 - [Beekeeb NIZ Switch](https://shop.beekeeb.com/product/niz-ec-switch/) is where the items were purchased for modeling these switches. You may or may not have luck with components from elsewhere.
@@ -39,7 +45,3 @@ Analog style sensors are a bit more complicated since you need to use an ADC (An
 1. Put the rubber dome with magnet into the socket.
 1. Put the stem on the rubber dome.
 1. Press the housing into the socket. It may be a tight fit.
-
-## Wiring
-
-Only been able to get direct pin wiring to work. It did not work for me in a traditional matrix (columns and rows) setup. You will have to make sure you have enough GPIOs for direct wiring.

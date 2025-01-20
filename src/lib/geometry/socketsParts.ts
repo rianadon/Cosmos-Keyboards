@@ -256,7 +256,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     bomIcon: 'switch',
   },
   'niz': {
-    partName: 'NIZ: Direct Solder',
+    partName: 'NIZ: Direct Solder [Experimental]',
     bomName: 'NIZ Switches',
     category: 'Sockets',
     stepFile: '/src/assets/key-niz.step',
