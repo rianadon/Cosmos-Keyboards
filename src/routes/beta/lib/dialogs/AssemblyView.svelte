@@ -7,7 +7,7 @@
   import * as THREE from 'three'
   import { renderedModelsAsScene } from '../modelGLTF'
   import { SORTED_VENDORS } from '@pro/assemblyService'
-  import { trackEvent } from '$lib/telemetry'
+  import { trackEvent, sendError } from '$lib/telemetry'
 
   export let center: Center
   export let meshes: ['left' | 'right' | 'unibody', KeyboardMeshes][]
@@ -23,6 +23,7 @@
         '&ref=cosmos'
       return { ...v, price, link, error: undefined }
     } catch (e) {
+      sendError(e, 'Cosmos vendor')
       return { ...v, price: 'n/a', error: (e as Error).message, link: null }
     }
   })

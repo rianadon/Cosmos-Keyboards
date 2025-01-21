@@ -953,7 +953,7 @@
           </div>
         </div>
 
-        {#if flags.assembly}
+        {#if flags.assembly && hasPro}
           <button
             class="relative bg-teal-500/10 hover:bg-teal-500/30 rounded mt-8 px-4 py-2 ml--2 text-start"
             class:hover:animate-wiggle={$assemblyIsNew}

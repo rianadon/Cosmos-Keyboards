@@ -113,6 +113,7 @@
     <p class="mb-2">
       You silly goose! You can't make a keyboard without keys. <br />That's like riding a snowboard
       without snow.
+      <button on:click={() => window.history.back()} class="underline">Undo.</button>
     </p>
   {:else if err.type == 'missing'}
     <div>
