@@ -37,7 +37,7 @@ export async function sendError(error: Error, area = 'cosmos') {
   try {
     await (await fetch('https://pageviews.ryanis.cool/errors', {
       method: 'POST',
-      body: JSON.stringify({ name: error.name, message: `On ${area}: ` + error.message, stack: error.stack }),
+      body: JSON.stringify({ name: error.name, message: `On ${area}: ` + error.message, stack: error.stack + '\n@' + window.location.href }),
     })).text()
     return true
   } catch (e) {
