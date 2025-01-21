@@ -434,7 +434,7 @@ export function decodeCosmosCluster(clusterA: Cluster): CosmosCluster {
         column: clusterB.column2 ? clusterB.column2 / 100 : (typeof clusterB.column != 'undefined' ? clusterB.column / 10 : undefined),
         clusters: [],
         keys: clusterB.key.map(key => {
-          if (typeof key.row == 'undefined' && typeof key.row2 == 'undefined' && lastKey) key.row = (lastKey.row || 0) + 10
+          if (typeof key.row == 'undefined' && typeof key.row2 == 'undefined') key.row = (lastKey?.row || 0) + 10
           if (key.column2) key.column = key.column2 / 10
 
           if (!key.keyProfile && lastKey) {
