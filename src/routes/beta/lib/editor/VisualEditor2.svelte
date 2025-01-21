@@ -590,7 +590,9 @@
     <InfoBox>
       <p>
         This variant requires direct pin assignment to the microcontroller and a well-tuned 3D printer.
-        <a href="https://ryanis.cool/cosmos/switches/magnetic">NIZ documentation</a>
+        <a class="text-pink-600 underline" href="https://ryanis.cool/cosmos/docs/switches/magnetic"
+          >NIZ documentation</a
+        >
       </p>
     </InfoBox>
   {/if}
