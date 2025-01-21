@@ -20,6 +20,9 @@ export function switchInfo(sw: Switch | undefined): SwInfo {
   if (sw == 'alps') {
     return { height: 6, pressedHeight: 3.5 }
   }
+  if (sw == 'niz') {
+    return { height: 7.6, pressedHeight: 3.6 }
+  }
   if (sw == 'trackball') {
     // box = pcb then chip
     return { height: 5, pressedHeight: 0 }

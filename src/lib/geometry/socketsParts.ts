@@ -11,6 +11,8 @@ const CHOC_PART = '/src/assets/switch-choc.glb'
 const BOM_MX_HOTSWAP = { 'pcb-hotswap': { item: 'Kailh Hotswap Sockets', icon: 'hotswap', count: 1 } }
 const BOM_CHOC_HOTSWAP = { 'pcb-hotswap': { item: 'Kailh Choc Hotswap Sockets', icon: 'hotswap', count: 1 } }
 const BOM_DIODE = { 'xdiodes': { item: '1N4148 Diodes', icon: 'diode', count: 1 } }
+const BOM_HE_SWITCH = { 'heswitch': { item: 'Hall-Effect Switch (AH3572)', icon: 'diode', count: 1 } }
+const BOM_DISC_MAGNET = { 'discmagnet': { item: 'Disc Magnet (2mm x 1mm)', icon: 'diode', count: 1 } }
 
 const DESC_MX = '\nAll MX Sockets in Cosmos are compatible with Cherry MX switches and its clones. That includes Gateron switches (with the exception of low profile), Gazzew, Outemu, Akko, etc.'
 const DESC_DISPLAY = 'Display your current layer, your keymap, battery information, or whatever you like.'
@@ -253,6 +255,20 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     icon: 'choc',
     bomIcon: 'switch',
   },
+  'niz': {
+    partName: 'NIZ: Direct Solder [Experimental]',
+    bomName: 'NIZ Switches',
+    category: 'Sockets',
+    stepFile: '/src/assets/key-niz.step',
+    socketSize: [18, 18, 6.5],
+    partBottom: [box(14, 14, 8.5)],
+    keycap: 'mx',
+    extraBomItems: { ...BOM_DIODE, ...BOM_HE_SWITCH, ...BOM_DISC_MAGNET },
+    wiredInMatrix: true,
+    description: 'NIZ uses a rubber dome and a spring. Switching is accomplished with a hall-effect switch and a magnet.',
+    icon: 'choc',
+    bomIcon: 'switch',
+  },
   'blank': {
     partName: 'Shaper (Blank key)',
     bomName: 'Ignore this',
@@ -480,6 +496,28 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     icon: 'trackball',
     description:
       'Move your mouse from your keyboard! Integrating a trackball to your keyboard can help you switch between typing and navigating faster and with less hand movement.\nI personally recommend using ball bearings with trackballs, as they are the most consistent. Roller Bearings and BTUs are more spinny but also more noisy.',
+  },
+  'trackpad-azoteq': {
+    partName: 'Azoteq Trackpad',
+    bomName: (v: Variant) => `Azoteq ${v.size || 'TPS65'} Trackpads`,
+    category: 'Trackballs & Trackpads',
+    stepFile: '/src/assets/trackpad-azoteq.step',
+    socketSize: (v: Variant) => [65.2, 49, 4] as PartSize,
+    partBottom: () => [box(10, 10, 2)],
+    variants: {
+      size: ['TPS65'],
+    },
+    encodeVariant: (variant: Variant) => {
+      return ['TPS65'].indexOf(variant.size)
+    },
+    decodeVariant: (variant: number) => {
+      return {
+        size: ['TPS65'][variant] || 'TPS65',
+      }
+    },
+    pinsNeeded: () => 2,
+    icon: 'knob',
+    description: 'A rectangular I2C trackpad.',
   },
   'trackpad-cirque': {
     partName: 'Cirque Flat Circle Trackpad',

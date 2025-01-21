@@ -27,6 +27,7 @@ enumeration('PART', {
   13: 'mx-pcb-plum',
   // 14 reserved for mx-pumpkin
   15: 'mx-skree',
+  26: 'niz',
 
   // You wouldn't put many of these on a keyboard.
   16: 'ec11',
@@ -38,6 +39,7 @@ enumeration('PART', {
   22: 'trackball',
   23: 'trackpad-cirque',
   24: 'oled-128x32-0.91in-spi-adafruit',
+  25: 'trackpad-azoteq',
 
   // Old stuff no one should be using.
   110: 'old-mx',
