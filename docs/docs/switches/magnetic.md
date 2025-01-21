@@ -1,8 +1,16 @@
-# NIZ Switches
+# Magnetic (NIZ)
 
-Warning: These are not traditional 2 leg switches.
+Unlike mechanical switches that detect keypresses when small metal parts come into contact, magnetic switches trigger when a magnet inside the switch comes in close proximity to a sensor sitting underneath.
 
-![A model imported into OnShape](../assets/niz-exploded.png)
+Some of the advantages of this design are:
+
+- Longer-ish lifespan (However, mechanical switches last forever. Unless you expect to write more than 500 words per day every day for 50 years, you don't need to care about this)
+- Tuneable actuation point (You'll need to spend lots of money on hardware for this though)
+- More types of switches! These switches will feel different than MX switches, and whether you prefer them is personal preference.
+
+## NIZ Switches
+
+![Parts of a Niz Switch](../../assets/niz-exploded.png)
 
 These switches use a halleffect sensor attached to the socket and a magnet attached to the rubber dome to detect key presses. They are along the lines of [Topre switches](https://deskthority.net/wiki/Topre_switch). These do not have a physical switch. These switches are classified as tactile (depending on the rubber dome used) and are pretty quiet. The rubber dome helps dampen the bottoming out of the keypress as well.
 
