@@ -48,7 +48,7 @@ function extendPlate(plate: Solid, key: CuttleKey) {
 }
 
 export function keyHole(key: CuttleKey, trsf: Trsf) {
-  let cacheKey = key.type + ':' + key.aspect
+  let cacheKey = key.type + variantURL(key) + ':' + key.aspect
   if (key.type == 'blank') cacheKey += `-${key.size?.width}x${key.size?.height}`
   return extendedKeyCacher(cacheKey, trsf, key)
 }
