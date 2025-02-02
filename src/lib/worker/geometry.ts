@@ -11,7 +11,6 @@ import { Vector2 } from 'three/src/math/Vector2.js'
 import concaveman from './concaveman'
 import { type Cuttleform, type CuttleKey, type Geometry } from './config'
 import { intersectLineCircle, intersectPolyPoly, intersectPtPoly, intersectTriCircle } from './geometry.intersections'
-import { PLATE_HEIGHT, screwInsertDimensions } from './model'
 import Trsf from './modeling/transformation'
 import { Vector } from './modeling/transformation'
 import ETrsf, { keyBase } from './modeling/transformation-ext'
@@ -30,6 +29,8 @@ export const wallZOffset = (c: Cuttleform) => {
   if (c.shell.type == 'stilts') return 15
   return 15
 }
+
+export const PLATE_HEIGHT = 3
 
 export const BOARD_HOLDER_OFFSET = 0.02
 const BOARD_TOLERANCE_Z = 0.1
@@ -2329,4 +2330,15 @@ export function wallUpDir(c: Cuttleform, wall: WallCriticalPoints) {
   if (c.shell.type == 'stilts' || c.shell.type == 'tilt') up = wall.mo.origin().sub(wall.bo.origin()).normalize()
   if (c.shell.type == 'block') up = new Vector(1, 0, 0)
   return up
+}
+
+export function screwInsertDimensions(c: Cuttleform) {
+  const dimensions = SCREWS[c.screwSize].mounting[c.screwType]
+  const taperIndent = dimensions.height * Math.tan((dimensions.taper || 0) / 180 * Math.PI)
+  const bottomRadius = dimensions.diameter / 2
+  const topRadius = bottomRadius - taperIndent
+  const outerBottomRadius = Math.max(...Object.values(SCREWS[c.screwSize].mounting).map(m => m.diameter)) / 2 + 1.6
+  const outerTopRadius = outerBottomRadius - taperIndent
+  const height = dimensions.height
+  return { bottomRadius, topRadius, outerBottomRadius, outerTopRadius, height }
 }

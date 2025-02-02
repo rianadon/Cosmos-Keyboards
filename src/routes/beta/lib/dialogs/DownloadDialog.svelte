@@ -1,5 +1,12 @@
 <script lang="ts">
-  import { modelName, user, emailMinimized, emailScheduled, showScheduleEmail } from '$lib/store'
+  import {
+    modelName,
+    user,
+    emailMinimized,
+    emailScheduled,
+    showScheduleEmail,
+    noStitch,
+  } from '$lib/store'
   import { isPro } from '$lib/worker/check'
   import { newFullGeometry, setBottomZ, type FullCuttleform } from '$lib/worker/config'
   import Dialog from '$lib/presentation/Dialog.svelte'
@@ -48,7 +55,7 @@
     const begin = window.performance.now()
     generatingSTEP = true
     pool
-      .executeNow((w) => w.getSTEP(config[side]!, side == 'left', true) as Promise<Blob>)
+      .executeNow((w) => w.getSTEP(config[side]!, side == 'left', !$noStitch) as Promise<Blob>)
       .then(addMetadataToSTEP)
       .then(
         (blob) => {
@@ -82,7 +89,7 @@
     const begin = window.performance.now()
     generatingSTL = true
     pool
-      .executeNow((w) => w.getSTL(config[side]!, model, side) as Promise<Blob>)
+      .executeNow((w) => w.getSTL(config[side]!, model, side, !$noStitch) as Promise<Blob>)
       .then(addMetadataToSTL)
       .then(
         (blob) => {

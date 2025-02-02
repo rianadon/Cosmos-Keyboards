@@ -304,9 +304,9 @@ async function getModel(conf: Cuttleform, name: string, stitchWalls: boolean, fl
   }
 }
 
-export async function getSTL(conf: Cuttleform, name: string, side: 'left' | 'right' | 'unibody') {
+export async function getSTL(conf: Cuttleform, name: string, side: 'left' | 'right' | 'unibody', stitchWalls: boolean) {
   const flip = side == 'left'
-  let model = await getModel(conf, name, true, flip)
+  let model = await getModel(conf, name, stitchWalls, flip)
   if (name == 'wristrest' && side == 'unibody' && conf.wristRestRight && model) {
     conf.keys.forEach(k => k.position = new ETrsf(k.position.history).mirror([1, 0, 0]))
     model = (model as Solid).fuse(wristRest(conf, newGeometry(conf), 'wristRestLeft').mirror('YZ', [0, 0, 0]))

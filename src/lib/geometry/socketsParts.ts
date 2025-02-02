@@ -517,7 +517,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     },
     pinsNeeded: () => 2,
     icon: 'knob',
-    description: 'A rectangular I2C trackpad.',
+    description: 'A large rectangular trackpad that connects through I2C. These support multi-touch gestures (e.g. 2-finger scrolling).',
   },
   'trackpad-cirque': {
     partName: 'Cirque Flat Circle Trackpad',

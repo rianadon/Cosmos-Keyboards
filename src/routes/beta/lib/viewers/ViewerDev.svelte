@@ -1,6 +1,6 @@
 <script lang="ts">
   import Checkbox from '$lib/presentation/Checkbox.svelte'
-  import { debugViewport, showTiming, showKeyInts, showGizmo, protoConfig } from '$lib/store'
+  import { debugViewport, showTiming, showKeyInts, showGizmo, protoConfig, noStitch } from '$lib/store'
   import { stringifyCluster, type CosmosCluster } from '$lib/worker/config.cosmos'
   import { encodeCosmosCluster } from '$lib/worker/config.serialize'
   import { Cluster } from '../../../../../target/proto/cosmos'
@@ -31,6 +31,9 @@
   </label>
   <label class="flex items-center my-2">
     <Checkbox basic bind:value={$debugViewport} /> Viewport Debugging View
+  </label>
+  <label class="flex items-center my-2">
+    <Checkbox basic bind:value={$noStitch} /> Disable Wall Stitching @ Export
   </label>
   {#if $protoConfig}
     <div class="mt-5">Encoded Right Thumb Cluster</div>

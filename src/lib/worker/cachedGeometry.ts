@@ -12,6 +12,7 @@ import {
   keyHolesTrsfs2D,
   type LabeledBoardInd,
   originForConnector,
+  PLATE_HEIGHT,
   positionsImpl,
   positionsImplMap,
   reinforceTriangles,
@@ -23,7 +24,6 @@ import {
   webThickness,
 } from './geometry'
 import { flipAllTriangles, shiftWalls } from './geometry.thickWebs'
-import { PLATE_HEIGHT } from './model'
 import Trsf from './modeling/transformation'
 import { Vector } from './modeling/transformation'
 

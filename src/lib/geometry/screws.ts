@@ -1,5 +1,5 @@
 import type { Cuttleform } from '$lib/worker/config'
-import { PLATE_HEIGHT, screwInsertDimensions } from '$lib/worker/model'
+import { PLATE_HEIGHT, screwInsertDimensions } from '$lib/worker/geometry'
 
 const INCH = 25.4 // Multiplication factor for in -> mm
 

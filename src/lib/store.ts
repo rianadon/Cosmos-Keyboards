@@ -47,6 +47,7 @@ export const showTiming = andcondition(developer, storable('developer.timing', f
 export const showKeyInts = andcondition(developer, storable('developer.showKeyInts', false))
 export const showGizmo = andcondition(developer, storable('developer.showGizmo', false))
 export const debugViewport = andcondition(developer, storable('developer.debugViewport', false))
+export const noStitch = andcondition(developer, storable('developer.noStitch', false))
 
 /** A Svelte store that writes and reads from localStorage. */
 export function storable<T>(name: string, data: T): Writable<T> {

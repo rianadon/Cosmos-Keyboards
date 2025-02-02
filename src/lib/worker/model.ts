@@ -17,7 +17,9 @@ import {
   makeLine,
   microControllerRectangles,
   type Patch,
+  PLATE_HEIGHT,
   reinforceTriangles,
+  screwInsertDimensions,
   splineApproxLen,
   splitSplinesByApproxLenThrice,
   type WallCriticalPoints,
@@ -35,7 +37,6 @@ import { Vector } from './modeling/transformation'
 import { keyHole } from './socketsLoader'
 import { mapObj, sum } from './util'
 
-export const PLATE_HEIGHT = 3
 const ACCENT_HEIGHT = 1.5
 const ACCENT_WIDTH = 0.8
 
@@ -680,17 +681,6 @@ function screwInsertOuter(c: Cuttleform, bottomRadius: number, topRadius: number
     .revolve() as Solid
   // Slightly below hight. Helps keep top surface pointing up.
   return base // .fuse(top.translateZ(height-0.001))
-}
-
-export function screwInsertDimensions(c: Cuttleform) {
-  const dimensions = SCREWS[c.screwSize].mounting[c.screwType]
-  const taperIndent = dimensions.height * Math.tan((dimensions.taper || 0) / 180 * Math.PI)
-  const bottomRadius = dimensions.diameter / 2
-  const topRadius = bottomRadius - taperIndent
-  const outerBottomRadius = Math.max(...Object.values(SCREWS[c.screwSize].mounting).map(m => m.diameter)) / 2 + 1.6
-  const outerTopRadius = outerBottomRadius - taperIndent
-  const height = dimensions.height
-  return { bottomRadius, topRadius, outerBottomRadius, outerTopRadius, height }
 }
 
 function screwInsertModel(c: Cuttleform, throughHole: boolean) {

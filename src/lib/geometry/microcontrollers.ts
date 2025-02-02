@@ -2,7 +2,7 @@ import { convertToMaybeCustomConnectors, type Cuttleform } from '$lib/worker/con
 import { Vector } from '$lib/worker/modeling/transformation'
 
 import type { ConnectorMaybeCustom, CustomConnector } from '$lib/worker/config.cosmos'
-import { PLATE_HEIGHT, screwInsertDimensions } from '$lib/worker/model'
+import { PLATE_HEIGHT, screwInsertDimensions } from '$lib/worker/geometry'
 import { closestScrewHeight, SCREWS } from './screws'
 
 const STOPPER_HEIGHT = 2 // Size of stopper used to align board
