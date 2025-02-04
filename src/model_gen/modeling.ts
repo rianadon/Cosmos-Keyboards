@@ -138,7 +138,7 @@ export function sideNub(nubHeight: number) {
 
 function makeSidenub(nubHeight: number): Solid {
   const nub = draw().ellipse(-1, 1, 1, 1).lineTo([0, 5 - nubHeight])
-    .close().translate(14 / 2, 0).sketchOnPlane('XZ', -2.75 / 2)
+    .close().translate(14 / 2, nubHeight).sketchOnPlane('XZ', -2.75 / 2)
     .extrude(2.75)
   return nub as Solid
 }
