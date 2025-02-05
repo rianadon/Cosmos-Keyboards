@@ -31,8 +31,8 @@ export async function generateScene(pool: WorkerPool<typeof import('$lib/worker/
     }
   })
   const meshes = objEntriesNotNull(results)
-  const center = fullEstimatedCenter(geometry).both
-  const scene = await renderedModelsAsScene(geometry, meshes, center, false)
+  // const center = fullEstimatedCenter(geometry).both
+  // const scene = await renderedModelsAsScene(geometry, meshes, center, false)
 
-  return scene
+  return meshes
 }

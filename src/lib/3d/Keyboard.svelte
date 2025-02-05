@@ -23,15 +23,16 @@
   import { T } from '@threlte/core'
   import { variantURL } from '$lib/geometry/socketsParts'
   import { DefaultMap } from '$lib/worker/util'
-  import { Quaternion, Vector3, type Vector3Tuple, type Vector4Tuple } from 'three'
+  import { MeshStandardMaterial, Quaternion, Vector3, type Vector3Tuple, type Vector4Tuple } from 'three'
 
   export let geometry: Geometry | null
-  export let transparency: number
+  export let transparency: number = 100
   export let pressedLetter: string | null = null
-  export let translation: number
+  export let translation: number = 0
   export let flip = true
-  export let reachability: boolean[] | undefined
+  export let reachability: boolean[] | undefined = undefined
   export let side: 'left' | 'right' | 'unibody'
+  export let keyColor: [any, number] | undefined = undefined
 
   $: console.log('new intersections', $confError)
 
@@ -186,14 +187,18 @@
           scale.x={flip ? -1 : 1}
         >
           <KeyboardKeycapGeo key={key.key} />
-          <KeyboardMaterial
-            textured
-            kind="key"
-            opacity={transparency / 100}
-            brightness={keyBrightness(index, $protoConfig, $selectMode, $clickedKey, $hoveredKey, 1)}
-            letter={$noLabels ? undefined : key.letter}
-            status={keyStatus(reachability, $confError, key.i)}
-          />
+          {#if keyColor}
+            <T.MeshStandardMaterial color={keyColor[0]} transparent={true} opacity={keyColor[1]} />
+          {:else}
+            <KeyboardMaterial
+              textured
+              kind="key"
+              opacity={transparency / 100}
+              brightness={keyBrightness(index, $protoConfig, $selectMode, $clickedKey, $hoveredKey, 1)}
+              letter={$noLabels ? undefined : key.letter}
+              status={keyStatus(reachability, $confError, key.i)}
+            />
+          {/if}
         </KeyboardKey>
       {/each}
     {/each}
@@ -203,7 +208,7 @@
       {@const index = nthIndex($protoConfig, side, key.i)}
       <KeyboardKey
         {index}
-        visible={visible && (key.key.type != 'blank' || !$noBlanks)}
+        visible={visible && (key.key.type != 'blank' || !($noBlanks || keyColor))}
         position={key.pos}
         quaternion={key.rot}
         scale.x={flip ? -1 : 1}
@@ -213,13 +218,19 @@
         {:else}
           <KeyboardPartGeo part={key.key.type} variant={key.key.variant} />
         {/if}
-        <KeyboardMaterial
-          textured
-          kind="key"
-          opacity={key.key.type == 'blank' ? Math.max(0, (transparency - 50) / 200) : transparency / 100}
-          brightness={keyBrightness(index, $protoConfig, $selectMode, $clickedKey, $hoveredKey, 0.7)}
-          status={partStatus($confError, key.i)}
-        />
+        {#if keyColor}
+          <T.MeshStandardMaterial color={0x504866} />
+        {:else}
+          <KeyboardMaterial
+            textured
+            kind="key"
+            opacity={key.key.type == 'blank'
+              ? Math.max(0, (transparency - 50) / 200)
+              : transparency / 100}
+            brightness={keyBrightness(index, $protoConfig, $selectMode, $clickedKey, $hoveredKey, 0.7)}
+            status={partStatus($confError, key.i)}
+          />
+        {/if}
       </KeyboardKey>
     {/each}
   {/each}

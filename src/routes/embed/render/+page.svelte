@@ -14,6 +14,9 @@
   {/await}
 </div>
 
+<div class="absolute left-4 bottom-1 opacity-60 text-sm select-none">
+  Product color and geometry may slightly differ from the preview.
+</div>
 <a
   href="{base}/"
   target="_parent"

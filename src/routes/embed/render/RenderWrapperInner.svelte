@@ -16,6 +16,7 @@
   } from '$lib/worker/config'
   import { notNull, objEntriesNotNull, objKeys } from '$lib/worker/util'
   import { Vector3 } from 'three'
+  import type { FullGeometry } from '../../beta/lib/viewers/viewer3dHelpers'
 
   const urlParams = new URLSearchParams(window.location.search)
   const configStr = urlParams.get('config')
@@ -29,13 +30,16 @@
 
   let cameraPosition = [0.05, -0.96, 0.56]
   let models: any[] = []
+  let center = {}
+  let size = [0, 0, 0]
+  let geometry: FullGeometry
 
   if (config && !config.error) {
     const conf = fromCosmosConfig(config.options)
-    const geometry = newFullGeometry(conf)
+    geometry = newFullGeometry(conf)
 
-    const center = fullEstimatedCenter(geometry).both
-    const size = fullEstimatedSize(geometry).both
+    center = fullEstimatedCenter(geometry).both
+    size = fullEstimatedSize(geometry).both
 
     const aspect = 1.5
     const fov = 45 * (Math.PI / 180)
@@ -48,17 +52,16 @@
       .multiplyScalar(Math.max(dx, dy) * 1.1)
       .toArray()
 
-    console.log('meshes', meshes)
     generateScene(pool, conf, geometry).then((model) => {
-      models = [...model.children]
+      models = model // [...model.children]
     })
   }
 </script>
 
 {#if WebGL.isWebGL2Available()}
   {#if models.length}
-    <Canvas toneMapping={0}>
-      <Render {cameraPosition} {models} />
+    <Canvas>
+      <Render {cameraPosition} {models} {center} {geometry} />
     </Canvas>
   {:else}
     <Loading step={2} />
