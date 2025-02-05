@@ -8,13 +8,7 @@
   import { WorkerPool } from '../../beta/lib/workerPool'
   import { fromCosmosConfig } from '$lib/worker/config.cosmos'
   import { generateScene } from './generate'
-  import {
-    fullEstimatedCenter,
-    fullEstimatedSize,
-    newFullGeometry,
-    setBottomZ,
-  } from '$lib/worker/config'
-  import { notNull, objEntriesNotNull, objKeys } from '$lib/worker/util'
+  import { fullEstimatedCenter, fullEstimatedSize, newFullGeometry } from '$lib/worker/config'
   import { Vector3 } from 'three'
   import type { FullGeometry } from '../../beta/lib/viewers/viewer3dHelpers'
 
@@ -26,8 +20,6 @@
     return new Worker(new URL('$lib/worker?worker', import.meta.url), { type: 'module' })
   })
 
-  const meshes = objEntriesNotNull({ left: {}, right: {} })
-
   let cameraPosition = [0.05, -0.96, 0.56]
   let models: any[] = []
   let center = {}
@@ -35,7 +27,7 @@
   let geometry: FullGeometry
 
   if (config && !config.error) {
-    const conf = fromCosmosConfig(config.options)
+    const conf = fromCosmosConfig(config.options as any)
     geometry = newFullGeometry(conf)
 
     center = fullEstimatedCenter(geometry).both
