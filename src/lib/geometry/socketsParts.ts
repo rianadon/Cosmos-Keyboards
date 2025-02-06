@@ -423,6 +423,17 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     icon: 'oled',
     description: DESC_DISPLAY,
   },
+  'oled-160x68-1.08in-niceview': {
+    partName: 'Nice!View 160x68 1.08" OLED',
+    bomName: 'Nice!View 160x68 1.08" OLED',
+    category: 'Displays',
+    stepFile: '/src/assets/oled-160x68-1.08in-niceview.step',
+    socketSize: [15, 37, 1],
+    partBottom: [box(14, 36, 1.9)],
+    pinsNeeded: 2,
+    icon: 'oled',
+    description: DESC_DISPLAY,
+  },
   'trackball': {
     partName: 'Trackball',
     bomName: (v: Variant) => `${v.size || '25/34/43/55mm'} Trackballs`,
