@@ -159,9 +159,9 @@
   <img src="{base}/all.svg" class="<sm:mx-auto sm:float-left w-72 ml-4 mr-6 mb-6 mt--6" alt="" />
   <h2 class="heading">Add All The Things</h2>
   <p class="font-system">
-    Add a trackball, trackpad, encoder, or OLED display. There's support for MX, Choc, and Alps switches,
-    and almost every type of keycap. Plus with 7 different microcontrollers, you can mix and match all
-    you like.
+    Add a trackball, trackpad, encoder, or OLED display. There's support for MX, Choc, NIZ, and Alps
+    switches, and almost every type of keycap. Plus with 15 different microcontrollers, you can mix and
+    match all you like.
   </p>
   <a
     href="{base}/parts"
@@ -170,6 +170,21 @@
     Browse the Parts
     <Icon path={mdiChevronRight} size="100%" class="w-[28px] sm:w-[32px]" />
   </a>
+  <section class="section">
+    <h2 class="heading">Order Online or Build it Yourself</h2>
+    <p class="font-system">
+      Cosmos partners with keyboard builders to deliver your customized keyboard with premium materials.
+      If you're handy with 3D printing and soldering, you can save money by building your keyboard
+      yourself.
+    </p>
+    <a
+      href="{base}/docs/assembly-service/"
+      class="text-black font-semibold rounded inline-flex items-center gap-16 my-4 pl-6 pr-4 bg-brand-green ml-6 transition hover:shadow-lg shadow-teal/30"
+    >
+      Assembly Service Docs
+      <Icon path={mdiChevronRight} size="100%" class="w-[28px] sm:w-[32px]" />
+    </a>
+  </section>
 </section>
 <section class="max-w-240 mx-auto bg-gradient-rc-far from-[#f57aec]/15 to-transparent">
   <div class="lightbox lightbox-gradient">
@@ -186,10 +201,7 @@
     </div>
     <div class="lightbox">
       <h2 class="lightheading">Take Control</h2>
-      <p class="font-system">
-        Custom Thumbs mode allows you to drag and drop keys and trackballs in the thumb cluster into
-        place.
-      </p>
+      <p class="font-system">Cosmos lets you drag, drop, and rotate keys and trackballs into place.</p>
     </div>
   </div>
   <div class="sm:flex">
@@ -208,7 +220,7 @@
     <div class="lightbox lightbox-gradient">
       <h2 class="lightheading">RGB and Hotswap Ready</h2>
       <p class="font-system">
-        Cosmos has first-class support for Amoeba King PCBs, which let you easily integrate per-key RGB
+        Cosmos has first-class support for single-key PCBs, which let you easily integrate per-key RGB
         and hotswap sockets. It also has high-quality built-in-hotswap and PCB-less options if you're on
         a budget.
       </p>

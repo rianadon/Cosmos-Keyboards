@@ -51,7 +51,11 @@
 </script>
 
 {#if WebGL.isWebGL2Available()}
-  {#if models.length}
+  {#if !config}
+    <div class="flex w-full h-full items-center justify-center">No model to render</div>
+  {:else if config.error}
+    <div class="flex w-full h-full items-center justify-center">{config.error}</div>
+  {:else if models.length}
     <Canvas>
       <Render {cameraPosition} {models} {center} {geometry} />
     </Canvas>
