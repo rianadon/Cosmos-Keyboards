@@ -428,7 +428,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     bomName: 'Nice!View 160x68 1.08" OLED',
     category: 'Displays',
     stepFile: '/src/assets/oled-160x68-1.08in-niceview.step',
-    socketSize: [15, 37, 2],
+    socketSize: [15, 37, 1],
     partBottom: [box(14, 36, 1.9)],
     pinsNeeded: 2,
     icon: 'oled',
