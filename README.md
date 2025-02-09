@@ -69,7 +69,7 @@ Rendering in Cosmos is split into two parts: geometrical calculations (which det
 
 ### License
 
-All code is licensed under the [AGPL-3.0 license](https://github.com/rianadon/Cosmos-Keyboards/blob/main/LICENSE). All STEP models under the `src/assets` folder are licensed under the [CC0](https://creativecommons.org/public-domain/cc0/) License. All other assets and images are copyrighted and may not be reused without permission.
+All code is licensed under the [AGPL-3.0 license](https://github.com/rianadon/Cosmos-Keyboards/blob/main/LICENSE). All STEP models under the `src/assets` folder are licensed under the [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) License. All documentation is licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). All other assets and images are copyrighted and may not be reused without permission.
 
 ## Hand Scanning
 
