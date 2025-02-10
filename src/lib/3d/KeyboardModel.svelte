@@ -47,7 +47,12 @@
     />
   </GroupMatrix>
 {/each}
-{#if !$noWall && !hideWall}<KMesh kind="case" geometry={meshes.wallBuf} color={caseColor} />{/if}
+{#if !$noWall && !hideWall}<KMesh
+    kind="case"
+    geometry={meshes.wallBuf}
+    color={caseColor}
+    castShadow={!!caseColor}
+  />{/if}
 {#if !noWeb}<KMesh kind="case" geometry={meshes.webBuf} color={caseColor} />{/if}
 {#if !$noBase}
   <KMesh kind="case" geometry={meshes.screwBaseBuf} color={caseColor} />

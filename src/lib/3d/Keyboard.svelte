@@ -21,7 +21,7 @@
   import { nthIndex } from '$lib/worker/config.cosmos'
   import { switchInfo } from '$lib/geometry/switches'
   import { T } from '@threlte/core'
-  import { variantURL } from '$lib/geometry/socketsParts'
+  import { variantURL, PART_INFO } from '$lib/geometry/socketsParts'
   import { DefaultMap } from '$lib/worker/util'
   import { MeshStandardMaterial, Quaternion, Vector3, type Vector3Tuple, type Vector4Tuple } from 'three'
 
@@ -33,6 +33,8 @@
   export let reachability: boolean[] | undefined = undefined
   export let side: 'left' | 'right' | 'unibody'
   export let keyColor: [any, number] | undefined = undefined
+  export let trackballColor: any | undefined = undefined
+  export let switchColor: [any, number] | undefined = undefined
 
   $: console.log('new intersections', $confError)
 
@@ -179,7 +181,7 @@
         {@const index = nthIndex($protoConfig, side, key.i)}
         <KeyboardKey
           {index}
-          {visible}
+          visible={visible && (!keyColor || keyColor[1] != 0)}
           position={pressedLetter && lett == pressedLetter
             ? adjustedPosition(key, translation)
             : key.pos}
@@ -208,7 +210,9 @@
       {@const index = nthIndex($protoConfig, side, key.i)}
       <KeyboardKey
         {index}
-        visible={visible && (key.key.type != 'blank' || !($noBlanks || keyColor))}
+        visible={visible &&
+          (key.key.type != 'blank' || !($noBlanks || keyColor)) &&
+          (!PART_INFO[key.key.type].keycap || !switchColor || switchColor[1] != 0)}
         position={key.pos}
         quaternion={key.rot}
         scale.x={flip ? -1 : 1}
@@ -219,7 +223,11 @@
           <KeyboardPartGeo part={key.key.type} variant={key.key.variant} />
         {/if}
         {#if keyColor}
-          <T.MeshStandardMaterial color={0x504866} />
+          <T.MeshStandardMaterial
+            color={(key.key.type == 'trackball' && trackballColor) ||
+              (PART_INFO[key.key.type].keycap && switchColor && switchColor[0]) ||
+              0x41454d}
+          />
         {:else}
           <KeyboardMaterial
             textured

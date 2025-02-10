@@ -19,10 +19,31 @@ In lieu of writing an essay here, I'll link you to two very good resources:
 
 There's a few important qualities to choose in switches:
 
-- Volume (some switches are silent, others make loud clicky noises)
+- Volume (some switches are _Silent_, others make loud _Clicky_ noises)
 - Linear vs Tactile (is there a "bump" when pressing down the key?)
 - Actuation Force (how hard it is to press the switch)
+
+!!! tip "Laptop Switches"
+
+    The switches on laptop keyboards would count as tactile. Whereas you immediately feel the bump on a laptop, mechanical key switches vary in their placement of the bump. Typically, you will only feel the bump after pressing the key down halfway.
+
+    Tactile Choc switches will probably feel closest to a laptop keyboard. However, similar isn't always best. Even though the linears are commonly recommended for gaming and tactiles for writing, I recommend you try both regardless of how you intend to use your keyboard. If I had to use adjectives to label them, I'd label linears as "smooth and efficient" and tactile as "comfy and fun".
 
 You may change your mind after trying a few switches, so don't be too picky at the beginning. It helps to try a few switches before spending lots of money on a set.
 
 If you have a friend with a mechanical keyboard or a local keyboard shop, you should try their switches! You can also buy "switch testers" online, which are plates with one of every kind of switch on it.
+
+### MX Switches
+
+### Choc V1 Switches
+
+My recommendations, in order of increasing actuation force:
+
+- **Linear Switches**: Purpz, Pro Red, Silver, Red
+- **Tactile Switches**: Sunset
+- **Clicky Switches**: White, Robin
+- **Silent Switches**: Nocturnal
+
+Compared to MX switches, with the Chocs it's easier to be disappointed with the switch you buy (looking at you, Choc Browns). Therefore, I don't feel it's worth doing a comparison of every Kailh switch. If you're choosing something not on this list, I recommend you search up opinions online (Reddit is not a bad place for this) before buying. Sound test videos are great, but how the switch feels is more important.
+
+Some Choc switches (e.g. Browns) come with staple-shaped metal stabilizers inside. They rattle around when shaking your keyboard and don't improve the switch performance by much, so I recommend taking them out.
