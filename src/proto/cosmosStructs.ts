@@ -40,6 +40,7 @@ enumeration('PART', {
   23: 'trackpad-cirque',
   24: 'oled-128x32-0.91in-spi-adafruit',
   25: 'trackpad-azoteq',
+  27: 'encoder-alps-rkjxt1f42001',
 
   // Old stuff no one should be using.
   110: 'old-mx',
