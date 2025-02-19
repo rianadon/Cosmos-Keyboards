@@ -399,7 +399,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
       sides: 20,
     },
     partBottom: [box(17.25, 17.25, 12)],
-    wiredInMatrix: true,
+    wiredInMatrix: false,
     pinsNeeded: 7,
     icon: 'knob',
     description: 'An encoder with button and 4 direction buttons. Sort of a mini joystick with an encoder.',
