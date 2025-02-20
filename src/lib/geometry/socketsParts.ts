@@ -388,6 +388,22 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     icon: 'knob',
     description: 'A horizontal knob that sits low to the keyboard. The part is no longer manufactured, so you will have to find a reseller online.',
   },
+  'encoder-alps-rkjxt1f42001': {
+    partName: 'Alps RKJXT1F42001',
+    bomName: 'Alps RKJXT1F42001',
+    category: 'Encoders',
+    stepFile: '/src/assets/encoder-alps-rkjxt1f42001.step',
+    socketSize: {
+      radius: 8.625,
+      height: 5,
+      sides: 20,
+    },
+    partBottom: [box(17.25, 17.25, 12)],
+    wiredInMatrix: false,
+    pinsNeeded: 7,
+    icon: 'knob',
+    description: 'An encoder with button and 4 direction buttons. Sort of a mini joystick with an encoder.',
+  },
   'oled-128x32-0.91in-adafruit': {
     partName: 'Adafruit 128x32 1" I2C OLED',
     bomName: 'Adafruit 128x32 1" Diagonal OLEDs, I2C (Part No. 4440)',
