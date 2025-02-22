@@ -211,10 +211,10 @@ export function minPinsNeeded(conf: Cuttleform, includeMatrix = true) {
   let keysInMatrix = 0
   for (const key of conf.keys) {
     const info = PART_INFO[key.type]
-    const wiredInMatrix = 'variants' in info ? info.wiredInMatrix && info.wiredInMatrix(key.variant!) : info.wiredInMatrix
-    const pinsNeeded = 'variants' in info ? info.pinsNeeded && info.pinsNeeded(key.variant!) : info.pinsNeeded
-    if (wiredInMatrix) keysInMatrix++
-    if (pinsNeeded) pins += pinsNeeded
+    const pinsMatrix = 'variants' in info ? info.numPinsMatrix && info.numPinsMatrix(key.variant!) : info.numPinsMatrix
+    const pinsGPIO = 'variants' in info ? info.numPinsGPIO && info.numPinsGPIO(key.variant!) : info.numPinsGPIO
+    if (pinsMatrix) pins += pinsMatrix
+    if (pinsGPIO) pins += pinsGPIO
   }
   if (includeMatrix) {
     const numCols = Math.ceil(Math.sqrt(keysInMatrix))

@@ -115,8 +115,8 @@ Here's how to add a new socket to the codebase:
       stepFile: '/src/assets/key-ec11.step',
       socketSize: [14.5, 14.5, 4.5],
       partBottom: [box(12, 12, 14.5)],
-      wiredInMatrix: true,
-      pinsNeeded: 2,
+      numPinsMatrix: 1,
+      numPinsGPIO: 2,
       icon: 'knob',
       description: 'A vertical knob that you can...',
    },
@@ -124,7 +124,7 @@ Here's how to add a new socket to the codebase:
    The part/socket pair has two names: `partName` is the name shown in the editor, whereas `bomName` is shown in the bill of materials. Unlike `partName`, `bomName` is plural. Usually these are similar, but it's helpful to include vendors and part numbers in the `bomName`, whereas `partName` should be concise.<p></p>
    The field `stepFile` is the location where you saved the STEP file (`src/assets/key-(name).step`), and `socketSize` refers to the part boundary from step 3. The order of dimensions is `[x, y, z]`.</p><p>
    Finally, `partBottom` is a box describing the boundary of the part, referenced from the top of the socket. This is used to raise the model high enough so that your part doesn't collide with the ground!<p></p>
-   There are also a few more fields to keep in mind. `wiredInMatrix` and `pinsNeeded` are used to count the total number of pins used on the microcontroller. Only set `wiredInMatrix` true if the part is wired into the switch matrix (in the case of encoders, the encoder "button" is wired as a normal switch). For most parts you should omit `wiredInMatrix` (it is false by default). The encoder has A & B pins that connect to the microcontroller, so `pinsNeeded` is set to 2. The `icon` and `description` set how the part appears in the BOM and parts dropdown respectively.
+   There are also a few more fields to keep in mind. `numPinsMatrix` and `numPinsGPIO` are used to count the total number of pins used on the microcontroller. Set `numPinMatrix` to the maximum number of pins that can be wired into the switch matrix (in the case of encoders, the encoder "button" can be wired as a switch). For most parts will likely omit `numPinMatrix` (it is 0 by default). The encoder has A & B pins that connect to the microcontroller's I/O pins, so `numPinsGPIO` is set to 2. Together, `numPinMatrix` and `numPinsGPIO` should add to the total number of I/O pins on the part. The `icon` and `description` set how the part appears in the BOM and parts dropdown respectively.
 
 5. Edit `src/proto/cosmosStructs.ts` and add your socket/part to the `enumeration('PART', {` declaration. You'll need to give your part a unique number used to identify it in the URL. Switches get numbers from 1–15, and everything else uses 16–109.
 
