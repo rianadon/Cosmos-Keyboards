@@ -599,6 +599,17 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     icon: 'joystick',
     description: 'A large joystick for gaming or moving the mouse. Supports <a href="https://www.amazon.ca/gp/product/B089VXPHDH">this joystock on Amazon</a>.',
   },
+  'joystick-skqu-alps': {
+    partName: 'ALPS SKQU 5-WAY HAT',
+    bomName: 'ALPS SKQU HAT Switch',
+    category: 'Joysticks',
+    stepFile: '/src/assets/joystick-skqu-alps.step',
+    socketSize: [18.5, 18.5, 4],
+    partBottom: [box(11, 11, 6.25)],
+    pinsNeeded: 6,
+    icon: 'joystick',
+    description: 'A 5-way switch supporting 4 cardinal directions (no diagonals)and a center click',
+  },
 }
 
 const CATEGORY_SORT = [
