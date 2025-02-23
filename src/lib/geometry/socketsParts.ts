@@ -606,9 +606,10 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     stepFile: '/src/assets/joystick-skqu-alps.step',
     socketSize: [18.5, 18.5, 4],
     partBottom: [box(11, 11, 6.25)],
-    pinsNeeded: 6,
+    numPinsMatrix: 5,
     icon: 'joystick',
-    description: 'A 5-way switch supporting 4 cardinal directions (no diagonals)and a center click',
+    description:
+      'A 5-way switch supporting 4 cardinal directions (no diagonals) and a center click. 3D printable caps are available from <a href="https://github.com/wolfwood/navcaps">the navcaps project.</a>',
   },
 }
 
