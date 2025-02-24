@@ -6,8 +6,10 @@
 
   type Option = { key: string; label: string }
 
+  let syncing = false
   const dispatch = createEventDispatcher()
   function onSelectedChange({ next }: { next: any }) {
+    if (syncing) return next
     dispatch('change', next.value)
     return next
   }
@@ -40,10 +42,18 @@
 
   // This DX is pretty bad.
   const sync = createSync({ selected })
-  $: sync.selected(toOption(allOptions.find((opt) => opt.key == value)), (v) => v && (value = v.value))
+
+  function onValueChange(value: string) {
+    syncing = true
+    sync.selected(toOption(allOptions.find((opt) => opt.key == value)), (v) => v && (value = v.value))
+    syncing = false
+  }
+  $: onValueChange(value)
 
   export let component: ComponentType<SvelteComponent<{ option: Option }>>
-  export let labelComponent: ComponentType<SvelteComponent<{ option: { label: string; value: string } }>>
+  export let labelComponent:
+    | ComponentType<SvelteComponent<{ option: { label: string; value: string } }>>
+    | undefined = undefined
   export let minWidth = 380
 
   export { clazz as class }

@@ -105,7 +105,6 @@
   import { browser } from '$app/environment'
   import KeyboardMaterial from '$lib/3d/KeyboardMaterial.svelte'
   import { fade } from 'svelte/transition'
-  import Preset from '$lib/presentation/Preset.svelte'
   import { base } from '$app/paths'
   import SelectThingy from '../editor/SelectThingy.svelte'
   import SelectPartInner from '../editor/SelectPartInner.svelte'
