@@ -42,6 +42,7 @@ enumeration('PART', {
   25: 'trackpad-azoteq',
   27: 'encoder-alps-rkjxt1f42001',
   28: 'joystick-skqu-alps',
+  29: 'oled-160x68-1.08in-niceview',
 
   // Old stuff no one should be using.
   110: 'old-mx',
