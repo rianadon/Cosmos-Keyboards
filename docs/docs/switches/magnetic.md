@@ -1,4 +1,4 @@
-# Magnetic (NIZ)
+# Magnetic (NIZ) Switches
 
 Unlike mechanical switches that detect keypresses when small metal parts come into contact, magnetic switches trigger when a magnet inside the switch comes in close proximity to a sensor sitting underneath.
 

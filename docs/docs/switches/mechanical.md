@@ -1,4 +1,4 @@
-# Mechanical
+# Mechanical Switches
 
 Cosmos supports three different types of mechanical switches:
 
@@ -34,6 +34,21 @@ You may change your mind after trying a few switches, so don't be too picky at t
 If you have a friend with a mechanical keyboard or a local keyboard shop, you should try their switches! You can also buy "switch testers" online, which are plates with one of every kind of switch on it.
 
 ### MX Switches
+
+Cherry Switches are the most commonly sold MX switches. The common ones are, in order of increasing actuation force:
+
+- **Linear Switches**: Red, Silver, Black
+- **Tactile Switches**: Brown
+- **Clicky Switches**: Blue, White
+- **Silent Switches**: Red Silent
+
+All of these are great switches, but Red, Brown, and Blue are the most common. Companies like Gateron also use the same naming conventions, so a Gateron Red will feel similar to a Cherry Red. Gateron also makes Gateron Yellows, which are linear switches that are slightly heavier than the Red. Lately I've seen these appear as the pre-installed switches on keyboards.
+
+Now that I've said all of this, **there are way more MX switches than the ones I've listed, and way more manufacturers than Cherry/Gateron**. The switches I've listed are the ones commonly sold online, pre-installed in off-the-shelf mechanical keyboards, and good points of reference. However, you will, probably, very likely, find a switch not on the list above that better suits your needs.
+
+For example, if you're looking for silent switches, there's Gazzew Boba U4s which are tactile, Akko fairies which are linear, Durock has both tactile and linear silent switches, etc. etc. And of course options from Cherry and Gateron.
+
+Some people also take apart their switches and lubricate them to change how they sound. This is all I'll say on that topic.
 
 ### Choc V1 Switches
 

@@ -28,6 +28,7 @@
     if (
       !ev.origin.startsWith('http://localhost:') &&
       !ev.origin.endsWith('.myshopify.com') &&
+      ev.origin != 'https://ryanis.cool' &&
       ev.origin != 'https://skree.us'
     )
       return

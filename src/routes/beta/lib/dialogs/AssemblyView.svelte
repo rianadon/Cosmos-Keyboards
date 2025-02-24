@@ -9,10 +9,14 @@
   import { SORTED_VENDORS } from '@pro/assemblyService'
   import { trackEvent, sendError } from '$lib/telemetry'
 
+  import Dialog from '$lib/presentation/Dialog.svelte'
+
   export let center: Center
   export let meshes: ['left' | 'right' | 'unibody', KeyboardMeshes][]
   export let geometry: FullGeometry
   export let size: [number, number, number]
+
+  let dialogOpen = false
 
   $: vendorData = SORTED_VENDORS.map((v) => {
     try {
@@ -89,9 +93,12 @@
   </div>
   <div class="flex-1 px-4">
     {#each vendorData as vendor}
-      <a
-        href={vendor.link}
-        on:click={() => trackEvent('assemblyservice-order', { vendor: vendor.name })}
+      <button
+        on:click={(e) => {
+          e.preventDefault()
+          dialogOpen = true
+          trackEvent('assemblyservice-order', { vendor: vendor.name })
+        }}
         class="flex items-center gap-10 p-4 pb-0 mb-2 rounded-2 <lg:flex-col overflow-hidden"
         class:hoverable={!vendor.error}
         class:opacity-50={vendor.error}
@@ -117,7 +124,7 @@
         >
           <Icon size={24} path={mdiChevronRight} />
         </div>
-      </a>
+      </button>
       {#if vendor.error}
         <div class="bg-amber-200 dark:bg-amber-800 mx-4 px-4 py-2 rounded-2 mb-2">
           <p class="mb-1">{vendor.error}.</p>
@@ -149,6 +156,36 @@
     {/each}
   </div>
 </main>
+
+{#if dialogOpen}
+  <Dialog on:close={() => (dialogOpen = false)}>
+    <span slot="title">Help Preview the New Checkout Flow</span>
+    <div slot="content">
+      <p class="mb-2">
+        Hey! I've been working hard on revising the checkout experience on TheBigSkree's website to make
+        configuring more straightforward and intuitive. I've built a color option simulator, color
+        palettes, and added more options.
+      </p>
+      <p class="mb-2">
+        I recommend you use this button below to configure your keyboard on the mockup page before
+        navigating to TheBigSkree's site.
+      </p>
+      <div class="text-center mb-2">
+        <a
+          class="mr-6 inline-flex items-center gap-2 border-2 px-3 py-1 rounded border-gray-500/20 hover:border-gray-500 transition-border-color text-gray-600 dark:text-gray-200"
+          href="https://ryanis.cool/skreeShopify?config={encodeURIComponent(location.hash.substring(1))}"
+          >Try the New Checkout</a
+        >
+      </div>
+      <p class="mb-2">
+        If you'd like the old experience, use <a
+          href={vendorData[0].link}
+          class="underline text-teal-600">This Link</a
+        >.
+      </p>
+    </div>
+  </Dialog>
+{/if}
 
 <style>
   .hoverable {
