@@ -172,6 +172,17 @@ const _keyboards: Record<string, Keyboard> = {
     switches: 'Choc Brown',
     keycaps: 'YMDK Choc Keycaps',
   },
+  '69c774a8': {
+    author: 'Blaise',
+    name: 'Nebulon',
+    type: 'split',
+    config:
+      '#cm:CpMBChASBRCQQSATEgASADg7QIBGCg0SBRCQTSATEgASADgnChwSBxCQWSATQAISABIDELAvEgMQsF84E0CG8LwCChUSBRCQZSATEgASAxCwOxIDELBrOAAKExIFEJBxIBMSABIAOBRAioaKwAcKFxIEEBAgExIDEKBOEgIQMDgoQJSGirAHGABAsomgrtBfSNzwoqABCpIBChcSExDAwAJAgICQAkjCmaCVkLwBUEM4CAoVEhAQQECAgBhI0JWA3ZD1A1ALUJ4CChYSEhBAQICA1AJIwpmglZC8AVCGAVA6ChQSEBBAQICA8AFI5pn8p5ALUFdQfwoVEhAQQECAgKwDSPCZzLXQMFB0UJUBGAIiCgjIARDIARgAIABAy4uEpNAxSK2R3I3BkwYYhCAoZIIBAgQDWENoAA==',
+    projectLink: 'https://github.com/rparker2003/qmk_firmware/tree/master/keyboards/nebulon',
+    filament: 'Overture PETG Sparkle Blue',
+    switches: 'Holy Panda 55g',
+    keycaps: 'Aliexpress Purple PBT XDA Keycaps',
+  },
 }
 
 function findImages(kbd: Keyboard) {
