@@ -43,9 +43,9 @@
   // This DX is pretty bad.
   const sync = createSync({ selected })
 
-  function onValueChange(value: string) {
+  function onValueChange(val: string) {
     syncing = true
-    sync.selected(toOption(allOptions.find((opt) => opt.key == value)), (v) => v && (value = v.value))
+    sync.selected(toOption(allOptions.find((opt) => opt.key == val)), (v) => v && (value = v.value))
     syncing = false
   }
   $: onValueChange(value)
