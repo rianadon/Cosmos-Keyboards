@@ -20,6 +20,7 @@ And very optional things:
 
 - Name your keyboard
 - Add more than one image
+- A description / any extra information that may help others (see [Limbo](http://localhost:5173/showcase/d85e682f/) for an example of what I mean)
 - A different profile picture or username than what you use on Discord or GitHub
 
 ## How Things Are Added to The Showcase
