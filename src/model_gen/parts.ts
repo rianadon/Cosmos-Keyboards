@@ -125,7 +125,6 @@ async function main() {
   pool.add('ECQWGD001 Encoder', () => genPart('switch-evqwgd001'))
   pool.add('Joycon Joystick', () => genPart('switch-joystick-joycon-adafruit'))
 
-  poolChocV1('choc', 'choc-v1', 'choc-v2')
   poolChocV1('choc-hotswap', 'choc-v1-hotswap', 'choc-v2-hotswap', true)
   poolLED('mx-pcb-plum')
   poolLED('mx-skree')
