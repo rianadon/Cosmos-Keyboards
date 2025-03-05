@@ -184,7 +184,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     bomName: (v: Variant) => 'Kailh Choc V1 Switches',
     category: 'Sockets',
     stepFile: '/src/assets/key-choc-v1.step',
-    partOverride: '/src/assets/switch-choc-v1.glb',
+    partOverride: CHOC_PART,
     socketSize: (v: Variant) => {
       if (v.style === 'puller-0.5-expanded') return [18, 17, 2.2] as PartSize
       return [17.5, 16.5, 2.2] as PartSize
@@ -211,15 +211,26 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'choc-v2': {
     partName: 'Choc V2: Direct Solder',
-    bomName: 'Kailh Choc V2 Switches',
+    bomName: (v: Variant) => 'Kailh Choc V2 Switches',
     category: 'Sockets',
     stepFile: '/target/key-choc-v2.step',
     partOverride: CHOC_PART,
-    socketSize: [18, 18, 2.2],
-    partBottom: [CHOC_BOTTOM],
+    socketSize: (v: Variant) => [18, 18, 2.2] as PartSize,
+    partBottom: (v: Variant) => [CHOC_BOTTOM],
+    variants: {
+      style: ['puller', 'no-puller', 'puller-0.5-expanded'],
+    },
+    encodeVariant: (variant: Variant) => {
+      return ['puller', 'no-puller', 'puller-0.5-expanded'].indexOf(variant.style)
+    },
+    decodeVariant: (variant: number) => {
+      return {
+        style: ['puller', 'no-puller', 'puller-0.5-expanded'][variant] || 'puller',
+      }
+    },
     keycap: 'mx',
-    extraBomItems: { ...BOM_DIODE },
-    numPinsMatrix: 1,
+    extraBomItems: (v: Variant) => ({ ...BOM_DIODE }),
+    numPinsMatrix: (v: Variant) => 1,
     description:
       "Choc V2 is quite similar to Kailh Choc V1 except for the fact that it uses taller MX-style keycaps instead of the smaller Choc-style keycaps. This socket is dimensionally equivalent to the Choc&nbsp;V1 socket but includes more clearance around the hole. It is meant to be used if you are soldering directly to your switches.\nIf your Choc Switches have the MX '+'-shaped stem, then they're V2.",
     icon: 'choc',
