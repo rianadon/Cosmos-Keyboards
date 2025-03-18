@@ -375,6 +375,46 @@ led_config_t g_led_config = { {
 #endif
 ```
 
+## QMK Debugging
+
+I recommend turning on the debug console, as it is very useful debugging wiring issues. You'll need to change two files:
+
+1. In your `keymap.c`, add the following lines:
+
+```c title="keymap.c"
+void keyboard_post_init_user(void) {
+  debug_enable=true;
+  debug_matrix=true;
+}
+```
+
+2. If you have `"features"` defined in your `keyboard.json`, enable console like so:
+
+```json title="keyboard.json"
+"features": {
+  ...
+  "console": true
+}
+```
+
+Otherwise, add `CONSOLE_ENABLE=yes` to `rules.mk`.
+
+Upload your program to the microcontroller, then run `qmk console`. You'll see output like this whenever you press a key on your keyboard:
+
+```
+  012345
+0 00000
+1 01000
+2 00000
+3 00000
+4 00000
+5 00000
+```
+
+The numbers represent rows and columns of the wiring matrix, and a `1` indicates a key that is currently being pressed down. You should be able to press every key on your keyboard and see the corresponding `1` appear in the matrix. If you don't see any messages printed when you press the key, check your wiring.
+
+_Thank you MoonDoggy for compiling these debugging instructions on the Cosmos Discord!_
+
 ## Setting up Via
 
 Instead of reading your keyboard configuration over USB like Vial does, Via needs to be told how your keyboard is laid out. In order to do this you'll need to recreate your keyboard in the [Keyboard Layout Editor](http://www.keyboard-layout-editor.com/) website.
