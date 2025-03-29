@@ -1023,11 +1023,13 @@ export function boardHolder(c: Cuttleform, geo: Geometry): Solid {
 
     const maxy1 = boardPos.topLeft ? Math.min(maxy, boardPos.topLeft.origin().y - outerRadius) : maxy
     const maxy2 = boardPos.topRight ? Math.min(maxy, boardPos.topRight.origin().y - outerRadius) : maxy
-    if (maxy - miny > 4) {
-      rect = rect.cut(drawRectangleByBounds(minx, minx + boardProps.sidecutout, miny, maxy))
+    const leftCutout = Array.isArray(boardProps.sidecutout) ? boardProps.sidecutout[c.flipConnectors ? 1 : 0] : boardProps.sidecutout
+    const rightCutout = Array.isArray(boardProps.sidecutout) ? boardProps.sidecutout[c.flipConnectors ? 0 : 1] : boardProps.sidecutout
+    if (maxy - miny > 4 && leftCutout) {
+      rect = rect.cut(drawRectangleByBounds(minx, minx + leftCutout, miny, maxy))
     }
-    if (maxy - miny > 4) {
-      rect = rect.cut(drawRectangleByBounds(maxx - boardProps.sidecutout, maxx, miny, maxy))
+    if (maxy - miny > 4 && rightCutout) {
+      rect = rect.cut(drawRectangleByBounds(maxx - rightCutout, maxx, miny, maxy))
     }
   }
 
@@ -1079,8 +1081,15 @@ export function boardHolder(c: Cuttleform, geo: Geometry): Solid {
     const miny = elements[0].offset.y - elements[0].size.y
     const maxy = Math.min(elements[0].offset.y + 100, boardProps.sidecutoutMaxY ?? Infinity) // Add extra material to clear everything in the holder
     const depth = Math.max(-0.6, 1 - elements[0].offset.z) // Leave minimum 1mm material at bottom
-    solid = solid.cut(drawRectangleByBounds(minx - BOARD_COMPONENT_TOL, minx + boardProps.sidecutout, miny, maxy).sketchOnPlane('XY', elements[0].offset.z).extrude(depth) as Solid)
-    solid = solid.cut(drawRectangleByBounds(maxx - boardProps.sidecutout, maxx + BOARD_COMPONENT_TOL, miny, maxy).sketchOnPlane('XY', elements[0].offset.z).extrude(depth) as Solid)
+
+    const leftCutout = Array.isArray(boardProps.sidecutout) ? boardProps.sidecutout[c.flipConnectors ? 1 : 0] : boardProps.sidecutout
+    const rightCutout = Array.isArray(boardProps.sidecutout) ? boardProps.sidecutout[c.flipConnectors ? 0 : 1] : boardProps.sidecutout
+    if (leftCutout) {
+      solid = solid.cut(drawRectangleByBounds(minx - BOARD_COMPONENT_TOL, minx + leftCutout, miny, maxy).sketchOnPlane('XY', elements[0].offset.z).extrude(depth) as Solid)
+    }
+    if (rightCutout) {
+      solid = solid.cut(drawRectangleByBounds(maxx - rightCutout, maxx + BOARD_COMPONENT_TOL, miny, maxy).sketchOnPlane('XY', elements[0].offset.z).extrude(depth) as Solid)
+    }
   }
 
   for (const element of elements) {

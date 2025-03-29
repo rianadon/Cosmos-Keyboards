@@ -39,10 +39,20 @@
     use:melt={$content}
     transition:fade={{ duration: 50 }}
     class="z-100 rounded-md bg-pink-200 dark:text-pink-950 shadow"
+    class:cosmos={BOARD_PROPERTIES[option.key].soldByCosmos}
   >
     <div use:melt={$arrow} />
     <div class="px-6 py-4 max-w-80 cosmosprofileinfo">
       <img src={ucURL(option.key)} class="w-72 h-36 mx-auto" />
+
+      {#if BOARD_PROPERTIES[option.key].soldByCosmos}
+        <p
+          class="bg-purple-900 text-white flex items-center px-4 py-0.5 gap-2 justify-end rounded mt-1 mb-6"
+        >
+          <img class="size-5" src="favicon.png" alt="" />
+          Sold by Cosmos
+        </p>
+      {/if}
       {#if option.key.includes('promicro')}
         <div
           class="max-w-[32rem] text-sm mb-1 bg-pink-300 dark:border-gray-900 mx-[-0.5rem] px-2 py-2 rounded flex gap-3 relative"

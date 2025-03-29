@@ -13,7 +13,7 @@ const BACKSTOP_HEIGHT = 0.5 // How much extra backstop height to add
 
 const IN = 25.4 // in to mm
 
-export const MICROCONTROLLER_SIZES = ['Small', 'Medium', 'Large'] as const
+export const MICROCONTROLLER_SIZES = ['Cosmos', 'Small', 'Medium', 'Large'] as const
 
 // Pi Pico Model: https://github.com/ncarandini/KiCad-RP-Pico
 // Pro Micro Model: https://grabcad.com/library/arduino-pro-micro-4
@@ -36,7 +36,7 @@ interface BoardProperties {
   cutouts: { origin: Vector; size: Vector }[]
   notches?: { origin: Vector; width: number; height: number }[]
   /** Amount to carve into the side to create the cutouts for pins */
-  sidecutout: number
+  sidecutout: number | number[]
   /** (optional) to how far in the positive Y direction the side cutout goes. */
   sidecutoutMaxY?: number
   /** Diameter of holes cut into the board holder used to attach the microcontroller. These should be tapped. */
@@ -50,6 +50,8 @@ interface BoardProperties {
   /** Names of pins on the rear side of the microcontroller (if any).
    * Connectors don't count. */
   rearPins?: string[]
+  /** Names of pins on the connectors on the rear side of the microcontroller (if any). */
+  rearConnectorPins?: string[]
   /** Regular expression to determine if a pin is gpio */
   isGPIO: RegExp
   /** If the microcontroller has castellated holes. */
@@ -60,6 +62,7 @@ interface BoardProperties {
   draft?: boolean
   dontCount?: boolean
   description?: string
+  soldByCosmos?: boolean
 }
 
 type Microcontroller = Exclude<Cuttleform['microcontroller'], null>
@@ -304,21 +307,42 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
       "For use with Cyboard's Dactyl Flex PCBs. The Microcontroller has one native USB-C port and one fake one (good for connecting halves but not for plugging in).\nSupports both wired and wireless (longer) versions.",
   },
   'lemon-wired': {
-    name: 'Lemon',
-    extraName: '(Dual USB-C, Flex PCB)',
+    name: 'Lemon Wired',
+    extraName: '(Dual USB-C, Flex PCB) ☆',
     size: new Vector(31.94, 36, 1.57),
-    sizeName: 'Large',
+    sizeName: 'Cosmos',
     boundingBoxZ: 5,
     offset: new Vector(0, 0, 1.835),
     holes: [],
-    cutouts: [],
+    cutouts: [{ origin: new Vector(0, -16, 0), size: new Vector(11, 11, 0) }],
     sidecutout: 0.1 * IN,
-    leftSidePins: ['Vled', 'GND', 'GP2', 'GP3', 'GP4', 'GP5', 'GP6', 'GP7', 'GP8', 'GP9', 'GP10'],
+    leftSidePins: ['VRGB', 'GND', 'RGB', 'GP3', 'GP4', 'GP5', 'GP6', 'GP7', 'GP8', 'GP9', 'GP10', 'RESET'],
     rightSidePins: ['5V', '3V3', 'GND', 'GP29', 'GP28', 'GP27', 'GP26', 'GP25', 'GP24', 'GP23', 'GP22', 'GP21', 'GP20'],
+    rearConnectorPins: ['GP18', 'GP19', 'GP15', 'GP13', 'GP12', 'GP14'],
     isGPIO: /GP\d+/,
     backstopHeight: 0,
     draft: true,
-    dontCount: true,
+    soldByCosmos: true,
+    description: 'A fast & feature-packed microcontroller with two USB-C ports to link together your keyboard halves (avoids TRRS hotplug issues). Based on the RP2040.',
+  },
+  'lemon-wireless': {
+    name: 'Lemon Wireless',
+    extraName: '(Bluetooth, Flex PCB) ☆',
+    size: new Vector(29.9, 42, 1.57),
+    sizeName: 'Cosmos',
+    boundingBoxZ: 5,
+    offset: new Vector(0, 0, 1.835),
+    holes: [],
+    cutouts: [{ origin: new Vector(-3.6, -31.1, 0), size: new Vector(9, 9, 0) }],
+    sidecutout: [0, 6],
+    leftSidePins: ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7'],
+    rightSidePins: ['GP2', 'GP1', 'R7', 'R4', 'R6', 'R2', 'R3', 'R5', 'R1', 'RESET'],
+    rearConnectorPins: ['SDA', 'SCL', 'RGB', 'MOSI', 'CS', 'MISO', 'SCK'],
+    isGPIO: /R\d+|C\d+|GP\d+|SDA|SCL|MOSI|MISO|CS|SCK/,
+    backstopHeight: 0,
+    draft: true,
+    soldByCosmos: true,
+    description: 'Lots of I/Os, Bluetooth, and affordable! You can have all three.',
   },
 }
 
@@ -329,6 +353,7 @@ export function sortMicrocontrollers(a: Microcontroller, b: Microcontroller) {
     if (BOARD_PROPERTIES[m].extraName?.includes('Low Storage')) s -= 10
     if (BOARD_PROPERTIES[m].extraName?.includes('USB-C')) s += 1
     if (BOARD_PROPERTIES[m].extraName?.includes('Flex PCB')) s += 1
+    if (BOARD_PROPERTIES[m].extraName?.includes('Bluetooth')) s += 1
     if (m.includes('promicro')) return 0.9 // Pro Micro is still popular
     return s
   }
@@ -524,6 +549,7 @@ export function numGPIO(mcu: Microcontroller) {
   if (info.leftSidePins) pins.push(...info.leftSidePins)
   if (info.rightSidePins) pins.push(...info.rightSidePins)
   if (info.rearPins) pins.push(...info.rearPins)
+  if (info.rearConnectorPins) pins.push(...info.rearConnectorPins)
 
   const isGPIO = new RegExp('^' + info.isGPIO.source + '$')
   return pins.filter(p => isGPIO.test(p)).length

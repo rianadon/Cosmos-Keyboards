@@ -171,7 +171,8 @@
   }
 
   /** Update the connector based on microcontroller bluetooth status */
-  function updateMicrocontroller() {
+  function updateMicrocontroller(ev: CustomEvent) {
+    $protoConfig.microcontroller = ev.detail
     if (!basic) return
 
     const isBluetooth =
@@ -190,10 +191,17 @@
         { preset: 'usb', size: 'average', x: -7 },
         { preset: 'usb', size: 'average', x: 7 },
       ]
+    else if ($protoConfig.microcontroller == 'lemon-wireless')
+      $protoConfig.connectors = [
+        { width: 7, height: 3, x: -9.3, y: 4, radius: 1 },
+        { preset: 'usb', size: 'average', x: 5.4 },
+      ]
     else if (isBluetooth) $protoConfig.connectors = [{ preset: 'usb', size: 'average' }]
     else $protoConfig.connectors = [{ preset: 'trrs' }, { preset: 'usb', size: 'average' }]
 
-    $protoConfig.mirrorConnectors = $protoConfig.microcontroller != 'cyboard-assimilator'
+    $protoConfig.mirrorConnectors =
+      $protoConfig.microcontroller != 'cyboard-assimilator' &&
+      $protoConfig.microcontroller != 'lemon-wireless'
   }
 
   let lastSwitch: Record<string, PartType['type']> = { choc: 'choc-v1', mx: 'mx-better' }
@@ -1050,7 +1058,7 @@
   {/if}
   <Field name="Microcontroller" icon="microcontroller">
     <SelectThingy
-      bind:value={$protoConfig.microcontroller}
+      value={$protoConfig.microcontroller}
       on:change={updateMicrocontroller}
       options={{
         ...Object.fromEntries(

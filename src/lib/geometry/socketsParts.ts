@@ -388,6 +388,18 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     icon: 'knob',
     description: 'A horizontal knob that sits low to the keyboard. The part is no longer manufactured, so you will have to find a reseller online.',
   },
+  'thqwgd001': {
+    partName: 'THQWGD001 (3DP) Encoder',
+    bomName: 'THQWGD001 Encoders',
+    category: 'Encoders',
+    stepFile: '/src/assets/key-thqwgd001.step',
+    socketSize: [20, 20, 5],
+    partBottom: [box(16, 16, 7)],
+    numPinsGPIO: 2,
+    icon: 'knob',
+    description:
+      'A horizontal knob that sits low to the keyboard. This part is a 3D-printable alternative to the EVQWGD001 that uses more widely available parts. Designed by Taro Hayashi. More info <a href="https://github.com/Taro-Hayashi/THQWGD001?tab=readme-ov-file">on GitHub</a>.',
+  },
   'encoder-alps-rkjxt1f42001': {
     partName: 'Alps RKJXT1F42001',
     bomName: 'Alps RKJXT1F42001',

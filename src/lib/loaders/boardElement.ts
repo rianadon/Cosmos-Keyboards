@@ -21,6 +21,7 @@ const MICROCONTROLLER_URLS: Record<Microcontroller, string> = {
   'feather-rp2040-adafruit': '/src/assets/feather-rp2040-adafruit.glb',
   'cyboard-assimilator': '/src/assets/cyboard-assimilator.glb',
   'lemon-wired': '/src/assets/lemon-wired.glb',
+  'lemon-wireless': '/src/assets/lemon-wireless.glb',
 }
 
 const CONNECTOR_URLS: Record<Connector, string> = {

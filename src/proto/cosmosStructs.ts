@@ -43,6 +43,7 @@ enumeration('PART', {
   27: 'encoder-alps-rkjxt1f42001',
   28: 'joystick-skqu-alps',
   29: 'oled-160x68-1.08in-niceview',
+  30: 'thqwgd001',
 
   // Old stuff no one should be using.
   110: 'old-mx',
@@ -87,6 +88,7 @@ enumeration('MICROCONTROLLER_NAME', [
   'cyboard-assimilator',
   'promicro-usb-c-long',
   'lemon-wired',
+  'lemon-wireless',
 ])
 
 struct('PartVariant', {
