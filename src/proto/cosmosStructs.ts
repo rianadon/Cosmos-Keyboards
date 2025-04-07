@@ -28,6 +28,7 @@ enumeration('PART', {
   // 14 reserved for mx-pumpkin
   15: 'mx-skree',
   26: 'niz',
+  31: 'choc-pumpkin',
 
   // You wouldn't put many of these on a keyboard.
   16: 'ec11',

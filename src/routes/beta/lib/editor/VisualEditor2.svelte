@@ -33,6 +33,7 @@
     BOARD_PROPERTIES,
     MICROCONTROLLER_SIZES,
     sortMicrocontrollers,
+    microcontrollerConnectors,
   } from '$lib/geometry/microcontrollers'
   import {
     fromCosmosConfig,
@@ -175,33 +176,12 @@
     $protoConfig.microcontroller = ev.detail
     if (!basic) return
 
-    const isBluetooth =
-      $protoConfig.microcontroller != null &&
-      BOARD_PROPERTIES[$protoConfig.microcontroller].extraName?.toLowerCase().includes('bluetooth')
-
-    if ($protoConfig.microcontroller == null) $protoConfig.connectors = []
-    else if ($protoConfig.microcontroller == 'cyboard-assimilator')
-      $protoConfig.connectors = [
-        { width: 2.3, height: 2.3, x: -12.1, y: 5, radius: 100 },
-        { preset: 'usb', size: 'average', x: -3.2 },
-        { preset: 'usb', size: 'average', x: 9.4 },
-      ]
-    else if ($protoConfig.microcontroller == 'lemon-wired')
-      $protoConfig.connectors = [
-        { preset: 'usb', size: 'average', x: -7 },
-        { preset: 'usb', size: 'average', x: 7 },
-      ]
-    else if ($protoConfig.microcontroller == 'lemon-wireless')
-      $protoConfig.connectors = [
-        { width: 7, height: 3, x: -9.3, y: 4, radius: 1 },
-        { preset: 'usb', size: 'average', x: 5.4 },
-      ]
-    else if (isBluetooth) $protoConfig.connectors = [{ preset: 'usb', size: 'average' }]
-    else $protoConfig.connectors = [{ preset: 'trrs' }, { preset: 'usb', size: 'average' }]
-
-    $protoConfig.mirrorConnectors =
-      $protoConfig.microcontroller != 'cyboard-assimilator' &&
-      $protoConfig.microcontroller != 'lemon-wireless'
+    const { mirrorConnectors, connectors } = microcontrollerConnectors(
+      $protoConfig.microcontroller,
+      $protoConfig.connectors
+    )
+    $protoConfig.connectors = connectors
+    $protoConfig.mirrorConnectors = mirrorConnectors
   }
 
   let lastSwitch: Record<string, PartType['type']> = { choc: 'choc-v1', mx: 'mx-better' }
@@ -503,7 +483,7 @@
       value={$protoConfig.partType.type}
       on:change={updateSwitch}
       options={objEntries(PART_INFO)
-        .filter(([p, e]) => e.category == 'Sockets' && p != 'blank')
+        .filter(([p, e]) => e.category == 'Sockets' && p != 'blank' && (flags.draftuc || !e.draft))
         .map(([p, e]) => ({ ...e, key: p + '', label: e.partName }))}
       component={SelectPartInner}
       labelComponent={SelectPartLabel}

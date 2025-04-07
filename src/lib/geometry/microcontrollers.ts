@@ -323,7 +323,8 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     backstopHeight: 0,
     draft: true,
     soldByCosmos: true,
-    description: 'A fast & feature-packed microcontroller with two USB-C ports to link together your keyboard halves (avoids TRRS hotplug issues). Based on the RP2040.',
+    description:
+      'A fast & feature-packed microcontroller with two USB-C ports to link together your keyboard halves (avoids TRRS hotplug issues). Based on the RP2040.\n<a href="https://ryanis.cool/cosmos/lemon">Lemon Microcontrollers</a> are sold from the <a href="https://cosmos-store.ryanis.cool">Cosmos Store</a> and shipped from the US. They are <a href="https://github.com/rianadon/Cosmos-Keyboard-PCBs">open source</a> too.',
   },
   'lemon-wireless': {
     name: 'Lemon Wireless',
@@ -342,7 +343,8 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     backstopHeight: 0,
     draft: true,
     soldByCosmos: true,
-    description: 'Lots of I/Os, Bluetooth, and affordable! You can have all three.',
+    description:
+      'Lots of I/Os, Bluetooth, and affordable! You can have all three.\n<a href="https://ryanis.cool/cosmos/lemon">Lemon Microcontrollers</a> are sold from the <a href="https://cosmos-store.ryanis.cool">Cosmos Store</a> and shipped from the US. They are <a href="https://github.com/rianadon/Cosmos-Keyboard-PCBs">open source</a> too.',
   },
 }
 
@@ -553,4 +555,33 @@ export function numGPIO(mcu: Microcontroller) {
 
   const isGPIO = new RegExp('^' + info.isGPIO.source + '$')
   return pins.filter(p => isGPIO.test(p)).length
+}
+
+export function microcontrollerConnectors(mcu: Microcontroller, connectors: ConnectorMaybeCustom[]) {
+  const isBluetooth = mcu != null && BOARD_PROPERTIES[mcu].extraName?.toLowerCase().includes('bluetooth')
+
+  if (mcu == null) connectors = []
+  else if (mcu == 'cyboard-assimilator') {
+    connectors = [
+      { width: 2.3, height: 2.3, x: -12.1, y: 5, radius: 100 },
+      { preset: 'usb', size: 'average', x: -3.2 },
+      { preset: 'usb', size: 'average', x: 9.4 },
+    ]
+  } else if (mcu == 'lemon-wired') {
+    connectors = [
+      { preset: 'usb', size: 'average', x: -7 },
+      { preset: 'usb', size: 'average', x: 7 },
+    ]
+  } else if (mcu == 'lemon-wireless') {
+    connectors = [
+      { width: 7, height: 3, x: -9.3, y: 4, radius: 1 },
+      { preset: 'usb', size: 'average', x: 5.4 },
+    ]
+  } else if (isBluetooth) connectors = [{ preset: 'usb', size: 'average' }]
+  else connectors = [{ preset: 'trrs' }, { preset: 'usb', size: 'average' }]
+
+  const mirrorConnectors = mcu != 'cyboard-assimilator'
+    && mcu != 'lemon-wireless'
+
+  return { connectors, mirrorConnectors }
 }

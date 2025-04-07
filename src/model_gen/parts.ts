@@ -192,7 +192,7 @@ async function main() {
   poolDisplaySocket('oled-128x32-0.91in-spi-adafruit', adafruitDisplayProps)
 
   // Make all combinations of trackballs
-  for (const v of allVariants('trackball') as TrackballVariant[]) {
+  /*for (const v of allVariants('trackball') as TrackballVariant[]) {
     const url = variantURL({ type: 'trackball', variant: v } as any)
     pool.add(`${v.size} trackball, ${v.bearings}, ${v.sensor}`, async () => {
       const stepName = join(targetDir, `key-trackball${url}.step`.toLowerCase())
@@ -204,7 +204,7 @@ async function main() {
         await writeMesh(glbName, trackballPart({ diameter: parseFloat(v.size), bearings: v.bearings, sensor: v.sensor }))
       })
     }
-  }
+  }*/
 
   // Check that all STEP files that need to be split are split
   const toSplit: CuttleKey['type'][] = []

@@ -5,8 +5,10 @@
   import Thick3D from './lib/viewers/ViewerThickness.svelte'
   import ViewerLayout from './lib/viewers/ViewerLayout.svelte'
   import ViewerMatrix from './lib/viewers/ViewerMatrix.svelte'
+  import ViewerPea from './lib/viewers/ViewerPea.svelte'
   import ViewerBottom from './lib/viewers/ViewerBottom.svelte'
   import ViewerTiming from './lib/viewers/ViewerTiming.svelte'
+  import PeaConfig from './lib/editor/PeaConfig.svelte'
   import Popover from 'svelte-easy-popover'
   import Icon from '$lib/presentation/Icon.svelte'
   import * as mdi from '@mdi/js'
@@ -72,6 +74,7 @@
   import type { unibody } from '$lib/worker/modeling/transformation-ext'
   import ConfError from './lib/ConfError.svelte'
   import { SORTED_VENDORS } from '@pro/assemblyService'
+  import { microcontrollerConnectors } from '$lib/geometry/microcontrollers'
 
   const DEF_CENTER = [-35.510501861572266, -17.58449935913086, 35.66889877319336] as [
     number,
@@ -97,11 +100,13 @@
   let darkMode: boolean
   let prefsOpen: boolean
   let assemblyOpen: boolean
+  let lemonSwitch: boolean
 
   let proOpen = false
   let editorContent: string
   let hideWall = false
   let lastRenderNumber = 0
+  let fullMatrix: any = undefined
 
   // @ts-ignore
   let state: State = deserialize(browser ? location.hash.substring(1) : '', () =>
@@ -127,6 +132,10 @@
         if (state.content) initialEditorContent = state.content
         if (mode === 'advanced' && newMode !== 'advanced') {
           initialEditorContent = undefined // So the editor resets
+        }
+        if (newMode != 'advanced' && viewer == 'programming') {
+          protoConfig.set(state.options)
+          config = fromCosmosConfig(state.options)
         }
         mode = newMode
       }
@@ -518,6 +527,24 @@
     mode = newMode
   }
 
+  $: hasLemon = (config?.right || config?.unibody)?.microcontroller?.startsWith('lemon')
+  function switchUC(uc: string) {
+    $protoConfig.microcontroller = uc
+    lemonSwitch = false
+
+    try {
+      const { mirrorConnectors, connectors } = microcontrollerConnectors(
+        $protoConfig.microcontroller,
+        $protoConfig.connectors
+      )
+      $protoConfig.connectors = connectors
+      $protoConfig.mirrorConnectors = mirrorConnectors
+      config = fromCosmosConfig($protoConfig)
+    } catch (e) {
+      alert('Error generating with a Lemon. reverting...')
+    }
+  }
+
   $: keyboardEntries = objEntriesNotNull(meshes).filter(
     ([s, v]) => s == 'unibody' || $view == 'both' || $view == s
   )
@@ -805,7 +832,11 @@
         {:else if viewer == 'top'}
           <ViewerLayout {geometry} {darkMode} conf={config} confError={$confError} />
         {:else if viewer == 'programming'}
-          <ViewerMatrix {geometry} {darkMode} confError={$confError} />
+          {#if hasLemon}
+            <ViewerPea {geometry} {darkMode} confError={$confError} bind:fullMatrix />
+          {:else}
+            <ViewerMatrix {geometry} {darkMode} confError={$confError} />
+          {/if}
         {:else if viewer == 'board'}
           <ViewerBottom {geometry} {darkMode} confError={$confError} />
         {:else if viewer == 'timing'}
@@ -920,13 +951,49 @@
     <div class="xs:w-80 md:w-[32rem]">
       {#if viewer == 'programming'}
         <button class="infobutton" on:click={() => (kleView = true)}>Download KLE Layout</button>
-        <p class="mt-4 mb-2">Some things that will happen here in the future:</p>
-        <ul class="list-disc pl-4">
-          <li>The thumb cluster matrix will be wired more efficiently</li>
-          <li>The thumb cluster matrix will be connected to the larger key matrix</li>
-          <li>The generator will make a QMK template for you to use</li>
-          <li>And maybe a generated assembly / wiring guide</li>
-        </ul>
+        {#if flags.lemons && !hasLemon}
+          <button
+            class="relative bg-teal-500/10 hover:bg-teal-500/30 rounded mt-8 px-4 py-2 ml--2 text-start"
+            on:click={() => (lemonSwitch = true)}
+          >
+            <span class="font-medium">Autogenerate your firmware with Lemon microcontrollers.</span>
+            <div class="mt-2 flex gap-4 items-center">
+              <div class="text-sm">
+                <span class="opacity-70"
+                  >Because of the Lemon's structured I/Os, Cosmos can automate mapping your keyboard
+                  matrix and generating a firmware.</span
+                >
+                <span class="ml-0.5" />
+              </div>
+              <div
+                class="rounded-full bg-teal-200 dark:bg-teal-600 flex items-center justify-center w-8 h-8 flex-none"
+              >
+                <Icon size={24} path={mdi.mdiChevronRight} />
+              </div>
+            </div></button
+          >
+        {/if}
+        {#if hasLemon}
+          {#if fullMatrix}
+            <PeaConfig {config} {geometry} matrix={fullMatrix} />
+          {:else}
+            <p class="mt-4 mb-2">Autogenerate your firmware with peaMK!</p>
+            <ol class="list-decimal ml-6">
+              <li>Download and flash peaMK to your microcontroller.</li>
+              <li>Press the indicated blue key (on the right) on your keyboard.</li>
+              <li>If a key doesn't work, double check your wiring.</li>
+              <li>When all keys have been pressed Cosmos will auto-generate your firmware.</li>
+            </ol>
+          {/if}
+        {:else}
+          <p class="mt-4 mb-2">Some things that will happen here in the future:</p>
+          <ul class="list-disc pl-4">
+            <li>The thumb cluster matrix will be wired more efficiently</li>
+            <li>The thumb cluster matrix will be connected to the larger key matrix</li>
+            <li>The generator will make a QMK template for you to use</li>
+            <li>And maybe a generated assembly / wiring guide</li>
+          </ul>
+        {/if}
       {:else}
         <div class="flex items-center justify-between mr-2">
           <div>
@@ -1055,7 +1122,7 @@
   <Dialog big on:close={() => (kleView = false)}>
     <span slot="title">KLE Export</span>
     <div slot="content">
-      <KleView conf={config} />
+      <KleView conf={config} geo={geometry} />
     </div>
   </Dialog>
 {/if}
@@ -1077,6 +1144,25 @@
       proOpen = true
     }}
   />
+{/if}
+{#if lemonSwitch}
+  <Dialog on:close={() => (lemonSwitch = false)}>
+    <span slot="title">Switch to a Lemon microcontroller?</span>
+    <div slot="content" class="text-center">
+      {#if mode === 'advanced'}
+        Sorry, you'll need to manually change the microcontroller in your Expert mode code.
+      {:else}
+        <p class="mb-4">
+          Learn more about the microcontrollers on the <a
+            class="underline"
+            href="https://ryanis.cool/cosmos/lemon">Lemon microcontroller homepage</a
+          >.
+        </p>
+        <button class="button" on:click={() => switchUC('lemon-wired')}>Lemon Wired</button>
+        <button class="button" on:click={() => switchUC('lemon-wireless')}>Lemon Wireless</button>
+      {/if}
+    </div>
+  </Dialog>
 {/if}
 <!-- {#if state.upgradedFrom == 'cf' && showUpgraded}
   <Dialog big on:close={() => (showUpgraded = false)}>

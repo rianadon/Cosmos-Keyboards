@@ -255,6 +255,22 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     icon: 'choc',
     bomIcon: 'switch',
   },
+  'choc-pumpkin': {
+    partName: 'Choc: Pumpkin PCB',
+    bomName: 'Kailh Choc V1 Switches',
+    category: 'Sockets',
+    stepFile: '/src/assets/key-choc-pumpkin.step',
+    partOverride: CHOC_PART,
+    socketSize: [18.5, 18, 3.1],
+    partBottom: [CHOC_BOTTOM],
+    keycap: 'choc',
+    extraBomItems: {},
+    numPinsMatrix: 1,
+    description: '...',
+    icon: 'choc',
+    bomIcon: 'switch',
+    draft: true,
+  },
   'niz': {
     partName: 'NIZ: Direct Solder [Experimental]',
     bomName: 'NIZ Switches',
@@ -399,6 +415,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     icon: 'knob',
     description:
       'A horizontal knob that sits low to the keyboard. This part is a 3D-printable alternative to the EVQWGD001 that uses more widely available parts. Designed by Taro Hayashi. More info <a href="https://github.com/Taro-Hayashi/THQWGD001?tab=readme-ov-file">on GitHub</a>.',
+    draft: true,
   },
   'encoder-alps-rkjxt1f42001': {
     partName: 'Alps RKJXT1F42001',
@@ -681,6 +698,7 @@ export type PartInfo = (PartInfoNonVariant | PartInfoVariant) & {
   /** Override icon used in BOM */
   bomIcon?: string
   soldByCosmos?: boolean
+  draft?: boolean
 }
 
 // ------------------------------------------------------------------------------------------------------

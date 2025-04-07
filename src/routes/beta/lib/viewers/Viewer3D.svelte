@@ -784,7 +784,9 @@
                 sortedCategories.map((cat) => [
                   cat,
                   notNull(objKeys(PART_INFO))
-                    .filter((v) => PART_INFO[v].category == cat)
+                    .filter(
+                      (v) => PART_INFO[v].category == cat && (flags.draftuc || !PART_INFO[v].draft)
+                    )
                     .map((p) => ({ key: p, label: PART_INFO[p].partName, ...PART_INFO[p] })),
                 ])
               )}

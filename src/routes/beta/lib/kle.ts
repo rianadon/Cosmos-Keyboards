@@ -1,32 +1,39 @@
-import type { Cuttleform, FullCuttleform } from '$lib/worker/config'
+import { hasKeyGeometry } from '$lib/loaders/keycaps'
+import { type Cuttleform, type FullCuttleform, fullEstimatedCenter } from '$lib/worker/config'
 import Trsf from '$lib/worker/modeling/transformation'
 import { Vector } from '$lib/worker/modeling/transformation'
-import { mirror, unibody } from '$lib/worker/modeling/transformation-ext'
-import { clusterSeparation } from './editor/visualEditorHelpers'
+import { objEntries } from '$lib/worker/util'
+import type { Matrix } from './qmk'
+import type { FullGeometry } from './viewers/viewer3dHelpers'
 
 const TRANSFORM = new Vector(1 / 19, -1 / 19, 0)
 
-export function toKLE(fc: FullCuttleform, mir = true) {
-  const c = fc.right || fc.unibody!
-  const rawKeys = mir ? unibody(c.keys) : c.keys
+export function toKLE(geometry: FullGeometry, matrix?: Matrix) {
+  const centers = fullEstimatedCenter(geometry, false)
+  const center = centers.both
 
-  const keys = rawKeys
-    .filter(k => 'keycap' in k && k.type != 'blank')
-    .map(k => {
-      const position = k.position.evaluate({ flat: false }, new Trsf())
-      const x = position.axis(1, 0, 0)
-      return {
-        ...k,
-        trsf: position,
-        angle: -Math.round(Math.atan2(x.y, x.x) * 180 / Math.PI),
-        vector: position.origin().multiply(TRANSFORM),
-      }
-    })
-    .sort((a, b) => {
-      if (!a.angle && b.angle) return -1
-      if (a.angle && !b.angle) return 1
-      return a.vector.y - b.vector.y
-    })
+  const keys = objEntries(geometry).flatMap(([keyboard, conf]) =>
+    conf!.c.keys
+      .filter(hasKeyGeometry)
+      .map(k => {
+        const position = k.position.evaluate({ flat: false }, new Trsf())
+        const scaleX = keyboard == 'left' ? -1 : 1
+        const x = position.axis(1, 0, 0)
+        return {
+          ...k,
+          key: k,
+          angle: -Math.round(Math.atan2(x.y, x.x) * 180 / Math.PI) * scaleX,
+          vector: position.origin()
+            .multiply({ x: scaleX, y: 1, z: 1 })
+            .addScaledVector(new Vector(...center[keyboard]!), -1)
+            .multiply(TRANSFORM),
+        }
+      })
+  ).sort((a, b) => {
+    if (!a.angle && b.angle) return -1
+    if (a.angle && !b.angle) return 1
+    return a.vector.y - b.vector.y
+  })
 
   const minx = Math.min(...keys.map(o => o.vector.x)) - 0.5
   const miny = Math.min(...keys.map(o => o.vector.y)) - 0.5
@@ -57,7 +64,9 @@ export function toKLE(fc: FullCuttleform, mir = true) {
       lasty = 0.5
     }
 
-    const label = 'keycap' in k && k.keycap.letter ? String(k.keycap.letter) : ''
+    const label = matrix
+      ? matrix.get(k.key)!.join(',')
+      : ('keycap' in k && hasKeyGeometry(k) ? String(k.keycap?.letter) : '')
     return [obj, label]
   }).map(s => JSON.stringify(s)).join(',\n')
 }
