@@ -55,6 +55,9 @@ div:hover>p>.circle {
 .pad {
     padding: 1rem 2rem;
 }
+.pad-s {
+    padding: 0.5rem 1rem;
+}
 
 /* Clearfix for cases where an image is aligned in a box */
 .clearfix::after {

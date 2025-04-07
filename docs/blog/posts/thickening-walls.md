@@ -68,7 +68,7 @@ $$
 
 There you have it! To solve for $o_t$, you plug everything into the equation above and solve. As there are some squared terms, you get a quadratic equation.[^1] The solution is pretty big, so I won't write it out. I figure you're already tired of math. Which is why we're about to do more math, because there's one small issue...
 
-[^1]: A quadratic equations! Multiple solutions!? Imaginary solutions!? It's an unforunate situation. If there is no real solution, I use the maximum offset (i.e. how big the offset can get before running into adjacent keycaps or switches). If both solutions are negative, I use half the maximum offset. Zero and the maximum offsets are both reasonable offsets in this case, so I choose both by averaging :D Otherwise, I use the smallest nonnegative solution.
+[^1]: A quadratic equation! Multiple solutions!? Imaginary solutions!? It's an unfortunate situation. If there is no real solution, I use the maximum offset (i.e. how big the offset can get before running into adjacent keycaps or switches). If both solutions are negative, I use half the maximum offset. Zero and the maximum offsets are both reasonable offsets in this case, so I choose both by averaging :D Otherwise, I use the smallest nonnegative solution.
 
 ### Avoiding the Keycaps and Switches
 
