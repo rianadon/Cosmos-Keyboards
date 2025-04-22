@@ -15,7 +15,7 @@ The header image on this post is a microcontroller [I'm developing](https://gith
 Using USB-C to connect split keyboards is rare. I can probably count the number of commercial boards using USB-C for interconnect on my hands. _Every single other_ split keyboard uses 3.5mm audio jacks, except for a few projects using ethernet or even stranger connectors.[^1] There are a few reasons for this:
 
 - Inertia. Split keyboards were invented before USB-C, and changing connectors is a big deal. You remember what it took the EU to make Apple ditch the lightning connector?
-- Few Good Implementations. There are a few open-source designs using USB-C interconnect, but these [have issues](#the-wrong-approach). Despite the big open-source community pushing custom keyboards forwards, many of the commercial designs using USB-C interconnect are closed source.
+- Few Good Implementations. There are a few open-source designs using USB-C interconnect, but these [have issues](#the-hacky-approach). Despite the big open-source community pushing custom keyboards forwards, many of the commercial designs using USB-C interconnect are closed source.
 - Difficulty. As the post is titled, this is hard. Hopefully as you read on you'll understand why. It's mostly a firmware thing.
 
 By the way, if you're curious why I opted for two USB-C ports over the typical combination of USB and TRS/TRRS, you can jump to the [appendix](#appendix-why-did-i-do-this).
@@ -31,11 +31,22 @@ USB-C cables are reversible, but the devices on both ends have unique roles: one
 
 Connect a host and device, and they will function normally. Connect a device to a device, and nothing will happen.[^2] This will be important later on.
 
-## The Wrong Approach
+## The Hacky Approach
 
-I've seen many open-source designs simply ditch the USB protocol and replace the USB-C socket's D+/D- data lines with UART lines. However, if you decide to connect your keyboard and PC using this socket, there is a chance you damage both devices.
+_Update: When I initially published this article, I [claimed](https://github.com/rianadon/Cosmos-Keyboards/commits/main/docs/blog/posts/usb-c-hard.md) this approach was dangerous. However, after talking to others and reading the USB spec, I realized it is not harmful to any of your devices._
 
-UART hosts are responsible for initiating any USB communication. Therefore, once the keyboard is plugged in, the host will enumerate the device and drive the data lines. However, if UART is idling and driving the data lines high, you will end up with two devices driving the same cable at two different voltages. This is one of the many ways electronic gadgets die. Even if you take care to avoid idling issues by, say, making the TX line [open drain instead of push-pull](https://open4tech.com/open-drain-output-vs-push-pull-output/) so that it's in high impedance state when idling, you would still have to ensure that the keyboard does not send data unless it knows it's connected to another keyboard half. How do you figure out what's connected to a USB port? Use the USB protocol :) I don't see any other way (that won't damage your PC).
+I've seen many open-source designs simply ditch the USB protocol and replace the USB-C socket's D+/D- data lines with UART lines. The voltages are at least spec-compliant, but the signals sent over the lines are very different than what the USB protocol expects. If you decide to connect your keyboard and PC using this socket, the PC will supply power but it won't recognize the keyboard as a USB device, as it won't respond correctly to enumeration requests (which is fine! That's not what the port is for).
+
+Despite sending the wrong signals, this approach is safe and will not harm your PC if you plug in the wrong socket. This is because the USB-C spec specifies that USB-C ports be resilient to shorted cables (section 7.1.1). Specifically, the transciever must survive any of D+/D-/GND/3.3V being shorted for 24 hours. This means that even if your UART USB-C connector and your PC are driving D+/D- different voltages at the same time, no electrical damage will occur.
+
+!!! info "Prove It!"
+
+    I've verified this by writing a short program running on the microcontroller that randomly toggles D+/D- between GND, 3.3V, and floating, and my Raspberry Pi 2B did not sustain any damage after leaving the microcontroller plugged in for 12 hours. Likewise, the USB-C on a Pi Pico and cheap CH552 microcontroller I had were not damaged after leaving the naughty microcontroller plugged in for several hours.
+
+The two disadvantages of this approach are:
+
+1. No feedback when you plug the USB-C socket running UART into your computer. If you don't quickly realize that you plugged in the wrong socket, it may seem like the keyboard is simply dead. That's not a great feeling to have.
+2. It requires two microcontrollers with dual USB-C ports. It would be nice if you only needed one microcontroller with dual USB-C and could use any microcontroller of your choice (as long as it has one USB-C port) on the other side.
 
 ## The Four Port Problem
 
@@ -45,7 +56,7 @@ In a typical split keyboard, each half of the keyboard gets its own microcontrol
 
 On the microcontroller with the plug, there's only one choice of USB port. If you adhere to symmetry, there's only one possible configuration of both cables, However, there's nothing stopping you from wiring them asymmetrically.
 
-Ideally, the keyboard works no matter which cable goes where. This is only accomplished by requiring that the ports switch between device mode when connected to the computer and host mode when connected to the other keyboard half (remember, communication can only happen between a device and host). These ports both start off in device mode, but when you connect the other keyboard, magical goblins inside the port detect it's now connected to a keyboard and switch it to host mode. I explain how this can be done without a supply of magical goblins [in the appendix](#appendix-swapping-the-sockets).
+Ideally, the keyboard works no matter which cable goes where. This is only accomplished by requiring that the ports switch between device mode when connected to the computer and host mode when connected to the other keyboard half[^3] (remember, communication can only happen between a device and host). These ports both start off in device mode, but when you connect the other keyboard, magical goblins inside the port detect it's now connected to a keyboard and switch it to host mode. I explain how this can be done without a supply of magical goblins [in the appendix](#appendix-swapping-the-sockets).
 
 ## Reality Sets In
 
@@ -56,7 +67,7 @@ Host and device modes both use the same electrical protocol for sending and rece
 
 ### Firmware Limitations
 
-The [KMK](https://github.com/KMKfw/kmk_firmware) firmware is built on top of CircuitPython, so there's already built-in support for making the second USB-C port a host. You can also create secondary com port exposed through the main USB-C port in CircuitPython.[^3] I think I can use these two frameworks to make the microcontrollers talk to each other and transfer all the necessary data.
+The [KMK](https://github.com/KMKfw/kmk_firmware) firmware is built on top of CircuitPython, so there's already built-in support for making the second USB-C port a host. You can also create secondary com port exposed through the main USB-C port in CircuitPython.[^4] I can use these two frameworks to make the microcontrollers talk to each other and transfer all the necessary data.
 
 In [QMK](https://qmk.fm/) and [ZMK](https://zmk.dev/), support for USB host-over-PIO is going to be extremely difficult. It's not something that currently exists. Both firmwares use real time operating systems (RTOS) for dealing with close-to-hardware functions like I/O, USB, etc. QMK uses [ChibiOS](https://www.chibios.org/dokuwiki/doku.php), and ZMK uses [Zephyr](https://zephyrproject.org/). This functionality is better implemented in the RTOS rather than the keyboard firmware, but that's a task easier said than done. One of the large roadblocks will be that these RTOS often come with their own USB stack. Pico-PIO-USB has been well-tested with TinyUSB, but it may be incompatible with other USB stacks, and an RTOS will be reluctant to ship two USB stacks.
 
@@ -66,13 +77,13 @@ For keyboard firmwares that directly utilize the Pico SDK, like [PRK](https://gi
 
 ### The Way Forward
 
-If you're creating a keyboard, you're probably going to be using QMK or ZMK. Besides having larger userbases and commercial backers, QMK is the only firmware supporting everything in [Via](https://caniusevia.com/) and [Vial](https://get.vial.today/), and ZMK has the up-and-coming [ZMK Studio](https://zmk.dev/docs/features/studio). Similar things exist for other firmwares (e.g. [POG](https://pog.heaper.de/) for KMK), but they're not as capable. If you're using QMK or ZMK and using my microcontroller, the best you can do is stick with the [wrong approach](#the-wrong-approach) and hope one day I get the firmware working. The wiring also won't be symmetric; you'll need to connect the left port of one microcontroller to the left port of the second and leave the right ports for connecting to your PC. This is because the left port is connected to the GPIO pins whereas the right port is connected to the RP2040's D+/D- pins.
+If you're creating a keyboard, you're probably going to be using QMK or ZMK. Besides having larger userbases and commercial backers, QMK is the only firmware supporting everything in [Via](https://caniusevia.com/) and [Vial](https://get.vial.today/), and ZMK has the up-and-coming [ZMK Studio](https://zmk.dev/docs/features/studio). Similar things exist for other firmwares (e.g. [POG](https://pog.heaper.de/) for KMK), but they're not as capable. If you're using QMK or ZMK and using my microcontroller, the best you can do is stick with the [hacky approach](#the-hacky-approach) and hope one day I get the firmware working. The wiring also won't be symmetric; you'll need to connect the left port of one microcontroller to the left port of the second and leave the right ports for connecting to your PC. This is because the left port is connected to the GPIO pins whereas the right port is connected to the RP2040's D+/D- pins.
 
-However, I'll aim to have a KMK solution using USB for anyone who's clumsy with plugging things in. Better yet, the wiring with KMK is symmetric. To protect from electrical damage, I'll only turn host mode on once the keyboard detects it's device port has been plugged into USB. This way, if you connect your PC to the keyboard through the host port, nothing happens. You can even add a dust cover to one of the host ports like I showed earlier so that you know it won't work.
+However, I was able to create a KMK solution using the USB protocol for anyone who wants a taste of the future. Better yet, the wiring with KMK is symmetric. It requires some changes to the CircuitPython firmware, so I'll work on getting those at least published on GitHub and hopefully merged into mainline CircuitPython and KMK before I release the microcontroller.
 
 ## Conclusion
 
-Unfortunately, I've found myself stuck in an unsatisfactory spot after chasing down these loose ends. With QMK and ZMK, I see no better immediate path than running UART over the USB connectors and adding a giant _"warning: do not plug this port into your computer"_ notice. KMK should be better, but unless I can swap the two sockets on demand, you can only plug the right half into your computer. Part of me wants to optimize and re-examine my choice of microcontroller, look at more hardware USB controllers, and try to make a dual USB microcontroller that functions no matter how you plug it in. The other part just wants to ship what I have.
+Unfortunately, I've found myself stuck in an unsatisfactory spot after chasing down these loose ends. With QMK and ZMK, it is possible to run UART over the USB connectors, but the UX is confusing. KMK should be better, but unless I can swap the two sockets on demand, you can only plug the right half into your computer. Part of me wants to optimize and re-examine my choice of microcontroller, look at more hardware USB controllers, and try to make a dual USB microcontroller that functions no matter how you plug it in. The other part just wants to ship what I have.
 
 Sometimes, perfectionism doesn't win.
 
@@ -102,4 +113,5 @@ There are two issues here. The first is that if you are holding down the boot bu
 
 [^1]: I've seen Mini XLR, VGA, and ribbon cables too. The really huge connectors with lots of pins (like VGA) are nice in that you can share the matrix wires across halves, which allows you to use one microcontroller for the whole keyboard.
 [^2]: This is a simplification. Some USB devices, such as your smartphone, can act as both devices and hosts. This is why you can not only connect both a flash drive and a smartphone to your computer, but also connect the flash drive and smartphone to each other. This is called [USB On-The-Go (OTG)](https://en.wikipedia.org/wiki/USB_On-The-Go).
-[^3]: You can do this using the `usb_cdc` library. KMK already uses this module for stenography. Programs like Plover use their own protocol, so KMK opens an additional port to communicate with the stenography engine.
+[^3]: To properly switch to host mode while obeying the USB spec, the CC lines would need to switch from being pulled down with 5.1k resistors to being pulled up to VBUS with 56k (or 22k if I'm supporting 1.5A draw, or even smaller if I'm instead pulling up to 3.3V). If I don't do this, most devices connected to the host will still work; only ones that check the CC voltage to determine their power budget will fail. I believe properly implementing this part of the spec is not worth the extra hardware. So, maybe don't charge your battery bank from your keyboard's interconnect port?
+[^4]: You can do this using the `usb_cdc` library. KMK already uses this module for stenography. Programs like Plover use their own protocol, so KMK opens an additional port to communicate with the stenography engine.
