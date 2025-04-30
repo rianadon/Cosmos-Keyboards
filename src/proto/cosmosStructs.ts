@@ -90,6 +90,7 @@ enumeration('MICROCONTROLLER_NAME', [
   'promicro-usb-c-long',
   'lemon-wired',
   'lemon-wireless',
+  'elite-c',
 ])
 
 struct('PartVariant', {

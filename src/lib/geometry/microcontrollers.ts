@@ -346,6 +346,20 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     description:
       'Lots of I/Os, Bluetooth, and affordable! You can have all three.\n<a href="https://ryanis.cool/cosmos/lemon">Lemon Microcontrollers</a> are sold from the <a href="https://cosmos-store.ryanis.cool">Cosmos Store</a> and shipped from the US. They are <a href="https://github.com/rianadon/Cosmos-Keyboard-PCBs">open source</a> too.',
   },
+  'elite-c': {
+    name: 'Elite-C',
+    extraName: '(USB-C)',
+    size: new Vector(18.71, 33.45, 1.57),
+    sizeName: 'Medium',
+    boundingBoxZ: 5,
+    offset: new Vector(0, 0, 1.835),
+    holes: [],
+    cutouts: [],
+    sidecutout: 3.1,
+    leftSidePins: ['D3', 'D2', 'GND', 'GND', 'D1', 'D0', 'D4', 'C6', 'D7', 'E6', 'B4', 'B5'],
+    rightSidePins: ['B0', 'GND', 'RST', 'VCC', 'F4', 'F5', 'F6', 'F7', 'B1', 'B3', 'B2', 'B6'],
+    isGPIO: /TX|RX|A?\d+/,
+  },
 }
 
 export function sortMicrocontrollers(a: Microcontroller, b: Microcontroller) {
