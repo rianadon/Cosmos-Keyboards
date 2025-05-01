@@ -157,6 +157,10 @@ async function main() {
     { start: 1.48, align: { side: 'left', offset: 1.38 }, ...defaults },
     { start: 1.48, align: { side: 'right', offset: 1.38 }, ...defaults },
   ])
+  poolUC('elite-c', {}, [
+    { start: 3.24, align: { side: 'left', offset: 1.35 }, ...defaults },
+    { start: 3.24, align: { side: 'right', offset: 1.35 }, ...defaults },
+  ])
   const dfDisplayProps: DisplayProps = {
     pcbLongSideWidth: 41.08,
     pcbShortSideWidth: 11.5,
