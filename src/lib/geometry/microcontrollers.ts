@@ -106,8 +106,8 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     description: 'My personal favorite. You can get these dirt cheap on AliExpress.',
   },
   'promicro-usb-c': {
-    name: 'Pro Micro - 34.7mm (USB-C)',
-    extraName: '(Low Storage)',
+    name: 'Pro Micro - 34.7mm',
+    extraName: '(USB-C, Low Storage)',
     size: new Vector(18.3, 34.7, 1.57),
     sizeName: 'Medium',
     boundingBoxZ: 5,
@@ -120,8 +120,8 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     isGPIO: /TX|RX|A?\d+/,
   },
   'promicro-usb-c-long': {
-    name: 'Pro Micro - 37mm (USB-C)',
-    extraName: '(Low Storage)',
+    name: 'Pro Micro - 37mm',
+    extraName: '(USB-C, Low Storage)',
     size: new Vector(18.3, 37, 1.57),
     sizeName: 'Medium',
     boundingBoxZ: 5,
@@ -345,6 +345,21 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     soldByCosmos: true,
     description:
       'Lots of I/Os, Bluetooth, and affordable! You can have all three.\n<a href="https://ryanis.cool/cosmos/lemon">Lemon Microcontrollers</a> are sold from the <a href="https://cosmos-store.ryanis.cool">Cosmos Store</a> and shipped from the US. They are <a href="https://github.com/rianadon/Cosmos-Keyboard-PCBs">open source</a> too.',
+  },
+  'elite-c': {
+    name: 'Elite-C',
+    extraName: '(USB-C, Low Storage)',
+    size: new Vector(18.71, 33.45, 1.57),
+    sizeName: 'Medium',
+    boundingBoxZ: 5,
+    offset: new Vector(0, 0, 3.4),
+    holes: [],
+    cutouts: [],
+    sidecutout: 3.1,
+    leftSidePins: ['D3', 'D2', 'GND', 'GND', 'D1', 'D0', 'D4', 'C6', 'D7', 'E6', 'B4', 'B5'],
+    rightSidePins: ['B0', 'GND', 'RST', 'VCC', 'F4', 'F5', 'F6', 'F7', 'B1', 'B3', 'B2', 'B6'],
+    rearPins: ['F0', 'F1', 'C7', 'D5', 'B7'],
+    isGPIO: /TX|RX|A?\d+/,
   },
 }
 

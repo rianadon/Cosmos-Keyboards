@@ -157,6 +157,11 @@ async function main() {
     { start: 1.48, align: { side: 'left', offset: 1.38 }, ...defaults },
     { start: 1.48, align: { side: 'right', offset: 1.38 }, ...defaults },
   ])
+  poolUC('elite-c', { connector: 'usb-c-midmount', connector_y_offset: 1.5 }, [
+    { start: 3.24, align: { side: 'left', offset: 1.35 }, ...defaults },
+    { start: 3.24, align: { side: 'right', offset: 1.35 }, ...defaults },
+    { start: 4.12, end: 4.12, align: { side: 'bottom', offset: 1.35 }, ...defaults },
+  ])
   const dfDisplayProps: DisplayProps = {
     pcbLongSideWidth: 41.08,
     pcbShortSideWidth: 11.5,
