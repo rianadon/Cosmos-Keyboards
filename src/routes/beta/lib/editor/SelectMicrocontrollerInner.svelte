@@ -53,7 +53,7 @@
           Sold by Cosmos
         </p>
       {/if}
-      {#if option.key.includes('promicro')}
+      {#if option.key.includes('promicro') || option.key.includes('elite-c')}
         <div
           class="max-w-[32rem] text-sm mb-1 bg-pink-300 dark:border-gray-900 mx-[-0.5rem] px-2 py-2 rounded flex gap-3 relative"
         >
@@ -64,7 +64,8 @@
             />
           </div>
           <div class="opacity-80 dark:opacity-100">
-            Pro Micro boards are not recommended because they lack speed and program storage.
+            {option.key.includes('promicro') ? 'Pro Micro' : 'ATmega32U4-based'} boards are not recommended
+            because they lack speed and program storage.
           </div>
         </div>
       {/if}
