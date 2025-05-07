@@ -25,7 +25,7 @@ export interface Holes {
 export interface MicrocontrollerProps {
   /* Fillet of corners */
   fillet: number
-  connector: 'usb-c' | 'micro-usb'
+  connector: 'usb-c' | 'micro-usb' | 'usb-c-midmount'
   connector_y_offset: number
 }
 
@@ -71,6 +71,14 @@ export async function ucModel(name: Microcontroller, opts: MicrocontrollerProps,
   for (const holes of allHoles) {
     base = cutWithHoles(base, holes, size)
   }
+  if (opts.connector == 'usb-c-midmount') {
+    base = base.cut(drawRoundedRectangle(0.6, 1.8, 0.29).translate(5.575, opts.connector_y_offset - 2.7))
+    base = base.cut(drawRoundedRectangle(0.6, 1.8, 0.29).translate(-5.575, opts.connector_y_offset - 2.7))
+    base = base.cut(drawRoundedRectangle(0.6, 1.4, 0.29).translate(5.575, opts.connector_y_offset - 6.3))
+    base = base.cut(drawRoundedRectangle(0.6, 1.4, 0.29).translate(-5.575, opts.connector_y_offset - 6.3))
+    base = base.cut(drawRoundedRectangle(9.34, 6.9 - opts.connector_y_offset).translate(0, (opts.connector_y_offset - 6.9) / 2))
+  }
+
   const uc = base.sketchOnPlane('XY').extrude(size.z)
 
   // Add the connector
