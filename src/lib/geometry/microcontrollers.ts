@@ -358,6 +358,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     sidecutout: 3.1,
     leftSidePins: ['D3', 'D2', 'GND', 'GND', 'D1', 'D0', 'D4', 'C6', 'D7', 'E6', 'B4', 'B5'],
     rightSidePins: ['B0', 'GND', 'RST', 'VCC', 'F4', 'F5', 'F6', 'F7', 'B1', 'B3', 'B2', 'B6'],
+    rearPins: ['F0', 'F1', 'C7', 'D5', 'B7'],
     isGPIO: /TX|RX|A?\d+/,
   },
 }
