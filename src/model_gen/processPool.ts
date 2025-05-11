@@ -60,6 +60,7 @@ export class ProcessPool extends PromisePool {
   }
 
   async run(): Promise<void> {
+    await Promise.all(this.queuePromises)
     if (this.isWorker) {
       await new Promise<void>((resolve) => {
         process.send!({ id: process.argv[2], result: 'ready' })

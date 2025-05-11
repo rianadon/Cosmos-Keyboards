@@ -11,7 +11,7 @@ import { fileURLToPath } from 'url'
 import { allVariants, decodeVariant, PART_INFO, variantURL, variantURLs } from '../lib/geometry/socketsParts'
 import type { PartInfo } from '../lib/geometry/socketsParts'
 import { exportGLTF } from './exportGLTF'
-import { importSTEPSpecifically, serialize } from './modeling'
+import { importSTEPSpecifically, maybeStat, serialize } from './modeling'
 import { setup } from './node-model'
 import { displayModel, type DisplayProps, displaySocket } from './parametric/display-gen'
 import { DEFAULT_PROPS, type Holes, type MicrocontrollerProps, ucModel } from './parametric/microcontroller-gen'
@@ -72,21 +72,27 @@ async function main() {
 
   const pool = new ProcessPool()
 
-  const poolUC = (name: Microcontroller, opts: Partial<MicrocontrollerProps>, holes: Holes[]) =>
-    pool.add(name, async () => {
-      const glbName = join(targetDir, name + '.glb')
+  const microcontrollerCode = fileURLToPath(new URL('./parametric/microcontroller-gen.ts', import.meta.url))
+  const displayCode = fileURLToPath(new URL('./parametric/display-gen.ts', import.meta.url))
+
+  const poolUC = (name: Microcontroller, opts: Partial<MicrocontrollerProps>, holes: Holes[]) => {
+    const glbName = join(targetDir, name + '.glb')
+    pool.addIfModified(name, glbName, [microcontrollerCode], async () => {
       await writeMesh(glbName, await ucModel(name, { ...DEFAULT_PROPS, ...opts }, holes))
     })
-  const poolDisplayModel = (name: CuttleKey['type'], opts: DisplayProps, rounding: number) =>
-    pool.add(name + ' model', async () => {
-      const glbName = join(targetDir, 'switch-' + name + '.glb')
+  }
+  const poolDisplayModel = (name: CuttleKey['type'], opts: DisplayProps, rounding: number) => {
+    const glbName = join(targetDir, 'switch-' + name + '.glb')
+    pool.addIfModified(name + ' model', glbName, [displayCode], async () => {
       await writeMesh(glbName, await displayModel(name, opts, 0, rounding))
     })
-  const poolDisplaySocket = (name: CuttleKey['type'], opts: DisplayProps) =>
-    pool.add(name + ' socket', async () => {
-      const stepName = join(targetDir, 'key-' + name + '.step')
+  }
+  const poolDisplaySocket = (name: CuttleKey['type'], opts: DisplayProps) => {
+    const stepName = join(targetDir, 'key-' + name + '.step')
+    pool.addIfModified(name + ' socket', stepName, [displayCode], async () => {
       await writeModel(stepName, displaySocket(name, opts))
     })
+  }
   /** Add task to generate both Choc V1 and Choc V2 variants of a part. It should work given either variant as input. */
   const poolChocV1 = (name: string, v1Name: CuttleKey['type'], v2Name: CuttleKey['type'], leds = false) =>
     pool.add(name + ' socket', async () => {
@@ -197,19 +203,20 @@ async function main() {
   poolDisplaySocket('oled-128x32-0.91in-spi-adafruit', adafruitDisplayProps)
 
   // Make all combinations of trackballs
-  /*for (const v of allVariants('trackball') as TrackballVariant[]) {
+  const trackballCode = fileURLToPath(new URL('./parametric/trackball-gen.ts', import.meta.url))
+  for (const v of allVariants('trackball') as TrackballVariant[]) {
     const url = variantURL({ type: 'trackball', variant: v } as any)
-    pool.add(`${v.size} trackball, ${v.bearings}, ${v.sensor}`, async () => {
-      const stepName = join(targetDir, `key-trackball${url}.step`.toLowerCase())
+    const stepName = join(targetDir, `key-trackball${url}.step`.toLowerCase())
+    const glbName = join(targetDir, `switch-trackball${url}.glb`.toLowerCase())
+    pool.addIfModified(`${v.size} trackball, ${v.bearings}, ${v.sensor}`, stepName, [trackballCode], async () => {
       await writeModel(stepName, trackballSocket({ diameter: parseFloat(v.size), bearings: v.bearings, sensor: v.sensor }))
     })
     if (v.bearings == 'BTU (7.5mm)' || v.bearings == 'BTU (9mm)') {
-      pool.add(`${v.size} trackball BTU Part, ${v.bearings}, ${v.sensor}`, async () => {
-        const glbName = join(targetDir, `switch-trackball${url}.glb`.toLowerCase())
+      pool.addIfModified(`${v.size} trackball BTU Part, ${v.bearings}, ${v.sensor}`, glbName, [trackballCode], async () => {
         await writeMesh(glbName, trackballPart({ diameter: parseFloat(v.size), bearings: v.bearings, sensor: v.sensor }))
       })
     }
-  }*/
+  }
 
   // Check that all STEP files that need to be split are split
   const toSplit: CuttleKey['type'][] = []
@@ -222,7 +229,9 @@ async function main() {
       const names = [...contents.matchAll(/PRODUCT\('(.*?)'/g)].map(m => m[1])
       const hasSocket = names.includes('Socket')
       const hasPart = names.includes('Part')
-      if (!hasSocket || !hasPart) {
+      if (hasSocket && hasPart) {
+        toSplit.push(socket)
+      } else if (!pool.isWorker) {
         console.error(`The STEP file for part ${socket}, ${info.stepFile} does not a specify a partOverride,`)
         console.error('so the file will be split into part and socket models based on component names in the assembly.')
         console.error('The following names are missing:')
@@ -230,43 +239,56 @@ async function main() {
         if (!hasPart) console.error(' - "Part" for the part')
         console.error(`Please rename the components ${JSON.stringify(names)} to "Part" and "Socket".`)
         console.error()
-      } else {
-        toSplit.push(socket)
       }
     })
   }
 
+  const skippedCount = await pool.skippedCount()
+  if (!pool.isWorker && skippedCount) console.log(`Skipping re-generating ${skippedCount} models.`)
   await pool.run()
 
   const masses: Record<string, number> = {}
+  const partTasks: { socket: string; glbName: string; stepName: string; variantURL: string }[] = []
+
+  // Record all the parts that need regenerating
+  let nParts = 0
   for (const socket of objKeys(PART_INFO)) {
     if (socket == 'blank') continue // These don't get a part
     for (const variantURL of variantURLs(socket)) {
-      try {
-        const glbName = join(targetDir, 'socket-' + socket + variantURL + '.glb')
-        const file = await readFile('.' + PART_INFO[socket].stepFile.replace('.step', variantURL + '.step'))
-        const blob = new Blob([file])
-        if (toSplit.includes(socket)) {
-          const socketModel = await importSTEPSpecifically(blob, 'Socket')
-          const partModel = await importSTEPSpecifically(blob, 'Part')
-
-          await writeModel(join(targetDir, 'splitsocket-' + socket + variantURL + '.step'), socketModel.clone())
-          await writeMesh(join(targetDir, 'splitpart-' + socket + variantURL + '.glb'), partModel)
-          masses[socket + variantURL] = await writeMesh(glbName, socketModel)
-        } else {
-          masses[socket + variantURL] = await writeMesh(glbName, await importSTEP(blob))
-        }
-      } catch (e) {
-        if (e instanceof Error && 'code' in e && e.code === 'ENOENT') {
-          console.log(`Warning: could not generate ${socket}${variantURL} since its file was not present in the filesystem`)
-          console.log('This is OK as long as the models you generate do not include this part.')
-        } else throw e
+      nParts += 1
+      const glbName = join(targetDir, 'socket-' + socket + variantURL + '.glb')
+      const stepName = '.' + PART_INFO[socket].stepFile.replace('.step', variantURL + '.step')
+      const glbStat = await maybeStat(glbName)
+      const stepStat = await maybeStat(stepName)
+      if (!stepStat) {
+        console.log(`Warning: could not generate ${socket}${variantURL} since its file was not present in the filesystem`)
+        console.log('This is OK as long as the models you generate do not include this part.')
+      } else if (!glbStat || glbStat.mtime < stepStat.mtime) {
+        partTasks.push({ socket, glbName, stepName, variantURL })
       }
+    }
+  }
+
+  console.log(`\nGenerating GLB files for ${partTasks.length} parts (skipped ${nParts - partTasks.length})...`)
+
+  for (const { socket, variantURL, glbName, stepName } of partTasks) {
+    const blob = new Blob([await readFile(stepName)])
+    if (toSplit.includes(socket)) {
+      const socketModel = await importSTEPSpecifically(blob, 'Socket')
+      const partModel = await importSTEPSpecifically(blob, 'Part')
+
+      await writeModel(join(targetDir, 'splitsocket-' + socket + variantURL + '.step'), socketModel.clone())
+      await writeMesh(join(targetDir, 'splitpart-' + socket + variantURL + '.glb'), partModel)
+      masses[socket + variantURL] = await writeMesh(glbName, socketModel)
+    } else {
+      masses[socket + variantURL] = await writeMesh(glbName, await importSTEP(blob))
     }
   }
 
   const filename = join(targetDir, `part-masses.json`)
   await writeFile(filename, JSON.stringify(masses))
+
+  console.log('Done! Have fun playing with Cosmos.')
 }
 
 main()
