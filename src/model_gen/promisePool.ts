@@ -28,7 +28,7 @@ export class PromisePool {
       for (let i = 0; i < depStats.length; i++) {
         if (!depStats[i]) throw new Error(`Dependency ${dependencies[i]} was not found in the filesystem.`)
       }
-      if (depStats.some(d => !(outStat?.mtime! >= d?.mtime!))) {
+      if (!outStat?.mtime || depStats.some(d => !d!.mtime || outStat.mtime < d!.mtime)) {
         this.queue.push({ name, f })
       } else {
         this.nSkipped++
