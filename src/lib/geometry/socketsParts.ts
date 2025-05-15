@@ -415,7 +415,6 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     icon: 'knob',
     description:
       'A horizontal knob that sits low to the keyboard. This part is a 3D-printable alternative to the EVQWGD001 that uses more widely available parts. Designed by Taro Hayashi. More info <a href="https://github.com/Taro-Hayashi/THQWGD001?tab=readme-ov-file">on GitHub</a>.',
-    draft: true,
   },
   'encoder-alps-rkjxt1f42001': {
     partName: 'Alps RKJXT1F42001',
