@@ -129,10 +129,13 @@ Navigate to the qmk home folder that `qmk setup` generated. We'll be creating a 
        "processor": "RP2040",
        "bootloader": "rp2040",
        "diode_direction": "ROW2COL",
+       "bootmagic": {
+         "matrix": [0, 0]
+       },
        "split": {
            "soft_serial_pin": "GP1",
            "bootmagic": {
-               "matrix": [0, 0]
+               "matrix": [7, 0]
            }
        },
        "layouts": {
