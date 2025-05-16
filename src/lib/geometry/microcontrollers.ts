@@ -229,7 +229,10 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     boundingBoxZ: 5,
     offset: new Vector(0, 0, 2.2),
     holes: [],
-    cutouts: [],
+    cutouts: [
+      { size: new Vector(3, 4.6, 0), origin: new Vector(-4.5, -9.2, 0) },
+      { size: new Vector(3, 4.6, 0), origin: new Vector(4.5, -9.2, 0) },
+    ],
     sidecutout: 2,
     leftSidePins: ['0', '1', '2', '3', '4', '5', '6'],
     rightSidePins: ['VUSB', 'GND', '3V3', '10', '9', '8', '7'],
