@@ -10,8 +10,7 @@
     type CuttleKey,
     type Geometry,
   } from '$lib/worker/config'
-  import { isRenderable, type ConfError } from '$lib/worker/check'
-  import { keyLine } from '../matrixLayout'
+  import { isRenderable, type ConfError, type ConfErrors } from '$lib/worker/check'
   import { view } from '$lib/store'
   import { hasKeyGeometry } from '$lib/loaders/keycaps'
   import type { FullGeometry } from './viewer3dHelpers'
@@ -21,7 +20,7 @@
 
   export let geometry: FullGeometry
   export let style: string = ''
-  export let confError: ConfError | undefined
+  export let confError: ConfErrors
   export let darkMode: boolean
 
   let activeIndex = 0
@@ -48,17 +47,13 @@
   $: sizes = fullSizes(allGeometriesSize)
   $: size = sizes[$view]
 
-  function drawStates(darkMode: boolean, confError: ConfError | undefined, geometry: FullGeometry) {
+  function drawStates(darkMode: boolean, confError: ConfErrors, geometry: FullGeometry) {
     return mapObj(geometry as Required<typeof geometry>, (g, kbd) =>
       drawState(g!.c, darkMode, confError?.side == kbd ? confError : undefined, g!)
     )
   }
 
-  function drawStatesForSizing(
-    darkMode: boolean,
-    confError: ConfError | undefined,
-    geometry: FullGeometry
-  ) {
+  function drawStatesForSizing(darkMode: boolean, confError: ConfErrors, geometry: FullGeometry) {
     return mapObj(geometry as Required<typeof geometry>, (g, kbd) =>
       drawStateForSizing(g!.c, darkMode, confError?.side == kbd ? confError : undefined, g!)
     )
@@ -140,9 +135,10 @@
   function handleKeydown(event: KeyboardEvent) {
     if (recording && event.key == ' ') {
       recording = false
-      if (/^\d+,\d+$/.test(recorded)) {
+      recorded = recorded.toLowerCase()
+      if (/^[a-f\d]+,[a-f\d]+$/.test(recorded)) {
         event.preventDefault()
-        const [row, column] = recorded.split(',').map(Number)
+        const [row, column] = recorded.split(',').map((n) => (isNaN(+n) ? parseInt(n, 16) : Number(n)))
         matrices.set(activeKey, [row, column])
         matrixState = [matrices, matrixState[1] + 1]
         activeIndex++
