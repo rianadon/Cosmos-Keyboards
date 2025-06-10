@@ -349,7 +349,7 @@ function* treeIntersections(
 }
 
 export function isPro(conf: Cuttleform): boolean {
-  return !!conf.rounded.side || !!conf.rounded.top || conf.shell?.type == 'stilts'
+  return !!conf.rounded.side || !!conf.rounded.top || conf.shell?.type == 'stilts' || !!conf.plateArt
 }
 
 // https://stackoverflow.com/questions/7113344/find-whether-two-triangles-intersect-or-not

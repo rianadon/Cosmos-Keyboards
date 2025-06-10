@@ -241,6 +241,7 @@ const KEYBOARD_EXTRA_DEFAULTS: KeyboardExtra = {
   connectorRightIndex: -10,
   screwIndices: [],
   microcontrollerAngle: 0,
+  plateThickness: 30,
 }
 
 const TILT_DEFAULTS: TiltShell = {
@@ -471,6 +472,7 @@ export function decodeConfigIdk(b64: string): CosmosKeyboard {
     wallShrouding: keeb.wallShrouding / 10,
     webMinThicknessFactor: keebExtra.webMinThicknessFactor / 10,
     verticalClearance: keebExtra.verticalClearance / 10,
+    plateThickness: keebExtra.plateThickness / 10,
     keyBasis: decodeProfile(keeb.keyBasis).profile!,
     profile: decodeProfile(keeb.keyProfile).profile!,
     screwIndices: keeb.extra.screwIndices?.length ? keeb.extra.screwIndices.map(i => i / 10 - 1) : new Array(keeb.nScrews).fill(-1),
@@ -692,6 +694,7 @@ export function encodeCosmosConfig(conf: CosmosKeyboard): Keyboard {
       roundedTopVertical: conf.rounded.top ? Math.round(conf.rounded.top.vertical * 100) : undefined,
       webMinThicknessFactor: Math.round(conf.webMinThicknessFactor * 10),
       microcontrollerAngle: Math.round(conf.microcontrollerAngle * 45),
+      plateThickness: Math.round(conf.plateThickness * 10),
     },
   }
 }

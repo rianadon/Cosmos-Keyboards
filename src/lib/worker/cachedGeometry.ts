@@ -12,7 +12,7 @@ import {
   keyHolesTrsfs2D,
   type LabeledBoardInd,
   originForConnector,
-  PLATE_HEIGHT,
+  plateArtOrigin,
   positionsImpl,
   positionsImplMap,
   reinforceTriangles,
@@ -157,11 +157,16 @@ export class BaseGeometry<C extends Cuttleform = SpecificCuttleform<BasicShell>>
     return this.c.bottomZ ?? -additionalHeight(this.c, new Trsf())
   }
   get floorZ() {
-    return this.bottomZ - PLATE_HEIGHT
+    return this.bottomZ - this.c.plateThickness
   }
   @Memoize()
   get bottomX() {
     return bottomByNormal(this.c, new Vector(1, 0, 0), new Trsf())
+  }
+
+  @Memoize()
+  get plateArtOrigin() {
+    return plateArtOrigin(this.c, this.keyHolesTrsfs)
   }
 }
 
@@ -198,7 +203,7 @@ export class TiltGeometry extends BaseGeometry<SpecificCuttleform<TiltShell>> {
   }
   @Memoize()
   get floorZ() {
-    return Math.min(...this.allWallCriticalPoints().map(b => b.bo.origin().z)) - this.c.shell.raiseBy - PLATE_HEIGHT
+    return Math.min(...this.allWallCriticalPoints().map(b => b.bo.origin().z)) - this.c.shell.raiseBy - this.c.plateThickness
   }
 
   @Memoize()
@@ -211,6 +216,6 @@ export class TiltGeometry extends BaseGeometry<SpecificCuttleform<TiltShell>> {
   }
   @Memoize()
   get bottomScrewPositions() {
-    return positionsImpl(this.c, this.allWallCriticalPoints(), new Vector(0, 0, 1), this.bottomScrewIndices).map(t => t.translate(0, 0, -t.origin().z + this.floorZ + PLATE_HEIGHT))
+    return positionsImpl(this.c, this.allWallCriticalPoints(), new Vector(0, 0, 1), this.bottomScrewIndices).map(t => t.translate(0, 0, -t.origin().z + this.floorZ + this.c.plateThickness))
   }
 }

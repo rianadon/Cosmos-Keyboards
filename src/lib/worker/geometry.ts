@@ -30,8 +30,6 @@ export const wallZOffset = (c: Cuttleform) => {
   return 15
 }
 
-export const PLATE_HEIGHT = 3
-
 export const BOARD_HOLDER_OFFSET = 0.02
 const BOARD_TOLERANCE_Z = 0.1
 
@@ -400,11 +398,11 @@ export function blockWallCriticalPoints(
   if (bi.origin().z < bottomZ) {
     bi.translate(0, 0, bottomZ - bi.origin().z)
   }
-  if (bo.origin().z < bottomZ - PLATE_HEIGHT) {
-    bo.translate(0, 0, bottomZ - PLATE_HEIGHT - bo.origin().z)
+  if (bo.origin().z < bottomZ - c.plateThickness) {
+    bo.translate(0, 0, bottomZ - c.plateThickness - bo.origin().z)
   }
-  if (mo.origin().z < bottomZ - PLATE_HEIGHT) {
-    mo.translate(0, 0, bottomZ - PLATE_HEIGHT - mo.origin().z)
+  if (mo.origin().z < bottomZ - c.plateThickness) {
+    mo.translate(0, 0, bottomZ - c.plateThickness - mo.origin().z)
   }
 
   // 1e-6 is the tolerance used for modeling
@@ -486,9 +484,9 @@ export function oldblockWallCriticalPoints(
     // bo = to.cleared().translate(to.pretranslated(xOut, 0, -intersectionDistance.z).xyz())
     // bi = ti.cleared().translate(ti.pretranslated(xOut, 0, -iintersectionDistance.z).xyz())
     // mi = ti.cleared().translate(ti.pretranslated(xOut, 0, -iintersectionDistance.z/2).xyz())
-    mo = to.cleared().translate(to.pretranslated(xOut, 0, -intersectionDistance.z).xyz()).translate(0, 0, -PLATE_HEIGHT)
+    mo = to.cleared().translate(to.pretranslated(xOut, 0, -intersectionDistance.z).xyz()).translate(0, 0, -c.plateThickness)
     mi = ti.cleared().translate(ti.pretranslated(xOut, 0, -iintersectionDistance.z).xyz())
-    bo = xPlane(new Vector(bottomX, mo.origin().y, bottomZ - PLATE_HEIGHT))
+    bo = xPlane(new Vector(bottomX, mo.origin().y, bottomZ - c.plateThickness))
     bi = xPlane(new Vector(bottomX, mi.origin().y, bottomZ))
   }
 
@@ -2341,4 +2339,18 @@ export function screwInsertDimensions(c: Cuttleform) {
   const outerTopRadius = outerBottomRadius - taperIndent
   const height = dimensions.height
   return { bottomRadius, topRadius, outerBottomRadius, outerTopRadius, height }
+}
+
+export function plateArtOrigin(c: Cuttleform, trsfs: Trsf[]) {
+  const center = new Vector()
+  let n = 0
+  for (let i = 0; i < c.keys.length; i++) {
+    if (c.keys[i].cluster !== 'thumbs') {
+      center.add(trsfs[i].origin())
+      n += 1
+    }
+  }
+  if (n > 0) center.divideScalar(n)
+  center.z = 0
+  return center
 }

@@ -842,7 +842,7 @@
         {:else if viewer == 'timing'}
           <ViewerTiming {pool} {darkMode} />
         {:else if viewer == 'dev'}
-          <ViewerDev />
+          <ViewerDev {geometry} />
         {/if}
         {#if filament && isRenderable($confError) && (config?.right ?? config?.unibody).shell?.type == 'basic'}
           <div

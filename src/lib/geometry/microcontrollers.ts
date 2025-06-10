@@ -2,7 +2,7 @@ import { convertToMaybeCustomConnectors, type Cuttleform } from '$lib/worker/con
 import { Vector } from '$lib/worker/modeling/transformation'
 
 import type { ConnectorMaybeCustom, CustomConnector } from '$lib/worker/config.cosmos'
-import { PLATE_HEIGHT, screwInsertDimensions } from '$lib/worker/geometry'
+import { screwInsertDimensions } from '$lib/worker/geometry'
 import { closestScrewHeight, SCREWS } from './screws'
 
 const STOPPER_HEIGHT = 2 // Size of stopper used to align board
@@ -557,9 +557,9 @@ export function holderScrewHeight(c: Cuttleform) {
 
 export function holderTallScrewHeight(c: Cuttleform) {
   const elements = boardElements(c, false)
-  const preferred = PLATE_HEIGHT + holderThickness(elements) + screwInsertDimensions(c).height * 0.75
-  const min = PLATE_HEIGHT + holderThickness(elements) + screwInsertDimensions(c).height * 0.25
-  const max = PLATE_HEIGHT + holderThickness(elements) + screwInsertDimensions(c).height * 0.25
+  const preferred = c.plateThickness + holderThickness(elements) + screwInsertDimensions(c).height * 0.75
+  const min = c.plateThickness + holderThickness(elements) + screwInsertDimensions(c).height * 0.25
+  const max = c.plateThickness + holderThickness(elements) + screwInsertDimensions(c).height * 0.25
   return closestScrewHeight(c, preferred, min, max)
 }
 

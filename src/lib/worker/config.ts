@@ -75,6 +75,8 @@ export interface SpecificCuttleform<S> {
   webThickness: number
   /** Cosmos will try to ensure a minimum web thickness equal to this fraction of the given max web thickness. */
   webMinThicknessFactor: number
+  /** Thickness of the bottom plate */
+  plateThickness: number
   keys: CuttleKey[]
   /** The basis on which to compute  */
   keyBasis: Keycap['profile']
@@ -124,6 +126,7 @@ export interface SpecificCuttleform<S> {
       vertical: number
     }
   }
+  plateArt?: 'cosmos'
   shell: S
 }
 

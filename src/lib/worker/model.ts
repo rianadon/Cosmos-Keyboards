@@ -17,7 +17,6 @@ import {
   makeLine,
   microControllerRectangles,
   type Patch,
-  PLATE_HEIGHT,
   reinforceTriangles,
   screwInsertDimensions,
   splineApproxLen,
@@ -62,8 +61,8 @@ export function normalWallSurfaces(c: Cuttleform, geo: Geometry, bottomZ: number
       makeLine(w.ti.translated(worldZ, EXTRA_HEIGHT), w.to, w, w.nRoundNext, w.nRoundPrev, false, false),
       surf[1],
       ...(c.shell.type == 'tilt' || c.shell.type == 'stilts'
-        ? [makeLine(w.mo, w.bo.pretranslated(0, 0, -PLATE_HEIGHT), w), makeLine(w.bo.pretranslated(0, 0, -PLATE_HEIGHT), w.bo.translated(0, 0, -500), w)]
-        : [makeLine(w.mo, w.bo.translated(0, 0, -PLATE_HEIGHT), w)]),
+        ? [makeLine(w.mo, w.bo.pretranslated(0, 0, -c.plateThickness), w), makeLine(w.bo.pretranslated(0, 0, -c.plateThickness), w.bo.translated(0, 0, -500), w)]
+        : [makeLine(w.mo, w.bo.translated(0, 0, -c.plateThickness), w)]),
     ]
   })
 }
@@ -84,7 +83,7 @@ export function wallInnerSurfaces(c: Cuttleform, geo: Geometry, offset: number) 
     const surf = wallSurfacesInner(c, wc)
     return [
       ...(c.shell.type == 'tilt'
-        ? [makeLine(wc.bi.translated(0, 0, -EXTRA_HEIGHT), wc.bi.pretranslated(0, 0, -PLATE_HEIGHT), wc), makeLine(wc.bi.pretranslated(0, 0, -PLATE_HEIGHT), wc.bi, wc)]
+        ? [makeLine(wc.bi.translated(0, 0, -EXTRA_HEIGHT), wc.bi.pretranslated(0, 0, -c.plateThickness), wc), makeLine(wc.bi.pretranslated(0, 0, -c.plateThickness), wc.bi, wc)]
         : [makeLine(wc.bi.pretranslated(0, 0, -EXTRA_HEIGHT), wc.bi, wc)]),
       surf[1],
       surf[2],
@@ -121,7 +120,7 @@ export function accentWallSurfaces(c: Cuttleform, geo: Geometry, offset: number)
       surf[1],
       makeLine(w.mo, w.bo, w),
       makeLine(w.bo, extraWall[i].bo.translated(0, 0, height), w),
-      makeLine(extraWall[i].bo.translated(0, 0, height), extraWall[i].bo.translated(0, 0, -PLATE_HEIGHT), w),
+      makeLine(extraWall[i].bo.translated(0, 0, height), extraWall[i].bo.translated(0, 0, -c.plateThickness), w),
     ]
   })
 }
@@ -314,12 +313,12 @@ function genericScrewCountersunkProfile(innerD: number, outerD: number, angle: n
     .close()
 }
 
-function screwCountersunkProfile(c: Cuttleform, height = PLATE_HEIGHT, margin = 1) {
+function screwCountersunkProfile(c: Cuttleform, height = c.plateThickness, margin = 1) {
   const { plateDiameter, countersunkDiameter, countersunkAngle } = SCREWS[c.screwSize]
   return genericScrewCountersunkProfile(plateDiameter, countersunkDiameter, countersunkAngle, height, margin)
 }
 
-export function screwStraightProfile(c: Cuttleform, height = PLATE_HEIGHT, diameter?: number) {
+export function screwStraightProfile(c: Cuttleform, height = c.plateThickness, diameter?: number) {
   const screwInfo = SCREWS[c.screwSize]
   return draw()
     .hLine(diameter ? diameter / 2 : screwInfo.plateDiameter / 2)
@@ -362,13 +361,13 @@ interface PlateParams {
 
 function makeNormalPlate(c: Cuttleform, geo: PlateParams) {
   const sketch = plateSketch(c, geo).sketchOnPlane('XY')
-  const plate = sketch.extrude(-PLATE_HEIGHT) as Solid
+  const plate = sketch.extrude(-c.plateThickness) as Solid
   const trsf = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).pretranslate(0, 0, geo.bottomZ)
   return trsf.transform(plate)
 }
 
 function makeAccentPlate(c: Cuttleform, geo: Geometry) {
-  const height = PLATE_HEIGHT
+  const height = c.plateThickness
 
   const sketch = plateSketch(c, geo, ACCENT_WIDTH).sketchOnPlane('XY')
   const trsf = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).pretranslate(0, 0, geo.bottomZ)
@@ -391,7 +390,7 @@ interface Plate {
 export function makePlateMesh(c: Cuttleform, geo: Geometry, cut = false, inserts = false) {
   const makeThePlate = (geo: PlateParams) => {
     const sketch = plateSketch(c, geo)
-    const plate = sketch.extrudeMesh(-PLATE_HEIGHT)
+    const plate = sketch.extrudeMesh(-c.plateThickness)
     const trsf = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).pretranslate(0, 0, geo.bottomZ)
     const mat = trsf.Matrix4()
     for (let i = 0; i < plate.vertices.length; i += 3) {
@@ -424,8 +423,8 @@ export function makePlate(c: Cuttleform, geo: Geometry, cut = false, inserts = f
         combine([
           // cutPlateWithHoles(c, makeNormalPlate(c, geo), positions),
           joinTiltPlates(c, geo as any),
-          plateRing(c, geo, -PLATE_HEIGHT),
-          plateRing(c, tiltBotGeo(c, tiltGeo), PLATE_HEIGHT).translateZ(TILT_PARTS_SEPARATION),
+          plateRing(c, geo, -c.plateThickness),
+          plateRing(c, tiltBotGeo(c, tiltGeo), c.plateThickness).translateZ(TILT_PARTS_SEPARATION),
           inserts ? makerScrewInserts(c, geo, ['plate']) : null,
         ]),
       bottom: () => cutPlateWithHoles(c, makeBottomestPlate(c, tiltGeo), tiltGeo.bottomScrewPositions),
@@ -524,13 +523,13 @@ function tiltBotGeo(c: Cuttleform, geo: TiltGeometry): PlateParams {
     worldX: new Vector(1, 0, 0),
     worldY: new Vector(0, 1, 0),
     worldZ: new Vector(0, 0, 1),
-    bottomZ: geo.floorZ + PLATE_HEIGHT,
+    bottomZ: geo.floorZ + c.plateThickness,
     solveTriangularization: geo.solveTriangularization,
     allWallCriticalPoints: (offset?: number) =>
       geo.allWallCriticalPoints(offset).map(w => ({
         ...w,
-        bi: w.bi.translated(0, 0, -w.bi.origin().z + geo.floorZ + PLATE_HEIGHT),
-        bo: w.bo.translated(0, 0, -w.bo.origin().z + geo.floorZ + PLATE_HEIGHT),
+        bi: w.bi.translated(0, 0, -w.bi.origin().z + geo.floorZ + c.plateThickness),
+        bo: w.bo.translated(0, 0, -w.bo.origin().z + geo.floorZ + c.plateThickness),
       })),
   }
 }
@@ -558,11 +557,11 @@ function joinTiltPlates(c: Cuttleform, geo: TiltGeometry) {
 
   // Create boundaries for both the top and bottom of the joining surface.
   // These will later get joined.
-  const topTranslation = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).pretranslate(0, 0, -PLATE_HEIGHT).xyz()
+  const topTranslation = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).pretranslate(0, 0, -c.plateThickness).xyz()
   const topBoundary = wallBoundaryBeziers(c, geo).map(c => c.map(t => t.translated(topTranslation))) as Curve[]
   const topBoundaryInner = wallBoundaryBeziers(c, geo, 'bi').map(c => c.map(t => t.translated(topTranslation))) as Curve[]
 
-  const botTranslation = [0, 0, PLATE_HEIGHT + TILT_PARTS_SEPARATION] as [number, number, number]
+  const botTranslation = [0, 0, c.plateThickness + TILT_PARTS_SEPARATION] as [number, number, number]
   const botGeo = tiltBotGeo(c, geo)
   const bottomBoundary = wallBoundaryBeziers(c, botGeo).map(c => c.map(t => t.translated(botTranslation))) as Curve[]
   const bottomBoundaryInner = wallBoundaryBeziers(c, botGeo, 'bi').map(c => c.map(t => t.translated(botTranslation))) as Curve[]

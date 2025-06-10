@@ -67,6 +67,7 @@ message KeyboardExtra {
   optional sint32 wrist_rest_tenting = 14;
 
   optional sint32 microcontroller_angle = 15;
+  optional int32 plate_thickness = 19;
 }
 
 message Curvature {

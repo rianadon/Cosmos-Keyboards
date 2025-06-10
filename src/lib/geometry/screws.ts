@@ -1,5 +1,5 @@
 import type { Cuttleform } from '$lib/worker/config'
-import { PLATE_HEIGHT, screwInsertDimensions } from '$lib/worker/geometry'
+import { screwInsertDimensions } from '$lib/worker/geometry'
 
 const INCH = 25.4 // Multiplication factor for in -> mm
 
@@ -90,5 +90,5 @@ export function closestScrewHeight(c: Cuttleform, height: number, min = -Infinit
 }
 
 export function screwInsertHeight(c: Cuttleform) {
-  return closestScrewHeight(c, PLATE_HEIGHT + screwInsertDimensions(c).height * .75)
+  return closestScrewHeight(c, c.plateThickness + screwInsertDimensions(c).height * .75)
 }

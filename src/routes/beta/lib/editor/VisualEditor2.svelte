@@ -1194,6 +1194,9 @@
         multiplier={100}
       />
     </Field>
+    <Field name="Plate Thickness">
+      <DecimalInput bind:value={$protoConfig.plateThickness} units="mm" />
+    </Field>
     <Field
       name="Vertical Part Clearance"
       icon="expand-vertical"
