@@ -37,6 +37,14 @@ export class Vector extends Vector3 {
     const projLen = this.dot(n)
     return Math.sqrt(this.lengthSq() - projLen * projLen)
   }
+
+  lengthXYSq() {
+    return this.x * this.x + this.y * this.y
+  }
+
+  lengthXY() {
+    return Math.sqrt(this.x * this.x + this.y * this.y)
+  }
 }
 
 export default class Trsf {

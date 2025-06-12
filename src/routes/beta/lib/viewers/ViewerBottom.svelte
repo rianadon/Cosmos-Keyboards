@@ -222,6 +222,14 @@
       material: new THREE.MeshBasicMaterial({ color: 0xff99cc }),
     })
 
+    console.log('FEET', geo.footPositions)
+    for (const pos of geo.footPositions) {
+      geos.push({
+        geometry: new THREE.CircleGeometry(2, 32).translate(...pos.xy(), 0),
+        material: new THREE.MeshBasicMaterial({ color: 0xff99cc }),
+      })
+    }
+
     // const wristRestGeo = wristRestGeometry(conf, geo)
     // geos.push({
     //     geometry: rectangle(...wristRestGeo.left.xy()),

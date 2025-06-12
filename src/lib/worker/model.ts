@@ -1,6 +1,7 @@
 import type { TopoDS_Shell } from '$assets/replicad_single'
 import { BOARD_PROPERTIES, type BoardElement, boardElements, convertToCustomConnectors, holderOuterRadius, holderThickness, STOPPER_WIDTH } from '$lib/geometry/microcontrollers'
 import { SCREWS } from '$lib/geometry/screws'
+import { processPlate } from '@pro/art'
 import { wallBezier } from '@pro/rounded'
 import { makeStiltsPlate, makeStiltsPlateSimpleMesh, splitStiltsScrewInserts } from '@pro/stiltsModel'
 import { cast, CornerFinder, downcast, draw, drawCircle, Drawing, drawRoundedRectangle, Face, loft, type Point, type Sketch, Sketcher, Solid } from 'replicad'
@@ -357,16 +358,19 @@ interface PlateParams {
   bottomZ: number
   solveTriangularization: Geometry['solveTriangularization']
   allWallCriticalPoints: Geometry['allWallCriticalPoints']
+  plateArtOrigin: Geometry['plateArtOrigin']
 }
 
-function makeNormalPlate(c: Cuttleform, geo: PlateParams) {
+async function makeNormalPlate(c: Cuttleform, geo: PlateParams) {
   const sketch = plateSketch(c, geo).sketchOnPlane('XY')
   const plate = sketch.extrude(-c.plateThickness) as Solid
   const trsf = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).pretranslate(0, 0, geo.bottomZ)
-  return trsf.transform(plate)
+  const transformedPlate = trsf.transform(plate)
+  if (c.plate) return await processPlate(c, geo as Geometry, transformedPlate)
+  return transformedPlate
 }
 
-function makeAccentPlate(c: Cuttleform, geo: Geometry) {
+async function makeAccentPlate(c: Cuttleform, geo: Geometry) {
   const height = c.plateThickness
 
   const sketch = plateSketch(c, geo, ACCENT_WIDTH).sketchOnPlane('XY')
@@ -383,8 +387,8 @@ function makeAccentPlate(c: Cuttleform, geo: Geometry) {
 }
 
 interface Plate {
-  top: () => Solid
-  bottom?: () => Solid
+  top: () => Promise<Solid>
+  bottom?: () => Promise<Solid>
 }
 
 export function makePlateMesh(c: Cuttleform, geo: Geometry, cut = false, inserts = false) {
@@ -419,7 +423,7 @@ export function makePlate(c: Cuttleform, geo: Geometry, cut = false, inserts = f
   if (c.shell.type == 'tilt') {
     const tiltGeo = geo as TiltGeometry
     return {
-      top: () =>
+      top: async () =>
         combine([
           // cutPlateWithHoles(c, makeNormalPlate(c, geo), positions),
           joinTiltPlates(c, geo as any),
@@ -427,13 +431,13 @@ export function makePlate(c: Cuttleform, geo: Geometry, cut = false, inserts = f
           plateRing(c, tiltBotGeo(c, tiltGeo), c.plateThickness).translateZ(TILT_PARTS_SEPARATION),
           inserts ? makerScrewInserts(c, geo, ['plate']) : null,
         ]),
-      bottom: () => cutPlateWithHoles(c, makeBottomestPlate(c, tiltGeo), tiltGeo.bottomScrewPositions),
+      bottom: async () => cutPlateWithHoles(c, await makeBottomestPlate(c, tiltGeo), tiltGeo.bottomScrewPositions),
     }
   }
   if (c.shell.type == 'basic' && c.shell.lip) {
-    return { top: () => cutPlateWithHoles(c, makeAccentPlate(c, geo), positions) }
+    return { top: async () => cutPlateWithHoles(c, await makeAccentPlate(c, geo), positions) }
   }
-  return { top: () => cutPlateWithHoles(c, makeNormalPlate(c, geo), positions) }
+  return { top: async () => cutPlateWithHoles(c, await makeNormalPlate(c, geo), positions) }
 }
 
 export function makeBottomestPlate(c: Cuttleform, geo: TiltGeometry) {
@@ -525,6 +529,7 @@ function tiltBotGeo(c: Cuttleform, geo: TiltGeometry): PlateParams {
     worldZ: new Vector(0, 0, 1),
     bottomZ: geo.floorZ + c.plateThickness,
     solveTriangularization: geo.solveTriangularization,
+    plateArtOrigin: geo.plateArtOrigin,
     allWallCriticalPoints: (offset?: number) =>
       geo.allWallCriticalPoints(offset).map(w => ({
         ...w,
@@ -547,6 +552,7 @@ function joinTiltPlatesLoft(c: Cuttleform, geo: TiltGeometry) {
     bottomZ: geo.floorZ,
     solveTriangularization: geo.solveTriangularization,
     allWallCriticalPoints: geo.allWallCriticalPoints.bind(geo),
+    plateArtOrigin: geo.plateArtOrigin,
   }).sketchOnPlane('XY').wire
   const bottomSurface = bottomTrsf.transform(bottomSketch)
   return loft([topSurface, bottomSurface])

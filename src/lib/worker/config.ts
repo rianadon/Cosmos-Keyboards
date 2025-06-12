@@ -126,7 +126,11 @@ export interface SpecificCuttleform<S> {
       vertical: number
     }
   }
-  plateArt?: 'cosmos'
+  plate?: {
+    art?: 'cosmos' | 'circle'
+    footIndices?: number[]
+    footDiameter?: number
+  }
   shell: S
 }
 

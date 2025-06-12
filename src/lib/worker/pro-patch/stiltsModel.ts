@@ -7,7 +7,7 @@ export function splitStiltsScrewInserts(_c: SpecificCuttleform<StiltsShell>, _ge
   throw new Error(errorMsg)
 }
 
-export function makeStiltsPlate(_c: Cuttleform, _geo: Geometry, _cut = false): { top: () => Solid; bottom?: () => Solid } {
+export function makeStiltsPlate(_c: Cuttleform, _geo: Geometry, _cut = false): { top: () => Promise<Solid>; bottom?: () => Promise<Solid> } {
   throw new Error(errorMsg)
 }
 

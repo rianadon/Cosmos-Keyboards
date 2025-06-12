@@ -8,6 +8,8 @@ import {
   bottomByNormal,
   connectorIndex,
   flattenKeyCriticalPoints,
+  footIndices,
+  footOrigin,
   keyHolesTrsfs,
   keyHolesTrsfs2D,
   type LabeledBoardInd,
@@ -123,6 +125,17 @@ export class BaseGeometry<C extends Cuttleform = SpecificCuttleform<BasicShell>>
   @Memoize()
   get boardPositions() {
     return positionsImplMap(this.c, this.allWallCriticalPoints(), this.worldZ, this.boardIndices as any)
+  }
+
+  @Memoize()
+  get footIndices() {
+    return footIndices(this.c, this.screwIndices, this.allWallCriticalPoints(), this.worldZ)
+  }
+
+  @Memoize()
+  get footPositions() {
+    const walls = this.allWallCriticalPoints()
+    return this.footIndices.map(i => footOrigin(this.c, i, walls))
   }
 
   @Memoize()

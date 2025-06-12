@@ -33,6 +33,9 @@ export const wallZOffset = (c: Cuttleform) => {
 export const BOARD_HOLDER_OFFSET = 0.02
 const BOARD_TOLERANCE_Z = 0.1
 
+export const DEFAULT_FOOT_DIAM = 10
+export const FOOT_INSET = 6 // How far feet are placed from inner wall
+
 export type CriticalPoints = Trsf[]
 
 export interface WallCriticalPoints {
@@ -1136,10 +1139,12 @@ interface ScoreParams {
   worldZ: Vector
   bottomZ: number
   holderBnd?: ReturnType<typeof holderBoundsOrigin>
+  screwOriginFn?: typeof screwOrigin
 }
 
 function screwScoreStilts(c: Cuttleform, walls: WallCriticalPoints[], s: number, params: ScoreParams) {
-  const { heightMax, insertHeight, minDisplacement, minHolderDisp, boardInd, holderBnd, worldZ, bottomZ } = params
+  let { heightMax, insertHeight, minDisplacement, minHolderDisp, boardInd, holderBnd, worldZ, bottomZ, screwOriginFn } = params
+  if (!screwOriginFn) screwOriginFn = screwOrigin
   // The score is based on how high the key is and displacement from the nearest
   // neighboring screw insert
   const idx = Math.floor(s)
@@ -1148,7 +1153,7 @@ function screwScoreStilts(c: Cuttleform, walls: WallCriticalPoints[], s: number,
   if (avgHeight < insertHeight) return -Infinity
   for (const i of params.otherPositions) {
     // Return -Infinity if it intersects any screws
-    const displMM = screwOrigin(c, i, walls).sub(screwOrigin(c, s, walls)).lengthOnPlane(worldZ)
+    const displMM = screwOriginFn(c, i, walls).sub(screwOriginFn(c, s, walls)).lengthOnPlane(worldZ)
     if (displMM < minDisplacement) return -Infinity
   }
   const minBoardDisplacement = minDisplacement / 2 + holderOuterRadius(c)
@@ -1168,7 +1173,7 @@ function screwScoreStilts(c: Cuttleform, walls: WallCriticalPoints[], s: number,
         holderBnd.maxy,
       )
       : holderBnd.maxy
-    const pos = screwOrigin(c, s, walls)
+    const pos = screwOriginFn(c, s, walls)
     if (
       pos.y + minHolderDisp / 2 > miny
       && pos.y - minHolderDisp / 2 < maxy
@@ -1182,7 +1187,7 @@ function screwScoreStilts(c: Cuttleform, walls: WallCriticalPoints[], s: number,
   // Case of 0 other positions: find the hole furthest from the centroid (ie center of model)
   if (params.otherPositions.size == 0) {
     const centroid = walls.reduce((v, w) => v.add(w.bi.origin()), new Vector()).divideScalar(walls.length)
-    return screwOrigin(c, s, walls).distanceTo(centroid)
+    return screwOriginFn(c, s, walls).distanceTo(centroid)
   }
 
   // Case of 1 other position: find the hole furthest away from both
@@ -1190,15 +1195,15 @@ function screwScoreStilts(c: Cuttleform, walls: WallCriticalPoints[], s: number,
   if (params.otherPositions.size == 1) {
     const firstPosition = [...params.otherPositions][0]
     const centroid = walls.reduce((v, w) => v.add(w.bi.origin()), new Vector()).divideScalar(walls.length)
-    return screwOrigin(c, firstPosition, walls).distanceTo(screwOrigin(c, s, walls)) + 5 * screwOrigin(c, s, walls).distanceTo(centroid)
+    return screwOriginFn(c, firstPosition, walls).distanceTo(screwOriginFn(c, s, walls)) + 5 * screwOriginFn(c, s, walls).distanceTo(centroid)
   }
 
   // Case of >= 2 positions:
   // Find the tippage when pressing on this position
   // Since the screw score = the tippage, the position with max tippage will be picked.
-  const origins = walls.map((_, i) => screwOrigin(c, i + 0.5, walls))
+  const origins = walls.map((_, i) => screwOriginFn(c, i + 0.5, walls))
   for (const other of params.otherPositions) {
-    origins[other] = screwOrigin(c, other, walls)
+    origins[other] = screwOriginFn(c, other, walls)
   }
   const avgBo = walls[idx].bo.origin().lerp(walls[(idx + 1) % walls.length].bo.origin(), s - idx)
   const tips = [...tippingLines(params.otherPositions, origins, avgBo)]
@@ -2353,4 +2358,75 @@ export function plateArtOrigin(c: Cuttleform, trsfs: Trsf[]) {
   if (n > 0) center.divideScalar(n)
   center.z = 0
   return center
+}
+
+export function footOrigin(c: Cuttleform, i: number, walls: WallCriticalPoints[]) {
+  const whole = Math.floor(i)
+  const fraction = i - whole
+  const thisWall = walls[whole].bo.origin()
+  const nextWall = walls[(whole + 1) % walls.length].bo.origin()
+
+  // Compute the center in the middle of the wall
+  const center = new Vector(thisWall).lerp(nextWall, fraction)
+
+  // Add the normal vector to the screw sits inside the wall
+  const normal = new Vector(thisWall).sub(nextWall).normalize().cross(Zv).negate()
+
+  const bottomRadius = (c.plate?.footDiameter || DEFAULT_FOOT_DIAM) / 2
+  return center.addScaledVector(normal, bottomRadius + FOOT_INSET)
+}
+
+export function* allFootIndices(c: Cuttleform, walls: WallCriticalPoints[], initialPositions: number[], screwIndices: number[], worldZ: Vector) {
+  // How far away each screw insert must be from each other, in mm
+  const minDisplacement = c.plate?.footDiameter || DEFAULT_FOOT_DIAM
+  const minHolderDisp = screwInsertDimensions(c).outerBottomRadius * 2 + minDisplacement / 2
+
+  const positions = new Set(initialPositions)
+  const possibleIndices = Array.from(possibleScrewIndices(c, walls))
+  while (true) {
+    // Find position with the highest score
+    let highestScore = -Infinity
+    let bestPosition = 0
+    for (const iCenter of possibleIndices) {
+      if (positions.has(iCenter)) continue
+      const sc = screwScoreStilts(c, walls, iCenter, {
+        heightMax: Infinity,
+        insertHeight: -Infinity,
+        boardInd: screwIndices as any,
+        bottomZ: 0,
+        minDisplacement,
+        minHolderDisp,
+        worldZ,
+        otherPositions: positions,
+      })
+      if (sc > highestScore) {
+        bestPosition = iCenter
+        highestScore = sc
+      }
+    }
+
+    if (highestScore == -Infinity) return
+    positions.add(bestPosition)
+    yield bestPosition
+  }
+}
+
+export function footIndices(
+  c: Cuttleform,
+  screwIndices: number[],
+  walls: WallCriticalPoints[],
+  worldZ: Vector,
+) {
+  if (!c.plate || !c.plate.footIndices) return []
+
+  const footInd = [...c.plate.footIndices]
+  const positiveInd = c.plate.footIndices.filter(i => i != -1)
+  for (const pos of allFootIndices(c, walls, positiveInd, screwIndices, worldZ)) {
+    // Find next position with index -1. It will be replaced.
+    const nextIndex = footInd.indexOf(-1)
+    if (nextIndex == -1) break
+    footInd[nextIndex] = pos
+  }
+
+  return footInd.filter(i => i != -1)
 }
