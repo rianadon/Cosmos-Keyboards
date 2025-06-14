@@ -128,8 +128,8 @@ export interface SpecificCuttleform<S> {
   }
   plate?: {
     art?: 'cosmos' | 'circle'
-    footIndices?: number[]
-    footDiameter?: number
+    footIndices: number[]
+    footDiameter: number
   }
   shell: S
 }

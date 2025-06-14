@@ -359,6 +359,7 @@ interface PlateParams {
   solveTriangularization: Geometry['solveTriangularization']
   allWallCriticalPoints: Geometry['allWallCriticalPoints']
   plateArtOrigin: Geometry['plateArtOrigin']
+  footPositions: Geometry['footPositions']
 }
 
 async function makeNormalPlate(c: Cuttleform, geo: PlateParams) {
@@ -366,7 +367,7 @@ async function makeNormalPlate(c: Cuttleform, geo: PlateParams) {
   const plate = sketch.extrude(-c.plateThickness) as Solid
   const trsf = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).pretranslate(0, 0, geo.bottomZ)
   const transformedPlate = trsf.transform(plate)
-  if (c.plate) return await processPlate(c, geo as Geometry, transformedPlate)
+  if (c.plate && c.shell.type !== 'tilt') return await processPlate(c, geo as Geometry, transformedPlate)
   return transformedPlate
 }
 
@@ -383,7 +384,8 @@ async function makeAccentPlate(c: Cuttleform, geo: Geometry) {
   splitter.addArgument(plateUpper)
   splitter.addTool(solidWallSurface)
   splitter.perform()
-  return splitter.takeBiggest()!.fuse(plateLower)
+  const plate = splitter.takeBiggest()!.fuse(plateLower)
+  if (c.plate && c.shell.type !== 'tilt') return await processPlate(c, geo as Geometry, plate)
 }
 
 interface Plate {
@@ -440,8 +442,10 @@ export function makePlate(c: Cuttleform, geo: Geometry, cut = false, inserts = f
   return { top: async () => cutPlateWithHoles(c, await makeNormalPlate(c, geo), positions) }
 }
 
-export function makeBottomestPlate(c: Cuttleform, geo: TiltGeometry) {
-  return makeNormalPlate(c, tiltBotGeo(c, geo))
+export async function makeBottomestPlate(c: Cuttleform, geo: TiltGeometry) {
+  const plate = await makeNormalPlate(c, tiltBotGeo(c, geo))
+  if (c.plate) return processPlate(c, geo as Geometry, plate)
+  return plate
 }
 
 function wallBoundaryBeziers(c: Cuttleform, geo: PlateParams, pt: 'bo' | 'bi' = 'bo', offset = 0) {
@@ -530,6 +534,7 @@ function tiltBotGeo(c: Cuttleform, geo: TiltGeometry): PlateParams {
     bottomZ: geo.floorZ + c.plateThickness,
     solveTriangularization: geo.solveTriangularization,
     plateArtOrigin: geo.plateArtOrigin,
+    footPositions: geo.footPositions,
     allWallCriticalPoints: (offset?: number) =>
       geo.allWallCriticalPoints(offset).map(w => ({
         ...w,
@@ -553,6 +558,7 @@ function joinTiltPlatesLoft(c: Cuttleform, geo: TiltGeometry) {
     solveTriangularization: geo.solveTriangularization,
     allWallCriticalPoints: geo.allWallCriticalPoints.bind(geo),
     plateArtOrigin: geo.plateArtOrigin,
+    footPositions: geo.footPositions,
   }).sketchOnPlane('XY').wire
   const bottomSurface = bottomTrsf.transform(bottomSketch)
   return loft([topSurface, bottomSurface])

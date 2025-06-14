@@ -68,6 +68,9 @@ message KeyboardExtra {
 
   optional sint32 microcontroller_angle = 15;
   optional int32 plate_thickness = 19;
+  repeated uint32 foot_indices = 20;
+  optional uint32 foot_diameter = 21;
+  optional uint32 plate_art = 22;
 }
 
 message Curvature {

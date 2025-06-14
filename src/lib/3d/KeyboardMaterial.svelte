@@ -3,8 +3,10 @@
   import {
     COLORCONFIG,
     FRAGMENT_SHADER,
+    FRAGMENT_SHADER_CUTOFF,
     FRAGMENT_SHADER_INSTANCED,
     VERTEX_SHADER,
+    VERTEX_SHADER_CUTOFF,
     VERTEX_SHADER_INSTANCED,
     drawLetterToTex,
   } from './materials'
@@ -21,6 +23,7 @@
   export let flip = false
   export let textured = false
   export let instanced = false
+  export let useColors = false
 
   const { invalidate } = useThrelte()
 
@@ -47,8 +50,12 @@
 </script>
 
 <T.ShaderMaterial
-  fragmentShader={instanced ? FRAGMENT_SHADER_INSTANCED : FRAGMENT_SHADER}
-  vertexShader={instanced ? VERTEX_SHADER_INSTANCED : VERTEX_SHADER}
+  fragmentShader={useColors
+    ? FRAGMENT_SHADER_CUTOFF
+    : instanced
+    ? FRAGMENT_SHADER_INSTANCED
+    : FRAGMENT_SHADER}
+  vertexShader={useColors ? VERTEX_SHADER_CUTOFF : instanced ? VERTEX_SHADER_INSTANCED : VERTEX_SHADER}
   uniforms={{
     uOpacity: { value: 0 },
     uBrightness: { value: 1 },

@@ -14,6 +14,7 @@ import {
   decodeKeycap,
   decodeMicrocontroller,
   decodePartVariant,
+  decodePlateArt,
   decodeRoundedFlags,
   decodeScrewFlags,
   decodeStiltsShellFlags,
@@ -25,6 +26,7 @@ import {
   encodeKeycap,
   encodeMicrocontroller,
   encodePartVariant,
+  encodePlateArt,
   encodeRoundedFlags,
   encodeScrewFlags,
   encodeStiltsShellFlags,
@@ -242,6 +244,9 @@ const KEYBOARD_EXTRA_DEFAULTS: KeyboardExtra = {
   screwIndices: [],
   microcontrollerAngle: 0,
   plateThickness: 30,
+  plateArt: 0,
+  footIndices: [],
+  footDiameter: 100,
 }
 
 const TILT_DEFAULTS: TiltShell = {
@@ -464,6 +469,8 @@ export function decodeConfigIdk(b64: string): CosmosKeyboard {
   const keeb = deserializeCosmosConfig(b64)
   const keebExtra = keeb.extra
 
+  console.log('DECODE EXTRA', keebExtra)
+  const hasSpecialPlate = keebExtra.plateArt || keebExtra.footIndices.length
   const roundedFlags = decodeRoundedFlags(keeb.roundedFlags)
 
   const conf: CosmosKeyboard = {
@@ -503,6 +510,13 @@ export function decodeConfigIdk(b64: string): CosmosKeyboard {
     connectorLeftIndex: keebExtra.connectorLeftIndex / 10,
     connectorRightIndex: keebExtra.connectorRightIndex / 10,
     clusters: keeb.cluster.map(decodeCosmosCluster),
+    plate: hasSpecialPlate
+      ? {
+        art: decodePlateArt(keebExtra.plateArt) || undefined,
+        footIndices: keebExtra.footIndices.map(i => i / 10 - 1),
+        footDiameter: keebExtra.footDiameter / 10,
+      }
+      : undefined,
   }
   return conf
 }
@@ -695,6 +709,9 @@ export function encodeCosmosConfig(conf: CosmosKeyboard): Keyboard {
       webMinThicknessFactor: Math.round(conf.webMinThicknessFactor * 10),
       microcontrollerAngle: Math.round(conf.microcontrollerAngle * 45),
       plateThickness: Math.round(conf.plateThickness * 10),
+      plateArt: encodePlateArt(conf.plate?.art || null),
+      footIndices: conf.plate?.footIndices?.map(i => Math.round(i * 10) + 10) || [],
+      footDiameter: conf.plate?.footDiameter ? Math.round(conf.plate.footDiameter * 10) : undefined,
     },
   }
 }
@@ -714,7 +731,7 @@ export function serializeCosmosConfig(trimmed: Keyboard) {
   }
   if (trimmed.curvature && Object.keys(trimmed.curvature!).length == 0) delete trimmed.curvature
   if (JSON.stringify(trimmed.shell) == JSON.stringify(KEYBOARD_DEFAULTS.shell)) trimmed.shell = {} as any
-  // console.log(trimmed, '')
+  console.log('trimmed', trimmed)
   const data = Keyboard.toBinary(trimmed)
   return btoa(String.fromCharCode(...data))
 }

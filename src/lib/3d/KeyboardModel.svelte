@@ -7,6 +7,7 @@
   import type { KeyboardMeshes } from 'src/routes/beta/lib/viewers/viewer3dHelpers'
 
   export let microcontrollerGeometry: Geometry | undefined = undefined
+  export let keebGeometry: Geometry | undefined = undefined
   export let meshes: KeyboardMeshes
   export let transparency: number = 100
   export let side: 'left' | 'right' | 'unibody'
@@ -62,6 +63,8 @@
     opacity={plateTopOpacity}
     renderOrder="10"
     color={plateColor}
+    cutoff={(keebGeometry?.floorZ ?? Infinity) + 0.1}
+    useColors
   />
   <KMesh
     kind="key"
@@ -69,10 +72,11 @@
     opacity={Math.pow((cTransparency - 50) / 50, 3)}
     renderOrder="10"
     color={plateColor}
+    useColors
   />
   <KMesh kind="key" geometry={meshes.screwPlateBuf} opacity={plateScrewOpacity} />
-  <KMesh kind="key" geometry={meshes.wristBuf} opacity={cTransparency / 100} />
-  <KMesh kind="key" geometry={meshes.secondWristBuf} opacity={cTransparency / 100} />
+  <KMesh kind="key" geometry={meshes.wristBuf} opacity={cTransparency / 100} useColors />
+  <KMesh kind="key" geometry={meshes.secondWristBuf} opacity={cTransparency / 100} useColors />
   <KMesh
     kind="case"
     geometry={meshes.holderBuf}

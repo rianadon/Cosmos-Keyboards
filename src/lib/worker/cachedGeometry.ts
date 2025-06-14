@@ -10,6 +10,7 @@ import {
   flattenKeyCriticalPoints,
   footIndices,
   footOrigin,
+  footWalls,
   keyHolesTrsfs,
   keyHolesTrsfs2D,
   type LabeledBoardInd,
@@ -128,14 +129,18 @@ export class BaseGeometry<C extends Cuttleform = SpecificCuttleform<BasicShell>>
   }
 
   @Memoize()
+  get footWalls() {
+    return footWalls(this.c, this.allWallCriticalPoints(), this.floorZ)
+  }
+
+  @Memoize()
   get footIndices() {
-    return footIndices(this.c, this.screwIndices, this.allWallCriticalPoints(), this.worldZ)
+    return footIndices(this.c, this.screwIndices, this.footWalls, this.allWallCriticalPoints(), this.worldZ)
   }
 
   @Memoize()
   get footPositions() {
-    const walls = this.allWallCriticalPoints()
-    return this.footIndices.map(i => footOrigin(this.c, i, walls))
+    return this.footIndices.map(i => footOrigin(this.c, i, this.footWalls))
   }
 
   @Memoize()
@@ -230,5 +235,10 @@ export class TiltGeometry extends BaseGeometry<SpecificCuttleform<TiltShell>> {
   @Memoize()
   get bottomScrewPositions() {
     return positionsImpl(this.c, this.allWallCriticalPoints(), new Vector(0, 0, 1), this.bottomScrewIndices).map(t => t.translate(0, 0, -t.origin().z + this.floorZ + this.c.plateThickness))
+  }
+
+  @Memoize()
+  get footIndices() {
+    return footIndices(this.c, this.bottomScrewIndices, this.footWalls, this.allWallCriticalPoints(), new Vector(0, 0, 1))
   }
 }

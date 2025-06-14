@@ -8,6 +8,7 @@ import cdt2d from 'cdt2d'
 import findBoundary from 'simplicial-complex-boundary'
 import { ExtrudeGeometry, Matrix3, Shape, Triangle, type Vector3Tuple } from 'three'
 import { Vector2 } from 'three/src/math/Vector2.js'
+import { Clipper, ClipperOffset, EndType, JoinType, Paths, PolyType } from './clipper'
 import concaveman from './concaveman'
 import { type Cuttleform, type CuttleKey, type Geometry } from './config'
 import { intersectLineCircle, intersectPolyPoly, intersectPtPoly, intersectTriCircle } from './geometry.intersections'
@@ -34,10 +35,11 @@ export const BOARD_HOLDER_OFFSET = 0.02
 const BOARD_TOLERANCE_Z = 0.1
 
 export const DEFAULT_FOOT_DIAM = 10
-export const FOOT_INSET = 6 // How far feet are placed from inner wall
+export const FOOT_INSET = 6 // How far feet are placed from outer wall
 
 export type CriticalPoints = Trsf[]
 
+type WallCriticalComponent = 'ti' | 'to' | 'mi' | 'ki' | 'mo' | 'bi' | 'bo'
 export interface WallCriticalPoints {
   ti: Trsf
   to: Trsf
@@ -641,7 +643,7 @@ export function connectorIndex(c: Cuttleform, walls: WallCriticalPoints[], inner
   return bestWall
 }
 
-export function wallXToY(walls: WallCriticalPoints[], x: number, start: number, direction: number, checkDirection: number, component = 'bi') {
+export function wallXToY(walls: WallCriticalPoints[], x: number, start: number, direction: number, checkDirection: number, component: WallCriticalComponent = 'bi') {
   let ind = (start + walls.length) % walls.length
   for (let k = 0; k < walls.length; k++) {
     const first = walls[ind][component].origin()
@@ -1140,10 +1142,11 @@ interface ScoreParams {
   bottomZ: number
   holderBnd?: ReturnType<typeof holderBoundsOrigin>
   screwOriginFn?: typeof screwOrigin
+  useCorners?: boolean
 }
 
-function screwScoreStilts(c: Cuttleform, walls: WallCriticalPoints[], s: number, params: ScoreParams) {
-  let { heightMax, insertHeight, minDisplacement, minHolderDisp, boardInd, holderBnd, worldZ, bottomZ, screwOriginFn } = params
+function screwScoreStilts(c: Cuttleform, walls: WallCriticalPoints[], boardWalls: WallCriticalPoints[], s: number, params: ScoreParams) {
+  let { heightMax, insertHeight, minDisplacement, minHolderDisp, boardInd, holderBnd, worldZ, bottomZ, screwOriginFn, useCorners } = params
   if (!screwOriginFn) screwOriginFn = screwOrigin
   // The score is based on how high the key is and displacement from the nearest
   // neighboring screw insert
@@ -1159,17 +1162,17 @@ function screwScoreStilts(c: Cuttleform, walls: WallCriticalPoints[], s: number,
   const minBoardDisplacement = minDisplacement / 2 + holderOuterRadius(c)
   for (const i of Object.values(boardInd)) {
     // Return -Infinity if it intersects any board screws
-    const displMM = screwOrigin(c, i, walls).sub(screwOrigin(c, s, walls)).lengthOnPlane(worldZ)
+    const displMM = screwOrigin(c, i, boardWalls).sub(screwOriginFn(c, s, walls)).lengthOnPlane(worldZ)
     if (displMM < minBoardDisplacement) return -Infinity
   }
   // Return -Infinity if it intersects the board
   // Disregard this if there is no microcontroller and no connector
   if (holderBnd) {
-    const miny = boardInd.bottomLeft ? Math.min(screwOrigin(c, boardInd.bottomLeft, walls).y - holderOuterRadius(c), holderBnd.miny) : holderBnd.miny
+    const miny = boardInd.bottomLeft ? Math.min(screwOrigin(c, boardInd.bottomLeft, boardWalls).y - holderOuterRadius(c), holderBnd.miny) : holderBnd.miny
     const maxy = boardInd.topLeft
       ? Math.max(
-        screwOrigin(c, boardInd.topLeft, walls).y + holderOuterRadius(c),
-        screwOrigin(c, boardInd.topRight!, walls).y + holderOuterRadius(c),
+        screwOrigin(c, boardInd.topLeft, boardWalls).y + holderOuterRadius(c),
+        screwOrigin(c, boardInd.topRight!, boardWalls).y + holderOuterRadius(c),
         holderBnd.maxy,
       )
       : holderBnd.maxy
@@ -1201,7 +1204,7 @@ function screwScoreStilts(c: Cuttleform, walls: WallCriticalPoints[], s: number,
   // Case of >= 2 positions:
   // Find the tippage when pressing on this position
   // Since the screw score = the tippage, the position with max tippage will be picked.
-  const origins = walls.map((_, i) => screwOriginFn(c, i + 0.5, walls))
+  const origins = walls.map((_, i) => screwOriginFn(c, i + (useCorners ? 0 : 0.5), walls))
   for (const other of params.otherPositions) {
     origins[other] = screwOriginFn(c, other, walls)
   }
@@ -1247,7 +1250,7 @@ function maxTip(c: Cuttleform, screwIndices: number[], walls: WallCriticalPoints
   return Math.max(...walls.flatMap(w => [...tippingLines(screwIndices, origins, w.bo.origin())]).map(t => t.tippage))
 }
 
-function screwScore(c: Cuttleform, walls: WallCriticalPoints[], s: number, params: ScoreParams) {
+function screwScore(c: Cuttleform, walls: WallCriticalPoints[], _: WallCriticalPoints[], s: number, params: ScoreParams) {
   const { heightMax, insertHeight, minDisplacement, boardInd, holderBnd, bottomZ, worldZ } = params
   // The score is based on how high the key is and displacement from the nearest
   // neighboring screw insert
@@ -1336,7 +1339,7 @@ export function* allScrewIndices(
     for (const iCenter of possibleIndices) {
       if (positions.has(iCenter)) continue
       const fn = c.shell.type == 'stilts' ? screwScoreStilts : screwScore
-      const sc = fn(c, walls, iCenter, {
+      const sc = fn(c, walls, walls, iCenter, {
         heightMax: kiMax - bottomZ,
         insertHeight,
         minDisplacement,
@@ -1518,14 +1521,17 @@ export function wristRestGeometry(c: Cuttleform, geo: Geometry, wrSide: 'wristRe
   const rightStart = new Vector(right, Math.max(rightWallY.y, rightWallY2.y), 0)
 
   const intermediatePoints: Vector[] = []
+  const intermediatePointsBottom: Vector[] = []
   for (let i = rightWallY.next; i <= leftWallY.next; i++) {
     const to = walls[i].to.origin()
+    const bo = walls[i].bo.origin()
     // Only add the intermediate point if it lies within the taper
     if (
       to.x > left + tanAngle * (leftStart.y - to.y)
       && to.x < right - tanAngle * (rightStart.y - to.y)
     ) {
       intermediatePoints.push(new Vector(to.x, to.y, 0))
+      intermediatePointsBottom.push(new Vector(bo.x, bo.y, 0))
     }
   }
 
@@ -1550,6 +1556,7 @@ export function wristRestGeometry(c: Cuttleform, geo: Geometry, wrSide: 'wristRe
     rightStart: rotateBack.apply(rightStart),
     rightEnd: rotateBack.apply(rightEnd),
     intermediatePoints: intermediatePoints.map(p => rotateBack.apply(p)),
+    intermediatePointsBottom: intermediatePointsBottom.map(p => rotateBack.apply(p)),
     // zOffset: origin[2] - 30 + c.wristRest.zOffset + additionalHeight(c, pts[0][0]),
     origin,
     length,
@@ -2348,48 +2355,62 @@ export function screwInsertDimensions(c: Cuttleform) {
 
 export function plateArtOrigin(c: Cuttleform, trsfs: Trsf[]) {
   const center = new Vector()
-  let n = 0
+  const nKeys = c.keys.filter(k => k.cluster !== 'thumbs').length
+  const filterKeys = nKeys > 0
+
   for (let i = 0; i < c.keys.length; i++) {
-    if (c.keys[i].cluster !== 'thumbs') {
+    if (!filterKeys || c.keys[i].cluster !== 'thumbs') {
       center.add(trsfs[i].origin())
-      n += 1
     }
   }
-  if (n > 0) center.divideScalar(n)
+  center.divideScalar(filterKeys ? nKeys : c.keys.length)
   center.z = 0
   return center
 }
 
-export function footOrigin(c: Cuttleform, i: number, walls: WallCriticalPoints[]) {
-  const whole = Math.floor(i)
-  const fraction = i - whole
-  const thisWall = walls[whole].bo.origin()
-  const nextWall = walls[(whole + 1) % walls.length].bo.origin()
+// export function footOrigin(c: Cuttleform, i: number, walls: WallCriticalPoints[]) {
+//   const whole = Math.floor(i)
+//   const fraction = i - whole
+//   const thisWall = walls[whole].bo.origin()
+//   const nextWall = walls[(whole + 1) % walls.length].bo.origin()
 
-  // Compute the center in the middle of the wall
-  const center = new Vector(thisWall).lerp(nextWall, fraction)
+//   // Compute the center in the middle of the wall
+//   const center = new Vector(thisWall).lerp(nextWall, fraction)
 
-  // Add the normal vector to the screw sits inside the wall
-  const normal = new Vector(thisWall).sub(nextWall).normalize().cross(Zv).negate()
+//   // Add the normal vector to the screw sits inside the wall
+//   const normal = new Vector(thisWall).sub(nextWall).normalize().cross(Zv).negate()
 
+//   const bottomRadius = (c.plate?.footDiameter || DEFAULT_FOOT_DIAM) / 2
+//   return center.addScaledVector(normal, bottomRadius + FOOT_INSET)
+// }
+
+export function footWalls(c: Cuttleform, walls: WallCriticalPoints[], floorZ: number) {
+  const clipper = new ClipperOffset()
+  clipper.AddPath(walls.map(w => w.bo.origin()), JoinType.jtSquare, EndType.etClosedPolygon)
+
+  const offsetPaths = new Paths()
   const bottomRadius = (c.plate?.footDiameter || DEFAULT_FOOT_DIAM) / 2
-  return center.addScaledVector(normal, bottomRadius + FOOT_INSET)
+  clipper.Execute(offsetPaths, -bottomRadius - FOOT_INSET)
+  const wallTrsfs = offsetPaths[0].map(({ x, y }) => new Trsf().translate(x, y, floorZ))
+  const newWalls: WallCriticalPoints[] = wallTrsfs.map(t => ({ bi: t, bo: t, mi: t, mo: t, ti: t, to: t, ki: t, nRoundNext: false, nRoundPrev: false }))
+  console.log('Foot walls length', newWalls.length)
+  return newWalls
 }
 
-export function* allFootIndices(c: Cuttleform, walls: WallCriticalPoints[], initialPositions: number[], screwIndices: number[], worldZ: Vector) {
+export function* allFootIndices(c: Cuttleform, walls: WallCriticalPoints[], oldWalls: WallCriticalPoints[], initialPositions: number[], screwIndices: number[], worldZ: Vector) {
   // How far away each screw insert must be from each other, in mm
   const minDisplacement = c.plate?.footDiameter || DEFAULT_FOOT_DIAM
   const minHolderDisp = screwInsertDimensions(c).outerBottomRadius * 2 + minDisplacement / 2
 
   const positions = new Set(initialPositions)
-  const possibleIndices = Array.from(possibleScrewIndices(c, walls))
+  const possibleIndices = Array.from(possibleFootIndices(c, walls))
   while (true) {
     // Find position with the highest score
     let highestScore = -Infinity
     let bestPosition = 0
     for (const iCenter of possibleIndices) {
       if (positions.has(iCenter)) continue
-      const sc = screwScoreStilts(c, walls, iCenter, {
+      const sc = screwScoreStilts(c, walls, oldWalls, iCenter, {
         heightMax: Infinity,
         insertHeight: -Infinity,
         boardInd: screwIndices as any,
@@ -2398,6 +2419,8 @@ export function* allFootIndices(c: Cuttleform, walls: WallCriticalPoints[], init
         minHolderDisp,
         worldZ,
         otherPositions: positions,
+        screwOriginFn: footOrigin,
+        useCorners: true,
       })
       if (sc > highestScore) {
         bestPosition = iCenter
@@ -2415,13 +2438,14 @@ export function footIndices(
   c: Cuttleform,
   screwIndices: number[],
   walls: WallCriticalPoints[],
+  oldWalls: WallCriticalPoints[],
   worldZ: Vector,
 ) {
   if (!c.plate || !c.plate.footIndices) return []
 
   const footInd = [...c.plate.footIndices]
   const positiveInd = c.plate.footIndices.filter(i => i != -1)
-  for (const pos of allFootIndices(c, walls, positiveInd, screwIndices, worldZ)) {
+  for (const pos of allFootIndices(c, walls, oldWalls, positiveInd, screwIndices, worldZ)) {
     // Find next position with index -1. It will be replaced.
     const nextIndex = footInd.indexOf(-1)
     if (nextIndex == -1) break
@@ -2429,4 +2453,27 @@ export function footIndices(
   }
 
   return footInd.filter(i => i != -1)
+}
+
+export function footOrigin(c: Cuttleform, i: number, walls: WallCriticalPoints[]) {
+  const whole = Math.floor(i)
+  const fraction = i - whole
+  const thisWall = walls[whole].bo.origin()
+  const nextWall = walls[(whole + 1) % walls.length].bo.origin()
+
+  return new Vector(thisWall).lerp(nextWall, fraction)
+}
+
+export function* possibleFootIndices(c: Cuttleform, walls: WallCriticalPoints[]) {
+  if (c.plate?.footDiameter == 0) return []
+
+  for (let i = 0; i < walls.length; i++) {
+    const nextI = (i + 1) % walls.length
+    // If the length of the wall is big, split it into multiple subdivisions
+    // For short walls, subidvisions = 1, and the loop only yields i (the current wall index)
+    const subdivisions = Math.floor(walls[i].bi.origin().distanceTo(walls[nextI].bi.origin()) / 40) + 1
+    for (let k = 0; k < subdivisions; k++) {
+      yield i + k / subdivisions
+    }
+  }
 }

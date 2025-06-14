@@ -114,6 +114,17 @@
     return n
   }
 
+  function nFeet(geo: FullGeometry) {
+    let n = 0
+    for (const g of Object.values(geo)) {
+      n += g.footIndices.length || 4
+    }
+    const g = Object.values(geo)[0]
+    if (g.footIndices.length && g.c.wristRestLeft) n += 5
+    if (g.footIndices.length && g.c.wristRestRight) n += 5
+    return n
+  }
+
   $: _nScrewInserts = nScrewInserts(geometry)
 </script>
 
@@ -313,7 +324,7 @@
           <div class="icon"><Icon size="24" path={mdi.mdiMoonWaxingGibbous} /></div>
         </div>
         <div class="title">
-          <span class="amount">{multiplier * 4}</span>
+          <span class="amount">{nFeet(geometry)}</span>
           <span>Rubber or Silicone Feet</span>
         </div>
         <div class="info">For stopping your keyboard from sliding</div>

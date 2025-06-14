@@ -1,5 +1,5 @@
 import type { OpenCascadeInstance, TopAbs_ShapeEnum, TopoDS_Shell, TopoDS_Vertex } from '$assets/replicad_single'
-import { type AnyShape, Compound, downcast, Face, getOC as ogetOC, shapeType, Solid } from 'replicad'
+import { type AnyShape, Compound, downcast, Face, getOC as ogetOC, type ShapeMesh as SM, shapeType, Solid } from 'replicad'
 import { Assembly } from './assembly'
 import type Trsf from './transformation'
 
@@ -133,4 +133,16 @@ export function blobSTL(shape: AnyShape | Assembly, opts?: {
   } else {
     throw new Error('WRITE STL FILE FAILED.')
   }
+}
+
+export interface ShapeMesh {
+  triangles: Uint16Array
+  vertices: Float32Array
+  normals: Float32Array
+  faceGroups: {
+    start: number
+    count: number
+    faceId: number
+  }[]
+  color?: Uint16Array
 }

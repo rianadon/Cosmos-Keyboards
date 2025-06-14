@@ -1,7 +1,7 @@
-import type { ShapeMesh } from 'replicad'
+import type { ShapeMesh } from '$lib/worker/modeling'
 import { Box3, BufferAttribute, BufferGeometry, type Matrix4, Vector3 } from 'three'
 
-export function fromGeometry(geometry: ShapeMesh | undefined | null) {
+export function fromGeometry(geometry: ShapeMesh | undefined | null, addColor = false) {
   if (!geometry) return undefined
 
   const geo = new BufferGeometry()
@@ -15,6 +15,10 @@ export function fromGeometry(geometry: ShapeMesh | undefined | null) {
   if (geometry.triangles) {
     const indices = new Uint16Array(geometry.triangles)
     geo.setIndex(new BufferAttribute(indices, 1))
+  }
+
+  if (addColor) {
+    geo.setAttribute('cutoff', new BufferAttribute(geometry.color || new Float32Array(geometry.vertices.length / 3), 1))
   }
 
   return geo

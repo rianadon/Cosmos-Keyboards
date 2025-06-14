@@ -22,6 +22,7 @@
     "comlink": "^4.4.1",
     "monaco-editor": "^0.37.1",
     "pako": "^2.1.0",
+    "path-data-parser": "^0.1.0",
     "qrious": "^4.0.2",
     "replicad": "^0.17.0",
     "siema": "^1.5.1",

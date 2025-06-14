@@ -135,6 +135,12 @@ struct('BasicShellFlags', { lip: 'bool,1' })
 struct('StiltsShellFlags', { inside: 'bool,1' })
 struct('TiltShellFlags', { usePattern: 'bool,1' })
 
+enumeration('PLATE_ART', [
+  null,
+  'cosmos',
+  'circle',
+], true)
+
 // ----------------------------------------------------------------------------
 //                      UTILITIES FOR CODE GEN
 //                    no need to edit this stuff

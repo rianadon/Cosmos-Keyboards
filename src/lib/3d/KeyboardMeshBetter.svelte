@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { MeshStandardMaterial, type BufferGeometry } from 'three'
+  import { BufferGeometry } from 'three'
   import KeyboardMaterial from './KeyboardMaterial.svelte'
   import type { KeyStatus } from './keyboardKey'
   import { T } from '@threlte/core'
-  import type { ShapeMesh } from 'replicad'
+  import type { ShapeMesh } from '$lib/worker/modeling'
   import { fromGeometry } from '$lib/loaders/geometry'
   import { onDestroy } from 'svelte'
 
@@ -13,7 +13,7 @@
   $: onNewGeometry(geometry)
   function onNewGeometry(geo: ShapeMesh | undefined) {
     if (threeGeo) threeGeo.dispose()
-    threeGeo = fromGeometry(geo)
+    threeGeo = fromGeometry(geo, useColors)
   }
 
   onDestroy(() => threeGeo && threeGeo.dispose())
@@ -24,6 +24,7 @@
   export let status: KeyStatus = undefined
   export let letter: string | undefined = undefined
   export let color: [any, number] | undefined = undefined
+  export let useColors = false
 </script>
 
 {#if threeGeo}
@@ -31,7 +32,7 @@
     {#if color}
       <T.MeshStandardMaterial color={color[0]} transparent={true} opacity={color[1]} />
     {:else}
-      <KeyboardMaterial {opacity} {brightness} {kind} {status} {letter} />
+      <KeyboardMaterial {opacity} {brightness} {kind} {status} {letter} {useColors} />
     {/if}
   </T.Mesh>
 {/if}

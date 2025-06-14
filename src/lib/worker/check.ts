@@ -176,6 +176,12 @@ export function checkConfig(conf: Cuttleform, geometry: Geometry | undefined, ch
         errors.push({ type: 'oob', idx: conf.connectorIndex, item: 'connectorIndex', len: wallPts.length, side })
       }
     }
+    if (conf.plate?.footIndices?.find(s => s >= 0)) {
+      const wallPts = geometry.footWalls
+      for (const idx of conf.plate.footIndices) {
+        if (idx >= wallPts.length) errors.push({ type: 'oob', idx, item: 'plate.footIndices', len: wallPts.length, side })
+      }
+    }
   } catch (e) {
     console.error(e)
     return [{ type: 'exception', when: 'laying out the walls', error: e as Error, side }]

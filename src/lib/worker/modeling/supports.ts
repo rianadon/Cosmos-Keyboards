@@ -1,5 +1,5 @@
-import type { ShapeMesh } from 'replicad'
 import { Vector3 } from 'three/src/math/Vector3'
+import type { ShapeMesh } from './index'
 
 const NEEDS_SUPPORT_ANGLE = Math.PI / 6 // angles of > 30 degrees need support
 const SUPPORT_THRESH = -Math.sin(NEEDS_SUPPORT_ANGLE) // faces with normal.z < thresh need support
@@ -16,7 +16,7 @@ export function supportMesh(mesh: ShapeMesh, minZ: number): ShapeMesh {
   }
 
   const boundary = new Set<string>()
-  const faces: number[][] = []
+  const faces: Uint16Array[] = []
   const faceNorms: Vector3[] = []
   let volume = 0
 

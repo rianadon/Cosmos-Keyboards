@@ -3,8 +3,11 @@
 
   import Viewer from './Viewer.svelte'
   import {
+    allFootIndices,
     allScrewIndices,
+    footOrigin,
     keyHolesTrsfs,
+    possibleFootIndices,
     possibleScrewIndices,
     screwOrigin,
   } from '$lib/worker/geometry'
@@ -222,13 +225,21 @@
       material: new THREE.MeshBasicMaterial({ color: 0xff99cc }),
     })
 
-    console.log('FEET', geo.footPositions)
-    for (const pos of geo.footPositions) {
-      geos.push({
-        geometry: new THREE.CircleGeometry(2, 32).translate(...pos.xy(), 0),
-        material: new THREE.MeshBasicMaterial({ color: 0xff99cc }),
-      })
-    }
+    // const existingFootInd = config.plate?.footIndices?.filter((f) => f != -1) || []
+    // const allFootInd = [
+    //   ...allFootIndices(config, geo.footWalls, walls2, existingFootInd, geo.screwIndices, geo.worldZ),
+    // ]
+    // const footInd = new Set(possibleFootIndices(geo.c, walls2))
+    // geo.footIndices.forEach((i) => footInd.add(i))
+    // allFootInd.forEach((i) => footInd.add(i))
+    // for (const i of footInd) {
+    //   const color = geo.footIndices.includes(i) ? 0xff99cc : allFootInd.includes(i) ? 0x990000 : 0x441122
+    //   const pos = footOrigin(config, i, geo.footWalls)
+    //   geos.push({
+    //     geometry: new THREE.CircleGeometry(2, 32).translate(...pos.xy(), 0),
+    //     material: new THREE.MeshBasicMaterial({ color }),
+    //   })
+    // }
 
     // const wristRestGeo = wristRestGeometry(conf, geo)
     // geos.push({

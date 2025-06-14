@@ -12,6 +12,7 @@
   } from '$lib/worker/config'
   import {
     MICROCONTROLLER_NAME,
+    PLATE_ART,
     PROFILE,
     SCREW_SIZE,
     type ConnectorType,
@@ -95,6 +96,7 @@
   import SelectProfileLabel from './SelectProfileLabel.svelte'
   import SelectMicrocontrollerInner from './SelectMicrocontrollerInner.svelte'
   import { trackEvent } from '$lib/telemetry'
+  import { footIndices } from '$lib/worker/geometry'
 
   export let cosmosConf: CosmosKeyboard
   export let conf: FullCuttleform
@@ -182,6 +184,10 @@
     )
     $protoConfig.connectors = connectors
     $protoConfig.mirrorConnectors = mirrorConnectors
+  }
+
+  function updatePlate() {
+    $protoConfig.plate = { ...$protoConfig.plate }
   }
 
   let lastSwitch: Record<string, PartType['type']> = { choc: 'choc-v1', mx: 'mx-better' }
@@ -281,6 +287,36 @@
       const splitInd = newInd.split(',').map(Number)
       if (splitInd.some(isNaN)) return
       $protoConfig.screwIndices = splitInd
+    }
+  }
+
+  function setNFeet(e: CustomEvent) {
+    if (!$protoConfig.plate) return
+    const newN = Number(e.detail)
+    const oldN = $protoConfig.plate?.footIndices.length
+    if (newN > oldN) {
+      $protoConfig.plate = {
+        ...$protoConfig.plate,
+        footIndices: [...$protoConfig.plate.footIndices, ...new Array(newN - oldN).fill(-1)],
+      }
+    } else if (newN < oldN) {
+      $protoConfig.plate = {
+        ...$protoConfig.plate,
+        footIndices: $protoConfig.plate.footIndices.slice(0, newN),
+      }
+    }
+  }
+  function enterFootIndices() {
+    if (!$protoConfig.plate) return
+    const ind = $protoConfig.plate?.footIndices.join(',')
+    const newInd = prompt(
+      'Enter the indices of the foot holes separated by commas. For information on what these indices mean, refer to the expert mode documentation.',
+      ind
+    )
+    if (newInd) {
+      const splitInd = newInd.split(',').map(Number)
+      if (splitInd.some(isNaN)) return
+      $protoConfig.plate = { ...$protoConfig.plate, footIndices: splitInd }
     }
   }
 
@@ -1139,6 +1175,49 @@
         <Checkbox bind:value={$protoConfig.screwCountersink} />
       </Field>
     {/if}
+  {/if}
+  <Field name="Improved Plate" icon="art" pro help="Add plate art and insets for silicone feet">
+    <CheckboxOpt
+      bind:value={$protoConfig.plate}
+      def={{ art: 'cosmos', footIndices: [-1, -1, -1, -1], footDiameter: 10 }}
+    />
+  </Field>
+  {#if $protoConfig.plate}
+    <Field name="Plate Art" pro>
+      <Select bind:value={$protoConfig.plate.art}>
+        {#each PLATE_ART as art}
+          <option value={art}>{capitalize(art || 'None')}</option>
+        {/each}
+      </Select>
+    </Field>
+  {/if}
+  {#if $protoConfig.plate && $protoConfig.plate.footIndices && $protoConfig.plate.footIndices.length > 0}
+    {#if !basic}<div class="relative">
+        <div class="absolute right-48 top--1.5">
+          <button class="button" on:click={enterFootIndices}><Icon path={mdiCodeJson} /></button>
+        </div>
+        <Field name="Number of Feet" pro>
+          <DecimalInput
+            divisor={1}
+            value={$protoConfig.plate.footIndices?.length}
+            on:change={setNFeet}
+          />
+        </Field>
+      </div>{/if}
+    {#if $protoConfig.plate?.footIndices?.some((s) => s >= 0)}
+      <InfoBox
+        >One or more feet are manually positioned. To edit these positions, click the code brackets next
+        to the Advanced &rarr; Number of Feet.</InfoBox
+      >
+    {/if}
+    <Field name="Size of Feet" pro>
+      <DecimalInput
+        divisor={10}
+        bind:value={$protoConfig.plate.footDiameter}
+        units="mm"
+        on:change={updatePlate}
+      />
+    </Field>
   {/if}
   <Field name="Rounded Top Edge" icon="round-top" pro>
     <CheckboxOpt bind:value={$protoConfig.rounded.top} def={{ horizontal: 0.25, vertical: 0.67 }} />
