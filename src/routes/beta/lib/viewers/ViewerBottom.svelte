@@ -229,7 +229,7 @@
     // const allFootInd = [
     //   ...allFootIndices(config, geo.footWalls, walls2, existingFootInd, geo.screwIndices, geo.worldZ),
     // ]
-    // const footInd = new Set(possibleFootIndices(geo.c, walls2))
+    // const footInd = new Set(possibleFootIndices(geo.c, geo.footWalls))
     // geo.footIndices.forEach((i) => footInd.add(i))
     // allFootInd.forEach((i) => footInd.add(i))
     // for (const i of footInd) {

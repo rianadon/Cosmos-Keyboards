@@ -4377,9 +4377,7 @@ export class ClipperOffset {
   private MiterLimit: number
   private ArcTolerance: number
 
-  constructor(miterLimit?: number, arcTolerance?: number) {
-    if (typeof miterLimit === 'undefined') miterLimit = 2
-    if (typeof arcTolerance === 'undefined') arcTolerance = ClipperOffset.def_arc_tolerance
+  constructor(miterLimit = 2, arcTolerance = ClipperOffset.def_arc_tolerance) {
     this.m_destPolys = new Paths()
     this.m_srcPoly = new Path()
     this.m_destPoly = new Path()

@@ -2385,8 +2385,8 @@ export function plateArtOrigin(c: Cuttleform, trsfs: Trsf[]) {
 // }
 
 export function footWalls(c: Cuttleform, walls: WallCriticalPoints[], floorZ: number) {
-  const clipper = new ClipperOffset()
-  clipper.AddPath(walls.map(w => w.bo.origin()), JoinType.jtSquare, EndType.etClosedPolygon)
+  const clipper = new ClipperOffset(2, 0.5)
+  clipper.AddPath(walls.map(w => w.bo.origin()), JoinType.jtRound, EndType.etClosedPolygon)
 
   const offsetPaths = new Paths()
   const bottomRadius = (c.plate?.footDiameter || DEFAULT_FOOT_DIAM) / 2
