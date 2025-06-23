@@ -12,6 +12,7 @@ export interface QMKOptions {
   vid: string
   pid: string
   keyboardName: string
+  folderName: string
   yourName: string
   diodeDirection: 'COL2ROW' | 'ROW2COL'
 }
@@ -143,9 +144,8 @@ function generateKeymap(config: FullGeometry, matrix: Matrix, options: QMKOption
 }
 
 export function downloadQMKCode(config: FullGeometry, matrix: Matrix, options: QMKOptions) {
-  const folderName = options.keyboardName.toLowerCase().replace(/[^0-9a-z_/]/g, '')
   zip({
-    [folderName]: {
+    [options.folderName]: {
       'config.h': strToU8(generateConfigH(config)),
       'keyboard.json': strToU8(generateInfoFile(config, matrix, options)),
       'keymaps/default/keymap.c': strToU8(generateKeymap(config, matrix, options)),

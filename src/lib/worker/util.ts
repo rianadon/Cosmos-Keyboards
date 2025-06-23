@@ -62,6 +62,15 @@ export function mapObj<K extends string, V, R>(obj: Record<K, V>, f: (a: V, k: K
   return newObj
 }
 
+export function mapObjNotNull<K extends string, V, R>(obj: Partial<Record<K, V>>, f: (a: Exclude<V, undefined>, k: K) => R): Record<K, R> {
+  const newObj: any = {}
+  for (const key of Object.keys(obj) as K[]) {
+    const value = obj[key]
+    newObj[key] = typeof value !== 'undefined' && value !== null ? f(value as Exclude<V, undefined>, key) : undefined
+  }
+  return newObj
+}
+
 export function mapMap<K extends string, V, R>(map: Map<K, V>, f: (a: V, k: K) => R): Map<K, R> {
   const newEntries: [K, R][] = Array.from(map, ([key, value]) => [key, f(value, key)])
   return new Map(newEntries)
@@ -155,4 +164,13 @@ export function count<T>(items: T[]): TallyMap<T> {
   const map = new TallyMap<T>()
   items.forEach(i => map.incr(i))
   return map
+}
+
+export function findIndexIter<T>(iterator: IteratorObject<T, BuiltinIteratorReturn, unknown>, fn: (v: T) => boolean): number {
+  let i = 0
+  for (const val of iterator) {
+    if (fn(val)) return i
+    i++
+  }
+  return -1
 }

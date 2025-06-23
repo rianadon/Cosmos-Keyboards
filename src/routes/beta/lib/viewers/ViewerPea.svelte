@@ -12,11 +12,12 @@
   } from '$lib/worker/config'
   import { isRenderable, type ConfError, type ConfErrors } from '$lib/worker/check'
   import { view } from '$lib/store'
-  import { hasKeyGeometry } from '$lib/loaders/keycaps'
+  import { hasKeyGeometry, hasPinsInMatrix } from '$lib/loaders/keycaps'
   import type { FullGeometry } from './viewer3dHelpers'
   import { mapObj, objEntries } from '$lib/worker/util'
   import { T } from '@threlte/core'
   import { HTML } from '@threlte/extras'
+  import { PART_INFO } from '$lib/geometry/socketsParts'
 
   export let geometry: FullGeometry
   export let style: string = ''
@@ -26,7 +27,7 @@
   let activeIndex = 0
   $: possibleKeys = Object.values(geometry)
     .flatMap((g) => g.c.keys)
-    .filter(hasKeyGeometry)
+    .filter(hasPinsInMatrix)
   $: activeKey = possibleKeys[activeIndex]
   let matrices = new Map<CuttleKey, [number, number]>()
   let matrixState: [typeof matrices, number] = [matrices, 0]
@@ -175,7 +176,7 @@
   {#each objEntries(allGeometries) as [kbd, geos]}
     {@const geo = geometry[kbd]}
     {@const cent = center[kbd]}
-    {#if cent}
+    {#if cent && geo}
       <T.Group position={[-cent[0], -cent[1], -cent[2]]} scale.x={kbd == 'left' ? -1 : 1}>
         {#each geos as geometry}
           <T.Mesh geometry={geometry.geometry} material={geometry.material} />
@@ -183,16 +184,16 @@
         {#if isRenderable(confError) && geometry}
           {#each geo.allKeyCriticalPoints2D as p, i}
             {@const active = geo.c.keys[i] == activeKey}
-            {@const letter = hasKeyGeometry(geo.c.keys[i])}
+            {@const hasMatrix = hasPinsInMatrix(geo.c.keys[i])}
             <T.Mesh geometry={drawWall(p.map((p) => p.xy()))}>
               <T.MeshBasicMaterial
-                color={active ? 0x0000ff : letter ? 0xffcc33 : 0xcccccc}
+                color={active ? 0x0000ff : hasMatrix ? 0xffcc33 : 0xcccccc}
                 transparent={true}
                 opacity={0.1}
               />
             </T.Mesh>
             <T.Mesh geometry={drawLinedWall(p.map((p) => p.xy()))}>
-              <T.MeshBasicMaterial color={active ? 0x0000ff : letter ? 0xffcc33 : 0xcccccc} />
+              <T.MeshBasicMaterial color={active ? 0x0000ff : hasMatrix ? 0xffcc33 : 0xcccccc} />
             </T.Mesh>
           {/each}
           {#each geo.keyHolesTrsfs2D.flat().map((k) => k.xyz()) as p, i}

@@ -10,6 +10,18 @@ If you haven't already, I suggest you check out the [Lemon Landing page](https:/
 
 Go to the [landing page](https://ryanis.cool/lemon) :)
 
+## Power
+
+The Lemon Wireless can run on both USB power and a 4.2/3.7V Lithium Polymer (LiPo/LiPoly) or Lithium Ion (LiIon) rechargable battery. If you connect both at the same time, the microcontroller will draw from USB power while charging the battery.
+
+!!! warning
+
+    Connecting a battery with incorrect JST connector polarity can permanently damage the board. There's no standard for the polarity, so batteries ordered from places like Amazon may be wired incorrectly. You can fix a reversed connector by [removing and rearranging](https://www.youtube.com/watch?v=0G7iIwfuaJ8) the crimped leads in the JST housing. Then double check the wire coloring matches the silkscreen on the board (red goes to +, black goes to -).
+
+    To avoid this risk entirely, it's safest to buy [batteries from Adafruit](https://www.adafruit.com/category/574). Their batteries are correctly wired and buying from them helps support their open-source contributions—such as the bootloader used by this board.
+
+These are the only two kinds of batteries supported. Plugging in a higher voltage battery (e.g. a multicell one like 7.4V) or alkaline/nonrechargeable batteries will damage the board.
+
 ## ZMK Example
 
 The best example of using ZMK on the Lemon microcontroller will for now probably be the ZMK implementation of my [peaMK](https://github.com/rianadon/peaMK/tree/main/zmk) software. Currently, all this program does is print the matrix position of a key you press, but you can disable this feature by editing `boards/shields/peamk/peamk.keymap`. There are a few noteworthy aspects to this program:
@@ -37,8 +49,8 @@ I haven't contributed this board upstream yet since I don't know how popular thi
     # -----------------------------------
     cosmos_lemon_wireless.name=Cosmos Lemon Wireless
 
-    cosmos_lemon_wireless.vid.0=0x0001
-    cosmos_lemon_wireless.pid.0=0xcaff
+    cosmos_lemon_wireless.vid.0=0x1915
+    cosmos_lemon_wireless.pid.0=0x6c77
 
     # Upload
     cosmos_lemon_wireless.bootloader.tool=bootburn
@@ -60,8 +72,8 @@ I haven't contributed this board upstream yet since I don't know how popular thi
     cosmos_lemon_wireless.build.extra_flags=-DNRF52840_XXAA {build.flags.usb}
     cosmos_lemon_wireless.build.ldscript=nrf52840_s140_v6.ld
     cosmos_lemon_wireless.build.openocdscript=scripts/openocd/daplink_nrf52.cfg
-    cosmos_lemon_wireless.build.vid=0x0001
-    cosmos_lemon_wireless.build.pid=0xcaff
+    cosmos_lemon_wireless.build.vid=0x1915
+    cosmos_lemon_wireless.build.pid=0x6c77
 
     # Menu: SoftDevice
     cosmos_lemon_wireless.menu.softdevice.s140v6=S140 6.1.1

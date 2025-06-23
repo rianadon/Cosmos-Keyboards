@@ -1,6 +1,7 @@
 import { download } from '$lib/browser'
-import { hasKeyGeometry } from '$lib/loaders/keycaps'
+import { hasPinsInMatrix } from '$lib/loaders/keycaps'
 import type { CuttleKey } from '$lib/worker/config'
+import { findIndexIter } from '$lib/worker/util'
 import { strToU8, zip } from 'fflate'
 import type { FullGeometry } from './viewers/viewer3dHelpers'
 
@@ -8,11 +9,23 @@ export type Matrix = Map<CuttleKey, [number, number]>
 
 const RE_PID_VID = /^0x[0-9A-Fa-f]{4}$/
 
+interface ZMKPeripherals {
+  trackball: boolean
+}
+
 export interface ZMKOptions {
   vid: string
   pid: string
   keyboardName: string
+  folderName: string
   yourName: string
+  diodeDirection: 'COL2ROW' | 'ROW2COL'
+  centralSide: 'left' | 'right'
+  peripherals: {
+    left: ZMKPeripherals
+    right: ZMKPeripherals
+    unibody: ZMKPeripherals
+  }
 }
 
 export function validateConfig(options: ZMKOptions) {
@@ -146,7 +159,7 @@ function generateKeycodes(config: FullGeometry, matrix: Matrix) {
   const keycodes: string[] = []
   for (const keyboard of Object.values(config)) {
     for (const key of keyboard.c.keys) {
-      if (!hasKeyGeometry(key)) continue
+      if (!hasPinsInMatrix(key)) continue
       keycodes.push(keycode('keycap' in key ? key.keycap?.letter : undefined))
     }
   }
@@ -178,25 +191,29 @@ function generateGitHubWorkflow() {
 }
 
 function generateBuildYaml(config: FullGeometry, options: ZMKOptions): string {
-  const buildName = options.keyboardName.toLowerCase().replace(/[^0-9a-z_/]/g, '')
+  function shieldList(name: string, peripherals: ZMKPeripherals) {
+    const shields = [name]
+    if (peripherals.trackball) shields.push('vik_pmw3610')
+    return shields.join(' ')
+  }
   return jsonToYaml({
     include: config.unibody
       ? [
         {
           board: 'cosmos_lemon_wireless',
-          shield: `${buildName}`,
+          shield: shieldList(`${options.folderName}`, options.peripherals.unibody),
           snippet: 'zmk-usb-logging',
         },
       ]
       : [
         {
           board: 'cosmos_lemon_wireless',
-          shield: `${buildName}_left`,
+          shield: shieldList(`${options.folderName}_left`, options.peripherals.left),
           snippet: 'zmk-usb-logging',
         },
         {
           board: 'cosmos_lemon_wireless',
-          shield: `${buildName}_right`,
+          shield: shieldList(`${options.folderName}_right`, options.peripherals.right),
           snippet: 'zmk-usb-logging',
         },
       ],
@@ -217,9 +234,10 @@ function generateDepsYaml(): string {
     manifest: {
       remotes: [
         { name: 'sadekbaroudi', 'url-base': 'https://github.com/sadekbaroudi' },
+        { name: 'rianadon', 'url-base': 'https://github.com/rianadon' },
       ],
       projects: [
-        { name: 'zmk-fingerpunch-vik', remote: 'sadekbaroudi', revision: 'main', import: 'config/deps.yml' },
+        { name: 'zmk-fingerpunch-vik', remote: 'rianadon', revision: 'main', import: 'config/deps.yml' },
       ],
     },
   })
@@ -241,19 +259,20 @@ function generateWestYaml(): string {
 }
 
 function generateDefconfig(config: FullGeometry, options: ZMKOptions) {
-  const buildName = options.keyboardName.toUpperCase().replace(/[^0-9A-Z_/]/g, '')
+  const { folderName } = options
+  const centralSide = options.centralSide.toUpperCase()
   return `
-if SHIELD_${buildName}_LEFT
+if SHIELD_${folderName}_${centralSide}
 
 config ZMK_KEYBOARD_NAME
-    default "${options.keyboardName}"
+    default "${options.keyboardName.substring(0, 16)}"
 
 config ZMK_SPLIT_ROLE_CENTRAL
     default y
 
-endif # SHIELD_${buildName}_LEFT
+endif # SHIELD_${folderName}_${centralSide}
 
-if SHIELD_${buildName}_LEFT || SHIELD_${buildName}_RIGHT
+if SHIELD_${folderName}_LEFT || SHIELD_${folderName}_RIGHT
 
 config ZMK_SPLIT
     default y
@@ -265,20 +284,17 @@ config ZMK_RGB_UNDERGLOW
     select WS2812_STRIP
     select SPI
 
-endif # SHIELD_${buildName}_LEFT || SHIELD_${buildName}_RIGHT
+endif # SHIELD_${folderName}_LEFT || SHIELD_${folderName}_RIGHT
 `
 }
 
 function generateShield(config: FullGeometry, options: ZMKOptions) {
-  const folderName = options.keyboardName.toLowerCase().replace(/[^0-9a-z_/]/g, '')
-  const buildName = options.keyboardName.toUpperCase().replace(/[^0-9A-Z_/]/g, '')
-
   return `
-config SHIELD_${buildName}_LEFT
-    def_bool $(shields_list_contains,${folderName}_left)
+config SHIELD_${options.folderName}_LEFT
+    def_bool $(shields_list_contains,${options.folderName}_left)
 
-config SHIELD_${buildName}_RIGHT
-    def_bool $(shields_list_contains,${folderName}_right)
+config SHIELD_${options.folderName}_RIGHT
+    def_bool $(shields_list_contains,${options.folderName}_right)
 `
 }
 
@@ -286,10 +302,19 @@ function generateConf(config: FullGeometry, options: ZMKOptions) {
   return [
     '# Uncomment the following lines to enable RGB underglow',
     'CONFIG_ZMK_RGB_UNDERGLOW=y',
+    ...(Object.values(options.peripherals).some(p => p.trackball)
+      ? [
+        '# zmk mouse emulation for trackball',
+        'CONFIG_ZMK_POINTING=y',
+      ]
+      : []),
   ].join('\n') + '\n'
 }
 
 function generateDTSI(config: FullGeometry, matrix: Matrix, options: ZMKOptions) {
+  const activeMode = options.diodeDirection == 'COL2ROW' ? 'GPIO_ACTIVE_HIGH' : 'GPIO_ACTIVE_LOW'
+  const pullMode = options.diodeDirection == 'COL2ROW' ? 'GPIO_PULL_DOWN' : 'GPIO_PULL_UP'
+
   return `#include <behaviors.dtsi>
 #include <dt-bindings/zmk/matrix_transform.h>
 #include <dt-bindings/zmk/keys.h>
@@ -313,7 +338,7 @@ function generateDTSI(config: FullGeometry, matrix: Matrix, options: ZMKOptions)
         ngpios = <8>;
         #gpio-cells = <2>;
     };
-  };
+};
 
 / {
     chosen {
@@ -333,23 +358,23 @@ function generateDTSI(config: FullGeometry, matrix: Matrix, options: ZMKOptions)
 
         diode-direction = "col2row";
         row-gpios
-            = <&gpio1 15 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
-            , <&gpio0 9 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
-            , <&gpio0 10 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
-            , <&gpio0 22 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
-            , <&gpio1 13 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
-            , <&gpio0 24 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
-            , <&gpio0 20 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
+            = <&gpio0 20 (${activeMode} | ${pullMode})>
+            , <&gpio0 22 (${activeMode} | ${pullMode})>
+            , <&gpio0 24 (${activeMode} | ${pullMode})>
+            , <&gpio0 9  (${activeMode} | ${pullMode})>
+            , <&gpio0 10 (${activeMode} | ${pullMode})>
+            , <&gpio1 13 (${activeMode} | ${pullMode})>
+            , <&gpio1 15 (${activeMode} | ${pullMode})>
             ;
 
         col-gpios
-            = <&shifter 0 GPIO_ACTIVE_HIGH>
-            , <&shifter 1 GPIO_ACTIVE_HIGH>
-            , <&shifter 2 GPIO_ACTIVE_HIGH>
-            , <&shifter 3 GPIO_ACTIVE_HIGH>
-            , <&shifter 4 GPIO_ACTIVE_HIGH>
-            , <&shifter 5 GPIO_ACTIVE_HIGH>
-            , <&shifter 6 GPIO_ACTIVE_HIGH>
+            = <&shifter 0 ${activeMode}>
+            , <&shifter 1 ${activeMode}>
+            , <&shifter 2 ${activeMode}>
+            , <&shifter 3 ${activeMode}>
+            , <&shifter 4 ${activeMode}>
+            , <&shifter 5 ${activeMode}>
+            , <&shifter 6 ${activeMode}>
             ;
     };
 };
@@ -357,25 +382,35 @@ function generateDTSI(config: FullGeometry, matrix: Matrix, options: ZMKOptions)
 }
 
 function generateZMKYaml(config: FullGeometry, options: ZMKOptions) {
-  const folderName = options.keyboardName.toLowerCase().replace(/[^0-9a-z_/]/g, '')
+  const { folderName, keyboardName } = options
   return jsonToYaml({
     file_format: '"1"',
     id: folderName,
-    name: options.keyboardName,
+    name: keyboardName,
     type: 'shield',
     url: 'https://github.com/rianadon/Cosmos-Keyboards',
     features: ['keys', 'studio'],
-    siblings: config.unibody ? [folderName] : [`${folderName}_left`, `${folderName}_right`],
+    siblings: config.unibody ? [folderName] : [`${folderName}_left`, `${options.folderName}_right`],
   })
 }
 
-function generateOverlay(config: FullGeometry, options: ZMKOptions, right: boolean) {
-  const folderName = options.keyboardName.toLowerCase().replace(/[^0-9a-z_/]/g, '')
+function generateOverlay(config: FullGeometry, matrix: Matrix, options: ZMKOptions, right: boolean) {
+  // Find the bootloader position, which should be the index of the key with (0,0) matrix position.
+  // If no suck key exists, fall back to the first key on the left/right side.
+  let bootloaderPosition = findIndexIter(matrix.values(), m => m[0] == 0 && m[1] == (right ? 7 : 0))
+  if (bootloaderPosition == -1 && right && config.right) bootloaderPosition = findIndexIter(matrix.keys(), k => config.right!.c.keys.includes(k))
+  if (bootloaderPosition == -1 && !right && config.left) bootloaderPosition = findIndexIter(matrix.keys(), k => config.left!.c.keys.includes(k))
+  if (bootloaderPosition == -1) bootloaderPosition = 0
 
   let overlay = `
-#include "${folderName}.dtsi"
+#include "${options.folderName}.dtsi"
 
 / {
+    bootloader_key: bootloader_key {
+        compatible = "zmk,boot-magic-key";
+        key-position = <${bootloaderPosition}>;
+        jump-to-bootloader;
+    };
 };
 `
   if (right) {
@@ -446,8 +481,8 @@ function generateBoardOverlay() {
           , <2 0 &gpio0  26 0>   /* vik RGB Data */
           , <3 0 &gpio0  29 0>   /* vik AD_1 */
           , <4 0 &gpio0  12 0>   /* vik MOSI */
-          , <5 0 &gpio1  27 0>   /* vik AD_2 */
-          , <6 0 &gpio0  4 0>    /* vik CS */
+          , <5 0 &gpio0  31 0>   /* vik AD_2 */
+          , <6 0 &gpio0  8 0>    /* vik CS */
           , <7 0 &gpio0  6 0>    /* vik MISO */
           , <8 0 &gpio1  1 9>    /* vik SCLK */
           ;
@@ -456,11 +491,11 @@ function generateBoardOverlay() {
 
 vik_i2c: &i2c0 {};
 vik_spi: &spi1 {};
-vik_spi_pmw3610: &spi1 {};`
+`
 }
 
 export function downloadZMKCode(config: FullGeometry, matrix: Matrix, options: ZMKOptions) {
-  const folderName = options.keyboardName.toLowerCase().replace(/[^0-9a-z_/]/g, '')
+  const { folderName } = options
   zip({
     [folderName]: {
       '.github/workflows/build.yml': strToU8(generateGitHubWorkflow()),
@@ -476,14 +511,20 @@ export function downloadZMKCode(config: FullGeometry, matrix: Matrix, options: Z
         [folderName + '.dtsi']: strToU8(generateDTSI(config, matrix, options)),
         [folderName + '.keymap']: strToU8(generateKeymap(config, matrix, options)),
         [folderName + '.zmk.yml']: strToU8(generateZMKYaml(config, options)),
-        [folderName + '_left.overlay']: strToU8(generateOverlay(config, options, false)),
-        [folderName + '_right.overlay']: strToU8(generateOverlay(config, options, true)),
+        ...(config.unibody
+          ? {
+            [folderName + '.overlay']: strToU8(generateOverlay(config, matrix, options, false)),
+          }
+          : {
+            [folderName + '_left.overlay']: strToU8(generateOverlay(config, matrix, options, false)),
+            [folderName + '_right.overlay']: strToU8(generateOverlay(config, matrix, options, true)),
+          }),
       },
     },
   }, (err, data) => {
     if (!err) {
       const blob = new Blob([data], { type: 'application/x-zip' })
-      download(blob, `firmware-${options.keyboardName}.zip`)
+      download(blob, `firmware-${options.folderName}.zip`)
     }
   })
 }
