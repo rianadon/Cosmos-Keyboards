@@ -637,6 +637,18 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     description:
       'A 5-way switch supporting 4 cardinal directions (no diagonals) and a center click. 3D printable caps are available from <a href="https://github.com/wolfwood/navcaps">the navcaps project.</a>',
   },
+  'joystick-joycon-nintendo': {
+    partName: 'Nintendo Joycon Joystick',
+    bomName: 'Nintendo Joycon Joysticks',
+    category: 'Joysticks',
+    stepFile: '/src/assets/key-joystick-joycon-nintendo.step',
+    socketSize: [24.727, 23.177, 6.55],
+    partBottom: [box(30.531, 25.450, 14.320)],
+    numPinsMatrix: 5,
+    numPinsGPIO: 2,
+    icon: 'joystick',
+    description: 'A small joystick from Nintendo for gaming or moving the mouse.',
+  },
 }
 
 const CATEGORY_SORT = [
