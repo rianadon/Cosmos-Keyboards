@@ -202,6 +202,18 @@ const _keyboards: Record<string, Keyboard> = {
     switches: 'Kailh clears',
     keycaps: 'Purple from https://www.aliexpress.us/item/3256805819590269.html',
   },
+  '0eb58ef6': {
+    author: 'Cuttlerat',
+    name: 'Krysopyos',
+    type: 'split',
+    modifiedInCAD: true,
+    config:
+      '#cm:CnMKExIFEJBxIBMSABIAOBRAgKaLkAYKFBIFEJBlIBMSABIDELA7EgIQMDgAChkSBRCQWSATEgASAxCwLxICEDA4E0CA8LwCCg0SBRCQTSATEgASADgnCg0SBRCQQSATEgASADg7GABAuomgrvBVSNzwoqABCj4KIBIaCICAlAEQQCAAMMgBQL6H0LAdSPCbnI6QvQkwFjgAGAoiCgjIARDIARgAIABA25GknPA3SISPlNageAptChMSBRCQBSATEgASADgTQICGisAHChESBRCQESATEgASABICEDA4AAoWEgUQkB0gExIAEgASAhAwOBRAgPC8AgoNEgUQkCkgExIAEgA4KAoNEgUQkDUgExIAEgA4PBgBQLmJoK7wVUjc7qKYAQqiAQqCARIWCIAwEMCAAiAAQIyF2JYQSI2FxOiJDhIWCICwBBBAIABAn8SW2AFIm4X05/CfGxIRIABAiIWcjOADSPaPtJawsRISEwiAgAQgAEDng+goSIeJtJfw1RMSECAAQOiykqACSJqJlJbQvRQSFAiAgAQgAEDthbSXkAFI5YuQu+8JOAAYAyIKCMgBEMgBGAAgAECejcys8DNIpqncxoC0CBADGIugAjAyOAOCAQgAAKwCQyYAAkgFWEhoAHINGCMYSxi5ARi7AhjZAniMg6yUwXHyAQIIAQ==',
+    projectLink: 'https://github.com/Cuttlerat/zmk-config-krysopyos',
+    filament: 'Bambu lab PETG-CF Black and Unknown Tranclusent PETG Red',
+    switches: 'Kailh Ambient Silent Twilight',
+    keycaps: 'Black - PBT from Aliexpress; Red - 3d printed KEA',
+  },
 }
 
 function findImages(kbd: Keyboard) {
