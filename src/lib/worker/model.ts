@@ -377,7 +377,7 @@ async function makeAccentPlate(c: Cuttleform, geo: Geometry) {
   const sketch = plateSketch(c, geo, ACCENT_WIDTH).sketchOnPlane('XY')
   const trsf = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).pretranslate(0, 0, geo.bottomZ)
   const plateUpper = trsf.transform(sketch.clone().extrude(ACCENT_HEIGHT))
-  const plateLower = trsf.transform(sketch.extrude(-height))
+  const plateLower = trsf.transform(sketch.extrude(-height) as Solid)
 
   const solidWallSurface = wallSolidSurface(c, geo, geo.allKeyCriticalPoints, geo.keyHolesTrsfs, geo.bottomZ, geo.worldZ, ACCENT_TOLERANCE)
   const splitter = new Splitter()
@@ -386,6 +386,7 @@ async function makeAccentPlate(c: Cuttleform, geo: Geometry) {
   splitter.perform()
   const plate = splitter.takeBiggest()!.fuse(plateLower)
   if (c.plate && c.shell.type !== 'tilt') return await processPlate(c, geo as Geometry, plate)
+  return plate
 }
 
 interface Plate {
