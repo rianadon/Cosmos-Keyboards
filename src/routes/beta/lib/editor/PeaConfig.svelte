@@ -27,9 +27,10 @@
     keyboardName: $modelName,
     folderName: $modelName.toLowerCase().replace(/[^0-9a-z_/]/g, ''),
     peripherals: mapObjNotNull(config, (c) => ({
-      trackball: c.keys.some((k) => k.type == 'trackball'),
+      pmw3610: c.keys.some((k) => k.type == 'trackball' && k.variant.sensor == 'Skree (ZMK)'),
+      cirque: c.keys.some((k) => k.type == 'trackpad-cirque'),
     })),
-  }
+  } satisfies Partial<QMKOptions | ZMKOptions>
 
   function downloadVia(options: QMKOptions) {
     const kle = toKLE(geometry, matrix)

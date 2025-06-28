@@ -28,7 +28,7 @@
 </script>
 
 <svelte:head>
-  <title>Cosmos Keyboard</title>
+  <title>Cosmos Keyboards</title>
   <link rel="canonical" href="https://ryanis.cool/cosmos/" />
   <link rel="icon" href="{base}/favicon.png" />
 </svelte:head>
@@ -267,7 +267,7 @@
     <div class="bg-gray-800 inline-flex my-6 py-2 px-4 rounded items-center gap-4">
       <img src="{base}/cosmos-icon.png" class="w-12 h-12 rounded-4" />
       <div class="text-left mr-8">
-        <p class="text-lg">Cosmos Keyboard</p>
+        <p class="text-lg">Cosmos Keyboards</p>
         <p class="text-gray-400 mt--1">
           <span class="mr-1">●</span>
           {#await discordUsers then count}{count} members{/await}
@@ -324,7 +324,7 @@
       <div class="bg-gray-700 inline-flex my-6 py-2 px-4 rounded items-center gap-4">
         <img src="{base}/cosmos-icon.png" class="w-12 h-12 rounded-4" />
         <div class="text-left mr-8">
-          <p class="text-lg">Cosmos Keyboard</p>
+          <p class="text-lg">Cosmos Keyboards</p>
           <p class="text-gray-400 mt--1">
             <span class="mr-1">●</span>
             {#await discordUsers then count}{count} members{/await}

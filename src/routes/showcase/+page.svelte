@@ -6,7 +6,7 @@
 </script>
 
 <svelte:head>
-  <title>Showcase • Cosmos Keyboard</title>
+  <title>Showcase • Cosmos Keyboards</title>
   <link rel="canonical" href="https://ryanis.cool/cosmos/showcase" />
   <link rel="icon" href="{base}/favicon.png" />
 </svelte:head>

@@ -1069,6 +1069,7 @@
             <VisualEditor2
               basic={mode == 'basic'}
               cosmosConf={state.options}
+              {geometry}
               bind:conf={config}
               on:goAdvanced={() => (mode = 'intermediate')}
             />

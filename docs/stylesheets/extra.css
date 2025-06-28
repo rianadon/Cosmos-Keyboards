@@ -161,3 +161,9 @@ iframe {
     border-radius: .1rem;
     padding: .6em 1.2em;
 }
+
+/* Make tables compact */
+.pinout table:not([class]) th,
+.pinout table:not([class]) td {
+    padding: 0.3em 1.25em;
+}

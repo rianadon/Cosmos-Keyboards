@@ -324,10 +324,9 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     rearConnectorPins: ['GP18', 'GP19', 'GP15', 'GP13', 'GP12', 'GP14'],
     isGPIO: /GP\d+/,
     backstopHeight: 0,
-    draft: true,
     soldByCosmos: true,
     description:
-      'A fast & feature-packed microcontroller with two USB-C ports to link together your keyboard halves (avoids TRRS hotplug issues). Based on the RP2040.\n<a href="https://ryanis.cool/cosmos/lemon">Lemon Microcontrollers</a> are sold from the <a href="https://cosmos-store.ryanis.cool">Cosmos Store</a> and shipped from the US. They are <a href="https://github.com/rianadon/Cosmos-Keyboard-PCBs">open source</a> too.',
+      'A fast & feature-packed microcontroller with two USB-C ports to link together your keyboard halves (avoids TRRS hotplug issues). Based on the RP2040.\nLemon Microcontrollers also support firmware auto-generation!\n<a href="https://ryanis.cool/cosmos/lemon">Lemon Microcontrollers</a> are sold from the <a href="https://cosmos-store.ryanis.cool">Cosmos Store</a> and shipped from the US. They are <a href="https://github.com/rianadon/Cosmos-Keyboard-PCBs">open source</a> too.',
   },
   'lemon-wireless': {
     name: 'Lemon Wireless',
@@ -344,10 +343,9 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     rearConnectorPins: ['SDA', 'SCL', 'RGB', 'MOSI', 'CS', 'MISO', 'SCK'],
     isGPIO: /R\d+|C\d+|GP\d+|SDA|SCL|MOSI|MISO|CS|SCK/,
     backstopHeight: 0,
-    draft: true,
     soldByCosmos: true,
     description:
-      'Lots of I/Os, Bluetooth, and affordable! You can have all three.\n<a href="https://ryanis.cool/cosmos/lemon">Lemon Microcontrollers</a> are sold from the <a href="https://cosmos-store.ryanis.cool">Cosmos Store</a> and shipped from the US. They are <a href="https://github.com/rianadon/Cosmos-Keyboard-PCBs">open source</a> too.',
+      'Lots of I/Os, Bluetooth, and affordable! You can have all three.\nLemon Microcontrollers also support firmware auto-generation!\n<a href="https://ryanis.cool/cosmos/lemon">Lemon Microcontrollers</a> are sold from the <a href="https://cosmos-store.ryanis.cool">Cosmos Store</a> and shipped from the US. They are <a href="https://github.com/rianadon/Cosmos-Keyboard-PCBs">open source</a> too.',
   },
   'elite-c': {
     name: 'Elite-C',
@@ -592,8 +590,8 @@ export function microcontrollerConnectors(mcu: Microcontroller, connectors: Conn
     ]
   } else if (mcu == 'lemon-wireless') {
     connectors = [
-      { width: 7, height: 3, x: -9.3, y: 4, radius: 1 },
-      { preset: 'usb', size: 'average', x: 5.4 },
+      { width: 7, height: 3, x: -8.8, y: 4, radius: 1 },
+      { preset: 'usb', size: 'average', x: 6 },
     ]
   } else if (isBluetooth) connectors = [{ preset: 'usb', size: 'average' }]
   else connectors = [{ preset: 'trrs' }, { preset: 'usb', size: 'average' }]

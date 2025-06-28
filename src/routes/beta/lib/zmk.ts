@@ -10,7 +10,8 @@ export type Matrix = Map<CuttleKey, [number, number]>
 const RE_PID_VID = /^0x[0-9A-Fa-f]{4}$/
 
 interface ZMKPeripherals {
-  trackball: boolean
+  pmw3610: boolean
+  cirque: boolean
 }
 
 export interface ZMKOptions {
@@ -193,7 +194,8 @@ function generateGitHubWorkflow() {
 function generateBuildYaml(config: FullGeometry, options: ZMKOptions): string {
   function shieldList(name: string, peripherals: ZMKPeripherals) {
     const shields = [name]
-    if (peripherals.trackball) shields.push('vik_pmw3610')
+    if (peripherals.pmw3610) shields.push('vik_pmw3610')
+    if (peripherals.cirque) shields.push('vik_cirque_spi')
     return shields.join(' ')
   }
   return jsonToYaml({
@@ -302,9 +304,9 @@ function generateConf(config: FullGeometry, options: ZMKOptions) {
   return [
     '# Uncomment the following lines to enable RGB underglow',
     'CONFIG_ZMK_RGB_UNDERGLOW=y',
-    ...(Object.values(options.peripherals).some(p => p.trackball)
+    ...(Object.values(options.peripherals).some(p => p.pmw3610 || p.cirque)
       ? [
-        '# zmk mouse emulation for trackball',
+        '# zmk mouse emulation for trackball/trackpadd',
         'CONFIG_ZMK_POINTING=y',
       ]
       : []),

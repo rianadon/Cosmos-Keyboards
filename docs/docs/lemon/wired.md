@@ -2,13 +2,100 @@
 
 The Lemon Wired is a RP2040-based microcontroller for split keyboards with two USB-C ports, a VIK connector, and two FPC connectors for connecting column-flex PCBs. If you use column-flex PCBs and VIK-compatible peripherals, it's possible to build a split keyboard without soldering any wires!
 
-If you haven't already, I suggest you check out the [Lemon Landing page](https://ryanis.cool/lemon) to learn more.
+If you haven't already, I suggest you check out the [Lemon Landing page](https://ryanis.cool/cosmos/lemon) to learn more.
 
---8<-- "docs/docs/lemon/.shared.md"
+--8<-- "docs/docs/lemon/.shared/info.md"
 
 ## Pinout
 
-Go to the [landing page](https://ryanis.cool/lemon) :)
+Go to the [landing page](https://ryanis.cool/cosmos/lemon) :)
+
+## Wiring
+
+### Recommended Use
+
+I recommend using column-flex PCBs to wire your keys, not only because they are easy to connect via the FPC connectors on the bottom of the microcontroller, but also because you will save yourself hours of wiring together keys. This example shows the two I sell, the Pumpkin Patch (for upper keys & some thumb keys) and Pumpkin Vine (for the further away thumb keys), used to wire the keys as well as an encoder attached to the spare I/O pins.
+
+![Wiring Diagram of Pumpkin PCBs and an encoder](../../assets/lemon_wired_pumpkin.png){width=600 .center}
+
+???tip "Using More Than One Encoder?"
+
+    You're crazy. Hahaha.
+
+    The two pins the encoder is attached to, GP28 and GP29, are the only pins on the board not connectorized. If you need more encoders, you'll have to steal pins away from the other peripherals. Chances are you're not using *everything*, so some potential pins you can grab are, in order of ease of use:
+
+    - GPIO26/GPIO27 (GP1 and GP2 for VIK): If you're not connecting anything with VIK, then you can use these as normal I/Os. Like GPIO28 and GPIO29, they can also read analog voltages!
+    - Row and Column Pins: Unless you're using a 7x7 matrix, you'll probably have a few unused ones. Note that the Pumpkin Patch PCB uses up to R1–R6 and C1–C7, whereas the Pumpkin Vines PCB uses R7 and up to C1–C7.
+    - All the VIK pins. If you have no reason to use VIK but need many, many more GPIOs, you can use the VIK breakout or a 12pin/0.5mm FPC breakout to access these pins. This gives you 8 more digital I/Os including GP1 and GP2. Don't use GPIO2 (RGB* in the wiring diagram) because it is level shifted up to 5V!
+
+### Handwiring / Using Plum Twists
+
+If you're forgoing flex PCBs, here's how you should solder the row and column wires to the microcontroller. Depending on the version your C7 might be in a different spot. Make sure to check the pinout!
+
+![Wiring Diagram of Plum Twist PCBs](../../assets/lemon_wired_twists.png){width=600 .center}
+
+Chances are, your keyboard layout is not a rectangle. In that case make sure you have 7 columns and 7 rows max and that every key is assigned to a unique pair of row and column pins. It doesn't matter if you have 7 keys in one column and 3 in another.
+
+By following my convention of which pins are for the rows and which are for the columns, you'll be able to use tools I develop like [PeaMK](https://github.com/rianadon/peaMK) to more quickly set up your firmware.
+
+### Connecting RGB LED Strips
+
+If you're handwiring and would like some backlighting on the keys but don't feel like spending another 3 hours soldering, RGB LED strips are a quick and easy alternative. I usually opt for the WS2812B ones, but QMK [supports a few WS28xx and SK68xx variants](https://docs.qmk.fm/drivers/ws2812).
+
+![Wiring Diagram of RGB LEDs](../../assets/lemon_wired_rgb.png){width=600 .center}
+
+Once soldered, you can coil the LED strip up in the base of the keyboard. If you laser cut a transparent base plate or use transparent filament, you'll get really cool effects.
+
+???tip "Combining an LED Strip and Per-Key RGB"
+
+    If you're merely writing the LEDs with a constant color, you can use the RGB pin for diving an LED strip while running per-key LEDs off of the FPC connector or the RGB pin.
+
+    However, if you are trying to run animations, the strip will copy whatever the keys do. If you'd like to run them independently, you will need to solder the strip's DI pin to the DO pin on the last per-key LED in the chain. Running the snake animation in QMK and seeing where the snake stops is a great way to figure out which one is the last one.
+
+### VIK Breakout and Trackball
+
+There are sadly no trackball PCBs with VIK connectors on the market. I'm working with TheBigSkree to fix this, but for now you will need augment one with a VIK breakout.
+
+This example uses the [Ogen Lite PCB](https://github.com/Ariamelon/Ogen/tree/V1-Lite/PCB) (which Skree also [sells](https://skree.us/products/qmk-compatible-trackball-mouse-sensor-pmw3389-board-ogen-lite?ref=cosmos)) with a PMW3360/PMW3389. The wiring will be identical to the Joe's Sensors one I link in Cosmos. I recommend connecting the two with short cables so most of the distance is covered by the FPC connector. Your wiring will look much neater for it.
+
+![Wiring Diagram of VIK and PMW3360](../../assets/vik_pmw3360.png){width=600 .center}
+
+<center class="pinout" markdown>
+
+| Trackball PCB | VIK Breakout |
+| :------------ | :----------- |
+| VCC           | 3.3V         |
+| MIS/MISO      | MISO         |
+| MOS/MOSI      | MOSI         |
+| SCL/SCK       | SCK          |
+| SS            | CS           |
+| MOT/MT        | n/a          |
+| GND           | GND          |
+| RES/RST       | n/a          |
+
+</center>
+--8<-- "docs/docs/lemon/.shared/vik-wiring.md"
+
+## Programming
+
+Like other RP2040 microcontrollers, there are two ways to get the Lemon into bootloader mode so you can upload firmware:
+
+- Hold the BOOT button down as you plug in the USB cable.
+- With the USB cable already in, hold down BOOT, press and release RST, then release BOOT.
+
+You'll see a removable drive called RPI-RP2 pop up on your computer. Drag your UF2 file into this folder, then wait for the microcontroller to reset itself and remove the drive.
+
+!!!tip "MacOS Warnings"
+
+    If you're uploading firmware from a Mac, you may get warnings saying that your computer couldn't sucessfully write to the drive or reminding you to eject the drive. This is normal and expected.
+
+Once your microcontroller is sealed away in your keyboard, you won't be able to use the RST and BOOT buttons anymore. There are three ways of getting around this in QMK:
+
+- (My Preference) Set up Bootmagic. If you hold down a certain key while plugging your keyboard in, the microcontroller will enter bootloader mode. You can configure which key this is per split side.
+- Wire a physical reset button between the reset pin on the bottom right of the Lemon Wired and ground. You can use the custom connector option in Cosmos to make a hole for the button. Once you add `#!c #define RP2040_BOOTLOADER_DOUBLE_TAP_RESET` to your `config.h`, double tapping the reset button will enter bootloader mode.
+- Don't add a bottom plate (or take it off), You'll be able to access the GND and RST pins through the channel in the Cosmos board holder. If you short these with tweezers or a jumper twice in quick succession with the above QMK changes added then you will be in bootloader mode.
+
+If you're using Cosmos and peaMK to generate firmware for you, both of these are automatically set up in QMK.
 
 ## QMK Example
 
@@ -20,9 +107,29 @@ The best example of using QMK on the Lemon microcontroller will for now probably
 
 When using QMK, you will need to wire the Link-only connector on this microcontroller to the Link-only connector on the other microcontroller.
 
+### QMK Tips
+
+1. Use full-duplex UART! Half-duplex will not work since its QMK implementation does not work with the inline resistors on the signal lines required for USB-C. Besides, full-duplex will be faster–[even the author of half-duplex driver recommends it](https://old.reddit.com/r/olkb/comments/18uf6nj/rp2040_split_keyboard_data_line_halfduplex_with/kinff4o/)!
+
+   My recommended configuration for this is (in `config.h`):
+
+   ```c
+   #define SPLIT_USB_DETECT
+   #define SERIAL_USART_FULL_DUPLEX
+   #define SERIAL_USART_PIN_SWAP
+   #define SERIAL_USART_TX_PIN GP0
+   #define SERIAL_USART_RX_PIN GP1
+   ```
+
+2. Use `EE_HANDS` to determine handedness. It's really easy to use. Then use the commands in the [QMK on RP2040 guide](../qmk-rp2040.md#compiling-and-flashing) to flash and set handedness at the same time.
+
+3. Speaking of [the guide](../qmk-rp2040.md), I recommend following it if you've never used QMK before. Even if you're autogenerating your firmware, it's good to skim it so you can an idea of what the different files in QMK do.
+
 ## KMK Example
 
 Work in progress :) I'm working on merging my changes into CircuitPython and KMK.
+
+So far KMK is the only keyboard firmware on which I've been able to use the right USB port as the link port.
 
 ## Arduino Core
 
@@ -341,6 +448,18 @@ I haven't contributed this board upstream yet since I don't know how popular thi
     ```
 
     After modifying these files, restart Arduino IDE. You should now see Cosmos Lemon Wired listed as the last option when choosing a board through **Tools -> Board -> Raspberry Pi Pico -> Cosmos Lemon Wireled**.
+
+--8<-- "docs/docs/lemon/.shared/vik.md"
+
+## Breadboard and Headers
+
+I don't recommend using headers or sockets with Cosmos, ever.
+
+However, if you want to do some prototyping or found a use for the microcontroller outside your keyboard, the microcontroller will fit in a breadboard using standard 2.54mm/100mils pitch pin headers, but it will take up the entire width of the breadboard and leave no space to the side for pins! I recommend either straddling it across two breadboards or using preformed jumper wire underneath (the kind that stays really flat and neat) to bring the pins you need to somewhere accessible.
+
+## PCB Drawing and Dimensions
+
+![PCB Layout for Wired Lemon](../../assets/lemon-wired-layout.png){ width=500 .center }
 
 ## Further Documentation
 
