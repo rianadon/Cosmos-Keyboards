@@ -2,8 +2,6 @@
  * For now, the new serializationf format for Cosmos is kept in a separate file.
  */
 
-import ETrsf from '$lib/worker/modeling/transformation-ext'
-// import { deserialize } from 'src/routes/beta/lib/serialize'
 import { BinaryReader, BinaryWriter } from '@protobuf-ts/runtime'
 import {
   decodeBasicShellFlags,
@@ -33,8 +31,8 @@ import {
   encodeTiltShellFlags,
 } from '../../../target/cosmosStructs'
 import { Cluster, Curvature, Key, Keyboard, KeyboardExtra, TiltShell } from '../../../target/proto/cosmos'
-import { convertToMaybeCustomConnectors, type Cuttleform, type CuttleKey, decodeTuple, encodeTuple, type Keycap, tupleToRot, tupletoRotOnly, tupleToXYZ, tupleToXYZA } from './config'
-import { type ConnectorMaybeCustom, type CosmosCluster, type CosmosKey, type CosmosKeyboard, type CustomConnector, type PartType, type Profile, toCosmosConfig } from './config.cosmos'
+import { convertToMaybeCustomConnectors, type Cuttleform, encodeTuple, tupletoRotOnly } from './config'
+import { type ConnectorMaybeCustom, type CosmosCluster, type CosmosKeyboard, type PartType, type Profile } from './config.cosmos'
 import { DEFAULT_MWT_FACTOR } from './geometry.thickWebs'
 import { objKeys } from './util'
 
@@ -430,6 +428,7 @@ export function decodeCosmosCluster(clusterA: Cluster): CosmosCluster {
       lastCluster = clusterB
 
       let lastKey: Key | null = null
+      let lastKeyRow = 0
       return {
         ...decodeClusterFlags(clusterB.idType ?? clusterA.idType ?? 0),
         curvature: decodeCurvature(clusterB.curvature || {}),
@@ -440,7 +439,6 @@ export function decodeCosmosCluster(clusterA: Cluster): CosmosCluster {
         column: clusterB.column2 ? clusterB.column2 / 100 : (typeof clusterB.column != 'undefined' ? clusterB.column / 10 : undefined),
         clusters: [],
         keys: clusterB.key.map(key => {
-          if (typeof key.row == 'undefined' && typeof key.row2 == 'undefined') key.row = (lastKey?.row || 0) + 10
           if (key.column2) key.column = key.column2 / 10
 
           if (!key.keyProfile && lastKey) {
@@ -449,10 +447,15 @@ export function decodeCosmosCluster(clusterA: Cluster): CosmosCluster {
             key.keyProfile = (lastKey.keyProfile || 0) + expectedDiff
           }
           lastKey = key
+          if (typeof key.row == 'undefined' && typeof key.row2 == 'undefined') {
+            lastKeyRow = lastKeyRow + 1 // Use 1 + previous row
+          } else {
+            lastKeyRow = typeof key.row2 !== 'undefined' ? key.row2 / 100 : key.row! / 10 //
+          }
           return {
             partType: decodePartType(key.partType || 0),
             profile: decodeProfile(key.keyProfile || 0, key.letter),
-            row: typeof key.row2 !== 'undefined' ? key.row2 / 100 : (typeof key.row !== 'undefined' ? key.row / 10 : undefined),
+            row: lastKeyRow,
             column: typeof key.column2 !== 'undefined' ? key.column2 / 100 : (typeof key.column !== 'undefined' ? key.column / 10 : undefined),
             position: key.position,
             rotation: key.rotation,
@@ -469,7 +472,7 @@ export function decodeConfigIdk(b64: string): CosmosKeyboard {
   const keeb = deserializeCosmosConfig(b64)
   const keebExtra = keeb.extra
 
-  console.log('DECODE EXTRA', keebExtra)
+  // console.log('DECODE EXTRA', keebExtra)
   const hasSpecialPlate = keebExtra.plateArt || keebExtra.footIndices.length
   const roundedFlags = decodeRoundedFlags(keeb.roundedFlags)
 
@@ -488,6 +491,7 @@ export function decodeConfigIdk(b64: string): CosmosKeyboard {
       top: roundedFlags.top ? { horizontal: keebExtra.roundedTopHorizontal / 100, vertical: keebExtra.roundedTopVertical / 100 } : undefined,
       side: roundedFlags.side ? { divisor: keebExtra.roundedSideDivisor / 10, concavity: keebExtra.roundedSideConcavity / 10 } : undefined,
     },
+    // @ts-ignore
     curvature: decodeCurvature(keeb.curvature || {}),
     connectors: decodeConnectorsCompatible(keeb.connectors, keeb.connector),
     ...decodeMicrocontroller(keeb.microcontroller),
@@ -640,7 +644,7 @@ export function encodeCosmosCluster(clusterA: CosmosCluster): Cluster {
     for (const key of clusterB.keys) {
       const cKey: Key = {
         partType: diff(encodePartType(key.partType), 0),
-        row: typeof key.row != 'undefined' && Math.round(key.row * 10) != lastRow + 10 ? Math.round(key.row * 10) : undefined,
+        row: typeof key.row != 'undefined' && Math.round(key.row * 100) != lastRow + 100 ? Math.round(key.row * 10) : undefined,
         column: typeof key.column != 'undefined' ? Math.round(key.column * 10) : undefined,
         rotation: key.rotation,
         position: key.position,
@@ -731,7 +735,7 @@ export function serializeCosmosConfig(trimmed: Keyboard) {
   }
   if (trimmed.curvature && Object.keys(trimmed.curvature!).length == 0) delete trimmed.curvature
   if (JSON.stringify(trimmed.shell) == JSON.stringify(KEYBOARD_DEFAULTS.shell)) trimmed.shell = {} as any
-  console.log('trimmed', trimmed)
+  // console.log('trimmed', trimmed)
   const data = Keyboard.toBinary(trimmed)
   return btoa(String.fromCharCode(...data))
 }
