@@ -31,7 +31,7 @@ async function fetchKeyBy(profile: string, aspect: number, row: number, rotate: 
 }
 
 export function hasKeyGeometry(k: CuttleKey) {
-  return !!PART_INFO[k.type].keycap
+  return !!PART_INFO[k.type].keycap && k.type != 'blank'
 }
 
 export function hasPinsInMatrix(k: CuttleKey) {

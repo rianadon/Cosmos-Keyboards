@@ -4,6 +4,7 @@ import type { CuttleKey } from '$lib/worker/config'
 import { findIndexIter } from '$lib/worker/util'
 import { strToU8, zip } from 'fflate'
 import type { FullGeometry } from './viewers/viewer3dHelpers'
+import { logicalKeys } from './viewers/viewerHelpers'
 
 export type Matrix = Map<CuttleKey, [number, number]>
 
@@ -158,11 +159,9 @@ function keycode(code: string | undefined) {
 /** Generates the keycodes for the ZMK keymap */
 function generateKeycodes(config: FullGeometry, matrix: Matrix) {
   const keycodes: string[] = []
-  for (const keyboard of Object.values(config)) {
-    for (const key of keyboard.c.keys) {
-      if (!hasPinsInMatrix(key)) continue
-      keycodes.push(keycode('keycap' in key ? key.keycap?.letter : undefined))
-    }
+  for (const key of logicalKeys(config)) {
+    if (!hasPinsInMatrix(key)) continue
+    keycodes.push(keycode('keycap' in key ? key.keycap?.letter : undefined))
   }
   return keycodes
 }

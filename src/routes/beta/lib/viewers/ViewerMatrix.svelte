@@ -29,7 +29,7 @@
     isRenderable(confError) && geometry
       ? drawStates(darkMode, confError, geometry)
       : ({} as ReturnType<typeof drawStates>)
-  $: sizes = fullSizes(allGeometries)
+  $: sizes = fullSizes(mapObj(allGeometries, (l) => l.map((g) => g.geometry)))
   $: size = sizes[$view]
 
   function drawStates(darkMode: boolean, confError: ConfError | undefined, geometry: FullGeometry) {

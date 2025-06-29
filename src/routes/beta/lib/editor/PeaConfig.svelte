@@ -99,6 +99,11 @@
     build your firmware once you push it to GitHub. If you're on Linux or Mac, you'll need to turn on hidden
     directories (ctrl+h in GNOME, alt+. in KDE, cmd+shift+. on Mac) to see it.
   </div>
+  <div class="mt-4 text-gray-500 dark:text-gray-200">
+    To enter bootloader mode, unplug then plug in your keyboard while pressing the <span
+      class="text-brand-pink">bootmagic key</span
+    >. If there is no bootmagic key, you will need to double-tap the reset button.
+  </div>
 {/if}
 
 <style>

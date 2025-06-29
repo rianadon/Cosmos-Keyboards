@@ -125,7 +125,7 @@ export type CosmosKeyboard =
 export const ROUND_PARTS = objKeys(PART_INFO).filter(p => 'radius' in socketSize({ type: p, variant: {} } as any))
 export const PARTS_WITH_KEYCAPS = objKeys(PART_INFO).filter(p => PART_INFO[p].keycap)
 
-function getRowColumn(t: ETrsf) {
+export function getRowColumn(t: ETrsf) {
   let row = 0
   let column = 0
   let type: ClusterType | undefined = undefined

@@ -106,7 +106,7 @@
   let editorContent: string
   let hideWall = false
   let lastRenderNumber = 0
-  let fullMatrix: any = undefined
+  let fullMatrix: any = null
 
   // @ts-ignore
   let state: State = deserialize(browser ? location.hash.substring(1) : '', () =>
@@ -980,7 +980,12 @@
           {:else}
             <p class="mt-4 mb-2">Autogenerate your firmware with peaMK!</p>
             <ol class="list-decimal ml-6">
-              <li>Download and flash peaMK to your microcontroller.</li>
+              <li>
+                Download and flash <a
+                  class="text-pink-600 underline"
+                  href="https://github.com/rianadon/peaMK/tree/main?tab=readme-ov-file#binaries">peaMK</a
+                > to your microcontroller.
+              </li>
               <li>Press the indicated blue key (on the right) on your keyboard.</li>
               <li>If a key doesn't work, double check your wiring.</li>
               <li>When all keys have been pressed Cosmos will auto-generate your firmware.</li>
