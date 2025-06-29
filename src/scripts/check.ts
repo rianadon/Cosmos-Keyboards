@@ -77,6 +77,10 @@ async function runSvelteCheckParser() {
           return
         }
 
+        if (diagnostic.message.includes('Cannot find module') && diagnostic.message.includes('target/')) {
+          return // Ignore ungenerated files
+        }
+
         const filePath = diagnostic.fn || diagnostic.filename
         if (!filePath) {
           console.warn(`Could not determine file path from diagnostic: ${jsonStr}`)
