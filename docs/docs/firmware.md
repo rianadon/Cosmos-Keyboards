@@ -16,36 +16,15 @@ Despite the fact that some peripherals are not yet supported (you can track the 
 
 - **Lemon Wired**
 
-  ---
+      ---
 
-  Install [`mkdocs-material`](#) with [`pip`](#) and get up
-  and running in minutes
+      [:octicons-arrow-right-24: Documentation](lemon/wired.md)
 
-  [:octicons-arrow-right-24: Documentation](#)
+- **Lemon Wireless**
 
-- :fontawesome-brands-markdown:{ .lg .middle } **It's just Markdown**
+      ---
 
-  ---
-
-  Focus on your content and generate a responsive and searchable static site
-
-  [:octicons-arrow-right-24: Reference](#)
-
-- :material-format-font:{ .lg .middle } **Made to measure**
-
-  ---
-
-  Change the colors, fonts, language, icons, logo and more with a few lines
-
-  [:octicons-arrow-right-24: Customization](#)
-
-- :material-scale-balance:{ .lg .middle } **Open Source, MIT**
-
-  ---
-
-  Material for MkDocs is licensed under MIT and available on [GitHub]
-
-  [:octicons-arrow-right-24: License](#)
+      [:octicons-arrow-right-24: Documentation](lemon/wireless.md)
 
 </div>
 
