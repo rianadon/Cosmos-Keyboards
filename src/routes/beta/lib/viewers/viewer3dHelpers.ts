@@ -3,8 +3,8 @@ import { decodeTuple, type Geometry } from '$lib/worker/config'
 import { type CosmosCluster, type CosmosKey, type CosmosKeyboard, cosmosKeyPosition, nthKey } from '$lib/worker/config.cosmos'
 import type { ShapeMesh } from '$lib/worker/modeling'
 import Trsf, { Vector } from '$lib/worker/modeling/transformation'
+import type { Profile } from '$target/cosmosStructs'
 import { type Readable } from 'svelte/store'
-import type { Profile } from 'target/cosmosStructs'
 import { Matrix4 } from 'three'
 import { TupleBaseStore } from '../editor/tuple'
 
@@ -225,7 +225,7 @@ export function formatProfile(keeb: CosmosKeyboard, n: number | null) {
 export function sortProfiles(a: Profile, b: Profile) {
   const val = (v: Profile) => {
     if (v == 'choc') return 100
-    if (UNIFORM.includes(v)) return 0
+    if (v && UNIFORM.includes(v)) return 0
     return 1
   }
   return val(a) - val(b)

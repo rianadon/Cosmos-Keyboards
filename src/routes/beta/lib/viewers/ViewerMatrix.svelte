@@ -10,7 +10,7 @@
     type CuttleKey,
     type Geometry,
   } from '$lib/worker/config'
-  import { isRenderable, type ConfError } from '$lib/worker/check'
+  import { isRenderable, type ConfErrors } from '$lib/worker/check'
   import { keyLine } from '../matrixLayout'
   import { view } from '$lib/store'
   import type { FullGeometry } from './viewer3dHelpers'
@@ -19,7 +19,7 @@
 
   export let geometry: FullGeometry
   export let style: string = ''
-  export let confError: ConfError | undefined
+  export let confError: ConfErrors
   export let darkMode: boolean
 
   $: centers = fullEstimatedCenter(geometry, false)
@@ -32,9 +32,14 @@
   $: sizes = fullSizes(mapObj(allGeometries, (l) => l.map((g) => g.geometry)))
   $: size = sizes[$view]
 
-  function drawStates(darkMode: boolean, confError: ConfError | undefined, geometry: FullGeometry) {
+  function drawStates(darkMode: boolean, confErrors: ConfErrors, geometry: FullGeometry) {
     return mapObj(geometry as Required<typeof geometry>, (g, kbd) =>
-      drawState(g!.c, darkMode, confError?.side == kbd ? confError : undefined, g!)
+      drawState(
+        g.c,
+        darkMode,
+        confErrors.filter((e) => e.side == kbd),
+        g
+      )
     )
   }
 
@@ -49,12 +54,7 @@
   }
 
   /** Computes matrix and renders Three.js geometry for displaying it and the keys. */
-  function drawState(
-    conf: Cuttleform,
-    darkMode: boolean,
-    confError: ConfError | undefined,
-    geo: Geometry
-  ) {
+  function drawState(conf: Cuttleform, darkMode: boolean, confErrors: ConfErrors, geo: Geometry) {
     // How to use the optimizer
     // const { matRow, matCol } = findMatrix(conf)
 
@@ -110,32 +110,34 @@
       }))
     )
 
-    if (confError?.type == 'intersection') {
-      console.log(pts.map((po) => po.map((p) => p.xyz())))
-      geos.push(
-        ...pts.map((po) => ({
-          geometry: drawLinedWall(po.map((p) => p.xy())),
-          material: new THREE.MeshBasicMaterial({ color: 0xffcc33 }),
-        }))
-      )
-      if (confError.i >= 0)
-        geos.push({
-          geometry: drawLinedWall(
-            pts[confError.i].map((p) => p.xy()),
-            0.5
-          ),
-          material: new THREE.MeshBasicMaterial({ color: 0xff0000 }),
-        })
-      if (confError.j >= 0)
-        geos.push({
-          geometry: drawLinedWall(
-            pts[confError.j].map((p) => p.xy()),
-            0.5
-          ),
-          material: new THREE.MeshBasicMaterial({ color: 0xff0000 }),
-        })
-      return geos
-    }
+    // for (const confError of confErrors) {
+    //   if (confError?.type == 'intersection') {
+    //     console.log(pts.map((po) => po.map((p) => p.xyz())))
+    //     geos.push(
+    //       ...pts.map((po) => ({
+    //         geometry: drawLinedWall(po.map((p) => p.xy())),
+    //         material: new THREE.MeshBasicMaterial({ color: 0xffcc33 }),
+    //       }))
+    //     )
+    //     if (confError.i >= 0)
+    //       geos.push({
+    //         geometry: drawLinedWall(
+    //           pts[confError.i].map((p) => p.xy()),
+    //           0.5
+    //         ),
+    //         material: new THREE.MeshBasicMaterial({ color: 0xff0000 }),
+    //       })
+    //     if (confError.j >= 0)
+    //       geos.push({
+    //         geometry: drawLinedWall(
+    //           pts[confError.j].map((p) => p.xy()),
+    //           0.5
+    //         ),
+    //         material: new THREE.MeshBasicMaterial({ color: 0xff0000 }),
+    //       })
+    //     return geos
+    //   }
+    // }
 
     return geos
   }

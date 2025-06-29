@@ -1,5 +1,5 @@
 import { Euler, Matrix4, Vector3 } from 'three'
-import { DEG2RAD } from 'three/src/math/MathUtils'
+import { DEG2RAD } from 'three/src/math/MathUtils.js'
 
 const CONNECTIONS = {
   thumb: [[0, 1], [1, 2], [2, 3], [3, 4]],

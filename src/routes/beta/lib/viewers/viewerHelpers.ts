@@ -4,7 +4,8 @@ import { getRowColumn } from '$lib/worker/config.cosmos'
 import type { WallCriticalPoints } from '$lib/worker/geometry'
 import type { Vector } from '$lib/worker/modeling/transformation'
 import type Trsf from '$lib/worker/modeling/transformation'
-import { DefaultMap, objEntries, objEntriesNotNull } from '$lib/worker/util'
+import { DefaultMap, objEntriesNotNull } from '$lib/worker/util'
+// Stashed changes
 import { wallBezier } from '@pro/rounded'
 import * as THREE from 'three'
 import type { FullGeometry } from './viewer3dHelpers'
@@ -173,7 +174,7 @@ function sortKeysFn(a: ModifiedKey, b: ModifiedKey) {
 export function sortKeysLogically(keys: ModifiedKey[]) {
   const clusterGroups = new DefaultMap<string, ModifiedKey[]>(() => [])
   for (const k of keys) clusterGroups.get(k.key.cluster).push(k)
-  return clusterGroups.values().flatMap(keys => keys.sort(sortKeysFn)).toArray()
+  return Array.from(clusterGroups.values()).flatMap(keys => keys.sort(sortKeysFn))
 }
 
 export function logicalKeys(geo: FullGeometry): CuttleKey[] {

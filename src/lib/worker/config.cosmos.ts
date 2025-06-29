@@ -1,24 +1,11 @@
 import ETrsf, { Constant, fullMirrorETrsf, type MatrixOptions, mirror } from '$lib/worker/modeling/transformation-ext'
 // import { deserialize } from 'src/routes/beta/lib/serialize'
 import { flippedKey } from '$lib/geometry/keycaps'
-import { decodeVariant, PART_INFO, socketSize } from '$lib/geometry/socketsParts'
+import { decodeVariant, encodeVariant, PART_INFO, socketSize } from '$lib/geometry/socketsParts'
 import { type ClusterName, type ClusterSide, type ClusterType, type Connector, decodeClusterFlags, encodeClusterFlags, type PartVariant, type ScrewFlags } from '$target/cosmosStructs'
 import type { Curvature } from '$target/proto/cosmos'
 import { Matrix4, Vector3 } from 'three'
-import {
-  type AnyShell,
-  curvature,
-  type Cuttleform,
-  type CuttleKey,
-  type CuttleKeycapKey,
-  decodeTuple,
-  encodeTuple,
-  type FullCuttleform,
-  type Keycap,
-  matrixToRPY,
-  tupleToRot,
-  tupleToXYZ,
-} from './config'
+import { type AnyShell, curvature, type Cuttleform, type CuttleKey, decodeTuple, encodeTuple, type FullCuttleform, type Keycap, matrixToRPY, tupleToRot, tupleToXYZ } from './config'
 import { decodePartType, encodePartType, KEYBOARD_DEFAULTS } from './config.serialize'
 import Trsf from './modeling/transformation'
 import { capitalize, DefaultMap, objEntries, objKeys, sum, TallyMap, trimUndefined } from './util'
@@ -163,7 +150,7 @@ export function sortClusters(clusters: CosmosCluster[]) {
   return clusters.sort((a, b) => val(a) - val(b))
 }
 
-function toCosmosClusters(keys: CuttleKey[], side: 'left' | 'right', globalProfile: Profile, globalPartType: PartType, globalCurvature: Curvature, wrOriginInv: Trsf) {
+function toCosmosClusters(keys: CuttleKey[], side: 'left' | 'right', globalProfile: Keycap['profile'], globalPartType: PartType, globalCurvature: Curvature, wrOriginInv: Trsf) {
   const clusters: CosmosCluster[] = []
 
   for (const [name, trsfGrp] of collectByClusterName(keys).entries()) {
@@ -216,11 +203,11 @@ function toCosmosClusters(keys: CuttleKey[], side: 'left' | 'right', globalProfi
           { row: keyRow } as any,
           column,
           { ...cluster, ...toPosRotation(clusterTrsf.Matrix4()) }, // Override cluster position to be independent of wrOriginInv
-          { partType: globalPartType, profile: globalProfile.profile, curvature: globalCurvature, clusters } as any,
+          { partType: globalPartType, profile: globalProfile, curvature: globalCurvature, clusters } as any,
         ).evaluate({ flat: false })
         const trsf = new ETrsf(colKey.position.history).evaluate({ flat: false }).premultiplied(trsfSoFar.invert())
 
-        const keyType = decodePartType(encodePartType(colKey))
+        // const keyType = decodePartType(encodePartType(colKey))
         const keycap = 'keycap' in colKey ? colKey.keycap : undefined
 
         let size = { sizeA: undefined as number | undefined, sizeB: undefined as number | undefined }
@@ -229,8 +216,8 @@ function toCosmosClusters(keys: CuttleKey[], side: 'left' | 'right', globalProfi
 
         column.keys.push({
           partType: {
-            type: diff(keyType.type, columnPartType.type),
-            aspect: diff(keyType.aspect, columnPartType.aspect),
+            type: diff(colKey.type, columnPartType.type),
+            aspect: diff(colKey.aspect, columnPartType.aspect),
           },
           profile: {
             profile: diff(keycap?.profile, columnProfile ?? clusterProfile ?? globalProfile),
@@ -324,7 +311,7 @@ export function toCosmosConfig(conf: Cuttleform, side: 'left' | 'right' | 'unibo
   const keyboard: CosmosKeyboard = {
     curvature: globalCurvature,
     profile: globalProfile,
-    partType: globalPartType,
+    partType: globalPartType as Required<PartType>,
     wallShrouding: conf.wallShrouding,
     wallThickness: conf.wallThickness,
     webMinThicknessFactor: conf.webMinThicknessFactor,
@@ -389,7 +376,7 @@ function filterUnibodySide(keys: CuttleKey[], side: 'left' | 'right') {
   return keys.filter((k, i) => side == 'left' ? (xs[i] < center) : (xs[i] > center))
 }
 
-function dominantCurvature(keys: CuttleKey[]) {
+function dominantCurvature(keys: CuttleKey[]): CosmosKeyboard['curvature'] {
   const horizontalSpacings = new TallyMap<number>()
   const verticalSpacings = new TallyMap<number>()
   const rowCurvatures = new TallyMap<number>()
@@ -422,11 +409,11 @@ function dominantCurvature(keys: CuttleKey[]) {
     }
   }
   return {
-    horizontalSpacing: horizontalSpacings.max(),
-    verticalSpacing: verticalSpacings.max(),
-    curvatureA: rowCurvatures.max(),
-    curvatureB: columnCurvatures.max(),
-    arc: arcs.max(),
+    horizontalSpacing: horizontalSpacings.max() ?? 0,
+    verticalSpacing: verticalSpacings.max() ?? 0,
+    curvatureA: rowCurvatures.max() ?? 0,
+    curvatureB: columnCurvatures.max() ?? 0,
+    arc: arcs.max() ?? 0,
   }
 }
 
@@ -503,12 +490,12 @@ export function toCuttleKey(c: CosmosKeyboard, cluster: CosmosCluster, col: Cosm
   } as any
   cuttleKey.variant = decodeVariant(cuttleKey.type, key.partType.variant ?? col.partType.variant ?? cluster.partType.variant ?? c.partType.variant!)
   if (PART_INFO[cuttleKey.type].keycap) {
-    ;(cuttleKey as CuttleKeycapKey).keycap = {
+    ;(cuttleKey as any).keycap = {
       letter: key.profile.letter,
       home: key.profile.home ?? undefined,
       row: key.profile.row!,
       profile: key.profile.profile || col.profile || cluster.profile || c.profile,
-    }
+    } satisfies Keycap
   } else {
     cuttleKey.aspect = 1
   }
@@ -635,7 +622,7 @@ function dominantProfile(keys: CuttleKey[]) {
 
 function dominantPartType(keys: CuttleKey[]) {
   const types = new TallyMap<number>()
-  keys.forEach(k => types.incr(encodePartType(k)))
+  keys.forEach(k => types.incr(encodePartType({ ...k, variant: k.variant ? encodeVariant(k.type, k.variant) : undefined })))
   return types.max()
 }
 
@@ -799,14 +786,14 @@ export function nthPartType(conf: CosmosKeyboard, n: number, mode: 'key' | 'colu
 export function partVariant(p: PartType) {
   const type = p.type!
   const variant = p.variant!
-  return decodeVariant(type, variant)
+  return decodeVariant(type, variant) || {}
 }
 
 export function nthPartVariant(conf: CosmosKeyboard, n: number) {
   const { key, column, cluster } = nthKey(conf, n)
   const type = key.partType.type || column.partType.type || cluster.partType.type || conf.partType.type!
   const variant = key.partType.variant ?? column.partType.variant ?? cluster.partType.variant ?? conf.partType.variant!
-  return decodeVariant(type, variant)
+  return decodeVariant(type, variant) || {}
 }
 
 export function nthPartAspect(conf: CosmosKeyboard, n: number, mode: 'key' | 'column' | 'cluster') {

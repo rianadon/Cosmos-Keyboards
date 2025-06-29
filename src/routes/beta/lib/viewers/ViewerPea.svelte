@@ -119,7 +119,7 @@
             {@const mat = matrixState[0].get(key)}
             <HTML position={[p[0], p[1], 0]} center>
               <div class="leading-none text-center">
-                {(hasKeyGeometry(key) && key.keycap?.letter) || ' '}
+                {(hasKeyGeometry(key) && 'keycap' in key && key.keycap?.letter) || ' '}
               </div>
               <div class="text-xs leading-none text-center opacity-70">
                 {#if mat} {mat.join(',')}{/if}

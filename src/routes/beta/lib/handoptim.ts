@@ -1,5 +1,6 @@
+import { objKeys } from '$lib/worker/util'
 import { Euler, Matrix4, Vector3 } from 'three'
-import { type Finger, FINGERS, type Joint, type Joints, objectFromFingers } from './hand'
+import { type Finger, type Joints } from './hand'
 
 /**
  * Optimize the hand position! (IK!)
@@ -108,7 +109,7 @@ function refineIter(m: Matrix4, joints: Joints, targets: Record<Finger, Vector3>
   const totalGrad = new Vector3()
   let totalError = 0
   let debug = new Matrix4()
-  for (const f of Object.keys(targets)) {
+  for (const f of objKeys(targets)) {
     const x = new Vector3(joints[f][0].length * scale, 0, 0).applyMatrix4(joints[f][0].Vinv)
     const length = (joints[f][1].length + joints[f][2].length + joints[f][3].length) * scale
     const y = new Vector3().subVectors(targets[f], pos)

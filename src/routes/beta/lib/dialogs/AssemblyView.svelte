@@ -26,7 +26,7 @@
         v.selections(geometry) +
         '&ref=cosmos'
       return { ...v, price, link, error: undefined }
-    } catch (e) {
+    } catch (e: any) {
       sendError(e, 'Cosmos vendor')
       return { ...v, price: 'n/a', error: (e as Error).message, link: null }
     }

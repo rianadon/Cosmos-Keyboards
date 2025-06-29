@@ -351,7 +351,7 @@ function generateDTSI(config: FullGeometry, matrix: Matrix, options: ZMKOptions)
         compatible = "zmk,matrix-transform";
         columns = <14>;
         rows = <7>;
-        map = <${matrix.values().map(([r, c]) => `RC(${r},${c})`).toArray().join(' ')}>;
+        map = <${Array.from(matrix.values()).map(([r, c]) => `RC(${r},${c})`).join(' ')}>;
     };
 
     kscan0: kscan_0 {

@@ -4,8 +4,8 @@ import { PART_INFO, socketHeight } from '$lib/geometry/socketsParts'
 import { switchInfo } from '$lib/geometry/switches'
 import { simpleSocketTris } from '$lib/loaders/simpleparts'
 import type { Triangle } from 'three'
-import { Octree } from 'three/examples/jsm/math/Octree'
-import { Vector2 } from 'three/src/math/Vector2'
+import { Octree } from 'three/examples/jsm/math/Octree.js'
+import { Vector2 } from 'three/src/math/Vector2.js'
 import { calcTravel, ITriangle, simpleKey, simpleKeyPosition } from '../loaders/simplekeys'
 import type { Cuttleform, CuttleKey, Geometry } from './config'
 import { type CriticalPoints, keyHolesTrsfs2D } from './geometry'
@@ -29,7 +29,7 @@ interface MissingError {
 interface InvalidError {
   type: 'invalid'
   item: string
-  value: string
+  value: string | undefined
   valid: string[]
 }
 interface WrongError {
@@ -136,7 +136,7 @@ export function checkConfig(conf: Cuttleform, geometry: Geometry | undefined, ch
   let i = 0
   for (const pos of keyHolesTrsfs2D(conf, new Trsf())) {
     const hash = pos.matrix().join(',')
-    if (positions.has(hash)) errors.push({ type: 'samePosition', side, i, j: positions.get(hash) })
+    if (positions.has(hash)) errors.push({ type: 'samePosition', side, i, j: positions.get(hash)! })
     positions.set(hash, i)
     i++
   }

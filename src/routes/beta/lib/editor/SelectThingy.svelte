@@ -52,7 +52,7 @@
 
   export let component: ComponentType<SvelteComponent<{ option: Option }>>
   export let labelComponent:
-    | ComponentType<SvelteComponent<{ option: { label: string; value: string } }>>
+    | ComponentType<SvelteComponent<{ option: { label?: string; value: string } }>>
     | undefined = undefined
   export let minWidth = 380
 

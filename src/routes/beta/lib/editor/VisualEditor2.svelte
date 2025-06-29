@@ -189,10 +189,11 @@
   }
 
   function updatePlate() {
+    // @ts-ignore
     $protoConfig.plate = { ...$protoConfig.plate }
   }
 
-  let lastSwitch: Record<string, PartType['type']> = { choc: 'choc-v1', mx: 'mx-better' }
+  let lastSwitch: Record<'choc' | 'mx', PartType['type']> = { choc: 'choc-v1', mx: 'mx-better' }
   let lastProfile: Record<string, Exclude<Profile, null>> = { choc: 'choc', mx: 'xda' }
 
   function updateKeycaps(ev: CustomEvent) {
@@ -201,9 +202,9 @@
     const switchType = PART_INFO[$protoConfig.partType.type].keycap
     const profileType = $protoConfig.profile == 'choc' ? 'choc' : 'mx'
     console.log(switchType, profileType)
-    if (switchType != profileType) {
+    if (switchType && switchType != profileType) {
       lastSwitch[switchType] = $protoConfig.partType.type!
-      $protoConfig.partType.type = lastSwitch[profileType]
+      $protoConfig.partType.type = lastSwitch[profileType]!
     }
   }
 
@@ -211,7 +212,7 @@
     $protoConfig.partType.type = ev.detail
     const switchType = PART_INFO[$protoConfig.partType.type].keycap
     const profileType = $protoConfig.profile == 'choc' ? 'choc' : 'mx'
-    if (switchType != profileType) {
+    if (switchType && switchType != profileType) {
       lastProfile[profileType] = $protoConfig.profile
       $protoConfig.profile = lastProfile[switchType]
       $protoConfig.keyBasis = $protoConfig.profile
@@ -398,7 +399,7 @@
 
   function rearPins(conf: CosmosKeyboard): number {
     if (conf.microcontroller == null) return 0
-    return BOARD_PROPERTIES[conf.microcontroller].rearPins || 0
+    return BOARD_PROPERTIES[conf.microcontroller].rearPins?.length || 0
   }
   function castellated(conf: CosmosKeyboard): boolean {
     if (conf.microcontroller == null) return false

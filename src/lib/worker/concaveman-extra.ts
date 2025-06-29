@@ -7,7 +7,6 @@
 import type { Cuttleform } from '$lib/worker/config'
 import { type WallCriticalPoints, wallUpDir } from '$lib/worker/geometry'
 import type Trsf from '$lib/worker/modeling/transformation'
-import { Vector3 } from 'three'
 
 // function refineBoundary(c, Cuttleform, wallPts: WallCriticalPoints[]) {
 //   let intersections: boolean[] = []
@@ -62,15 +61,15 @@ export function doWallsIntersect(c: Cuttleform, wall0: WallCriticalPoints, wall1
 
   if (('si' in wall0) && wall0.si) {
     // Because everything is 3d I can't use the 2d shorcut dot/subtract methods here.
-    const wall1sm = wall1.sm.origin()
+    const wall1sm = wall1.sm!.origin()
     const out = wall1.to.origin().sub(wall1sm)
-    const up = wall1.si.origin().sub(wall1sm)
+    const up = wall1.si!.origin().sub(wall1sm)
     // This is probably pointing the wrong way but it doesn't matter. The signs all cancel out.
     const normal = up.cross(out)
 
     // console.log('has sm', 'sm' in wall0)
-    const o0 = wall0.sm.origin().sub(wall1sm).dot(normal)
-    const o1 = wall2.sm.origin().sub(wall1sm).dot(normal)
+    const o0 = wall0.sm!.origin().sub(wall1sm).dot(normal)
+    const o1 = wall2.sm!.origin().sub(wall1sm).dot(normal)
     if (o0 * o1 > 0) return true // They intersect if the projections lie on the same side
   }
 

@@ -9,7 +9,7 @@
   import { Matrix4, Vector3 } from 'three'
   import HandFitViewTable from './HandFitViewTable.svelte'
   import { mirrorCluster, type CosmosCluster, type CosmosKeyboard } from '$lib/worker/config.cosmos'
-  import type { Homing } from 'target/cosmosStructs'
+  import type { Homing } from '$target/cosmosStructs'
 
   let hands: HandData | undefined = undefined
   const dispatch = createEventDispatcher()

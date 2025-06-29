@@ -573,7 +573,7 @@ export function numGPIO(mcu: Microcontroller) {
   return pins.filter(p => isGPIO.test(p)).length
 }
 
-export function microcontrollerConnectors(mcu: Microcontroller, connectors: ConnectorMaybeCustom[]) {
+export function microcontrollerConnectors(mcu: Microcontroller | null, connectors: ConnectorMaybeCustom[]) {
   const isBluetooth = mcu != null && BOARD_PROPERTIES[mcu].extraName?.toLowerCase().includes('bluetooth')
 
   if (mcu == null) connectors = []

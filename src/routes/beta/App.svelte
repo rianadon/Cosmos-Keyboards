@@ -65,7 +65,7 @@
   import { hasPro } from '@pro'
   import ViewerDev from './lib/viewers/ViewerDev.svelte'
   import DownloadDialog from './lib/dialogs/DownloadDialog.svelte'
-  import { fromCosmosConfig, toFullCosmosConfig } from '$lib/worker/config.cosmos'
+  import { fromCosmosConfig, toFullCosmosConfig, type CosmosKeyboard } from '$lib/worker/config.cosmos'
   import KeyboardModel from '$lib/3d/KeyboardModel.svelte'
   import { type FullGeometry, type FullKeyboardMeshes } from './lib/viewers/viewer3dHelpers'
   import { notNull, objEntriesNotNull, objKeys } from '$lib/worker/util'
@@ -109,9 +109,7 @@
   let fullMatrix: any = null
 
   // @ts-ignore
-  let state: State = deserialize(browser ? location.hash.substring(1) : '', () =>
-    deserialize('cm', null)
-  )
+  let state: State = deserialize(browser ? location.hash.substring(1) : '')
   if (state.error)
     confError.set([{ type: 'exception', error: state.error, side: 'right', when: 'parsing URL' }])
   $: $confError.forEach((e) => {
@@ -127,7 +125,7 @@
       console.log('URL CHANGE: Change state? =', oldHash != newHash)
       if (oldHash != newHash) {
         // The page navigated!
-        state = deserialize(location.hash.substring(1), () => deserialize('cm', null))
+        state = deserialize(location.hash.substring(1))
         const newMode = state.content ? 'advanced' : 'basic'
         if (state.content) initialEditorContent = state.content
         if (mode === 'advanced' && newMode !== 'advanced') {
@@ -441,6 +439,7 @@
         const errors: Error[] = []
         generatorProgress = 0.2
         while (queue.length) {
+          // @ts-ignore
           const { result, finished, error } = await Promise.race(
             queue.map((p) =>
               p.prom.then(
@@ -528,7 +527,7 @@
   }
 
   $: hasLemon = (config?.right || config?.unibody)?.microcontroller?.startsWith('lemon')
-  function switchUC(uc: string) {
+  function switchUC(uc: Exclude<CosmosKeyboard['microcontroller'], null>) {
     $protoConfig.microcontroller = uc
     lemonSwitch = false
 
@@ -1114,7 +1113,7 @@
           Bill of Materials will not be available until you fix the errors in your configuration.
         </div>
       {:else}
-        {#if (config?.right ?? config?.unibody).shell.type != 'basic'}
+        {#if (config?.right || config?.unibody)?.shell.type != 'basic'}
           <div class="bg-yellow-200 m-4 rounded p-4 dark:bg-yellow-700">
             Screw information is not yet finished non-standard cases. Make sure to check the model for
             any additional screws needed.

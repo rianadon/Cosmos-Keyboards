@@ -1,9 +1,9 @@
 <script lang="ts">
-  import Qrious from 'qrious'
+  import Qrious, { type QRiousOptions } from 'qrious'
 
   const QRcode = new Qrious()
 
-  export let level = 'L'
+  export let level: QRiousOptions['level'] = 'L'
   export let background = '#fff'
   export let foreground = '#000'
   export let size = 200

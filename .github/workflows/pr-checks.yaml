@@ -15,3 +15,23 @@ jobs:
 
       - name: Check formatting
         run: dprint check
+
+  test:
+    name: Run Bun Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Test
+        run: bun test
+
+  check:
+    name: Check Typescript
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Check Typescript for errors
+        run: bun src/scripts/check.ts

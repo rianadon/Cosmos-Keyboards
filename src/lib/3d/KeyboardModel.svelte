@@ -4,7 +4,7 @@
   import GroupMatrix from './GroupMatrix.svelte'
   import Microcontroller from './Microcontroller.svelte'
   import KMesh from '$lib/3d/KeyboardMeshBetter.svelte'
-  import type { KeyboardMeshes } from 'src/routes/beta/lib/viewers/viewer3dHelpers'
+  import type { KeyboardMeshes } from '../../routes/beta/lib/viewers/viewer3dHelpers'
 
   export let microcontrollerGeometry: Geometry | undefined = undefined
   export let keebGeometry: Geometry | undefined = undefined

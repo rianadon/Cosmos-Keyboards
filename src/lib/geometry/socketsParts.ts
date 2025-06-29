@@ -743,7 +743,7 @@ export function extraBomItems(k: CuttleKey): Record<string, BomItem> {
 
 export function decodeVariant(t: CuttleKey['type'], variant: number) {
   const info = PART_INFO[t]
-  if (!('variants' in info)) return {}
+  if (!('variants' in info)) return undefined
   return info.decodeVariant(variant)
 }
 export function encodeVariant(t: CuttleKey['type'], variant: Variant) {

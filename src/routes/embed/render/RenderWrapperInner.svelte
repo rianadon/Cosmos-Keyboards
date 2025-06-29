@@ -13,7 +13,7 @@
   import type { FullGeometry } from '../../beta/lib/viewers/viewer3dHelpers'
 
   const urlParams = new URLSearchParams(window.location.search)
-  const configStr = urlParams.get('config')
+  const configStr = urlParams.get('config')!
   const config = deserialize(configStr)
 
   const pool = new WorkerPool<typeof import('$lib/worker/api')>(2, () => {

@@ -314,7 +314,7 @@
 </footer>
 
 {#if joining}
-  <Dialog forceDark center on:close={() => (joining = false)}>
+  <Dialog forceDark on:close={() => (joining = false)}>
     <span slot="title" class="font-urbanist">Before you leave…</span>
     <div slot="content" class="text-center text-white font-urbanist">
       <p class="font-system">

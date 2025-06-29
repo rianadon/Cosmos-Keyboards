@@ -5,9 +5,8 @@
   import { stats, debugImgs } from '../store'
   import Stage from '../lib/Stage.svelte'
   import { onMount } from 'svelte'
-  import { developer } from '$lib/store'
   import { statMedians, type Statistics } from '../lib/stats'
-  import { Zip, ZipPassThrough, type FlateError, strToU8 } from 'fflate'
+  import { Zip, ZipPassThrough, strToU8 } from 'fflate'
 
   export let desiredHand: 'Left' | 'Right'
   export let otherHand: 'Left' | 'Right' | undefined = undefined
@@ -42,7 +41,7 @@
   function downloadZip() {
     const blocks: ArrayBuffer[] = []
     const zip = new Zip((_err, dat, final) => {
-      blocks.push(dat.buffer)
+      blocks.push(dat.buffer as ArrayBuffer)
       if (final) {
         const blob = new Blob(blocks, { type: 'application/x-zip' })
         download(blob, 'images.zip')

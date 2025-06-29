@@ -9,7 +9,8 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "sourceMap": true,
-    "strict": true
+    "strict": true,
+    "typeRoots": ["src/types", "node_modules/@types"]
   },
   // Path aliases are handled by https://kit.svelte.dev/docs/configuration#alias
   //
@@ -26,5 +27,5 @@
   //   "./coverage/**",
   //   "**/_/**"
   // ]
-  "include": ["src/routes/**/*"]
+  "include": ["src/routes/**/*", "src/types/**/*"]
 }

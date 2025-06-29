@@ -1,18 +1,6 @@
-import cuttleform from '$assets/cuttleform.json'
 import { PART_INFO } from '$lib/geometry/socketsParts'
-import { approximateCosmosThumbOrigin, cosmosFingers, cuttleConf, type CuttleKey, decodeTuple, encodeTuple, newGeometry } from '$lib/worker/config'
-import {
-  type ConnectorMaybeCustom,
-  type CosmosCluster,
-  type CosmosKey,
-  type CosmosKeyboard,
-  fromCosmosConfig,
-  indexOfKey,
-  mirrorCluster,
-  type PartType,
-  sideFromCosmosConfig,
-  toCosmosConfig,
-} from '$lib/worker/config.cosmos'
+import { approximateCosmosThumbOrigin, cosmosFingers, decodeTuple, encodeTuple, newGeometry } from '$lib/worker/config'
+import { type ConnectorMaybeCustom, type CosmosCluster, type CosmosKey, type CosmosKeyboard, indexOfKey, mirrorCluster, type PartType, sideFromCosmosConfig } from '$lib/worker/config.cosmos'
 import { decodeCosmosCluster, LETTERS } from '$lib/worker/config.serialize'
 import { estimatedBB } from '$lib/worker/geometry'
 import { Vector } from '$lib/worker/modeling/transformation'
@@ -355,7 +343,7 @@ export function addRow(kbd: CosmosKeyboard, fn: (side: 'left' | 'right', alphas:
 
 function numberKeyAdder(side: 'left' | 'right', alphas: number[], i: number, nColumns: number) {
   const ind = alphas.indexOf(i)
-  if (ind < 0) return
+  if (ind < 0) return null
   if (side == 'right') {
     return ['6', '7', '8', '9', '0'][ind]
   } else {

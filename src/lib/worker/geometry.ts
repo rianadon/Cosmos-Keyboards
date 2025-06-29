@@ -1277,11 +1277,11 @@ function screwScore(c: Cuttleform, walls: WallCriticalPoints[], _: WallCriticalP
   // Return -Infinity if it intersects the board
   // Disregard this if there is no microcontroller and no connector
   if (holderBnd) {
-    const miny = boardInd[2] ? Math.min(screwOrigin(c, boardInd[2], walls).y - holderOuterRadius(c), holderBnd.miny) : holderBnd.miny
-    const maxy = boardInd[0]
+    const miny = boardInd.bottomLeft ? Math.min(screwOrigin(c, boardInd.bottomLeft, walls).y - holderOuterRadius(c), holderBnd.miny) : holderBnd.miny
+    const maxy = boardInd.topLeft
       ? Math.max(
-        screwOrigin(c, boardInd[0], walls).y + holderOuterRadius(c),
-        screwOrigin(c, boardInd[1], walls).y + holderOuterRadius(c),
+        screwOrigin(c, boardInd.topLeft, walls).y + holderOuterRadius(c),
+        screwOrigin(c, boardInd.topRight!, walls).y + holderOuterRadius(c),
         holderBnd.maxy,
       )
       : holderBnd.maxy
@@ -1371,45 +1371,45 @@ export function screwIndices(
   walls: WallCriticalPoints[],
   connOrigin: Trsf | null,
   boardIdx: LabeledBoardInd,
-  boardsScrewsToo: string[],
+  boardsScrewsToo: (keyof LabeledBoardInd)[],
   worldZ: Vector,
   bottomZ: number,
   minDisplacement?: number,
 ) {
   // Include first board index if it exists and screw indices
-  let screwPositions = [...boardsScrewsToo.map(b => boardIdx[b]), ...c.screwIndices]
+  let screwPositions = [...boardsScrewsToo.map(b => boardIdx[b]!), ...c.screwIndices]
   const positiveInd = screwPositions.filter(i => i != -1)
 
-  if (true || positiveInd.length) {
-    for (const pos of allScrewIndices(c, walls, connOrigin, boardIdx, positiveInd, worldZ, bottomZ, minDisplacement)) {
-      // Find next position with index -1. It will be replaced.
-      const nextIndex = screwPositions.indexOf(-1)
-      if (nextIndex == -1) break
+  // if (true || positiveInd.length) {
+  for (const pos of allScrewIndices(c, walls, connOrigin, boardIdx, positiveInd, worldZ, bottomZ, minDisplacement)) {
+    // Find next position with index -1. It will be replaced.
+    const nextIndex = screwPositions.indexOf(-1)
+    if (nextIndex == -1) break
 
-      screwPositions[nextIndex] = pos
-    }
-  } else {
-    // TIL this doesn't really add much, and comes at the expense of lots of computation
-    // Therefore it's disabled.
-
-    // In the case that there are no initial guesses, there is no helpful information to help
-    // the algorithm choose the spot of the first screw index.
-    // Therefore, we iterate through all possibilities for that first index, and choose
-    // the first index that leads to the minimum possible tippage after all screws have been placed.
-    let bestScore = Infinity
-    for (let firstIdx = 0; firstIdx < walls.length; firstIdx++) {
-      const screwPositionsAttempt = [...boardsScrewsToo.map(b => boardIdx[b]), ...c.screwIndices]
-      for (const pos of allScrewIndices(c, walls, connOrigin, boardIdx, [firstIdx], worldZ, bottomZ, minDisplacement)) {
-        // Find next position with index -1. It will be replaced.
-        const nextIndex = screwPositionsAttempt.indexOf(-1)
-        if (nextIndex == -1) break
-
-        screwPositionsAttempt[nextIndex] = pos
-      }
-      const score = maxTip(c, screwPositionsAttempt, walls)
-      if (score < bestScore) screwPositions = screwPositionsAttempt
-    }
+    screwPositions[nextIndex] = pos
   }
+  // } else {
+  // TIL this doesn't really add much, and comes at the expense of lots of computation
+  // Therefore it's disabled.
+
+  // In the case that there are no initial guesses, there is no helpful information to help
+  // the algorithm choose the spot of the first screw index.
+  // Therefore, we iterate through all possibilities for that first index, and choose
+  // the first index that leads to the minimum possible tippage after all screws have been placed.
+  // let bestScore = Infinity
+  // for (let firstIdx = 0; firstIdx < walls.length; firstIdx++) {
+  //   const screwPositionsAttempt = [...boardsScrewsToo.map(b => boardIdx[b]), ...c.screwIndices]
+  //   for (const pos of allScrewIndices(c, walls, connOrigin, boardIdx, [firstIdx], worldZ, bottomZ, minDisplacement)) {
+  //     // Find next position with index -1. It will be replaced.
+  //     const nextIndex = screwPositionsAttempt.indexOf(-1)
+  //     if (nextIndex == -1) break
+
+  //     screwPositionsAttempt[nextIndex] = pos
+  //   }
+  //   const score = maxTip(c, screwPositionsAttempt, walls)
+  //   if (score < bestScore) screwPositions = screwPositionsAttempt
+  // }
+  // }
   let nextIndex = screwPositions.lastIndexOf(-1)
   while (nextIndex != -1) {
     screwPositions.splice(nextIndex, 1)

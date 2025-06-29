@@ -11,7 +11,7 @@
     type FullCuttleform,
     type Geometry,
   } from '$lib/worker/config'
-  import { isRenderable, type ConfError } from '$lib/worker/check'
+  import { isRenderable, type ConfErrors } from '$lib/worker/check'
   import type { FullGeometry } from './viewer3dHelpers'
   import { mapObj, objEntries, objKeys } from '$lib/worker/util'
   import { view } from '$lib/store'
@@ -20,7 +20,7 @@
   export let conf: FullCuttleform
   export let geometry: FullGeometry
   export let style: string = ''
-  export let confError: ConfError | undefined
+  export let confError: ConfErrors
   export let darkMode: boolean
 
   $: centers = fullEstimatedCenter(geometry, false)
@@ -33,18 +33,18 @@
   $: sizes = fullSizes(mapObj(allGeometries, (l) => l.map((g) => g.geometry)))
   $: size = sizes[$view]
 
-  function drawStates(darkMode: boolean, confError: ConfError | undefined, geometry: FullGeometry) {
+  function drawStates(darkMode: boolean, confErrors: ConfErrors, geometry: FullGeometry) {
     return mapObj(geometry as Required<typeof geometry>, (g, kbd) =>
-      drawState(g!.c, darkMode, confError?.side == kbd ? confError : undefined, g!)
+      drawState(
+        g!.c,
+        darkMode,
+        confErrors.filter((e) => e.side == kbd),
+        g!
+      )
     )
   }
 
-  function drawState(
-    conf: Cuttleform,
-    darkMode: boolean,
-    confError: ConfError | undefined,
-    geo: Geometry
-  ) {
+  function drawState(conf: Cuttleform, darkMode: boolean, confErrors: ConfErrors, geo: Geometry) {
     const geos: { geometry: THREE.ShapeGeometry; material: THREE.Material }[] = []
 
     const keys = geo.keyHolesTrsfs2D
@@ -97,35 +97,37 @@
       material: new THREE.MeshBasicMaterial({ color: darkMode ? 0x6699ff : 0x3333ff }),
     })
 
-    if (confError?.type == 'intersection') {
-      const pts = geo.allKeyCriticalPoints2D
-      if (confError.i >= 0)
-        geos.push({
-          geometry: drawLinedWall(
-            pts[confError.i].map((p) => p.xy()),
-            0.5
-          ),
-          material: new THREE.MeshBasicMaterial({ color: 0xff0000 }),
-        })
-      if (confError.j >= 0)
-        geos.push({
-          geometry: drawLinedWall(
-            pts[confError.j].map((p) => p.xy()),
-            0.5
-          ),
-          material: new THREE.MeshBasicMaterial({ color: 0xff0000 }),
-        })
-    }
-    if (confError?.type == 'wallBounds') {
-      const pts = geo.allKeyCriticalPoints2D
-      if (confError.i >= 0)
-        geos.push({
-          geometry: drawLinedWall(
-            pts[confError.i].map((p) => p.xy()),
-            0.5
-          ),
-          material: new THREE.MeshBasicMaterial({ color: 0xff0000 }),
-        })
+    for (const confError of confErrors) {
+      if (confError?.type == 'intersection') {
+        const pts = geo.allKeyCriticalPoints2D
+        if (confError.i >= 0)
+          geos.push({
+            geometry: drawLinedWall(
+              pts[confError.i].map((p) => p.xy()),
+              0.5
+            ),
+            material: new THREE.MeshBasicMaterial({ color: 0xff0000 }),
+          })
+        if (confError.j >= 0)
+          geos.push({
+            geometry: drawLinedWall(
+              pts[confError.j].map((p) => p.xy()),
+              0.5
+            ),
+            material: new THREE.MeshBasicMaterial({ color: 0xff0000 }),
+          })
+      }
+      if (confError?.type == 'wallBounds') {
+        const pts = geo.allKeyCriticalPoints2D
+        if (confError.i >= 0)
+          geos.push({
+            geometry: drawLinedWall(
+              pts[confError.i].map((p) => p.xy()),
+              0.5
+            ),
+            material: new THREE.MeshBasicMaterial({ color: 0xff0000 }),
+          })
+      }
     }
     return geos
   }

@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { SolvedHand } from './hand'
-  import { type GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
+  import { type GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
   import handModel from '$assets/hand.glb?url'
   import { Euler, Matrix4, Mesh, MeshNormalMaterial, Object3D, type Vector3Tuple } from 'three'
   import { T } from '@threlte/core'

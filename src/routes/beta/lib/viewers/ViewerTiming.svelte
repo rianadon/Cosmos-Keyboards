@@ -13,7 +13,7 @@
 
   const HEIGHT = 6
 
-  function color(i, oc, darkMode) {
+  function color(i: number, oc: boolean, darkMode: boolean) {
     // LCG Random generator
     let random = 234
     for (let j = 0; j < i; j++) random = (1103515245 * random + 12345) % 2 ** 31
