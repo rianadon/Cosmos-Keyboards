@@ -1,14 +1,15 @@
 <script lang="ts">
-  import { download } from '$lib/browser'
+  import { base } from '$app/paths'
   import Field from '$lib/presentation/Field.svelte'
   import Select from '$lib/presentation/Select.svelte'
   import { modelName, storable } from '$lib/store'
   import type { FullCuttleform } from '$lib/worker/config'
-  import { mapObj, mapObjNotNull } from '$lib/worker/util'
-  import { toKLE } from '../kle'
-  import { downloadQMKCode, type Matrix, type QMKOptions } from '../qmk'
+  import { mapObjNotNull } from '$lib/worker/util'
+  import { downloadQMKCode, type Matrix, type QMKOptions } from '../firmware/qmk'
   import type { FullGeometry } from '../viewers/viewer3dHelpers'
-  import { downloadZMKCode, type ZMKOptions } from '../zmk'
+  import { downloadZMKCode, type ZMKOptions } from '../firmware/zmk'
+  import { downloadVia } from '../firmware/via'
+  import Checkbox from '$lib/presentation/Checkbox.svelte'
 
   export let config: FullCuttleform
   export let geometry: FullGeometry
@@ -18,9 +19,10 @@
   const options = storable<OptionsType>('programmingOptions', {
     vid: '0x0001',
     pid: '0x0001',
-    yourName: 'Tester',
+    yourName: 'Cosmos',
     diodeDirection: 'COL2ROW',
     centralSide: 'left',
+    enableConsole: true,
   })
   $: fullOptions = {
     ...$options,
@@ -31,28 +33,6 @@
       cirque: c.keys.some((k) => k.type == 'trackpad-cirque'),
     })),
   } satisfies Partial<QMKOptions | ZMKOptions>
-
-  function downloadVia(options: QMKOptions) {
-    const kle = toKLE(geometry, matrix)
-      .split(',\n')
-      .map((s) => JSON.parse(s))
-    const via = {
-      name: options.keyboardName,
-      vendorId: options.vid,
-      productId: options.pid,
-      matrix: {
-        rows: 14,
-        cols: 7,
-      },
-      keycodes: ['qmk_lighting'],
-      menus: ['qmk_rgblight'],
-      layouts: {
-        keymap: kle,
-      },
-    }
-    const blob = new Blob([JSON.stringify(via, null, 2)], { type: 'application/json' })
-    download(blob, `via-${options.keyboardName}.json`)
-  }
 
   $: anyConfig = config.right || config.unibody || { microcontroller: undefined }
   $: truncated = anyConfig.microcontroller == 'lemon-wireless' && $modelName.length > 16
@@ -71,10 +51,39 @@
 {/if}
 
 {#if anyConfig.microcontroller == 'lemon-wired'}
+  <Field name="Diode Direction" icon="diode-direction">
+    <Select bind:value={$options.diodeDirection}>
+      <option value="COL2ROW">COL2ROW (Flex PCBs)</option>
+      <option value="ROW2COL">ROW2COL (Plum Twists)</option>
+    </Select>
+  </Field>
+  <Field name="Manufacturer Name (for USB)" icon="person">
+    <input class="input px-2" bind:value={$options.yourName} />
+  </Field>
+  <Field
+    name="Enable Console Debugging"
+    icon="debug"
+    help="Shows matrix and split debug information when you run qmk console"
+  >
+    <Checkbox bind:value={$options.enableConsole} />
+  </Field>
   <button class="button" on:click={() => downloadQMKCode(geometry, matrix, fullOptions)}
     >Download QMK code</button
   >
-  <button class="button" on:click={() => downloadVia(fullOptions)}>Download Via code</button>
+  <button class="button" on:click={() => downloadVia(geometry, matrix, fullOptions)}
+    >Download Via config</button
+  >
+
+  <div class="mt-4 text-gray-500 dark:text-gray-200">
+    Read the <a class="text-pink-600 underline" href="{base}/docs/firmware/" target="_blank"
+      >Firmware Autogen documentation</a
+    > to learn how to build and flash this code to your keyboard.
+  </div>
+  <div class="mt-4 text-gray-500 dark:text-gray-200">
+    To enter bootloader mode, unplug then plug in your keyboard while pressing the <span
+      class="text-brand-pink">bootmagic key</span
+    >. If there is no bootmagic key, you will need to double-tap the reset button.
+  </div>
 {/if}
 {#if anyConfig.microcontroller == 'lemon-wireless'}
   <Field name="Diode Direction" icon="diode-direction">
@@ -98,6 +107,11 @@
     The downloaded code contains a <code class="font-mono text-0.9em">.github</code> directory that will automatically
     build your firmware once you push it to GitHub. If you're on Linux or Mac, you'll need to turn on hidden
     directories (ctrl+h in GNOME, alt+. in KDE, cmd+shift+. on Mac) to see it.
+  </div>
+  <div class="mt-4 text-gray-500 dark:text-gray-200">
+    Read the <a class="text-pink-600 underline" href="{base}/docs/firmware/" target="_blank"
+      >Firmware Autogen documentation</a
+    > to learn how to build and flash this code to your keyboard.
   </div>
   <div class="mt-4 text-gray-500 dark:text-gray-200">
     To enter bootloader mode, unplug then plug in your keyboard while pressing the <span

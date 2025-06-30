@@ -1,12 +1,13 @@
 <script lang="ts">
   import Viewer from './Viewer.svelte'
-  import { drawLinedWall, drawWall, fullSizes, logicalKeys } from './viewerHelpers'
+  import { drawLinedWall, drawWall, fullSizes } from './viewerHelpers'
+  import { logicalKeys } from '../firmware/firmwareHelpers'
   import { fullEstimatedCenter, type CuttleKey } from '$lib/worker/config'
   import { isRenderable, type ConfErrors } from '$lib/worker/check'
   import { view } from '$lib/store'
   import { hasKeyGeometry, hasPinsInMatrix } from '$lib/loaders/keycaps'
   import type { FullGeometry } from './viewer3dHelpers'
-  import { mapObjNotNull, objEntries } from '$lib/worker/util'
+  import { mapObjNotNull, objEntries, repeated } from '$lib/worker/util'
   import { T } from '@threlte/core'
   import { HTML } from '@threlte/extras'
 
@@ -22,6 +23,8 @@
   let matrixState: [typeof matrices, number] = [matrices, 0]
   export let fullMatrix: typeof matrices | null
   $: fullMatrix = activeKey ? null : matrices
+  $: repeatedMatrices = repeated(Array.from(matrixState[0].values()).map((v) => v.join(',')))
+  $: console.log('repeated', repeatedMatrices)
 
   $: centers = fullEstimatedCenter(geometry, false)
   $: center = centers[$view]
@@ -105,8 +108,18 @@
           {#each geo.allKeyCriticalPoints2D as p, i}
             {@const active = geo.c.keys[i] == activeKey}
             {@const hasMatrix = hasPinsInMatrix(geo.c.keys[i])}
-            {@const bm = isBootmagic(kbd, matrixState[0].get(geo.c.keys[i]))}
-            {@const meshColor = active ? 0x0000ff : hasMatrix ? (bm ? 0xf57aec : 0xffcc33) : 0xcccccc}
+            {@const mat = matrixState[0].get(geo.c.keys[i])}
+            {@const bm = !activeKey && isBootmagic(kbd, mat)}
+            {@const rep = mat && repeatedMatrices.includes(mat.join(','))}
+            {@const meshColor = active
+              ? 0x0000ff
+              : rep
+              ? 0xff0000
+              : hasMatrix
+              ? bm
+                ? 0xf57aec
+                : 0xffcc33
+              : 0xcccccc}
             <T.Mesh geometry={drawWall(p.map((p) => p.xy()))}>
               <T.MeshBasicMaterial color={meshColor} transparent={true} opacity={0.1} />
             </T.Mesh>

@@ -67,6 +67,8 @@
         case 'art': return mdi.mdiPaletteOutline
         case 'diode-direction': return mdi.mdiSignDirection
         case 'pc': return mdi.mdiLaptop
+        case 'person': return mdi.mdiAccountHardHatOutline
+        case 'debug': return mdi.mdiBugOutline
     }
   }
 </script>

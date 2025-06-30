@@ -1,10 +1,10 @@
 import { hasKeyGeometry } from '$lib/loaders/keycaps'
-import { type Cuttleform, type FullCuttleform, fullEstimatedCenter } from '$lib/worker/config'
+import { fullEstimatedCenter } from '$lib/worker/config'
 import Trsf from '$lib/worker/modeling/transformation'
 import { Vector } from '$lib/worker/modeling/transformation'
 import { objEntries } from '$lib/worker/util'
+import type { FullGeometry } from '../viewers/viewer3dHelpers'
 import type { Matrix } from './qmk'
-import type { FullGeometry } from './viewers/viewer3dHelpers'
 
 const TRANSFORM = new Vector(1 / 19, -1 / 19, 0)
 

@@ -980,10 +980,16 @@
             <p class="mt-4 mb-2">Autogenerate your firmware with peaMK!</p>
             <ol class="list-decimal ml-6">
               <li>
+                <a class="text-pink-600 underline" target="_blank" href="docs/firmware/#key-labeling"
+                  >Label all your keys</a
+                > to your liking.
+              </li>
+              <li>
                 Download and flash <a
                   class="text-pink-600 underline"
+                  target="_blank"
                   href="https://github.com/rianadon/peaMK/tree/main?tab=readme-ov-file#binaries">peaMK</a
-                > to your microcontroller.
+                > to your microcontroller(s).
               </li>
               <li>Press the indicated blue key (on the right) on your keyboard.</li>
               <li>If a key doesn't work, double check your wiring.</li>

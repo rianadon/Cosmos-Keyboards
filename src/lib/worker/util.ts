@@ -184,3 +184,9 @@ export function typedConcat<T extends TypedArray>(a: T, b: ArrayLike<number>) {
 
   return result
 }
+
+export function repeated<T>(arr: T[]) {
+  const tally = new TallyMap()
+  arr.forEach(e => tally.incr(e))
+  return Array.from(tally.entries()).filter((e) => e[1] > 1).map(e => e[0])
+}

@@ -3,8 +3,8 @@ import { hasPinsInMatrix } from '$lib/loaders/keycaps'
 import type { CuttleKey } from '$lib/worker/config'
 import { findIndexIter } from '$lib/worker/util'
 import { strToU8, zip } from 'fflate'
-import type { FullGeometry } from './viewers/viewer3dHelpers'
-import { logicalKeys } from './viewers/viewerHelpers'
+import type { FullGeometry } from '../viewers/viewer3dHelpers'
+import { logicalKeys, yamlFile } from './firmwareHelpers'
 
 export type Matrix = Map<CuttleKey, [number, number]>
 
@@ -33,31 +33,6 @@ export interface ZMKOptions {
 export function validateConfig(options: ZMKOptions) {
   if (!RE_PID_VID.test(options.vid)) return 'VID should be of form 0xaaaa'
   if (!RE_PID_VID.test(options.pid)) return 'PID should be of form 0xaaaa'
-}
-
-/** Very simple function to process converting arrays and objects to YAML. */
-function _jsonToYaml(data: any, indent: number = 0): string {
-  const indentation = '  '.repeat(indent)
-
-  if (Array.isArray(data)) {
-    return data
-      .map(item => `${indentation}- ` + _jsonToYaml(item, indent + 1).trim())
-      .join('\n')
-  } else if (typeof data === 'object' && data !== null) {
-    return Object.entries(data)
-      .map(([key, value]) => {
-        const prefix = typeof value === 'object' && value !== null ? '\n' : ' '
-        return `${indentation}${key}:${prefix}${_jsonToYaml(value, indent + 1)}`
-      })
-      .join('\n')
-  }
-  return String(data)
-}
-
-/** Convert a json object to a YAML document. */
-function jsonToYaml(data: any, newDoc = false): string {
-  if (newDoc) return '---\n' + _jsonToYaml(data) + '\n'
-  return _jsonToYaml(data) + '\n'
 }
 
 const CHARS = {
@@ -145,13 +120,15 @@ const SPECIALS = [
 
 /** Return the ZMK keycode for a letter */
 function keycode(code: string | undefined) {
-  code = code?.toLowerCase()
+  const c = code?.toLowerCase()
 
-  if (!code) return '&kp SPACE'
-  if (/^[a-z]$/.test(code)) return '&kp ' + code.toUpperCase()
-  if (/^[0-9]$/.test(code)) return '&kp N' + String(code)
-  if (CHARS.hasOwnProperty(code)) return '&kp ' + (CHARS as any)[code]
-  if (SPECIALS.includes(code)) return '&kp ' + code.toUpperCase()
+  if (!c || !code) return '&kp SPACE'
+  if (/^[a-z]$/.test(c)) return '&kp ' + c.toUpperCase()
+  if (/^[0-9]$/.test(c)) return '&kp N' + String(c)
+  if (/^F[0-9]+$/.test(c)) return '&kp ' + c
+  if (CHARS.hasOwnProperty(c)) return '&kp ' + (CHARS as any)[c]
+  if (SPECIALS.includes(c)) return '&kp ' + c.toUpperCase()
+  if (c.startsWith('&')) return code
 
   return '&kp SPACE'
 }
@@ -182,7 +159,7 @@ function generateKeymap(config: FullGeometry, matrix: Matrix, options: ZMKOption
 }
 
 function generateGitHubWorkflow() {
-  return jsonToYaml({
+  return yamlFile({
     on: ['push', 'pull_request', 'workflow_dispatch'],
     jobs: {
       build: { uses: 'zmkfirmware/zmk/.github/workflows/build-user-config.yml@main' },
@@ -197,7 +174,7 @@ function generateBuildYaml(config: FullGeometry, options: ZMKOptions): string {
     if (peripherals.cirque) shields.push('vik_cirque_spi')
     return shields.join(' ')
   }
-  return jsonToYaml({
+  return yamlFile({
     include: config.unibody
       ? [
         {
@@ -222,7 +199,7 @@ function generateBuildYaml(config: FullGeometry, options: ZMKOptions): string {
 }
 
 function generateModuleYaml(): string {
-  return jsonToYaml({
+  return yamlFile({
     build: {
       depends: ['vik-core'],
       settings: { board_root: '.' },
@@ -231,7 +208,7 @@ function generateModuleYaml(): string {
 }
 
 function generateDepsYaml(): string {
-  return jsonToYaml({
+  return yamlFile({
     manifest: {
       remotes: [
         { name: 'sadekbaroudi', 'url-base': 'https://github.com/sadekbaroudi' },
@@ -245,7 +222,7 @@ function generateDepsYaml(): string {
 }
 
 function generateWestYaml(): string {
-  return jsonToYaml({
+  return yamlFile({
     manifest: {
       remotes: [
         { name: 'zmkfirmware', 'url-base': 'https://github.com/zmkfirmware' },
@@ -384,7 +361,7 @@ function generateDTSI(config: FullGeometry, matrix: Matrix, options: ZMKOptions)
 
 function generateZMKYaml(config: FullGeometry, options: ZMKOptions) {
   const { folderName, keyboardName } = options
-  return jsonToYaml({
+  return yamlFile({
     file_format: '"1"',
     id: folderName,
     name: keyboardName,

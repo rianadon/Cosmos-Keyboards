@@ -1,14 +1,11 @@
 import { boundingBox, boundingSize } from '$lib/loaders/geometry'
-import type { Cuttleform, CuttleKey } from '$lib/worker/config'
-import { getRowColumn } from '$lib/worker/config.cosmos'
+import type { Cuttleform } from '$lib/worker/config'
 import type { WallCriticalPoints } from '$lib/worker/geometry'
 import type { Vector } from '$lib/worker/modeling/transformation'
 import type Trsf from '$lib/worker/modeling/transformation'
-import { DefaultMap, objEntriesNotNull } from '$lib/worker/util'
 // Stashed changes
 import { wallBezier } from '@pro/rounded'
 import * as THREE from 'three'
-import type { FullGeometry } from './viewer3dHelpers'
 
 export function rectangle(x: number, y: number, size = 1) {
   const shape = new THREE.Shape()
@@ -157,30 +154,4 @@ export function fullSizes(geo: Full<THREE.BufferGeometry[]>) {
     bothSize.x += SEPARATION - (rightBox.min.x - leftBox.max.x)
     return { left: leftSize, both: bothSize, right: rightSize }
   }
-}
-
-type ModifiedKey = { key: CuttleKey; offsetX: number }
-
-function sortKeysFn(a: ModifiedKey, b: ModifiedKey) {
-  const aPos = getRowColumn(a.key.position)
-  const bPos = getRowColumn(b.key.position)
-  const dy = bPos.row - aPos.row
-
-  if (dy > 0.5) return -1
-  if (dy < -0.5) return 1
-  return aPos.column + a.offsetX - bPos.column - b.offsetX
-}
-
-export function sortKeysLogically(keys: ModifiedKey[]) {
-  const clusterGroups = new DefaultMap<string, ModifiedKey[]>(() => [])
-  for (const k of keys) clusterGroups.get(k.key.cluster).push(k)
-  return Array.from(clusterGroups.values()).flatMap(keys => keys.sort(sortKeysFn))
-}
-
-export function logicalKeys(geo: FullGeometry): CuttleKey[] {
-  return sortKeysLogically(
-    objEntriesNotNull(geo).flatMap(
-      ([kbd, g]) => g.c.keys.map(k => ({ key: k, offsetX: kbd == 'right' ? 1000 : 0 })),
-    ),
-  ).map(k => k.key)
 }
