@@ -4,9 +4,21 @@ import type { CuttleKey } from '$target/cosmosStructs'
 import { type AsyncZippable, unzip, type Unzipped, zip } from 'fflate'
 import type { FullGeometry } from '../viewers/viewer3dHelpers'
 
+const YAML_INDENT = '  ' // 2 spaces
+const DTS_INDENT = '    ' // 4 spaces
+
+const MAX_ARR_LENGTH = 80 // For DTS
+
+let rawNum = 0
+export const raw = () => '/*' + (rawNum++) // For emitting raw things to DTS
+
+function camelToSnakeCase(str: string): string {
+  return str.replace(/[A-Z]/g, (letter) => '-' + letter.toLowerCase())
+}
+
 /** Very simple function to process converting arrays and objects to YAML. */
 function jsonToYaml(data: any, indent: number = 0): string {
-  const indentation = '  '.repeat(indent)
+  const indentation = YAML_INDENT.repeat(indent)
 
   if (Array.isArray(data)) {
     return data
@@ -32,6 +44,64 @@ export function yamlFile(data: any, newDoc = false): string {
 export function jsonFile(json: any) {
   return JSON.stringify(json, null, 4) + '\n'
 }
+
+export function dtsFile(json: any) {
+  return formatDTSExpression(json)
+}
+
+/** Formats a DTS property like rows = <7> */
+function formatDTSProperty(k: string, v: any, indent: number): string {
+  if (v === true) return camelToSnakeCase(k) + ';'
+  let joiner = typeof v == 'object' ? ' ' : ' = '
+  if (Array.isArray(v)) joiner = v.join(', ').length < MAX_ARR_LENGTH ? ' = ' : '\n' + DTS_INDENT.repeat(indent + 1) + '= '
+  if (!k.startsWith('/*')) return camelToSnakeCase(k) + joiner + formatDTSExpression(v, indent + 1) + ';'
+
+  return v
+}
+
+/** Joines lines of a DTS file together, adding newlines when appropriate */
+function joinDTSLines(lines: string[]) {
+  let output = ''
+  for (let i = 0; i < lines.length; i++) {
+    output += lines[i] + '\n'
+
+    if (!lines[i + 1]) continue
+    const t = lines[i].trimStart()
+    const tn = lines[i + 1].trimStart()
+
+    if (t.startsWith('#include') && !tn.startsWith('#include')) {
+      output += '\n' // Add newline after the includes
+    } else if (t.startsWith('#define') && !tn.startsWith('#define') && !tn.startsWith('//')) {
+      output += '\n' // Add newline after the definitions
+    } else if (t.includes('\n') || tn.includes('\n')) {
+      output += '\n' // Add newline after properties and blocks
+    }
+  }
+  return output
+}
+
+/** Formats a DTS expression */
+function formatDTSExpression(json: any, indent: number = 0): string {
+  if (typeof json == 'string') return (json.startsWith('&')) ? json : '"' + json + '"'
+  if (typeof json == 'number') return '<' + json + '>'
+
+  const indentation = DTS_INDENT.repeat(indent)
+  if (Array.isArray(json)) {
+    const simpleJoin = json.join(', ')
+    if (simpleJoin.length < MAX_ARR_LENGTH) return simpleJoin
+    return json.map((l, i) => i == 0 ? l : indentation + ', ' + l).join('\n') + '\n' + indentation
+  }
+
+  if (typeof json == 'object') {
+    return (indent ? '{\n' : '') + joinDTSLines(
+      Object.entries(json).filter(([k, v]) => v !== false && v !== null && typeof v !== 'undefined').map(([k, v]) => (
+        indentation + formatDTSProperty(k, v, indent)
+      )),
+    ) + (indent ? DTS_INDENT.repeat(indent - 1) + '}' : '')
+  }
+  throw new Error(`Cannot cast type ${typeof json} to DTS`)
+}
+
 type ModifiedKey = { key: CuttleKey; offsetX: number }
 function sortKeysFn(a: ModifiedKey, b: ModifiedKey) {
   const aPos = getRowColumn(a.key.position)

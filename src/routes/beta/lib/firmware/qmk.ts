@@ -117,10 +117,6 @@ function generateInfoJSON(config: FullGeometry, matrix: Matrix, options: QMKOpti
   })
 }
 
-// function generateRulesMK(config: FullGeometry) {
-//   return
-// }
-
 function generateConfigH(options: QMKOptions) {
   return [
     "// You shouldn't need to edit any of this.",

@@ -4,7 +4,7 @@ import type { CuttleKey } from '$lib/worker/config'
 import { findIndexIter } from '$lib/worker/util'
 import { strToU8, zip } from 'fflate'
 import type { FullGeometry } from '../viewers/viewer3dHelpers'
-import { logicalKeys, yamlFile } from './firmwareHelpers'
+import { dtsFile, logicalKeys, raw, yamlFile } from './firmwareHelpers'
 
 export type Matrix = Map<CuttleKey, [number, number]>
 
@@ -144,18 +144,18 @@ function generateKeycodes(config: FullGeometry, matrix: Matrix) {
 }
 
 function generateKeymap(config: FullGeometry, matrix: Matrix, options: ZMKOptions) {
-  return `#include <behaviors.dtsi>
-#include <dt-bindings/zmk/keys.h>
-
-/ {
-    keymap {
-        compatible = "zmk,keymap";
-
-        default_layer {
-            bindings = <${generateKeycodes(config, matrix).join(' ')}>;
-        };
-    };
-};`
+  return dtsFile({
+    [raw()]: '#include <behaviors.dtsi>',
+    [raw()]: '#include <dt-bindings/zmk/keys.h>',
+    '/': {
+      keymap: {
+        compatible: 'zmk,keymap',
+        default_layer: {
+          bindings: ['<' + generateKeycodes(config, matrix).join(' ') + '>'],
+        },
+      },
+    },
+  })
 }
 
 function generateGitHubWorkflow() {
@@ -280,12 +280,9 @@ function generateConf(config: FullGeometry, options: ZMKOptions) {
   return [
     '# Uncomment the following lines to enable RGB underglow',
     'CONFIG_ZMK_RGB_UNDERGLOW=y',
-    ...(Object.values(options.peripherals).some(p => p.pmw3610 || p.cirque)
-      ? [
-        '# zmk mouse emulation for trackball/trackpadd',
-        'CONFIG_ZMK_POINTING=y',
-      ]
-      : []),
+    '',
+    '# zmk mouse emulation for trackball/trackpad',
+    'CONFIG_ZMK_POINTING=' + (Object.values(options.peripherals).some(p => p.pmw3610 || p.cirque) ? 'y' : 'n'),
   ].join('\n') + '\n'
 }
 
@@ -293,70 +290,63 @@ function generateDTSI(config: FullGeometry, matrix: Matrix, options: ZMKOptions)
   const activeMode = options.diodeDirection == 'COL2ROW' ? 'GPIO_ACTIVE_HIGH' : 'GPIO_ACTIVE_LOW'
   const pullMode = options.diodeDirection == 'COL2ROW' ? 'GPIO_PULL_DOWN' : 'GPIO_PULL_UP'
 
-  return `#include <behaviors.dtsi>
-#include <dt-bindings/zmk/matrix_transform.h>
-#include <dt-bindings/zmk/keys.h>
-
-// Tell VIK that there is 1 other device on the SPI bus.
-// You will need to increase this number if you add another SPI device.
-#define VIK_SPI_REG_START 1
-// Pulled out to an external variable so VIK can find the SPI bus.
-#define VIK_SPI_CS_PREFIX <&gpio0 4 GPIO_ACTIVE_LOW>
-
-&spi1 {
-    status = "okay";
-    cs-gpios = VIK_SPI_CS_PREFIX;
-
-    shifter: 595@0 {
-        compatible = "zmk,gpio-595";
-        status = "okay";
-        gpio-controller;
-        spi-max-frequency = <200000>;
-        reg = <0>;
-        ngpios = <8>;
-        #gpio-cells = <2>;
-    };
-};
-
-/ {
-    chosen {
-        zmk,kscan = &kscan0;
-        zmk,matrix_transform = &default_transform;
-    };
-
-    default_transform: keymap_transform_0 {
-        compatible = "zmk,matrix-transform";
-        columns = <14>;
-        rows = <7>;
-        map = <${Array.from(matrix.values()).map(([r, c]) => `RC(${r},${c})`).join(' ')}>;
-    };
-
-    kscan0: kscan_0 {
-        compatible = "zmk,kscan-gpio-matrix";
-
-        diode-direction = "col2row";
-        row-gpios
-            = <&gpio0 20 (${activeMode} | ${pullMode})>
-            , <&gpio0 22 (${activeMode} | ${pullMode})>
-            , <&gpio0 24 (${activeMode} | ${pullMode})>
-            , <&gpio0 9  (${activeMode} | ${pullMode})>
-            , <&gpio0 10 (${activeMode} | ${pullMode})>
-            , <&gpio1 13 (${activeMode} | ${pullMode})>
-            , <&gpio1 15 (${activeMode} | ${pullMode})>
-            ;
-
-        col-gpios
-            = <&shifter 0 ${activeMode}>
-            , <&shifter 1 ${activeMode}>
-            , <&shifter 2 ${activeMode}>
-            , <&shifter 3 ${activeMode}>
-            , <&shifter 4 ${activeMode}>
-            , <&shifter 5 ${activeMode}>
-            , <&shifter 6 ${activeMode}>
-            ;
-    };
-};
-`
+  return dtsFile({
+    [raw()]: '#include <behaviors.dtsi>',
+    [raw()]: '#include <dt-bindings/zmk/matrix_transform.h>',
+    [raw()]: '#include <dt-bindings/zmk/keys.h>',
+    [raw()]: '// Tell VIK that there is 1 other device on the SPI bus.',
+    [raw()]: '// You will need to increase this number if you add another SPI device.',
+    [raw()]: '#define VIK_SPI_REG_START 1',
+    [raw()]: '// Pulled out to an external variable so VIK can find the SPI bus.',
+    [raw()]: '#define VIK_SPI_CS_PREFIX <&gpio0 4 GPIO_ACTIVE_LOW>',
+    '&spi1': {
+      status: 'okay',
+      csGpios: ['VIK_SPI_CS_PREFIX'],
+      'shifter: 595@0': {
+        compatible: 'zmk,gpio-595',
+        status: 'okay',
+        gpioController: true,
+        spiMaxFrequency: 200000,
+        reg: 0,
+        ngpios: 8,
+        '#gpio-cells': 2,
+      },
+    },
+    '/': {
+      'chosen': {
+        'zmk,kscan': '&kscan0',
+        'zmk,matrix_transform': '&default_transform',
+      },
+      'default_transform: keymap_transform_0': {
+        compatible: 'zmk,matrix-transform',
+        columns: 14,
+        rows: 7,
+        map: ['<' + Array.from(matrix.values()).map(([r, c]) => `RC(${r},${c})`).join(' ') + '>'],
+      },
+      'kscan0: kscan_0': {
+        compatible: 'zmk,kscan-gpio-matrix',
+        diodeDirection: 'col2row',
+        rowGpios: [
+          `<&gpio0 20 (${activeMode} | ${pullMode})>`,
+          `<&gpio0 22 (${activeMode} | ${pullMode})>`,
+          `<&gpio0 24 (${activeMode} | ${pullMode})>`,
+          `<&gpio0 9  (${activeMode} | ${pullMode})>`,
+          `<&gpio0 10 (${activeMode} | ${pullMode})>`,
+          `<&gpio1 13 (${activeMode} | ${pullMode})>`,
+          `<&gpio1 15 (${activeMode} | ${pullMode})>`,
+        ],
+        colGpios: [
+          `<&shifter 0 ${activeMode}>`,
+          `<&shifter 1 ${activeMode}>`,
+          `<&shifter 2 ${activeMode}>`,
+          `<&shifter 3 ${activeMode}>`,
+          `<&shifter 4 ${activeMode}>`,
+          `<&shifter 5 ${activeMode}>`,
+          `<&shifter 6 ${activeMode}>`,
+        ],
+      },
+    },
+  })
 }
 
 function generateZMKYaml(config: FullGeometry, options: ZMKOptions) {
@@ -380,29 +370,22 @@ function generateOverlay(config: FullGeometry, matrix: Matrix, options: ZMKOptio
   if (bootloaderPosition == -1 && !right && config.left) bootloaderPosition = findIndexIter(matrix.keys(), k => config.left!.c.keys.includes(k))
   if (bootloaderPosition == -1) bootloaderPosition = 0
 
-  let overlay = `
-#include "${options.folderName}.dtsi"
-
-/ {
-    bootloader_key: bootloader_key {
-        compatible = "zmk,boot-magic-key";
-        key-position = <${bootloaderPosition}>;
-        jump-to-bootloader;
-    };
-};
-`
-  if (right) {
-    overlay += `
-&default_transform {
-    col-offset = <7>;
-};
-`
-  }
-  return overlay
+  return dtsFile({
+    [raw()]: `#include "${options.folderName}.dtsi"`,
+    '/': {
+      'bootloader_key: bootloader_key': {
+        compatible: 'zmk,boot-magic-key',
+        keyPosition: bootloaderPosition,
+        jumpToBootloader: true,
+      },
+    },
+    '&default_transform': right && {
+      colOffset: 7,
+    },
+  })
 }
 
-function generateBoardOverlay() {
-  return `#include <dt-bindings/led/led.h>
+const BOARD_OVERLAY = `#include <dt-bindings/led/led.h>
 
 &pinctrl {
     spi3_default: spi3_default {
@@ -470,7 +453,6 @@ function generateBoardOverlay() {
 vik_i2c: &i2c0 {};
 vik_spi: &spi1 {};
 `
-}
 
 export function downloadZMKCode(config: FullGeometry, matrix: Matrix, options: ZMKOptions) {
   const { folderName } = options
@@ -482,7 +464,7 @@ export function downloadZMKCode(config: FullGeometry, matrix: Matrix, options: Z
       'config/deps.yml': strToU8(generateDepsYaml()),
       'config/west.yml': strToU8(generateWestYaml()),
       [`boards/shields/${folderName}`]: {
-        'boards/cosmos_lemon_wireless.overlay': strToU8(generateBoardOverlay()),
+        'boards/cosmos_lemon_wireless.overlay': strToU8(BOARD_OVERLAY),
         'Kconfig.defconfig': strToU8(generateDefconfig(config, options)),
         'Kconfig.shield': strToU8(generateShield(config, options)),
         [folderName + '.conf']: strToU8(generateConf(config, options)),
