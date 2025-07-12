@@ -1,14 +1,14 @@
-# Lemon Wireless
+# Lemon Wireless Microcontroller
 
 The Lemon Wireless is an nRF52840-based microcontroller for split keyboards with a USB-C port, power switch, JST battery connector, a VIK connector, and two FPC connectors for connecting column-flex PCBs. If you use column-flex PCBs and VIK-compatible peripherals, it's possible to build a wireless split keyboard without soldering any wires!
 
-If you haven't already, I suggest you check out the [Lemon Landing page](https://ryanis.cool/cosmos/lemon) to learn more.
+If you haven't already, I suggest you check out the [Lemon Landing page](https://ryanis.cool/cosmos/lemon/) to learn more.
 
 --8<-- "docs/docs/lemon/.shared/info.md"
 
 ## Pinout
 
-Go to the [landing page](https://ryanis.cool/cosmos/lemon) :)
+Go to the [landing page](https://ryanis.cool/cosmos/lemon/) :)
 
 ## Onboard LEDs
 
@@ -42,7 +42,7 @@ I recommend only soldering this jumper shut only if you're using a battery with 
 
 ### Recommended Use
 
-I recommend using column-flex PCBs to wire your keys, not only because they are easy to connect via the FPC connectors on the bottom of the microcontroller, but also because you will save yourself hours of wiring together keys. This example shows the two I sell, the Pumpkin Patch (for upper keys & some thumb keys) and Pumpkin Vine (for the further away thumb keys), used to wire the keys as well as an encoder attached to the VIK pins.
+I recommend using column-flex PCBs to wire your keys, not only because they are easy to connect via the FPC connectors on the bottom of the microcontroller, but also because you will save yourself hours of wiring together keys. This example shows the two I sell, the [Pumpkin Patch](https://ryanis.cool/cosmos/pumpkin/) (for upper keys & some thumb keys) and [Pumpkin Vine](https://ryanis.cool/cosmos/pumpkin/) (for the further away thumb keys), used to wire the keys as well as an encoder attached to the VIK pins.
 
 ![Wiring Diagram of Pumpkin PCBs and an encoder](../../assets/lemon_wireless_pumpkin.png){width=600 .center}
 

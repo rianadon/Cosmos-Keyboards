@@ -22,6 +22,7 @@
   import { objKeys } from '$lib/worker/util'
   import { modelAsScene } from '../modelGLTF'
   import { get } from 'svelte/store'
+  import { testPrint } from '../editor/visualEditorHelpers'
 
   const dispatch = createEventDispatcher()
 
@@ -77,19 +78,20 @@
       )
   }
 
-  function downloadSTL(model: string, side: 'left' | 'right' | 'unibody') {
+  function downloadSTL(model: string, side: 'left' | 'right' | 'unibody' | 'test') {
     numDownloaded += 1
     if (!config) {
       generatingError = new Error('Configuration has not yet been evaluated')
       return
     }
-    if (side != 'unibody' && !config[side!]?.bottomZ) {
+    let configuration = side == 'test' ? testPrint(config) : config[side]!
+    if (side != 'unibody' && !configuration.bottomZ) {
       setBottomZ(config)
     }
     const begin = window.performance.now()
     generatingSTL = true
     pool
-      .executeNow((w) => w.getSTL(config[side]!, model, side, !$noStitch) as Promise<Blob>)
+      .executeNow((w) => w.getSTL(configuration!, model, side, !$noStitch) as Promise<Blob>)
       .then(addMetadataToSTL)
       .then(
         (blob) => {
@@ -97,7 +99,7 @@
             model,
             time: window.performance.now() - begin,
             hash: window.location.hash,
-            pro: isPro(config[side]!) ? 1 : 0,
+            pro: isPro(configuration!) ? 1 : 0,
           })
           if (model == 'model') model = 'case'
           download(blob, $modelName + '-' + model + side + '.stl')
@@ -255,6 +257,16 @@
           href="https://discord.gg/nXjqkfgtGy">Discord server</a
         > if it's been tested!
       </p>
+      <div class="flex text-start mx-2 sm:mx-10 items-center gap-2 mb-4">
+        <button
+          class="button flex items-center gap-2 flex-none"
+          on:click={() => downloadSTL('model', 'test')}>Test Print</button
+        >
+        <p class="text-sm flex-grow">
+          Recommended if this is your first time printing a Cosmos keyboard or you're using a new switch
+          socket
+        </p>
+      </div>
       <div class="columns-2">
         <div class="break-inside-avoid">
           <h3 class="mb-2 text-lg semibold text-black dark:text-white">Case/Shell</h3>

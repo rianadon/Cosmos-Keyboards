@@ -74,6 +74,7 @@ async function main() {
 
   const microcontrollerCode = fileURLToPath(new URL('./parametric/microcontroller-gen.ts', import.meta.url))
   const displayCode = fileURLToPath(new URL('./parametric/display-gen.ts', import.meta.url))
+  const partsCode = fileURLToPath(import.meta.url)
 
   const poolUC = (name: Microcontroller, opts: Partial<MicrocontrollerProps>, holes: Holes[]) => {
     const glbName = join(targetDir, name + '.glb')
@@ -114,18 +115,32 @@ async function main() {
         await writeModel(stepV1, newModel.intersect(makeBaseBox(17.5, 16.5, 100).translateZ(-50)))
       }
     })
-  /** Add task to generate both north-facing and south-facing variants. Assumes the STEP is north-facing. */
-  const poolLED = (name: CuttleKey['type']) =>
-    pool.add(name + ' socket', async () => {
-      const stepFile = await readFile(join(assetsDir, 'key-' + name + '.step'))
-      const model = await importSTEP(new Blob([stepFile])) as Solid
-      const variantV1 = variantURL({ type: name, variant: { led: 'North LED' } } as any)
-      const variantV2 = variantURL({ type: name, variant: { led: 'South LED' } } as any)
-      const stepV1 = join(targetDir, `key-${name + variantV1}.step`.toLowerCase())
-      const stepV2 = join(targetDir, `key-${name + variantV2}.step`.toLowerCase())
-      await writeModel(stepV1, model.clone())
-      await writeModel(stepV2, model.rotate(180))
+
+  type VariantWork = [Record<string, string>, Solid]
+  type VariantFn = (v: VariantWork) => VariantWork[]
+  const variantFile = (n: string, v: Record<string, string>) => join(targetDir, `key-${n + variantURL({ type: n, variant: v })}.step`.toLowerCase())
+  const poolVariants = (name: CuttleKey['type'], ...transformations: VariantFn[]) => {
+    const input = join(assetsDir, 'key-' + name + '.step')
+    const outputs = allVariants(name).map(v => variantFile(name, v))
+    pool.addIfModified(name + ' socket', outputs, [input, partsCode], async () => {
+      const stepFile = await readFile(input)
+      const inp: VariantWork[] = [[{}, await importSTEP(new Blob([stepFile])) as Solid]]
+      const results = transformations.reduce((work, f) => work.flatMap(f), inp)
+      await Promise.all(results.map(([v, m]) => writeModel(variantFile(name, v), m)))
     })
+  }
+
+  /** Add task to generate both north-facing and south-facing variants. Assumes the STEP is north-facing. */
+  const ledWork = (reversed = false) => ([v, m]: VariantWork) => ([
+    [{ ...v, led: 'North LED' }, reversed ? m.clone().rotate(180) : m.clone()],
+    [{ ...v, led: 'South LED' }, reversed ? m.clone() : m.clone().rotate(180)],
+  ] satisfies VariantWork[])
+
+  const plumMXWork: VariantFn = ([v, m]) => [
+    [{ ...v, guides: 'Inner & Bottom Guides' }, m.clone()],
+    [{ ...v, guides: 'Inner Guides' }, m.clone().intersect(makeBaseBox(100, 100, 100).translateZ(-6.1)) as Solid],
+    [{ ...v, guides: 'Bottom Guides' }, m.clone().cut(makeBaseBox(14, 14, 100).translateZ(-50)) as Solid],
+  ]
 
   pool.add('Cherry MX Switch', () => genPart('switch-cherry-mx'))
   pool.add('ECQWGD001 Encoder', () => genPart('switch-evqwgd001'))
@@ -133,8 +148,10 @@ async function main() {
 
   poolChocV1('choc', 'choc-v1', 'choc-v2')
   poolChocV1('choc-hotswap', 'choc-v1-hotswap', 'choc-v2-hotswap', true)
-  poolLED('mx-pcb-plum')
-  poolLED('mx-skree')
+  poolVariants('mx-pcb-plum', ledWork())
+  poolVariants('mx-skree', ledWork())
+  poolVariants('mx-pumpkin', plumMXWork, ledWork())
+  poolVariants('choc-pumpkin', ledWork(true))
 
   const defaults = { spacing: 2.54, diameter: 0.9 }
   poolUC('rp2040-black-usb-c-aliexpress', {}, [

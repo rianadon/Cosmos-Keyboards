@@ -66,7 +66,8 @@ export function mapObjNotNull<K extends string, V, R>(obj: Partial<Record<K, V>>
   const newObj: any = {}
   for (const key of Object.keys(obj) as K[]) {
     const value = obj[key]
-    newObj[key] = typeof value !== 'undefined' && value !== null ? f(value as Exclude<V, undefined>, key) : undefined
+    if (typeof value === 'undefined' || value === null) continue
+    newObj[key] = f(value as Exclude<V, undefined>, key)
   }
   return newObj
 }

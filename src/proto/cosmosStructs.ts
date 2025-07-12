@@ -25,7 +25,7 @@ enumeration('PART', {
   11: 'choc-v1-hotswap',
   12: 'choc-v2-hotswap',
   13: 'mx-pcb-plum',
-  // 14 reserved for mx-pumpkin
+  14: 'mx-pumpkin',
   15: 'mx-skree',
   26: 'niz',
   31: 'choc-pumpkin',

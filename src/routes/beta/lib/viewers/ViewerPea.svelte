@@ -24,7 +24,6 @@
   export let fullMatrix: typeof matrices | null
   $: fullMatrix = activeKey ? null : matrices
   $: repeatedMatrices = repeated(Array.from(matrixState[0].values()).map((v) => v.join(',')))
-  $: console.log('repeated', repeatedMatrices)
 
   $: centers = fullEstimatedCenter(geometry, false)
   $: center = centers[$view]

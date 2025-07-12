@@ -20,13 +20,13 @@ Despite the fact that some peripherals are not yet supported (you can track the 
 
       ---
 
-      [:octicons-arrow-right-24: Documentation](lemon/wired.md)
+      [:octicons-arrow-right-24: Documentation](pcbs/lemon-wired.md)
 
 - **Lemon Wireless**
 
       ---
 
-      [:octicons-arrow-right-24: Documentation](lemon/wireless.md)
+      [:octicons-arrow-right-24: Documentation](pcbs/lemon-wireless.md)
 
 </div>
 

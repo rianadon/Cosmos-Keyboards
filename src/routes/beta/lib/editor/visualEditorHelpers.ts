@@ -1,6 +1,17 @@
 import { PART_INFO } from '$lib/geometry/socketsParts'
-import { approximateCosmosThumbOrigin, cosmosFingers, decodeTuple, encodeTuple, newGeometry } from '$lib/worker/config'
-import { type ConnectorMaybeCustom, type CosmosCluster, type CosmosKey, type CosmosKeyboard, indexOfKey, mirrorCluster, type PartType, sideFromCosmosConfig } from '$lib/worker/config.cosmos'
+import { approximateCosmosThumbOrigin, cosmosFingers, type Cuttleform, decodeTuple, encodeTuple, type FullCuttleform, newGeometry } from '$lib/worker/config'
+import {
+  type ConnectorMaybeCustom,
+  type CosmosCluster,
+  type CosmosKey,
+  type CosmosKeyboard,
+  fromCosmosConfig,
+  indexOfKey,
+  mirrorCluster,
+  type PartType,
+  sideFromCosmosConfig,
+  toCosmosConfig,
+} from '$lib/worker/config.cosmos'
 import { decodeCosmosCluster, LETTERS } from '$lib/worker/config.serialize'
 import { estimatedBB } from '$lib/worker/geometry'
 import { Vector } from '$lib/worker/modeling/transformation'
@@ -230,6 +241,21 @@ export function isThumb(c: CosmosKeyboard, type: Thumb, side: 'left' | 'right') 
       )
     )
   )
+}
+
+/** Returns a test print for a given config */
+export function testPrint(c: FullCuttleform) {
+  // Use the first key of the curved thumb cluster
+  const keyboard: Cuttleform = {
+    ...c[objKeys(c)[0]]!,
+    microcontroller: null,
+    connectors: [],
+    screwIndices: [],
+  }
+  const cosmosBoard = toCosmosConfig(keyboard, 'right', false)
+  cosmosBoard.clusters.forEach(c => c.clusters.length = 0)
+  setThumbCluster(cosmosBoard, 'curved', 'right', 1)
+  return fromCosmosConfig(cosmosBoard).right!
 }
 
 function connnectorString(connector: ConnectorMaybeCustom) {
