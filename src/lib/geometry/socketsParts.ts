@@ -643,7 +643,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     category: 'Joysticks',
     stepFile: '/src/assets/key-joystick-joycon-nintendo.step',
     socketSize: [24.727, 23.177, 4.75],
-    partBottom: [box(30.531, 25.450, 14.320)],
+    partBottom: [box(22.32, 20.32, 7.00)],
     numPinsMatrix: 5,
     numPinsGPIO: 2,
     icon: 'joystick',
