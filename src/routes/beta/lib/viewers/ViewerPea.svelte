@@ -47,6 +47,7 @@
     if (recording && event.key == ' ') {
       recording = false
       recorded = recorded.toLowerCase()
+      console.log('key press', recorded)
       if (/^[a-f\d]+,[a-f\d]+$/.test(recorded)) {
         event.preventDefault()
         const [row, column] = recorded.split(',').map((n) => (isNaN(+n) ? parseInt(n, 16) : Number(n)))

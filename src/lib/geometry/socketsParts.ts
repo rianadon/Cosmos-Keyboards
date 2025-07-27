@@ -92,7 +92,10 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     encodeVariant: makeEncodeVariant('mx-pumpkin', { led: 2, guides: 2 }),
     decodeVariant: makeDecodeVariant('mx-pumpkin', { led: 2, guides: 2 }),
     numPinsMatrix: () => 1,
-    description: '...',
+    description:
+      `It's the easiest way to wire your keyboard. Save hours of wiring and soldering and save the frustration with a PCB that gives you hotswap sockets, diodes, RGB LEDs, and flexible connections between every key. Compared to even the Plum Twists, the Pumpkins are a giant step up in terms of speed and accessibility.\n<a href="https://ryanis.cool/cosmos/pumpkin">Pumpkin Patch PCBs</a> are sold from the <a href="https://cosmos-store.ryanis.cool">Cosmos Store</a> and shipped from the US.`
+      + DESC_MX,
+    soldByCosmos: true,
     icon: 'pumpkin',
     bomIcon: 'switch',
   },
@@ -138,7 +141,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     icon: 'amoeba-king',
     bomIcon: 'switch',
     description:
-      'A socket with alignment guides for the open-source <a href="https://github.com/JKing-B16/keyboard-pcbs/tree/master/amoeba-king">Amoeba King PCB</a>. These only work with the Kings, so make sure you have the right PCBs.\n[warn]I do not recommend buying new Amoebas because there are better options (Skree Flexible PCBs or Plum Twists)'
+      'A socket with alignment guides for the open-source <a href="https://github.com/JKing-B16/keyboard-pcbs/tree/master/amoeba-king">Amoeba King PCB</a>. These only work with the Kings, so make sure you have the right PCBs.\n[warn]I do not recommend buying new Amoebas because there are better options (Pumpkin / Skree Flexible PCBs or Plum Twists)'
       + DESC_MX,
   },
   'mx-hotswap': {

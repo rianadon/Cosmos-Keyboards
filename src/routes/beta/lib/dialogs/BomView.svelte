@@ -13,6 +13,7 @@
   import type { FullGeometry } from '../viewers/viewer3dHelpers'
   import { objEntries, objKeys } from '$lib/worker/util'
   import type { Profile } from '$target/cosmosStructs'
+  import { hasKeyGeometry } from '$lib/loaders/keycaps'
 
   export let geometry: FullGeometry
 
@@ -31,7 +32,7 @@
   function keycaps(keys: CuttleKey[]) {
     const caps: Partial<Record<Exclude<Profile, null>, Record<number, KeycapInfo>>> = {}
     for (const key of keys) {
-      if ('keycap' in key && key.keycap) {
+      if (hasKeyGeometry(key) && 'keycap' in key && key.keycap) {
         if (!caps[key.keycap.profile]) caps[key.keycap.profile] = {}
         const cap = caps[key.keycap.profile]!
         const aspect = closestAspect(key.aspect)

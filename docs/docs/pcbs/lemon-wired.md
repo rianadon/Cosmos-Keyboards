@@ -4,7 +4,7 @@ The Lemon Wired is a RP2040-based microcontroller for split keyboards with two U
 
 If you haven't already, I suggest you check out the [Lemon Landing page](https://ryanis.cool/cosmos/lemon/) to learn more.
 
---8<-- "docs/docs/lemon/.shared/info.md"
+--8<-- "docs/docs/pcbs/.shared/info.md"
 
 ## Pinout
 
@@ -14,7 +14,9 @@ Go to the [landing page](https://ryanis.cool/cosmos/lemon/) :)
 
 ### Recommended Use
 
-I recommend using column-flex PCBs to wire your keys, not only because they are easy to connect via the FPC connectors on the bottom of the microcontroller, but also because you will save yourself hours of wiring together keys. This example shows the two I sell, the [Pumpkin Patch](https://ryanis.cool/cosmos/pumpkin/) (for upper keys & some thumb keys) and [Pumpkin Vine](https://ryanis.cool/cosmos/pumpkin/) (for the further away thumb keys), used to wire the keys as well as an encoder attached to the spare I/O pins.
+I recommend using column-flex PCBs to wire your keys, not only because they are easy to connect via the FPC connectors on the bottom of the microcontroller, but also because you will save yourself hours of wiring together keys. This example shows the two I sell, the [Pumpkin Patch](https://ryanis.cool/cosmos/pumpkin/) (for upper keys & some thumb keys) and Pumpkin Vine (for the further away thumb keys), used to wire the keys as well as an encoder attached to the spare I/O pins.
+
+> The Pumpkin Vine is not released yet, but you can buy [Skree Toe Beans](https://cosmos-store.ryanis.cool/products/skree-toe-beans) in the meantime from the Cosmos store as a substitute.
 
 ![Wiring Diagram of Pumpkin PCBs and an encoder](../../assets/lemon_wired_pumpkin.png){width=600 .center}
 
@@ -74,7 +76,7 @@ This example uses the [Ogen Lite PCB](https://github.com/Ariamelon/Ogen/tree/V1-
 | RES/RST       | n/a          |
 
 </center>
---8<-- "docs/docs/lemon/.shared/vik-wiring.md"
+--8<-- "docs/docs/pcbs/.shared/vik-wiring.md"
 
 ## Programming
 
@@ -449,7 +451,7 @@ I haven't contributed this board upstream yet since I don't know how popular thi
 
     After modifying these files, restart Arduino IDE. You should now see Cosmos Lemon Wired listed as the last option when choosing a board through **Tools -> Board -> Raspberry Pi Pico -> Cosmos Lemon Wireled**.
 
---8<-- "docs/docs/lemon/.shared/vik.md"
+--8<-- "docs/docs/pcbs/.shared/vik.md"
 
 ## Breadboard and Headers
 

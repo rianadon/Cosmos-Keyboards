@@ -214,6 +214,41 @@ const _keyboards: Record<string, Keyboard> = {
     switches: 'Kailh Ambient Silent Twilight',
     keycaps: 'Black - PBT from Aliexpress; Red - 3d printed KEA',
   },
+  '4276ec9a': {
+    author: 'Ferrben',
+    type: 'split',
+    config:
+      '#cm:CnEKDxIFEJBBIBMSABIAODFAAAoPEgUQkE0gExIAEgA4HUAAChUSBRCQWSATEgASAxCwLzgJQIDwvAIKEhIFEJBlIBMSABIDELA7OApAAAoTEgUQkHEgExIAEgA4HkCAhorABxgAQOiFoK7wVUjc8KKgAQpoChcSExDAgAJAgICYAkjCmaCVkLwBUEM4CAoVEhAQQECAgCBI0JWA3ZD1A1ALUJ4CChQSEBBAQICA+AFI5pn8p5ALUFdQfwoDUIICGAIiCgjIARDIARgAIABAy4v8n9AxSK2R3I3BkwaCAQIEAlhHYANoAHIDeOgC',
+    filament: 'Elegoo PLA+ Sky Blue & PolyTerra PLA Peach',
+    switches: 'Gateron Brown',
+    keycaps: 'Blank XDA from Aliexpress',
+  },
+  'b70c1bcb': {
+    author: 'Kai.凱',
+    type: 'split',
+    config:
+      '#cm:CtIBChwSCQiAgAIQkEEgExIECICABBIECICABDgxQIAGChMSCQiAgAIQkE0gExIAEgA4HUAACjMSCQiAgAIQkFkgExIAEgMQsC8SBQgMELBfEhAICBAwMAFAgKCtAUikpewkOAlAgIiHmAIKIRIJCICAAhCQZSATEgASAxCwOxIHCAwQsGtAADgKQIDkNAoXEgkIgIACEJBxIBMSABIAOB5AgOaKwAIKHBIYCJaAkgEQMDCCBEDHg+C7B0ibibTG4bAIOEUYAEDohaCu8FVIuIPgxeAECnQKGxIXCICABBDAgAJAgICYAkjCmaCVkLwBUEM4CAoZEhQIgIAEEEBAgIAgSNCVgN2Q9QNQC1CeAgoYEhQIgIAEEEBAgID4AUjmmfynkAtQV1B/CgNQggIYAiIKCL4BEMgBGAAgAEDLi/yf0DFIrZHcjcGTBgquAQocEgkIgIACEJA1IBMSBAiAgAQSBAiAgAQ4MkCABgoTEgkIgIACEJApIBMSABIAOB5AAAowEgkIgIACEJAdIBMSABIAEgUIDBCwXxIQCAgQMDABQICgrQFIpKXwJDgKQICIh5gCCh4SCQiAgAIQkBEgExIAEgASBwgMELBrQAA4CUCA5DQKFxIJCICAAhCQBSATEgASADgdQIDmisACGAFA54WgrvBVSLiD3MXQBBACGIygBCIDCM0BOAKCAQIEA0gGUAJYSGACaAByE5ABhQIYChgqGFwYjAEYrAEY0QE=',
+    filament: '蘭博 from Taobao',
+    switches: 'Kailh Choc V2 Silent Low-Profile Switches (MX Stem)',
+    keycaps: "Nuphy's low profile keycaps",
+    name: 'Kai Cosmos',
+    modifiedInCAD: true,
+    projectLink: 'https://github.com/kaihchang/Kai_Cosmos_pmw3610_trackball_split_keybaord',
+    details:
+      'Wrist Rest from Printables and printed in TPU: <a href="https://www.printables.com/model/1199607-sliding-wrist-rest-v2-flat-with-no-feet-carpio-del">https://www.printables.com/model/1199607-sliding-wrist-rest-v2-flat-with-no-feet-carpio-del</a>',
+  },
+  'c3e94372': {
+    author: 'Seb',
+    type: 'split',
+    config:
+      '#cm:CpEBChUSBRCQcSATEgIgABIAOB5AgIaKwAcKEhIFEJBlIBMSAiAAEgMQsDs4CgoXEgUQkFkgExICIAASAxCwLzgJQIDwvAIKDxIFEJBNIBMSAiAAEgA4HQoPEgUQkEEgExICIAASADgxChoSBBAQIBMSBhCggAogABICEDA4MkCAhorABxgAQOiFoK7wVUjejKvAAQpjChYSEhDAgAJAjLQ0SMSZnJ2Q+QFQQzgIChYSERBAQJCM1ANItI+8nvDQA1ALUJ4CChQSEBBAQJKQOUi+m+SV0JMCUFdQfxgCIgoIyAEQyAEYACAAQNGHlJ2QOkitkdyNwZMGEAMYhqACIgkIvwEQvwEgiA4wHjgDggEBAkgEYAJoAHIZOBRAHpgBFKABAKABAKABAKABAKgBULABAg==',
+    filament: 'eSUN ePLA-Magic – Dark Twinkling Purple for the shell, e-Sun PLA+ Orange for the base and e-Sun PLA+ Gray for the keycaps. (might change out for the same orange as the base)',
+    switches: "Choc V1 Red Pro's",
+    keycaps: 'ScottoKeebs blank choc keycaps. Can be downloaded for free on his <a href="https://github.com/joe-scotto/scottokeebs/tree/main/Extras/ScottoCaps">github</a>',
+    name: 'CorneCave',
+    modifiedInCAD: true,
+    details: 'Wanted a concave corne-style keyboard with ZMK that is slightly tented but keeps a fairly good "low-profile" relative to the benefits you get from the slight tent and concavity.',
+  },
 }
 
 function findImages(kbd: Keyboard) {

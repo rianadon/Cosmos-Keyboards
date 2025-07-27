@@ -20,7 +20,7 @@
     vid: '0x0001',
     pid: '0x0001',
     yourName: 'Cosmos',
-    diodeDirection: 'COL2ROW',
+    diodeDirection: 'ROW2COL',
     centralSide: 'left',
     enableConsole: true,
   })
@@ -53,8 +53,8 @@
 {#if anyConfig.microcontroller == 'lemon-wired'}
   <Field name="Diode Direction" icon="diode-direction">
     <Select bind:value={$options.diodeDirection}>
-      <option value="COL2ROW">COL2ROW (Flex PCBs)</option>
-      <option value="ROW2COL">ROW2COL (Plum Twists)</option>
+      <option value="COL2ROW">COL2ROW (Pumpkin and Plum Twists)</option>
+      <option value="ROW2COL">ROW2COL (Skree Flex PCBs)</option>
     </Select>
   </Field>
   <Field name="Manufacturer Name (for USB)" icon="person">
@@ -88,8 +88,8 @@
 {#if anyConfig.microcontroller == 'lemon-wireless'}
   <Field name="Diode Direction" icon="diode-direction">
     <Select bind:value={$options.diodeDirection}>
-      <option value="COL2ROW">COL2ROW (Flex PCBs)</option>
-      <option value="ROW2COL">ROW2COL (Plum Twists)</option>
+      <option value="ROW2COL">ROW2COL (Pumpkin and Plum Twists)</option>
+      <option value="COL2ROW">COL2ROW (Skree Flex PCBs)</option>
     </Select>
   </Field>
   <Field name="Central (Plug into PC) Side" icon="pc">

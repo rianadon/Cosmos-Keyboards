@@ -32,7 +32,7 @@ export class PromisePool {
         if (!depStats[i]) throw new Error(`Dependency ${dependencies[i]} was not found in the filesystem.`)
       }
       const minMTime = Math.min(...outStats.map(m => m?.mtime.getTime() || Infinity))
-      if (depStats.some(d => !d!.mtime || minMTime < d!.mtime.getTime())) {
+      if (minMTime == Infinity || depStats.some(d => !d!.mtime || minMTime < d!.mtime.getTime())) {
         this.queue.push({ name, f })
       } else {
         this.nSkipped++

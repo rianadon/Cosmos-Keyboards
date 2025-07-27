@@ -406,6 +406,14 @@
     return BOARD_PROPERTIES[conf.microcontroller].castellated || false
   }
 
+  function attempt<T>(f: () => T) {
+    try {
+      return f()
+    } catch {
+      return '{error}'
+    }
+  }
+
   $: rightThumbCluster = $protoConfig.clusters.find((c) => c.name == 'thumbs' && c.side == 'right')!
   $: leftThumbCluster = $protoConfig.clusters.find((c) => c.name == 'thumbs' && c.side == 'left')
   $: rightFingersCl = $protoConfig.clusters.find((c) => c.name == 'fingers' && c.side == 'right')!
@@ -1065,18 +1073,20 @@
     {#if $protoConfig.unibody}
       <Field
         name="Connector Index"
-        help="Position of the microcontroller and connector, expressed as a wall index. See expert mode documentation for details.<br>Currently, it is {geometry
-          .unibody?.connectorIndex} (0–{geometry.unibody?.allWallCriticalPoints().length})."
+        help="Position of the microcontroller and connector, expressed as a wall index. See expert mode documentation for details.<br>Currently, it is {attempt(
+          () => geometry.unibody?.connectorIndex
+        )} (0–{geometry.unibody?.allWallCriticalPoints().length})."
       >
         <DecimalInput bind:value={$protoConfig.connectorRightIndex} />
       </Field>
     {:else}
       <Field
         name="Connector Index (L/R)"
-        help="Position of the microcontroller and connector, expressed as a wall index. See expert mode documentation for details.<br>Currently, it is {geometry
-          .left?.connectorIndex} (0–{geometry.left?.allWallCriticalPoints()
-          .length}) on the left and {geometry.right
-          ?.connectorIndex} (0–{geometry.right?.allWallCriticalPoints().length}) on the right."
+        help="Position of the microcontroller and connector, expressed as a wall index. See expert mode documentation for details.<br>Currently, it is {attempt(
+          () => geometry.left?.connectorIndex
+        )} (0–{geometry.left?.allWallCriticalPoints().length}) on the left and {attempt(
+          () => geometry.right?.connectorIndex
+        )} (0–{geometry.right?.allWallCriticalPoints().length}) on the right."
       >
         <DecimalInput bind:value={$protoConfig.connectorLeftIndex} class="w-[5.2rem]" />
         <DecimalInput bind:value={$protoConfig.connectorRightIndex} class="w-[5.2rem]" />

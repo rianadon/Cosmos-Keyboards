@@ -28,8 +28,12 @@
 }
 
 /* Give all images a border-radius */
-img {
+img, .rounded {
     border-radius: 0.2rem;
+}
+
+.rounded-2 {
+    border-radius: 0.4rem;
 }
 
 /* Image Utilities */
@@ -166,4 +170,16 @@ iframe {
 .pinout table:not([class]) th,
 .pinout table:not([class]) td {
     padding: 0.3em 1.25em;
+}
+
+.pro::before {
+    position: relative;
+    bottom: 0.2em;
+    margin-left: 0.5em;
+    content: 'PRO';
+    padding: 0.3em 0.5em;
+    border-radius: 0.3em;
+    background: #2DD4BF;
+    font-size: 0.7em;
+    font-weight: bold;
 }

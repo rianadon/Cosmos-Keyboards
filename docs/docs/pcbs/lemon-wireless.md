@@ -4,7 +4,7 @@ The Lemon Wireless is an nRF52840-based microcontroller for split keyboards with
 
 If you haven't already, I suggest you check out the [Lemon Landing page](https://ryanis.cool/cosmos/lemon/) to learn more.
 
---8<-- "docs/docs/lemon/.shared/info.md"
+--8<-- "docs/docs/pcbs/.shared/info.md"
 
 ## Pinout
 
@@ -42,7 +42,9 @@ I recommend only soldering this jumper shut only if you're using a battery with 
 
 ### Recommended Use
 
-I recommend using column-flex PCBs to wire your keys, not only because they are easy to connect via the FPC connectors on the bottom of the microcontroller, but also because you will save yourself hours of wiring together keys. This example shows the two I sell, the [Pumpkin Patch](https://ryanis.cool/cosmos/pumpkin/) (for upper keys & some thumb keys) and [Pumpkin Vine](https://ryanis.cool/cosmos/pumpkin/) (for the further away thumb keys), used to wire the keys as well as an encoder attached to the VIK pins.
+I recommend using column-flex PCBs to wire your keys, not only because they are easy to connect via the FPC connectors on the bottom of the microcontroller, but also because you will save yourself hours of wiring together keys. This example shows the two I sell, the [Pumpkin Patch](https://ryanis.cool/cosmos/pumpkin/) (for upper keys & some thumb keys) and Pumpkin Vine (for the further away thumb keys), used to wire the keys as well as an encoder attached to the VIK pins.
+
+> The Pumpkin Vine is not released yet, but you can buy [Skree Toe Beans](https://cosmos-store.ryanis.cool/products/skree-toe-beans) in the meantime from the Cosmos store as a substitute.
 
 ![Wiring Diagram of Pumpkin PCBs and an encoder](../../assets/lemon_wireless_pumpkin.png){width=600 .center}
 
@@ -102,7 +104,7 @@ You will need to short together MISO and MOSI as I show in the illustration abov
 
 The proper way to put the PMW3610 on the bus while maintaining compatibility with 4-wire SPI devices (i.e. things that use both MISO and MOSI) is to use a tri-state buffer in between SDIO and MISO or between SDIO and MOSI. I will be doing this on future VIK-enabled PMW3610 boards.
 
---8<-- "docs/docs/lemon/.shared/vik-wiring.md"
+--8<-- "docs/docs/pcbs/.shared/vik-wiring.md"
 
 ## Programming
 
@@ -365,7 +367,7 @@ I haven't contributed this board upstream yet since I don't know how popular thi
 
 After modifying these files, restart Arduino IDE. You should now see Cosmos Lemon Wireless listed as the last option when choosing a board through **Tools -> Board -> Adafruit nRF52 Boards -> Cosmos Lemon Wireless**.
 
---8<-- "docs/docs/lemon/.shared/vik.md"
+--8<-- "docs/docs/pcbs/.shared/vik.md"
 
 ## Flashing the Bootloader
 
