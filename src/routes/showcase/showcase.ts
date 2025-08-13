@@ -249,6 +249,16 @@ const _keyboards: Record<string, Keyboard> = {
     modifiedInCAD: true,
     details: 'Wanted a concave corne-style keyboard with ZMK that is slightly tented but keeps a fairly good "low-profile" relative to the benefits you get from the slight tent and concavity.',
   },
+  '82052649': {
+    author: 'johan.y',
+    type: 'split',
+    config:
+      '#cm:CrECCiESBRCAbyAnEgIgExICIAASADgeQJSmjogBSLeDsIzwtwEKMBIFEIBjICcSAiATEgIgABIDELA7Eg8QMCAoQIKQzQNI/ouoiAQ4CkCSyl1IgID0FwoxEgUQgFcgJxICIBMSAiAAEgMQsC8SDxAwIChAgOCUA0j8i8C4BzgJQICExQJIgICEAwodEgUQgEsgJxICIBMSAiAAEgA4HUCDlo0BSICA8AIKLRITCBIQICAAQILEhqgGSOyNzPewMhIPCBBAkIyUFEjCp8T98J4COEVAgIC4AgooEgUQgD8gJxICIBMSCBCwRSAUQIAGEgUQoEMgADgxQIKqjQFIgIDADQofEgQQECATEgIgABIEQICAXDgyQJqKjyBIq4PclNC8ARgAQOiFoK7wVUjthdjF0AgKbwomEhcIgDAQwIACGAhA7IrAAUirpLfY/ghQQzgIQKXqKEiLh6DE8AsKA1CCAgoeEhcIgDAQMEDEsqANSIejmObw1RBQQ1inATgLQJEmGAIiDwi+ARDIARiIDiCDByjKEUDNifyd0ApIjY+Ur+DZBBAFIgkIwwEQwQEg1AwoDzAjOAWCAQIEA0gEUAJYBmgAcgIgAA==',
+    filament: 'PLA (printed at local 3d printing service)',
+    switches: 'Gateron Silver Smoothie linear switches, spring-swapped with lighter 35g springs (it feels equivalent to 20g choc switches which I usually use in other boards)',
+    keycaps: 'White on Black MT3 keycaps, 1.5u XDA PBT keycaps for the thumb keys',
+    projectLink: 'https://www.reddit.com/r/ErgoMechKeyboards/s/FJrlwhkmcG',
+  },
 }
 
 function findImages(kbd: Keyboard) {

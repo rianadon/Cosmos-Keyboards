@@ -73,8 +73,8 @@ function generateInfoJSON(config: FullGeometry, matrix: Matrix, options: QMKOpti
       'console': options.enableConsole,
     },
     'matrix_pins': {
-      'cols': ['GP25', 'GP24', 'GP23', 'GP22', 'GP21', 'GP20', 'GP7'],
-      'rows': ['GP10', 'GP6', 'GP9', 'GP4', 'GP8', 'GP5', 'GP3'],
+      'cols': ['GP25', 'GP24', 'GP23', 'GP22', 'GP21', 'GP20', 'GP10'],
+      'rows': ['GP3', 'GP4', 'GP5', 'GP6', 'GP7', 'GP8', 'GP9'],
     },
     'diode_direction': options.diodeDirection,
     'ws2812': {
