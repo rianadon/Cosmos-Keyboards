@@ -7,6 +7,7 @@
   import { onMount } from 'svelte'
   import { statMedians, type Statistics } from '../lib/stats'
   import { Zip, ZipPassThrough, strToU8 } from 'fflate'
+  import { base } from '$app/paths'
 
   export let desiredHand: 'Left' | 'Right'
   export let otherHand: 'Left' | 'Right' | undefined = undefined
@@ -95,6 +96,10 @@
         />
       </div>
     </div>
+    Diagram is not to scale.
+    <a class="underline" target="_blank" href="{base}/docs/hand-scans/#checking-your-scan"
+      >How to verify these results.</a
+    >
     {#if true && $stat.history.length > 0 && medians}
       <button class="underline" on:click={downloadZip}>Download Images</button>
       <details class="overflow-scroll">

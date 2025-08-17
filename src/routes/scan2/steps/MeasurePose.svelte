@@ -234,7 +234,9 @@
       </p>
     {/if}
     {#if !(nLeft == 0 && nRight == 0 && phase == 0)}
-      <button on:click={skip} class="opacity-70 mt-0.5 ml-4">Skip this step</button>
+      <button on:click={skip} class="opacity-70 mt-0.5 ml-4"
+        >Skip this step (these results only affect the 3D Hand visualization, not hand fitting)</button
+      >
     {/if}
   </div>
   <div slot="content">
