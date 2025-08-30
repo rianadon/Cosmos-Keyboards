@@ -45,6 +45,7 @@ enumeration('PART', {
   28: 'joystick-skqu-alps',
   29: 'oled-160x68-1.08in-niceview',
   30: 'thqwgd001',
+  31: 'meh01',
 
   // Old stuff no one should be using.
   110: 'old-mx',
