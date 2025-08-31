@@ -27,5 +27,5 @@
   //   "./coverage/**",
   //   "**/_/**"
   // ]
-  "include": ["src/routes/**/*", "src/types/**/*"]
+  "include": ["src/routes/**/*", "src/types/**/*", "src/proto/**/*"]
 }
