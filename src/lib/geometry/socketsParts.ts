@@ -461,14 +461,8 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     variants: {
       sw: ['switch', 'switchless'],
     },
-    encodeVariant: (variant: Variant) => {
-      return ['switch', 'switchless'].indexOf(variant.sw)
-    },
-    decodeVariant: (variant: number) => {
-      return {
-        sw: ['switch', 'switchless'][variant] || 'switch',
-      }
-    },
+    encodeVariant: makeEncodeVariant('meh01', { sw : 1 }),
+    decodeVariant: makeDecodeVariant('meh01', { sw : 1 }),
   },
   'encoder-alps-rkjxt1f42001': {
     partName: 'Alps RKJXT1F42001',
