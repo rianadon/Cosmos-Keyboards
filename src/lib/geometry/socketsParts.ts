@@ -452,7 +452,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     bomName: (v: Variant) => 'MEH01 ${v.sw} encoder',
     category: 'Encoders',
     stepFile: '/src/assets/key-meh01.step',
-    socketSize: () => [19.05, 19.05, 5.2] as PartSize,
+    socketSize: () => [19.05, 19.05, 4] as PartSize,
     partBottom: () => [box(16.75, 13.9, 2.8)],
     numPinsMatrix: (v: Variant) => v.sw == 'switch' ? 1 : 0,
     numPinsGPIO: () => 2,
