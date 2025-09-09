@@ -308,7 +308,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     category: 'Sockets',
     stepFile: '/target/key-choc-pcb-amoeba-hillside.step',
     partOverride: CHOC_PART,
-    socketSize: [17.4, 16.4, 3.5],
+    socketSize: [17.5, 16.7, 3.8],
     partBottom: [CHOC_BOTTOM],
     keycap: 'choc',
     extraBomItems: {
