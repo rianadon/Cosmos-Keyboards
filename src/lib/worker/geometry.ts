@@ -24,11 +24,11 @@ const Zv = new Vector(0, 0, 1)
 const wallThickness = (c: Cuttleform) => c.wallThickness
 const wallXYOffset = (c: Cuttleform) => {
   if (c.shell.type == 'stilts') return 0
-  return 5
+  return c.wallXYOffset
 }
 export const wallZOffset = (c: Cuttleform) => {
-  if (c.shell.type == 'stilts') return 15
-  return 15
+  if (c.shell.type == 'stilts') return c.wallZOffset
+  return c.wallZOffset
 }
 
 export const BOARD_HOLDER_OFFSET = 0.02
@@ -451,7 +451,7 @@ export function oldblockWallCriticalPoints(
 
   const bisect = offsetBisector(prevPt.trsf, pt.trsf, nextPt.trsf, thickness, z)
   const mul = offsetScale(c, bisect, pt.trsf)
-  const xOut = 0 // wallXYOffset(c)*mul
+  const xOut = wallXYOffset(c) * mul
   const zOut = wallZOffset(c)
 
   const ti = bisect

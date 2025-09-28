@@ -58,6 +58,8 @@
       "webThickness": 0,
       "wallThickness": 40,
       "wallShrouding": 0,
+      "wallXyOffset": 50,
+      "wallZOffset": 150,
       "wristRestLength": 500,
       "wristRestAngle": 450,
       "wristRestXOffset": 100,

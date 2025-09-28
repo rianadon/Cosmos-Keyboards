@@ -86,6 +86,8 @@ export type CosmosKeyboard =
     partType: Required<PartType>
     wallShrouding: number
     wallThickness: number
+    wallXYOffset: number
+    wallZOffset: number
     plateThickness: number
     keyBasis: Keycap['profile']
     screwIndices: number[]
@@ -314,6 +316,8 @@ export function toCosmosConfig(conf: Cuttleform, side: 'left' | 'right' | 'unibo
     partType: globalPartType as Required<PartType>,
     wallShrouding: conf.wallShrouding,
     wallThickness: conf.wallThickness,
+    wallXYOffset: conf.wallXYOffset,
+    wallZOffset: conf.wallZOffset,
     webMinThicknessFactor: conf.webMinThicknessFactor,
     plateThickness: conf.plateThickness,
     keyBasis: conf.keyBasis,
@@ -422,6 +426,8 @@ export function sideFromCosmosConfig(c: CosmosKeyboard, side: 'left' | 'right' |
   const conf: Cuttleform = {
     wallThickness: c.wallThickness,
     wallShrouding: c.wallShrouding,
+    wallXYOffset: c.wallXYOffset,
+    wallZOffset: c.wallZOffset,
     webThickness: 0,
     webMinThicknessFactor: c.webMinThicknessFactor,
     verticalClearance: c.verticalClearance,

@@ -21,6 +21,8 @@
   $: keyboard = {
     wallThickness: 5,
     wallShrouding: 0,
+    wallXYOffset: 5,
+    wallZOffset: 15,
     webThickness: 0,
     webMinThicknessFactor: thicknessFactor,
     keyBasis: 'xda',
