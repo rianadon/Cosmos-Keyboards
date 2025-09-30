@@ -311,8 +311,8 @@ export function cuttleConf(c: DeepRequired<CuttleformProto>): Cuttleform {
   return {
     wallThickness: c.wall.wallThickness / 10,
     wallShrouding: c.wall.wallShrouding / 10,
-    wallXYOffset: c.wall.wallXyOffset / 10,
-    wallZOffset: c.wall.wallZOffset / 10,
+    wallXYOffset: 5,
+    wallZOffset: 15,
     webThickness: c.wall.webThickness / 10,
     webMinThicknessFactor: DEFAULT_MWT_FACTOR,
     keys: maybeMirror(c, [
