@@ -176,8 +176,6 @@ message Cuttleform {
     optional int32 wall_shrouding = 16 [(decimal) = true, (icon) = "shrouding", (name) = "Wall Shrouding", (help) = "Add a lip to the top of the wall to hide switches", (mm) = true];
     optional int32 web_thickness = 6 [(decimal) = true, (name) = "Web Thickness", (help) = "Top Part of Keyboard Around Keyholes. Setting this to zero makes the thickness automatic, which is what you probably want", (mm) = true];
     optional int32 wall_thickness = 7 [(decimal) = true, (name) = "Wall Thickness", (help) = "Thickness Around the Keyboard", (mm) = true];
-    optional int32 wall_xy_offset = 30 [(decimal) = true, (name) = "Wall XY Offset", (help) = "Horizontal offset for wall positioning", (mm) = true, (icon) = "expand-horizontal"];
-    optional int32 wall_z_offset = 31 [(decimal) = true, (name) = "Wall Z Offset", (help) = "Vertical offset for wall positioning", (mm) = true, (icon) = "expand-vertical"];
     optional int32 vertical_clearance = 11 [(decimal) = true, (min) = 0, (max) = 50, (name) = "Vertical Part Clearance", (help) = "Add extra height to keep parts off the ground", (icon) = "expand-vertical", (mm) = true];
     optional bool clear_screws = 17 [(name) = "Also Clear Screw Inserts", (help) = "Add extra height so that at least 75% of possible screw insert locations are feasible"];
     optional bool unibody = 24 [(name) = "Make Unibody", (help) = "Joins two keyboard halves into a single keyboard", (wr) = true, (basic) = true, (icon) = "unibody"];
