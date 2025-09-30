@@ -71,6 +71,10 @@ interface WristRest {
 export interface SpecificCuttleform<S> {
   wallThickness: number
   wallShrouding: number
+  /** Horizontal offset for wall positioning */
+  wallXYOffset: number
+  /** Vertical offset for wall positioning */
+  wallZOffset: number
   /** Maximum thickness of the web. Set to 0 for dynamic thickness that adjusts to each socket height. */
   webThickness: number
   /** Cosmos will try to ensure a minimum web thickness equal to this fraction of the given max web thickness. */
@@ -307,6 +311,8 @@ export function cuttleConf(c: DeepRequired<CuttleformProto>): Cuttleform {
   return {
     wallThickness: c.wall.wallThickness / 10,
     wallShrouding: c.wall.wallShrouding / 10,
+    wallXYOffset: 5,
+    wallZOffset: 15,
     webThickness: c.wall.webThickness / 10,
     webMinThicknessFactor: DEFAULT_MWT_FACTOR,
     keys: maybeMirror(c, [

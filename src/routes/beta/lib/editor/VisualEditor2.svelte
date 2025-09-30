@@ -1295,6 +1295,12 @@
     <Field name="Wall Thickness" help="Thickness of the sides the keyboard">
       <DecimalInput bind:value={$protoConfig.wallThickness} units="mm" />
     </Field>
+    <Field name="Wall XY Offset" icon="expand-horizontal" help="Horizontal offset for wall positioning">
+      <DecimalInput bind:value={$protoConfig.wallXYOffset} units="mm" />
+    </Field>
+    <Field name="Wall Z Offset" icon="expand-vertical" help="Vertical offset for wall positioning">
+      <DecimalInput bind:value={$protoConfig.wallZOffset} units="mm" />
+    </Field>
     <Field
       name="Minimum Web Thickness"
       help="Compensation for thin web walls. Specifically, the targeted thickness of the web as a percentage of socket thickness."

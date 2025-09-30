@@ -34,6 +34,8 @@ async function renderURL(hash: string, filename: string, opts?: Opts) {
 const DEFAULTS: Omit<Cuttleform, 'keys'> = {
   wallThickness: 4,
   wallShrouding: 0,
+  wallXYOffset: 5,
+  wallZOffset: 15,
   webThickness: 0,
   screwIndices: [],
   screwType: 'screw insert',
