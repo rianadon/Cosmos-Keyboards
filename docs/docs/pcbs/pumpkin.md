@@ -27,7 +27,16 @@ From the first PCB to the microcontroller, there is 160mm of stretch. This is li
 
 ### Sizing
 
-The PCBs are wired under the assumption that every column will have at least 2 keys (so that both rows of vines are always used). The only situation where you can use only the bottom vine is if you 1) have 4 or fewer columns and 2) will not use the LEDs. For such extremely small boards, the [Plum Twists](https://ryanis.cool/cosmos/plum-twist/) or directly soldering to the switches are a better fit.
+The PCBs are wired under the assumption that every column will have at least 3 keys (so that both rows of vines, plus the pumpkins above and below, are always used).
+
+If there are any columns where you need only two keys (such as in the thumb cluster), you have two options:
+
+1. Leave 3 keys on the column, and let the 3rd key dangle loose with no switch inside. You can tape/glue it on to secure it.
+2. Cut the column down to 2 keys. You will need to bridge the 3rd and 5th rows from the bottom (R3/R5) across the column that you have cut. Take a wire and solder each end to the hotswap pad furthest from the diode on the pumpkins. If you have cut the first column, you will need to wire the hotswap pads on R3 and R5 directly to the microcontroller.
+
+_I will fix this in a later revision so that you can use 2 keys on a column without soldering._
+
+The only situation where you can use only the bottom vine (1 key on a column) is if you 1) have 4 or fewer columns and 2) will not use the LEDs. For such extremely small boards, the [Plum Twists](https://ryanis.cool/cosmos/plum-twist/) or directly soldering to the switches are a better fit.
 
 If you are using this PCB together with a PCB for the thumb cluster, you will either have to use all 7 columns or solder a jumper wire onto the LEDs themselves. This will be fixed in future revisions.
 
@@ -74,6 +83,8 @@ Afterwards, the PCB should look like this (pardon my bad photoshopping–I'll ge
 ![Areas cut from Pumpkin PCB](../../assets/pumpkin-cutout.jpg)
 
 As you cut everything out, it will become easy for the circuit to tangle itself. If you know the size to which you will cut each of your columns, I recommend you do some pruning first so it is easier to handle.
+
+**Before cutting the PCB down to your keyboard layout, read over the [sizing](#sizing) section first for some important limitations.**
 
 ## Installation
 

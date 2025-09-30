@@ -88,6 +88,7 @@ function generateInfoJSON(config: FullGeometry, matrix: Matrix, options: QMKOpti
       },
       'default': {
         'animation': 'rainbow_mood',
+        'val': 50,
       },
       'led_count': 98,
       'split': true,
@@ -103,6 +104,9 @@ function generateInfoJSON(config: FullGeometry, matrix: Matrix, options: QMKOpti
       },
       'serial': {
         'driver': 'vendor',
+      },
+      'transport': {
+        'watchdog': true,
       },
     },
     'layouts': {
