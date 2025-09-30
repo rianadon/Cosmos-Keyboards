@@ -10,7 +10,7 @@ message Keyboard {
 
   optional int32 wall_shrouding = 5;
   optional int32 wall_thickness = 6;
-  optional int32 wall_xy_offset = 17;
+  optional int32 wall_x_y_offset = 17;
   optional int32 wall_z_offset = 18;
   optional uint32 key_basis = 7;
   optional uint32 connector = 8; //DEPRECATED: Bitmask for the connector size + type
