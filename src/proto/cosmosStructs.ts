@@ -29,7 +29,7 @@ enumeration('PART', {
   15: 'mx-skree',
   26: 'niz',
   31: 'choc-pumpkin',
-  33: 'choc-pcb-amoeba-hillside',
+  33: 'choc-v1-amoeba-hillside',
 
   // You wouldn't put many of these on a keyboard.
   16: 'ec11',

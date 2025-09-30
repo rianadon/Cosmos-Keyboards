@@ -152,7 +152,6 @@ async function main() {
   poolVariants('mx-skree', ledWork())
   poolVariants('mx-pumpkin', plumMXWork, ledWork())
   poolVariants('choc-pumpkin', ledWork(true))
-  poolVariants('choc-pcb-amoeba-hillside')
 
   const defaults = { spacing: 2.54, diameter: 0.9 }
   poolUC('rp2040-black-usb-c-aliexpress', {}, [

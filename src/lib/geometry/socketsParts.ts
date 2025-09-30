@@ -302,11 +302,11 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     bomIcon: 'switch',
     draft: true,
   },
-  'choc-pcb-amoeba-hillside': {
-    partName: 'Choc: Amoeba Hillside PCBs',
+  'choc-v1-amoeba-hillside': {
+    partName: 'Choc V1 + Amoeba Hillside PCBs',
     bomName: 'Kailh Choc V1 Switches',
     category: 'Sockets',
-    stepFile: '/target/key-choc-pcb-amoeba-hillside.step',
+    stepFile: '/src/assets/key-choc-v1-amoeba-hillside.step',
     partOverride: CHOC_PART,
     socketSize: [17.5, 16.7, 3.8],
     partBottom: [CHOC_BOTTOM],
@@ -317,7 +317,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
       'pcb-hotswap': { item: 'Mill-Max 7305 Sockets', icon: 'hotswap', count: 2 },
     },
     numPinsMatrix: 1,
-    description: 'Uses the Amoeba PCB created for the Hillside Dactyl. Supports hotswap with Mill-Max sockets.',
+    description: 'Uses the <a href="https://github.com/mmccoyd/hillside_amoeba_choc14">Amoeba PCB created for the Hillside Dactyl</a>. Supports hotswap with Mill-Max sockets.',
     icon: 'choc',
     bomIcon: 'switch',
   },
