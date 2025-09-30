@@ -468,7 +468,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'meh01': {
     partName: 'MEH01 Encoder',
-    bomName: (v: Variant) => 'MEH01 ${v.sw} encoder',
+    bomName: (v: Variant) => `MEH01 ${v.sw || ''} Encoders`,
     category: 'Encoders',
     stepFile: '/src/assets/key-meh01.step',
     socketSize: () => [19.05, 19.05, 4] as PartSize,
@@ -476,7 +476,8 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     numPinsMatrix: (v: Variant) => v.sw == 'switch' ? 1 : 0,
     numPinsGPIO: () => 2,
     icon: 'knob',
-    description: 'Alternative encoder to EVQWGD001. Cheap and easy to assemble. Designed by Everyday Ergo. Details <a href="https://github.com/EverydayErgo/MEH01">on Github</a>.',
+    description:
+      'A horizontal knob that sits low to the keyboard. This part is a 3D-printable alternative to the EVQWGD001 that uses more widely available parts and has near equal proportions. Designed by Everyday Ergo. Details <a href="https://github.com/EverydayErgo/MEH01">on Github</a>.',
     variants: {
       sw: ['switch', 'switchless'],
     },
