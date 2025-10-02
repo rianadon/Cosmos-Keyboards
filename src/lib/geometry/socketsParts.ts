@@ -546,6 +546,17 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     icon: 'oled',
     description: DESC_DISPLAY,
   },
+  'oled-168x144-1.26in-vista508': {
+    partName: 'Keydio Vista508 168x144 OLED',
+    bomName: 'Keydio Vista508 168x144 OLEDs',
+    category: 'Displays',
+    stepFile: '/src/assets/oled-168x144-1.26in-vista508.step',
+    socketSize: [26, 37, 1],
+    partBottom: [box(25, 36, 1.9)],
+    numPinsGPIO: 2,
+    icon: 'oled',
+    description: DESC_DISPLAY,
+  },
   'trackball': {
     partName: 'Trackball',
     bomName: (v: Variant) => `${v.size || '25/34/43/55mm'} Trackballs`,

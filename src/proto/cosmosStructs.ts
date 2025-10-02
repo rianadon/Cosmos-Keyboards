@@ -47,6 +47,7 @@ enumeration('PART', {
   29: 'oled-160x68-1.08in-niceview',
   30: 'thqwgd001',
   32: 'meh01',
+  34: 'oled-168x144-1.26in-vista508',
 
   // Old stuff no one should be using.
   110: 'old-mx',
