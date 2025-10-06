@@ -5,6 +5,7 @@
 
   onMount(() => {
     const interval = setInterval(() => {
+      // @ts-ignore Chrome only API
       heap = performance.memory.totalJSHeapSize
     }, 1000)
 

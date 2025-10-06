@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onDestroy, onMount } from 'svelte/internal'
+  import { onDestroy, onMount } from 'svelte'
   import Step from '../lib/Step.svelte'
   import { pc, remoteStream, mmToPx, step, stats, debugImgs } from '../store'
   import { developer } from '$lib/store'

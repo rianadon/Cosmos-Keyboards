@@ -5,7 +5,7 @@
 
   import { onMount } from 'svelte'
 
-  const onChange = (e) => (darkMode = e.matches)
+  const onChange = (e: any) => (darkMode = e.matches)
 
   onMount(() => {
     const matcher = window.matchMedia('(prefers-color-scheme: dark)')

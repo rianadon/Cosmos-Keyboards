@@ -39,7 +39,7 @@ Modifies the Dactyl Manuform to have a thumb cluster more similar to the origina
 
 I also owe my gratitude to the many contributors to the Cosmos generator:
 
-<a href="https://github.com/rianadon/Cosmos-Keyboards/graphs/contributors"><img id="contributors" src="" alt="Profiles of Contributors" width="320" /></a>
+<a href="https://github.com/rianadon/Cosmos-Keyboards/graphs/contributors"><img id="contributors" src="" alt="Profiles of Contributors" width="480" /></a>
 
 <!-- Bypasses the caching of images -->
 <script>document.getElementById('contributors').src = "https://contrib" + ".rocks/image?repo=rianadon/cosmos-keyboards"</script>
@@ -52,3 +52,5 @@ Additionally:
 - Cosmos would not be able to generate accurate previews without high-quality keycap renders. Most of these are generated using the [KeyV2](https://github.com/rsheldiii/KeyV2/) library, and DES keycaps are generated from [the inventor's own generator](https://github.com/pseudoku/PseudoMakeMeKeyCapProfiles).
 - The only reason it's possible to generate CAD designs in the browser is because the wonderful [OpenCascade](https://dev.opencascade.org/) CAD kernel is open-source, and Sebastian Alff maintains a [port of OpenCascade to WebAssembly](https://github.com/donalffons/opencascade.js/). I'm also indebted to Steve Genoud's work on [replicad](https://replicad.xyz/), which greatly simplifies the kernel's API.
 - The Cherry MX switch model is based on [gcb's design](https://www.thingiverse.com/thing:421524/files) and the Kaih Choc switch from [Stephan Park's design](https://grabcad.com/library/kailh-choc-low-profile-switch-1). Additonally, parts from [Adafruit](https://github.com/adafruit/Adafruit_CAD_Parts) and Seeed Studio are imported from their open-source models.
+- The model for the ALPS SKQU Hat Switch is imported from [SnapEDA](https://www.snapeda.com/parts/SKQUCAA010/ALPS/view-part/)
+- The mid-mount USB-C connector used in microcontroller models is also imported from [SnapEDA](https://www.snapeda.com/parts/UJC-HP-M-G-5-MSMT-TR/Same%20Sky/view-part/)

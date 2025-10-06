@@ -1,10 +1,13 @@
 import { cpus } from 'os'
+import { maybeStat } from './modeling'
 
 type R = string | void | { key: string; result: any; output?: string }
 type QueueItem = { name: string; f: () => Promise<R> }
 type WorkingItem = { promise: Promise<R>; began: number; name: string }
 export class PromisePool {
   protected queue: QueueItem[] = []
+  protected queuePromises: Promise<void>[] = []
+  protected nSkipped = 0
   protected working: WorkingItem[] = []
   protected interactive: boolean
   public results: Record<string, any> = {}
@@ -16,6 +19,30 @@ export class PromisePool {
   /** Add a task to the queue */
   add(name: string, f: () => Promise<R>): void {
     this.queue.push({ name, f })
+  }
+
+  /** Add a task to the queue only if the generated file is older than any of its dependencies */
+  addIfModified(name: string, output: string | string[], dependencies: string[], f: () => Promise<R>): void {
+    this.queuePromises.push((async () => {
+      const [outStats, depStats] = await Promise.all([
+        Promise.all((Array.isArray(output) ? output : [output]).map(maybeStat)),
+        Promise.all(dependencies.map(maybeStat)),
+      ])
+      for (let i = 0; i < depStats.length; i++) {
+        if (!depStats[i]) throw new Error(`Dependency ${dependencies[i]} was not found in the filesystem.`)
+      }
+      const minMTime = Math.min(...outStats.map(m => m?.mtime.getTime() || Infinity))
+      if (minMTime == Infinity || depStats.some(d => !d!.mtime || minMTime < d!.mtime.getTime())) {
+        this.queue.push({ name, f })
+      } else {
+        this.nSkipped++
+      }
+    })())
+  }
+
+  async skippedCount() {
+    await Promise.all(this.queuePromises)
+    return this.nSkipped
   }
 
   /** Wrap a promise in a few extra variables the code requires */
@@ -69,6 +96,7 @@ export class PromisePool {
 
   /** Execute all tasks in the queue */
   async run(): Promise<void> {
+    await Promise.all(this.queuePromises)
     for (let i = 0; i < this.size; i++) {
       if (this.queue.length) {
         this.working.push(this.toWorking(this.queue.shift()!))

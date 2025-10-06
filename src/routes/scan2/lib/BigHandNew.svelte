@@ -1,11 +1,8 @@
 <script lang="ts">
+  // @ts-nocheck Unused file.
+
   import { SolvedHand, type Hand, type Joints, CONNECTIONS, type PoseHand, makeHand } from './hand'
-  import { Canvas, TransformableObject, T } from '@threlte/core'
-  import { DEG2RAD } from 'three/src/math/MathUtils'
-  import { Line2 } from '@threlte/core'
-  import { Vector3, type Vector3Tuple, Matrix4, Vector4, Matrix3 } from 'three'
-  import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial'
-  import { HTML } from '@threlte/extras'
+  import { Vector3, type Vector3Tuple, Matrix4 } from 'three'
   import { cameraToMarkerPoint } from './reconstruction'
   import BigHandCanvas from './BigHandCanvasNew.svelte'
 

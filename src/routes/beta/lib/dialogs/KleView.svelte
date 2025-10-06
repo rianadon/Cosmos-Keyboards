@@ -1,21 +1,21 @@
 <script lang="ts">
   import type { Cuttleform, FullCuttleform } from '$lib/worker/config'
   import { download } from '$lib/browser'
-  import { toKLE } from '../kle'
-  import { bomMultiplier as multiplier } from '$lib/store'
-  import MultiplierDropdown from './MultiplierDropdown.svelte'
+  import { toKLE } from '../firmware/kle'
+  import type { FullGeometry } from '../viewers/viewer3dHelpers'
 
   export let conf: FullCuttleform
+  export let geo: FullGeometry
 
   function downloadKLE() {
-    const blob = new Blob([toKLE(conf, $multiplier == '2')], { type: 'application/json' })
+    const blob = new Blob([toKLE(geo)], { type: 'application/json' })
     download(blob, 'kle.json')
   }
 </script>
 
-<div class="text-center">
+<!-- <div class="text-center">
   Exporting for <MultiplierDropdown />
-</div>
+</div> -->
 
 <div class="text-left mt-6 max-w-prose mx-auto">
   <p class="mb-2">

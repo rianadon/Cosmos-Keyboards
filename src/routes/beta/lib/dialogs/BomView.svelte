@@ -11,7 +11,9 @@
   import { screwInsertHeight } from '$lib/geometry/screws'
   import * as mdi from '@mdi/js'
   import type { FullGeometry } from '../viewers/viewer3dHelpers'
-  import { objEntries } from '$lib/worker/util'
+  import { objEntries, objKeys } from '$lib/worker/util'
+  import type { Profile } from '$target/cosmosStructs'
+  import { hasKeyGeometry } from '$lib/loaders/keycaps'
 
   export let geometry: FullGeometry
 
@@ -21,12 +23,18 @@
     : [...geometry.right!.c.keys, ...geometry.left!.c.keys]
   $: multiplier = Object.values(geometry).length
 
+  interface KeycapInfo {
+    profile: Exclude<Profile, null>
+    aspect: number
+    count: number
+    rows: Record<number, number>
+  }
   function keycaps(keys: CuttleKey[]) {
-    const caps: Record<any, any> = {}
+    const caps: Partial<Record<Exclude<Profile, null>, Record<number, KeycapInfo>>> = {}
     for (const key of keys) {
-      if ('keycap' in key && key.keycap) {
+      if (hasKeyGeometry(key) && 'keycap' in key && key.keycap) {
         if (!caps[key.keycap.profile]) caps[key.keycap.profile] = {}
-        const cap = caps[key.keycap.profile]
+        const cap = caps[key.keycap.profile]!
         const aspect = closestAspect(key.aspect)
         if (!cap[aspect])
           cap[aspect] = {
@@ -39,12 +47,12 @@
         cap[aspect].rows[key.keycap.row] = 1 + (cap[aspect].rows[key.keycap.row] || 0)
       }
     }
-    return Object.keys(caps)
+    return objKeys(caps)
       .sort()
       .flatMap((k) =>
-        Object.keys(caps[k])
+        objKeys(caps[k]!)
           .sort()
-          .map((u) => caps[k][u])
+          .map((u) => caps[k]![u])
       )
   }
 
@@ -114,6 +122,17 @@
     return n
   }
 
+  function nFeet(geo: FullGeometry) {
+    let n = 0
+    for (const g of Object.values(geo)) {
+      n += g.footIndices.length || 4
+    }
+    const g = Object.values(geo)[0]
+    if (g.footIndices.length && g.c.wristRestLeft) n += 5
+    if (g.footIndices.length && g.c.wristRestRight) n += 5
+    return n
+  }
+
   $: _nScrewInserts = nScrewInserts(geometry)
 </script>
 
@@ -136,7 +155,7 @@
           </div>
           {#if !UNIFORM.includes(k.profile)}
             <div class="info">
-              {#each Object.keys(k.rows).sort() as r}
+              {#each objKeys(k.rows).sort() as r}
                 <span class="mr-2">R{r}: {k.rows[r]}</span>
               {/each}
             </div>
@@ -313,7 +332,7 @@
           <div class="icon"><Icon size="24" path={mdi.mdiMoonWaxingGibbous} /></div>
         </div>
         <div class="title">
-          <span class="amount">{multiplier * 4}</span>
+          <span class="amount">{nFeet(geometry)}</span>
           <span>Rubber or Silicone Feet</span>
         </div>
         <div class="info">For stopping your keyboard from sliding</div>

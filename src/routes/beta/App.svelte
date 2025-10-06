@@ -5,8 +5,10 @@
   import Thick3D from './lib/viewers/ViewerThickness.svelte'
   import ViewerLayout from './lib/viewers/ViewerLayout.svelte'
   import ViewerMatrix from './lib/viewers/ViewerMatrix.svelte'
+  import ViewerPea from './lib/viewers/ViewerPea.svelte'
   import ViewerBottom from './lib/viewers/ViewerBottom.svelte'
   import ViewerTiming from './lib/viewers/ViewerTiming.svelte'
+  import PeaConfig from './lib/editor/PeaConfig.svelte'
   import Popover from 'svelte-easy-popover'
   import Icon from '$lib/presentation/Icon.svelte'
   import * as mdi from '@mdi/js'
@@ -63,7 +65,7 @@
   import { hasPro } from '@pro'
   import ViewerDev from './lib/viewers/ViewerDev.svelte'
   import DownloadDialog from './lib/dialogs/DownloadDialog.svelte'
-  import { fromCosmosConfig, toFullCosmosConfig } from '$lib/worker/config.cosmos'
+  import { fromCosmosConfig, toFullCosmosConfig, type CosmosKeyboard } from '$lib/worker/config.cosmos'
   import KeyboardModel from '$lib/3d/KeyboardModel.svelte'
   import { type FullGeometry, type FullKeyboardMeshes } from './lib/viewers/viewer3dHelpers'
   import { notNull, objEntriesNotNull, objKeys } from '$lib/worker/util'
@@ -72,6 +74,7 @@
   import type { unibody } from '$lib/worker/modeling/transformation-ext'
   import ConfError from './lib/ConfError.svelte'
   import { SORTED_VENDORS } from '@pro/assemblyService'
+  import { microcontrollerConnectors } from '$lib/geometry/microcontrollers'
 
   const DEF_CENTER = [-35.510501861572266, -17.58449935913086, 35.66889877319336] as [
     number,
@@ -97,16 +100,16 @@
   let darkMode: boolean
   let prefsOpen: boolean
   let assemblyOpen: boolean
+  let lemonSwitch: boolean
 
   let proOpen = false
   let editorContent: string
   let hideWall = false
   let lastRenderNumber = 0
+  let fullMatrix: any = null
 
   // @ts-ignore
-  let state: State = deserialize(browser ? location.hash.substring(1) : '', () =>
-    deserialize('cm', null)
-  )
+  let state: State = deserialize(browser ? location.hash.substring(1) : '')
   if (state.error)
     confError.set([{ type: 'exception', error: state.error, side: 'right', when: 'parsing URL' }])
   $: $confError.forEach((e) => {
@@ -122,11 +125,15 @@
       console.log('URL CHANGE: Change state? =', oldHash != newHash)
       if (oldHash != newHash) {
         // The page navigated!
-        state = deserialize(location.hash.substring(1), () => deserialize('cm', null))
+        state = deserialize(location.hash.substring(1))
         const newMode = state.content ? 'advanced' : 'basic'
         if (state.content) initialEditorContent = state.content
         if (mode === 'advanced' && newMode !== 'advanced') {
           initialEditorContent = undefined // So the editor resets
+        }
+        if (newMode != 'advanced' && viewer == 'programming') {
+          protoConfig.set(state.options)
+          config = fromCosmosConfig(state.options)
         }
         mode = newMode
       }
@@ -350,6 +357,9 @@
       originalErr = checkConfig(conf[kbd]!, undefined, false, kbd)
       if (originalErr.length) break
     }
+    if (kbdNames.length == 0) originalErr = [{ type: 'nokeys', side: 'unibody' }]
+    if (!!conf.left != !!conf.right)
+      originalErr = [{ type: 'nokeys', side: !conf.left ? 'left' : 'right' }]
     confError.set(originalErr)
     if (!isRenderable(originalErr)) return
 
@@ -429,6 +439,7 @@
         const errors: Error[] = []
         generatorProgress = 0.2
         while (queue.length) {
+          // @ts-ignore
           const { result, finished, error } = await Promise.race(
             queue.map((p) =>
               p.prom.then(
@@ -513,6 +524,24 @@
       }
     }
     mode = newMode
+  }
+
+  $: hasLemon = (config?.right || config?.unibody)?.microcontroller?.startsWith('lemon')
+  function switchUC(uc: Exclude<CosmosKeyboard['microcontroller'], null>) {
+    $protoConfig.microcontroller = uc
+    lemonSwitch = false
+
+    try {
+      const { mirrorConnectors, connectors } = microcontrollerConnectors(
+        $protoConfig.microcontroller,
+        $protoConfig.connectors
+      )
+      $protoConfig.connectors = connectors
+      $protoConfig.mirrorConnectors = mirrorConnectors
+      config = fromCosmosConfig($protoConfig)
+    } catch (e) {
+      alert('Error generating with a Lemon. reverting...')
+    }
   }
 
   $: keyboardEntries = objEntriesNotNull(meshes).filter(
@@ -767,6 +796,7 @@
                     {hideWall}
                     {transparency}
                     {showSupports}
+                    keebGeometry={geometry[kbd]}
                     microcontrollerGeometry={microcontrollerGeometry[kbd]}
                     meshes={mesh}
                   />
@@ -802,15 +832,19 @@
         {:else if viewer == 'top'}
           <ViewerLayout {geometry} {darkMode} conf={config} confError={$confError} />
         {:else if viewer == 'programming'}
-          <ViewerMatrix {geometry} {darkMode} confError={$confError} />
+          {#if hasLemon}
+            <ViewerPea {geometry} {darkMode} confError={$confError} bind:fullMatrix />
+          {:else}
+            <ViewerMatrix {geometry} {darkMode} confError={$confError} />
+          {/if}
         {:else if viewer == 'board'}
           <ViewerBottom {geometry} {darkMode} confError={$confError} />
         {:else if viewer == 'timing'}
           <ViewerTiming {pool} {darkMode} />
         {:else if viewer == 'dev'}
-          <ViewerDev />
+          <ViewerDev {geometry} />
         {/if}
-        {#if filament && (config?.right ?? config?.unibody).shell?.type == 'basic'}
+        {#if filament && isRenderable($confError) && (config?.right ?? config?.unibody).shell?.type == 'basic'}
           <div
             class="absolute bottom-0 right-0 text-right mb-2 bg-white/50 dark:bg-gray-800/50 rounded px-2 py-0.5 z-10"
           >
@@ -861,7 +895,7 @@
             <p class="mb-2">{$codeError.message}</p>
           </div>
         {:else if $confError.length && viewer == '3d'}
-          <ConfError {config} />
+          <ConfError {config} {mode} />
         {:else if ocError && viewer == '3d'}
           <div class="absolute text-white m-4 left-0 right-0 rounded p-4 top-[10%] bg-red-700">
             <p>There are some rough edges in this tool, and you've found one of them.</p>
@@ -917,13 +951,60 @@
     <div class="xs:w-80 md:w-[32rem]">
       {#if viewer == 'programming'}
         <button class="infobutton" on:click={() => (kleView = true)}>Download KLE Layout</button>
-        <p class="mt-4 mb-2">Some things that will happen here in the future:</p>
-        <ul class="list-disc pl-4">
-          <li>The thumb cluster matrix will be wired more efficiently</li>
-          <li>The thumb cluster matrix will be connected to the larger key matrix</li>
-          <li>The generator will make a QMK template for you to use</li>
-          <li>And maybe a generated assembly / wiring guide</li>
-        </ul>
+        {#if flags.lemons && !hasLemon}
+          <button
+            class="relative bg-teal-500/10 hover:bg-teal-500/30 rounded mt-8 px-4 py-2 ml--2 text-start"
+            on:click={() => (lemonSwitch = true)}
+          >
+            <span class="font-medium">Autogenerate your firmware with Lemon microcontrollers.</span>
+            <div class="mt-2 flex gap-4 items-center">
+              <div class="text-sm">
+                <span class="opacity-70"
+                  >Because of the Lemon's structured I/Os, Cosmos can automate mapping your keyboard
+                  matrix and generating a firmware.</span
+                >
+                <span class="ml-0.5" />
+              </div>
+              <div
+                class="rounded-full bg-teal-200 dark:bg-teal-600 flex items-center justify-center w-8 h-8 flex-none"
+              >
+                <Icon size={24} path={mdi.mdiChevronRight} />
+              </div>
+            </div></button
+          >
+        {/if}
+        {#if hasLemon}
+          {#if fullMatrix}
+            <PeaConfig {config} {geometry} matrix={fullMatrix} />
+          {:else}
+            <p class="mt-4 mb-2">Autogenerate your firmware with peaMK!</p>
+            <ol class="list-decimal ml-6">
+              <li>
+                <a class="text-pink-600 underline" target="_blank" href="docs/firmware/#key-labeling"
+                  >Label all your keys</a
+                > to your liking.
+              </li>
+              <li>
+                Download and flash <a
+                  class="text-pink-600 underline"
+                  target="_blank"
+                  href="https://github.com/rianadon/peaMK/tree/main?tab=readme-ov-file#binaries">peaMK</a
+                > to your microcontroller(s).
+              </li>
+              <li>Press the indicated blue key (on the right) on your keyboard.</li>
+              <li>If a key doesn't work, double check your wiring.</li>
+              <li>When all keys have been pressed Cosmos will auto-generate your firmware.</li>
+            </ol>
+          {/if}
+        {:else}
+          <p class="mt-4 mb-2">Some things that will happen here in the future:</p>
+          <ul class="list-disc pl-4">
+            <li>The thumb cluster matrix will be wired more efficiently</li>
+            <li>The thumb cluster matrix will be connected to the larger key matrix</li>
+            <li>The generator will make a QMK template for you to use</li>
+            <li>And maybe a generated assembly / wiring guide</li>
+          </ul>
+        {/if}
       {:else}
         <div class="flex items-center justify-between mr-2">
           <div>
@@ -950,7 +1031,7 @@
           </div>
         </div>
 
-        {#if flags.assembly}
+        {#if flags.assembly && hasPro}
           <button
             class="relative bg-teal-500/10 hover:bg-teal-500/30 rounded mt-8 px-4 py-2 ml--2 text-start"
             class:hover:animate-wiggle={$assemblyIsNew}
@@ -998,6 +1079,7 @@
             <VisualEditor2
               basic={mode == 'basic'}
               cosmosConf={state.options}
+              {geometry}
               bind:conf={config}
               on:goAdvanced={() => (mode = 'intermediate')}
             />
@@ -1037,7 +1119,7 @@
           Bill of Materials will not be available until you fix the errors in your configuration.
         </div>
       {:else}
-        {#if (config?.right ?? config?.unibody).shell.type != 'basic'}
+        {#if (config?.right || config?.unibody)?.shell.type != 'basic'}
           <div class="bg-yellow-200 m-4 rounded p-4 dark:bg-yellow-700">
             Screw information is not yet finished non-standard cases. Make sure to check the model for
             any additional screws needed.
@@ -1052,7 +1134,7 @@
   <Dialog big on:close={() => (kleView = false)}>
     <span slot="title">KLE Export</span>
     <div slot="content">
-      <KleView conf={config} />
+      <KleView conf={config} geo={geometry} />
     </div>
   </Dialog>
 {/if}
@@ -1074,6 +1156,25 @@
       proOpen = true
     }}
   />
+{/if}
+{#if lemonSwitch}
+  <Dialog on:close={() => (lemonSwitch = false)}>
+    <span slot="title">Switch to a Lemon microcontroller?</span>
+    <div slot="content" class="text-center">
+      {#if mode === 'advanced'}
+        Sorry, you'll need to manually change the microcontroller in your Expert mode code.
+      {:else}
+        <p class="mb-4">
+          Learn more about the microcontrollers on the <a
+            class="underline"
+            href="https://ryanis.cool/cosmos/lemon">Lemon microcontroller homepage</a
+          >.
+        </p>
+        <button class="button" on:click={() => switchUC('lemon-wired')}>Lemon Wired</button>
+        <button class="button" on:click={() => switchUC('lemon-wireless')}>Lemon Wireless</button>
+      {/if}
+    </div>
+  </Dialog>
 {/if}
 <!-- {#if state.upgradedFrom == 'cf' && showUpgraded}
   <Dialog big on:close={() => (showUpgraded = false)}>

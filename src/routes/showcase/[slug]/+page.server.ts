@@ -22,7 +22,7 @@ export const load = ({ params }) => {
     })
   }
 
-  const deserialized = keyboard.config ? deserialize(keyboard.config.substring(1), () => undefined as any).options as CosmosKeyboard : undefined
+  const deserialized = keyboard.config ? deserialize(keyboard.config.substring(1)).options as CosmosKeyboard : undefined
   const cuttleConf = deserialized ? fromCosmosConfig(deserialized) : undefined
 
   let name = ''

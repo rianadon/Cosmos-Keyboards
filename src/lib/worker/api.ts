@@ -1,4 +1,4 @@
-import { Compound, downcast, getOC, makeSolid, setOC, type ShapeMesh, Shell, Solid } from 'replicad'
+import { Compound, downcast, getOC, makeSolid, setOC, Shell, Solid } from 'replicad'
 /// <reference lib="webworker" />
 // declare const self: DedicatedWorkerGlobalScope;
 
@@ -10,14 +10,14 @@ import wasmUrl from '$assets/replicad_single.wasm?url'
 // import wasmUrl from 'opencascade/dist/opencascade.full.wasm?url';
 import { combinedKeyHoleMesh, keyHoleMeshes } from '$lib/loaders/sockets'
 import { wristRest } from '@pro/wristRest'
-import type { BufferAttribute, BufferGeometry } from 'three'
+import type { BufferAttribute, BufferGeometry, Mesh } from 'three'
 import { getUser } from '../../routes/beta/lib/login'
 import { ITriangle } from '../loaders/simplekeys'
 import { type ConfError, type ConfErrors, isPro, keycapIntersections, partIntersections, socketIntersections } from './check'
 import { type Cuttleform, type CuttleKey, type Geometry, newGeometry } from './config'
-import { boardHolder, cutWithConnector, keyHoles, makeConnector, makePlate, makePlateMesh, makerScrewInserts, makeWalls, type ScrewInsertTypes, webSolid } from './model'
+import { boardHolder, cutWithConnector, keyHoles, makePlate, makePlateMesh, makerScrewInserts, makeWalls, type ScrewInsertTypes, webSolid } from './model'
 import { Assembly } from './modeling/assembly'
-import { blobSTL, combine } from './modeling/index'
+import { blobSTL, combine, type ShapeMesh } from './modeling/index'
 import { meshVolume, supportMesh } from './modeling/supports'
 import Trsf, { Vector } from './modeling/transformation'
 import ETrsf from './modeling/transformation-ext'
@@ -43,9 +43,9 @@ async function ensureOC() {
 
 const toMesh = (mesh: BufferGeometry) =>
   ({
-    vertices: (mesh.attributes['position'] as BufferAttribute).array as number[],
-    normals: (mesh.attributes['normal'] as BufferAttribute).array as number[],
-    triangles: mesh.index!.array as number[],
+    vertices: (mesh.attributes['position'] as BufferAttribute).array as Float32Array,
+    normals: (mesh.attributes['normal'] as BufferAttribute).array as Float32Array,
+    triangles: mesh.index!.array as Uint16Array,
     faceGroups: [],
   }) satisfies ShapeMesh
 const arrconcat = (a: Float32Array, b: Float32Array) => {
@@ -112,10 +112,10 @@ export async function generatePlate(config: Cuttleform, cut = false) {
   await ensureOC()
   const geo = newGeometry(config)
   const { top, bottom } = makePlate(config, geo, cut)
-  const topMesh = meshWithVolume(top())
+  const topMesh = colorPlate(geo, meshWithVolume(await top()))
   return {
     top: topMesh,
-    bottom: bottom ? meshWithVolume(bottom()) : { mesh: null, mass: 0 },
+    bottom: bottom ? colorPlate(geo, meshWithVolume(await bottom())) : { mesh: null, mass: 0 },
     ocTime: topMesh.ocTime,
   }
 }
@@ -250,8 +250,9 @@ export async function generateWristRest(config: Cuttleform, flip = false) {
   await ensureOC()
   const name = flip ? 'wristRestLeft' : 'wristRestRight'
   if (!config[name]) return NULL
-  const rest = wristRest(config, newGeometry(config), name) as Solid
-  const result = meshWithVolume(rest)
+  const geo = newGeometry(config)
+  const rest = wristRest(config, geo, name) as Solid
+  const result = colorPlate(geo, meshWithVolume(rest))
   rest.delete()
   return result
 }
@@ -260,8 +261,9 @@ export async function generateMirroredWristRest(config: Cuttleform) {
   await ensureOC()
   if (!config.wristRestLeft) return NULL
   config.keys.forEach(k => k.position = new ETrsf(k.position.history).mirror([1, 0, 0]))
-  const rest = wristRest(config, newGeometry(config), 'wristRestLeft').mirror('YZ', [0, 0, 0])
-  const result = meshWithVolume(rest)
+  const geo = newGeometry(config)
+  const rest = wristRest(config, geo, 'wristRestLeft').mirror('YZ', [0, 0, 0])
+  const result = colorPlate(geo, meshWithVolume(rest))
   rest.delete()
   return result
 }
@@ -291,10 +293,10 @@ async function getModel(conf: Cuttleform, name: string, stitchWalls: boolean, fl
     assembly = assembly.transform(new Trsf().translate(0, 0, -geo.floorZ))
     return assembly
   } else if (name == 'plate' || name == 'platetop') {
-    return makePlate(conf, geometry, true, true).top().translateZ(-geometry.floorZ)
+    return (await makePlate(conf, geometry, true, true).top()).translateZ(-geometry.floorZ)
   } else if (name == 'platebottom') {
     const bot = makePlate(conf, geometry, true, true).bottom
-    return bot ? bot().translateZ(-geometry.floorZ) : undefined
+    return bot ? (await bot()).translateZ(-geometry.floorZ) : undefined
   } else if (name == 'holder') {
     return boardHolder(conf, geometry).translateZ(-geometry.floorZ)
   } else if (name == 'wristrest') {
@@ -304,9 +306,9 @@ async function getModel(conf: Cuttleform, name: string, stitchWalls: boolean, fl
   }
 }
 
-export async function getSTL(conf: Cuttleform, name: string, side: 'left' | 'right' | 'unibody') {
+export async function getSTL(conf: Cuttleform, name: string, side: 'left' | 'right' | 'unibody' | 'test', stitchWalls: boolean) {
   const flip = side == 'left'
-  let model = await getModel(conf, name, true, flip)
+  let model = await getModel(conf, name, stitchWalls, flip)
   if (name == 'wristrest' && side == 'unibody' && conf.wristRestRight && model) {
     conf.keys.forEach(k => k.position = new ETrsf(k.position.history).mirror([1, 0, 0]))
     model = (model as Solid).fuse(wristRest(conf, newGeometry(conf), 'wristRestLeft').mirror('YZ', [0, 0, 0]))
@@ -320,7 +322,7 @@ export async function getSTEP(conf: Cuttleform, flip: boolean, stitchWalls: bool
   const geometry = newGeometry(conf)
   let { assembly } = await generate(conf, geometry, stitchWalls, flip)
   const { top, bottom } = makePlate(conf, geometry, true, true)
-  assembly.add('Bottom Plate', combine([top(), bottom ? bottom() : undefined]))
+  assembly.add('Bottom Plate', combine([await top(), bottom ? await bottom() : undefined]))
   if (conf.microcontroller) {
     assembly.add('Microcontroller Holder', boardHolder(conf, geometry))
   }
@@ -334,7 +336,8 @@ export async function getSTEP(conf: Cuttleform, flip: boolean, stitchWalls: bool
   return assembly.blobSTEP()
 }
 
-function meshWithVolume(solid: Solid) {
+type MeshWithVolume = { mesh: ShapeMesh; mass: number; ocTime: number }
+function meshWithVolume(solid: Solid): MeshWithVolume {
   const mesh = solid.mesh({ tolerance: 0.1, angularTolerance: 10 })
   const props = new oc.GProp_GProps_1()
   oc.BRepGProp.VolumeProperties_2(solid.wrapped, props, 0.01, false, true)
@@ -342,7 +345,30 @@ function meshWithVolume(solid: Solid) {
   props.delete()
   const originalTime = ocTime
   ocTime = 0 // Only report once
-  return { mesh, mass, ocTime: originalTime }
+  return {
+    mesh: {
+      vertices: new Float32Array(mesh.vertices),
+      normals: new Float32Array(mesh.normals),
+      triangles: new Uint16Array(mesh.triangles),
+      faceGroups: mesh.faceGroups,
+    },
+    mass,
+    ocTime: originalTime,
+  }
+}
+
+function colorPlate(geo: Geometry, meshv: MeshWithVolume): MeshWithVolume {
+  const { mesh, mass, ocTime } = meshv
+
+  const color = new Float32Array(mesh.vertices.length / 3)
+  for (let i = 0; i < mesh.vertices.length; i += 3) {
+    const normalZ = mesh.normals[i + 2]
+    const posZ = mesh.vertices[i + 2]
+    if (normalZ < -0.99 && posZ > geo.floorZ + 0.01) {
+      color[i / 3] = 1
+    }
+  }
+  return { mesh: { ...mesh, color }, mass, ocTime }
 }
 
 function meshWithVolumeAndSupport(solid: Solid, minZ: number) {
@@ -351,13 +377,13 @@ function meshWithVolumeAndSupport(solid: Solid, minZ: number) {
   return { mesh, mass, supports, ocTime }
 }
 
-export async function volume() {
-  if (!model) throw new Error('No model created yet')
-  const oc = getOC()
-  const props = new oc.GProp_GProps_1()
-  oc.BRepGProp.VolumeProperties_2(model.wrapped, props, 0.01, false, true)
-  return props.Mass()
-}
+// export async function volume() {
+//   if (!model) throw new Error('No model created yet')
+//   const oc = getOC()
+//   const props = new oc.GProp_GProps_1()
+//   oc.BRepGProp.VolumeProperties_2(model.wrapped, props, 0.01, false, true)
+//   return props.Mass()
+// }
 
 export async function intersections(conf: Cuttleform, side: 'left' | 'right' | 'unibody'): Promise<ConfErrors> {
   const intersections: ConfErrors = []

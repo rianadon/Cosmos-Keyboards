@@ -1,6 +1,7 @@
 import type { TopoDS_Shell } from '$assets/replicad_single'
 import { BOARD_PROPERTIES, type BoardElement, boardElements, convertToCustomConnectors, holderOuterRadius, holderThickness, STOPPER_WIDTH } from '$lib/geometry/microcontrollers'
 import { SCREWS } from '$lib/geometry/screws'
+import { processPlate } from '@pro/art'
 import { wallBezier } from '@pro/rounded'
 import { makeStiltsPlate, makeStiltsPlateSimpleMesh, splitStiltsScrewInserts } from '@pro/stiltsModel'
 import { cast, CornerFinder, downcast, draw, drawCircle, Drawing, drawRoundedRectangle, Face, loft, type Point, type Sketch, Sketcher, Solid } from 'replicad'
@@ -18,6 +19,7 @@ import {
   microControllerRectangles,
   type Patch,
   reinforceTriangles,
+  screwInsertDimensions,
   splineApproxLen,
   splitSplinesByApproxLenThrice,
   type WallCriticalPoints,
@@ -35,7 +37,6 @@ import { Vector } from './modeling/transformation'
 import { keyHole } from './socketsLoader'
 import { mapObj, sum } from './util'
 
-export const PLATE_HEIGHT = 3
 const ACCENT_HEIGHT = 1.5
 const ACCENT_WIDTH = 0.8
 
@@ -61,8 +62,8 @@ export function normalWallSurfaces(c: Cuttleform, geo: Geometry, bottomZ: number
       makeLine(w.ti.translated(worldZ, EXTRA_HEIGHT), w.to, w, w.nRoundNext, w.nRoundPrev, false, false),
       surf[1],
       ...(c.shell.type == 'tilt' || c.shell.type == 'stilts'
-        ? [makeLine(w.mo, w.bo.pretranslated(0, 0, -PLATE_HEIGHT), w), makeLine(w.bo.pretranslated(0, 0, -PLATE_HEIGHT), w.bo.translated(0, 0, -500), w)]
-        : [makeLine(w.mo, w.bo.translated(0, 0, -PLATE_HEIGHT), w)]),
+        ? [makeLine(w.mo, w.bo.pretranslated(0, 0, -c.plateThickness), w), makeLine(w.bo.pretranslated(0, 0, -c.plateThickness), w.bo.translated(0, 0, -500), w)]
+        : [makeLine(w.mo, w.bo.translated(0, 0, -c.plateThickness), w)]),
     ]
   })
 }
@@ -83,7 +84,7 @@ export function wallInnerSurfaces(c: Cuttleform, geo: Geometry, offset: number) 
     const surf = wallSurfacesInner(c, wc)
     return [
       ...(c.shell.type == 'tilt'
-        ? [makeLine(wc.bi.translated(0, 0, -EXTRA_HEIGHT), wc.bi.pretranslated(0, 0, -PLATE_HEIGHT), wc), makeLine(wc.bi.pretranslated(0, 0, -PLATE_HEIGHT), wc.bi, wc)]
+        ? [makeLine(wc.bi.translated(0, 0, -EXTRA_HEIGHT), wc.bi.pretranslated(0, 0, -c.plateThickness), wc), makeLine(wc.bi.pretranslated(0, 0, -c.plateThickness), wc.bi, wc)]
         : [makeLine(wc.bi.pretranslated(0, 0, -EXTRA_HEIGHT), wc.bi, wc)]),
       surf[1],
       surf[2],
@@ -120,7 +121,7 @@ export function accentWallSurfaces(c: Cuttleform, geo: Geometry, offset: number)
       surf[1],
       makeLine(w.mo, w.bo, w),
       makeLine(w.bo, extraWall[i].bo.translated(0, 0, height), w),
-      makeLine(extraWall[i].bo.translated(0, 0, height), extraWall[i].bo.translated(0, 0, -PLATE_HEIGHT), w),
+      makeLine(extraWall[i].bo.translated(0, 0, height), extraWall[i].bo.translated(0, 0, -c.plateThickness), w),
     ]
   })
 }
@@ -313,12 +314,12 @@ function genericScrewCountersunkProfile(innerD: number, outerD: number, angle: n
     .close()
 }
 
-function screwCountersunkProfile(c: Cuttleform, height = PLATE_HEIGHT, margin = 1) {
+function screwCountersunkProfile(c: Cuttleform, height = c.plateThickness, margin = 1) {
   const { plateDiameter, countersunkDiameter, countersunkAngle } = SCREWS[c.screwSize]
   return genericScrewCountersunkProfile(plateDiameter, countersunkDiameter, countersunkAngle, height, margin)
 }
 
-export function screwStraightProfile(c: Cuttleform, height = PLATE_HEIGHT, diameter?: number) {
+export function screwStraightProfile(c: Cuttleform, height = c.plateThickness, diameter?: number) {
   const screwInfo = SCREWS[c.screwSize]
   return draw()
     .hLine(diameter ? diameter / 2 : screwInfo.plateDiameter / 2)
@@ -357,40 +358,46 @@ interface PlateParams {
   bottomZ: number
   solveTriangularization: Geometry['solveTriangularization']
   allWallCriticalPoints: Geometry['allWallCriticalPoints']
+  plateArtOrigin: Geometry['plateArtOrigin']
+  footPositions: Geometry['footPositions']
 }
 
-function makeNormalPlate(c: Cuttleform, geo: PlateParams) {
+async function makeNormalPlate(c: Cuttleform, geo: PlateParams) {
   const sketch = plateSketch(c, geo).sketchOnPlane('XY')
-  const plate = sketch.extrude(-PLATE_HEIGHT) as Solid
+  const plate = sketch.extrude(-c.plateThickness) as Solid
   const trsf = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).pretranslate(0, 0, geo.bottomZ)
-  return trsf.transform(plate)
+  const transformedPlate = trsf.transform(plate)
+  if (c.plate && c.shell.type !== 'tilt') return await processPlate(c, geo as Geometry, transformedPlate)
+  return transformedPlate
 }
 
-function makeAccentPlate(c: Cuttleform, geo: Geometry) {
-  const height = PLATE_HEIGHT
+async function makeAccentPlate(c: Cuttleform, geo: Geometry) {
+  const height = c.plateThickness
 
   const sketch = plateSketch(c, geo, ACCENT_WIDTH).sketchOnPlane('XY')
   const trsf = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).pretranslate(0, 0, geo.bottomZ)
-  const plateUpper = trsf.transform(sketch.clone().extrude(ACCENT_HEIGHT))
-  const plateLower = trsf.transform(sketch.extrude(-height))
+  const plateUpper = trsf.transform((sketch as Sketch).clone().extrude(ACCENT_HEIGHT))
+  const plateLower = trsf.transform(sketch.extrude(-height) as Solid)
 
   const solidWallSurface = wallSolidSurface(c, geo, geo.allKeyCriticalPoints, geo.keyHolesTrsfs, geo.bottomZ, geo.worldZ, ACCENT_TOLERANCE)
   const splitter = new Splitter()
   splitter.addArgument(plateUpper)
   splitter.addTool(solidWallSurface)
   splitter.perform()
-  return splitter.takeBiggest()!.fuse(plateLower)
+  const plate = splitter.takeBiggest()!.fuse(plateLower)
+  if (c.plate && c.shell.type !== 'tilt') return await processPlate(c, geo as Geometry, plate)
+  return plate
 }
 
 interface Plate {
-  top: () => Solid
-  bottom?: () => Solid
+  top: () => Promise<Solid>
+  bottom?: () => Promise<Solid>
 }
 
 export function makePlateMesh(c: Cuttleform, geo: Geometry, cut = false, inserts = false) {
   const makeThePlate = (geo: PlateParams) => {
     const sketch = plateSketch(c, geo)
-    const plate = sketch.extrudeMesh(-PLATE_HEIGHT)
+    const plate = sketch.extrudeMesh(-c.plateThickness)
     const trsf = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).pretranslate(0, 0, geo.bottomZ)
     const mat = trsf.Matrix4()
     for (let i = 0; i < plate.vertices.length; i += 3) {
@@ -400,7 +407,7 @@ export function makePlateMesh(c: Cuttleform, geo: Geometry, cut = false, inserts
   }
 
   if (c.shell.type == 'stilts') {
-    return { top: makeStiltsPlateSimpleMesh(c, geo, cut), bottom: null }
+    return { top: makeStiltsPlateSimpleMesh(c, geo), bottom: null }
   } else if (c.shell.type == 'tilt') {
     return {
       top: makeThePlate(geo),
@@ -419,25 +426,27 @@ export function makePlate(c: Cuttleform, geo: Geometry, cut = false, inserts = f
   if (c.shell.type == 'tilt') {
     const tiltGeo = geo as TiltGeometry
     return {
-      top: () =>
+      top: async () =>
         combine([
           // cutPlateWithHoles(c, makeNormalPlate(c, geo), positions),
           joinTiltPlates(c, geo as any),
-          plateRing(c, geo, -PLATE_HEIGHT),
-          plateRing(c, tiltBotGeo(c, tiltGeo), PLATE_HEIGHT).translateZ(TILT_PARTS_SEPARATION),
+          plateRing(c, geo, -c.plateThickness),
+          plateRing(c, tiltBotGeo(c, tiltGeo), c.plateThickness).translateZ(TILT_PARTS_SEPARATION),
           inserts ? makerScrewInserts(c, geo, ['plate']) : null,
         ]),
-      bottom: () => cutPlateWithHoles(c, makeBottomestPlate(c, tiltGeo), tiltGeo.bottomScrewPositions),
+      bottom: async () => cutPlateWithHoles(c, await makeBottomestPlate(c, tiltGeo), tiltGeo.bottomScrewPositions),
     }
   }
   if (c.shell.type == 'basic' && c.shell.lip) {
-    return { top: () => cutPlateWithHoles(c, makeAccentPlate(c, geo), positions) }
+    return { top: async () => cutPlateWithHoles(c, await makeAccentPlate(c, geo), positions) }
   }
-  return { top: () => cutPlateWithHoles(c, makeNormalPlate(c, geo), positions) }
+  return { top: async () => cutPlateWithHoles(c, await makeNormalPlate(c, geo), positions) }
 }
 
-export function makeBottomestPlate(c: Cuttleform, geo: TiltGeometry) {
-  return makeNormalPlate(c, tiltBotGeo(c, geo))
+export async function makeBottomestPlate(c: Cuttleform, geo: TiltGeometry) {
+  const plate = await makeNormalPlate(c, tiltBotGeo(c, geo))
+  if (c.plate) return processPlate(c, geo as Geometry, plate)
+  return plate
 }
 
 function wallBoundaryBeziers(c: Cuttleform, geo: PlateParams, pt: 'bo' | 'bi' = 'bo', offset = 0) {
@@ -523,31 +532,35 @@ function tiltBotGeo(c: Cuttleform, geo: TiltGeometry): PlateParams {
     worldX: new Vector(1, 0, 0),
     worldY: new Vector(0, 1, 0),
     worldZ: new Vector(0, 0, 1),
-    bottomZ: geo.floorZ + PLATE_HEIGHT,
+    bottomZ: geo.floorZ + c.plateThickness,
     solveTriangularization: geo.solveTriangularization,
+    plateArtOrigin: geo.plateArtOrigin,
+    footPositions: geo.footPositions,
     allWallCriticalPoints: (offset?: number) =>
       geo.allWallCriticalPoints(offset).map(w => ({
         ...w,
-        bi: w.bi.translated(0, 0, -w.bi.origin().z + geo.floorZ + PLATE_HEIGHT),
-        bo: w.bo.translated(0, 0, -w.bo.origin().z + geo.floorZ + PLATE_HEIGHT),
+        bi: w.bi.translated(0, 0, -w.bi.origin().z + geo.floorZ + c.plateThickness),
+        bo: w.bo.translated(0, 0, -w.bo.origin().z + geo.floorZ + c.plateThickness),
       })),
   }
 }
 
 function joinTiltPlatesLoft(c: Cuttleform, geo: TiltGeometry) {
   const topTrsf = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).pretranslate(0, 0, geo.bottomZ)
-  const topSketch = plateSketch(c, geo).sketchOnPlane('XY').wire
+  const topSketch = (plateSketch(c, geo).sketchOnPlane('XY') as Sketch).wire
   const topSurface = topTrsf.transform(topSketch)
 
   const bottomTrsf = new Trsf().pretranslate(0, 0, geo.floorZ)
-  const bottomSketch = plateSketch(c, {
+  const bottomSketch = (plateSketch(c, {
     worldX: new Vector(1, 0, 0),
     worldY: new Vector(0, 1, 0),
     worldZ: new Vector(0, 0, 1),
     bottomZ: geo.floorZ,
     solveTriangularization: geo.solveTriangularization,
     allWallCriticalPoints: geo.allWallCriticalPoints.bind(geo),
-  }).sketchOnPlane('XY').wire
+    plateArtOrigin: geo.plateArtOrigin,
+    footPositions: geo.footPositions,
+  }).sketchOnPlane('XY') as Sketch).wire
   const bottomSurface = bottomTrsf.transform(bottomSketch)
   return loft([topSurface, bottomSurface])
 }
@@ -557,11 +570,11 @@ function joinTiltPlates(c: Cuttleform, geo: TiltGeometry) {
 
   // Create boundaries for both the top and bottom of the joining surface.
   // These will later get joined.
-  const topTranslation = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).pretranslate(0, 0, -PLATE_HEIGHT).xyz()
+  const topTranslation = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).pretranslate(0, 0, -c.plateThickness).xyz()
   const topBoundary = wallBoundaryBeziers(c, geo).map(c => c.map(t => t.translated(topTranslation))) as Curve[]
   const topBoundaryInner = wallBoundaryBeziers(c, geo, 'bi').map(c => c.map(t => t.translated(topTranslation))) as Curve[]
 
-  const botTranslation = [0, 0, PLATE_HEIGHT + TILT_PARTS_SEPARATION] as [number, number, number]
+  const botTranslation = [0, 0, c.plateThickness + TILT_PARTS_SEPARATION] as [number, number, number]
   const botGeo = tiltBotGeo(c, geo)
   const bottomBoundary = wallBoundaryBeziers(c, botGeo).map(c => c.map(t => t.translated(botTranslation))) as Curve[]
   const bottomBoundaryInner = wallBoundaryBeziers(c, botGeo, 'bi').map(c => c.map(t => t.translated(botTranslation))) as Curve[]
@@ -682,17 +695,6 @@ function screwInsertOuter(c: Cuttleform, bottomRadius: number, topRadius: number
   return base // .fuse(top.translateZ(height-0.001))
 }
 
-export function screwInsertDimensions(c: Cuttleform) {
-  const dimensions = SCREWS[c.screwSize].mounting[c.screwType]
-  const taperIndent = dimensions.height * Math.tan((dimensions.taper || 0) / 180 * Math.PI)
-  const bottomRadius = dimensions.diameter / 2
-  const topRadius = bottomRadius - taperIndent
-  const outerBottomRadius = Math.max(...Object.values(SCREWS[c.screwSize].mounting).map(m => m.diameter)) / 2 + 1.6
-  const outerTopRadius = outerBottomRadius - taperIndent
-  const height = dimensions.height
-  return { bottomRadius, topRadius, outerBottomRadius, outerTopRadius, height }
-}
-
 function screwInsertModel(c: Cuttleform, throughHole: boolean) {
   const { bottomRadius, topRadius, outerBottomRadius, outerTopRadius, height } = screwInsertDimensions(c)
   if (throughHole) {
@@ -777,64 +779,64 @@ function rectangleForUSB(c: Cuttleform) {
   }
 }
 
-export const connectors: Record<string, { positive: (c: Cuttleform) => Solid | null; negative: (c: Cuttleform) => Solid }> = {
-  rj9: {
-    positive(c: Cuttleform) {
-      return drawRoundedRectangle(14.78, 22.38).translate(0, 22.38 / 2)
-        .fuse(drawRoundedRectangle(10.5, 17.6).translate(12.64, 17.6 / 2))
-        .sketchOnPlane('XZ')
-        .extrude(13)
-        .translate(0, 6.5, 0) as Solid
-    },
-    negative(c: Cuttleform) {
-      const throughHole = drawRoundedRectangle(10.78, 5).sketchOnPlane('XZ')
-        .extrude(13)
-        .translate(0, 6.5, 16) as Solid
-      const shallowHole = drawRoundedRectangle(10.78, 18.38).sketchOnPlane('XZ')
-        .extrude(9)
-        .translate(0, 6.5, 11.19) as Solid
-      const usbHole = drawRoundedRectangle(6.5, 13.6).sketchOnPlane('XZ')
-        .extrude(13)
-        .translate(12.64, 6.5, 17.6 / 2) as Solid
-      return throughHole.fuse(shallowHole).fuse(usbHole)
-    },
-  },
-  trrs: {
-    positive(c: Cuttleform) {
-      return null
-    },
-    negative(c: Cuttleform) {
-      const lg = BOARD_PROPERTIES[c.microcontroller].sizeName == 'Large'
-      return drawCircle(3.2).translate(lg ? -16.5 : -14.5, 0) // trrs hole
-        .fuse(rectangleForUSB(c)) // usb hole
-        .sketchOnPlane('XZ')
-        .extrude(c.wallThickness * 10)
-        .translate(0, c.wallThickness * 10, 5) as Solid
-    },
-  },
-  usb: {
-    positive(c: Cuttleform) {
-      return null
-    },
-    negative(c: Cuttleform) {
-      return rectangleForUSB(c) // usb hole
-        .sketchOnPlane('XZ')
-        .extrude(c.wallThickness * 10)
-        .translate(0, c.wallThickness * 10, 5) as Solid
-    },
-  },
-  external: {
-    positive(c: Cuttleform) {
-      return null
-    },
-    negative(c: Cuttleform) {
-      return drawRoundedRectangle(29.1661, 12.6)
-        .sketchOnPlane('XZ')
-        .extrude(c.wallThickness * 10)
-        .translate(10, c.wallThickness * 10, 12.6 / 2) as Solid
-    },
-  },
-}
+// export const connectors: Record<string, { positive: (c: Cuttleform) => Solid | null; negative: (c: Cuttleform) => Solid }> = {
+//   rj9: {
+//     positive(c: Cuttleform) {
+//       return drawRoundedRectangle(14.78, 22.38).translate(0, 22.38 / 2)
+//         .fuse(drawRoundedRectangle(10.5, 17.6).translate(12.64, 17.6 / 2))
+//         .sketchOnPlane('XZ')
+//         .extrude(13)
+//         .translate(0, 6.5, 0) as Solid
+//     },
+//     negative(c: Cuttleform) {
+//       const throughHole = drawRoundedRectangle(10.78, 5).sketchOnPlane('XZ')
+//         .extrude(13)
+//         .translate(0, 6.5, 16) as Solid
+//       const shallowHole = drawRoundedRectangle(10.78, 18.38).sketchOnPlane('XZ')
+//         .extrude(9)
+//         .translate(0, 6.5, 11.19) as Solid
+//       const usbHole = drawRoundedRectangle(6.5, 13.6).sketchOnPlane('XZ')
+//         .extrude(13)
+//         .translate(12.64, 6.5, 17.6 / 2) as Solid
+//       return throughHole.fuse(shallowHole).fuse(usbHole)
+//     },
+//   },
+//   trrs: {
+//     positive(c: Cuttleform) {
+//       return null
+//     },
+//     negative(c: Cuttleform) {
+//       const lg = BOARD_PROPERTIES[c.microcontroller].sizeName == 'Large'
+//       return drawCircle(3.2).translate(lg ? -16.5 : -14.5, 0) // trrs hole
+//         .fuse(rectangleForUSB(c)) // usb hole
+//         .sketchOnPlane('XZ')
+//         .extrude(c.wallThickness * 10)
+//         .translate(0, c.wallThickness * 10, 5) as Solid
+//     },
+//   },
+//   usb: {
+//     positive(c: Cuttleform) {
+//       return null
+//     },
+//     negative(c: Cuttleform) {
+//       return rectangleForUSB(c) // usb hole
+//         .sketchOnPlane('XZ')
+//         .extrude(c.wallThickness * 10)
+//         .translate(0, c.wallThickness * 10, 5) as Solid
+//     },
+//   },
+//   external: {
+//     positive(c: Cuttleform) {
+//       return null
+//     },
+//     negative(c: Cuttleform) {
+//       return drawRoundedRectangle(29.1661, 12.6)
+//         .sketchOnPlane('XZ')
+//         .extrude(c.wallThickness * 10)
+//         .translate(10, c.wallThickness * 10, 12.6 / 2) as Solid
+//     },
+//   },
+// }
 
 export function cutWithConnector(c: Cuttleform, wall: Solid, origin: Trsf) {
   // if (!conn) return wall
@@ -855,12 +857,12 @@ export function cutWithConnector(c: Cuttleform, wall: Solid, origin: Trsf) {
   ))
 }
 
-export function makeConnector(c: Cuttleform, conn: keyof typeof connectors, origin: Point) {
-  if (!conn) return null
-  const pos = connectors[conn].positive(c)
-  if (pos) return pos.cut(connectors[conn].negative(c)).translate(origin)
-  return null
-}
+// export function makeConnector(c: Cuttleform, conn: keyof typeof connectors, origin: Point) {
+//   if (!conn) return null
+//   const pos = connectors[conn].positive(c)
+//   if (pos) return pos.cut(connectors[conn].negative(c)).translate(origin)
+//   return null
+// }
 
 export function makeWalls(c: Cuttleform, wallPts: WallCriticalPoints[], worldZ: Vector, bottomZ: number) {
   const surface = new CompBezierSurface()
@@ -1033,11 +1035,13 @@ export function boardHolder(c: Cuttleform, geo: Geometry): Solid {
 
     const maxy1 = boardPos.topLeft ? Math.min(maxy, boardPos.topLeft.origin().y - outerRadius) : maxy
     const maxy2 = boardPos.topRight ? Math.min(maxy, boardPos.topRight.origin().y - outerRadius) : maxy
-    if (maxy - miny > 4) {
-      rect = rect.cut(drawRectangleByBounds(minx, minx + boardProps.sidecutout, miny, maxy))
+    const leftCutout = Array.isArray(boardProps.sidecutout) ? boardProps.sidecutout[c.flipConnectors ? 1 : 0] : boardProps.sidecutout
+    const rightCutout = Array.isArray(boardProps.sidecutout) ? boardProps.sidecutout[c.flipConnectors ? 0 : 1] : boardProps.sidecutout
+    if (maxy - miny > 4 && leftCutout) {
+      rect = rect.cut(drawRectangleByBounds(minx, minx + leftCutout, miny, maxy))
     }
-    if (maxy - miny > 4) {
-      rect = rect.cut(drawRectangleByBounds(maxx - boardProps.sidecutout, maxx, miny, maxy))
+    if (maxy - miny > 4 && rightCutout) {
+      rect = rect.cut(drawRectangleByBounds(maxx - rightCutout, maxx, miny, maxy))
     }
   }
 
@@ -1089,8 +1093,15 @@ export function boardHolder(c: Cuttleform, geo: Geometry): Solid {
     const miny = elements[0].offset.y - elements[0].size.y
     const maxy = Math.min(elements[0].offset.y + 100, boardProps.sidecutoutMaxY ?? Infinity) // Add extra material to clear everything in the holder
     const depth = Math.max(-0.6, 1 - elements[0].offset.z) // Leave minimum 1mm material at bottom
-    solid = solid.cut(drawRectangleByBounds(minx - BOARD_COMPONENT_TOL, minx + boardProps.sidecutout, miny, maxy).sketchOnPlane('XY', elements[0].offset.z).extrude(depth) as Solid)
-    solid = solid.cut(drawRectangleByBounds(maxx - boardProps.sidecutout, maxx + BOARD_COMPONENT_TOL, miny, maxy).sketchOnPlane('XY', elements[0].offset.z).extrude(depth) as Solid)
+
+    const leftCutout = Array.isArray(boardProps.sidecutout) ? boardProps.sidecutout[c.flipConnectors ? 1 : 0] : boardProps.sidecutout
+    const rightCutout = Array.isArray(boardProps.sidecutout) ? boardProps.sidecutout[c.flipConnectors ? 0 : 1] : boardProps.sidecutout
+    if (leftCutout) {
+      solid = solid.cut(drawRectangleByBounds(minx - BOARD_COMPONENT_TOL, minx + leftCutout, miny, maxy).sketchOnPlane('XY', elements[0].offset.z).extrude(depth) as Solid)
+    }
+    if (rightCutout) {
+      solid = solid.cut(drawRectangleByBounds(maxx - rightCutout, maxx + BOARD_COMPONENT_TOL, miny, maxy).sketchOnPlane('XY', elements[0].offset.z).extrude(depth) as Solid)
+    }
   }
 
   for (const element of elements) {

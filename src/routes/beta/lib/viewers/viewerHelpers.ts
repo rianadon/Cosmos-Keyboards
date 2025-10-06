@@ -3,6 +3,7 @@ import type { Cuttleform } from '$lib/worker/config'
 import type { WallCriticalPoints } from '$lib/worker/geometry'
 import type { Vector } from '$lib/worker/modeling/transformation'
 import type Trsf from '$lib/worker/modeling/transformation'
+// Stashed changes
 import { wallBezier } from '@pro/rounded'
 import * as THREE from 'three'
 
@@ -138,15 +139,15 @@ export function makeBox(cx: number, cy: number, cz: number, w: number, h: number
 type Full<T> = { left?: T; right?: T; unibody?: T }
 
 const SEPARATION = 20
-export function fullSizes(geo: Full<{ geometry: THREE.BufferGeometry }[]>) {
+export function fullSizes(geo: Full<THREE.BufferGeometry[]>) {
   if (geo.unibody) {
-    const size = boundingSize(geo.unibody.map((g) => g.geometry))
+    const size = boundingSize(geo.unibody.map((g) => g))
     return { left: size, both: size, right: size }
   } else {
     const leftBox = boundingBox(
-      geo.left!.map((x) => ({ mesh: x.geometry, matrix: new THREE.Matrix4().makeScale(-1, 1, 1) })),
+      geo.left!.map((x) => ({ mesh: x, matrix: new THREE.Matrix4().makeScale(-1, 1, 1) })),
     )
-    const rightBox = boundingBox(geo.right!.map((g) => g.geometry))
+    const rightBox = boundingBox(geo.right!.map((g) => g))
     const leftSize = leftBox.getSize(new THREE.Vector3())
     const rightSize = rightBox.getSize(new THREE.Vector3())
     const bothSize = leftBox.union(rightBox).getSize(new THREE.Vector3())

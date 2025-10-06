@@ -1,11 +1,11 @@
 import defaultConfig from '$assets/cuttleform.json' assert { type: 'json' }
-import { decodeConfigIdk, decodeConnectors, encodeConnectors, encodeCosmosConfig, serializeCosmosConfig } from '$lib/worker/config.serialize'
 import { expect, test } from 'bun:test'
 import { Quaternion } from 'three'
 import { toCode } from '../../../src/routes/beta/lib/editor/toCode'
-import { toCuttleformProto } from '../../../src/routes/beta/lib/serialize'
-import { cuttleConf, type Cuttleform, decodeTuple, type FullCuttleform } from './config'
+import { deserialize, toCuttleformProto } from '../../../src/routes/beta/lib/serialize'
+import { cuttleConf, type Cuttleform, type FullCuttleform } from './config'
 import { type ConnectorMaybeCustom, type CosmosCluster, type CosmosKey, type CosmosKeyboard, fromCosmosConfig, toCosmosConfig, toFullCosmosConfig } from './config.cosmos'
+import { decodeConfigIdk, decodeConnectors, encodeConnectors, encodeCosmosConfig, serializeCosmosConfig } from './config.serialize'
 import Trsf from './modeling/transformation'
 import ETrsf, { flipKeyLabels, mirror } from './modeling/transformation-ext'
 import { trimUndefined } from './util'
@@ -116,6 +116,24 @@ test('Encoding connectors', () => {
     { preset: 'usb', size: 'big', x: 30 },
   ]
   expect(decodeConnectors(encodeConnectors(connectors))).toMatchObject(connectors)
+})
+
+test('Complex keys', () => {
+  const config = cuttleConf(defaultConfig.options as any)
+  const cosmosConf = toCosmosConfig(config, 'right', true)
+
+  cosmosConf.clusters = [cosmosConf.clusters[0]]
+  cosmosConf.clusters[0].clusters = [cosmosConf.clusters[0].clusters[0]]
+  cosmosConf.clusters[0].clusters[0].keys = [
+    { partType: { type: 'oled-160x68-1.08in-niceview' }, profile: {}, row: -2.02, column: -2.86 },
+    { partType: {}, profile: { row: 0, letter: 'j', home: 'index' }, row: -1 },
+    { partType: {}, profile: { row: 1, letter: '7', home: null }, row: 0 },
+  ]
+
+  const encoded = encodeCosmosConfig(cosmosConf)
+  const decoded = decodeConfigIdk(serializeCosmosConfig(encoded))
+
+  expect(decoded).toMatchObject(cosmosConf)
 })
 
 // HELPER FUNCTIONS  HELPER FUNCTIONS  HELPER FUNCTIONS  HELPER FUNCTIONS  HELPER FUNCTIONS  HELPER

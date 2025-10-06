@@ -4,6 +4,7 @@ site_url: https://ryanis.cool/cosmos/
 site_description: Design a keyboard that fits your hand perfectly.
 repo_name: rianadon/Cosmos-Keyboards
 repo_url: https://github.com/rianadon/Cosmos-Keyboards
+edit_uri: edit/main/docs/
 theme:
   name: material
   custom_dir: docs/overrides
@@ -19,7 +20,10 @@ theme:
   features:
     - navigation.top
     - navigation.tabs
+    - navigation.sections
     - content.code.copy
+    - content.action.edit
+    - content.action.view
 
 plugins:
   - search
@@ -37,6 +41,7 @@ plugins:
         as_creation: date
 
 hooks:
+  - src/mkdocs/exclude.py
   - src/mkdocs/video.py
   - src/mkdocs/image.py
   - src/mkdocs/social.py
@@ -62,11 +67,19 @@ markdown_extensions:
   - smarty
   - sane_lists
   - footnotes
+  - pymdownx.tilde
   - pymdownx.details
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.highlight
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.keys
   - pymdownx.arithmatex:
       generic: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg

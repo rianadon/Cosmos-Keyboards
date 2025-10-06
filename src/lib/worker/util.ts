@@ -62,6 +62,16 @@ export function mapObj<K extends string, V, R>(obj: Record<K, V>, f: (a: V, k: K
   return newObj
 }
 
+export function mapObjNotNull<K extends string, V, R>(obj: Partial<Record<K, V>>, f: (a: Exclude<V, undefined>, k: K) => R): Record<K, R> {
+  const newObj: any = {}
+  for (const key of Object.keys(obj) as K[]) {
+    const value = obj[key]
+    if (typeof value === 'undefined' || value === null) continue
+    newObj[key] = f(value as Exclude<V, undefined>, key)
+  }
+  return newObj
+}
+
 export function mapMap<K extends string, V, R>(map: Map<K, V>, f: (a: V, k: K) => R): Map<K, R> {
   const newEntries: [K, R][] = Array.from(map, ([key, value]) => [key, f(value, key)])
   return new Map(newEntries)
@@ -84,7 +94,7 @@ export function reverseMap<A extends string | number, B extends string | number>
 }
 
 export function notNull<E>(a: readonly E[]): Exclude<E, undefined | null | false>[] {
-  return a.filter(e => !!e) as Exclude<E, undefined | null>[]
+  return a.filter(e => !!e) as Exclude<E, undefined | null | false>[]
 }
 
 export class DefaultMap<K, V> extends Map<K, V> {
@@ -155,4 +165,29 @@ export function count<T>(items: T[]): TallyMap<T> {
   const map = new TallyMap<T>()
   items.forEach(i => map.incr(i))
   return map
+}
+
+export function findIndexIter<T>(iterator: Iterable<T>, fn: (v: T) => boolean): number {
+  let i = 0
+  for (const val of iterator) {
+    if (fn(val)) return i
+    i++
+  }
+  return -1
+}
+
+export type TypedArray = Int8Array | Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array
+export function typedConcat<T extends TypedArray>(a: T, b: ArrayLike<number>) {
+  const cons = Object.getPrototypeOf(a).constructor
+  const result: T = new cons(a.length + b.length)
+  result.set(a)
+  result.set(b, a.length)
+
+  return result
+}
+
+export function repeated<T>(arr: T[]) {
+  const tally = new TallyMap()
+  arr.forEach(e => tally.incr(e))
+  return Array.from(tally.entries()).filter((e) => e[1] > 1).map(e => e[0])
 }

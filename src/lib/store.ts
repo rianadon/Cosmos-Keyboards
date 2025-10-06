@@ -16,6 +16,7 @@ export const transformMode = writable<'translate' | 'rotate' | 'select'>('select
 export const selectMode = writable<'key' | 'column' | 'cluster'>('key')
 export const user = writable<User>({ success: false, sponsor: undefined })
 export const codeError = writable<Error | null>(null)
+export const openSelect = writable<symbol | null>(null)
 
 export const hoveredKey = writable<number | null>(null)
 export const clickedKey = writable<number | null>(null)
@@ -47,6 +48,7 @@ export const showTiming = andcondition(developer, storable('developer.timing', f
 export const showKeyInts = andcondition(developer, storable('developer.showKeyInts', false))
 export const showGizmo = andcondition(developer, storable('developer.showGizmo', false))
 export const debugViewport = andcondition(developer, storable('developer.debugViewport', false))
+export const noStitch = andcondition(developer, storable('developer.noStitch', false))
 
 /** A Svelte store that writes and reads from localStorage. */
 export function storable<T>(name: string, data: T): Writable<T> {

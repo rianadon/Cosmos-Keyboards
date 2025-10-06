@@ -10,6 +10,8 @@ message Keyboard {
 
   optional int32 wall_shrouding = 5;
   optional int32 wall_thickness = 6;
+  optional int32 wall_x_y_offset = 17;
+  optional int32 wall_z_offset = 18;
   optional uint32 key_basis = 7;
   optional uint32 connector = 8; //DEPRECATED: Bitmask for the connector size + type
   optional bytes connectors = 16; // Custom connector encoding
@@ -67,6 +69,10 @@ message KeyboardExtra {
   optional sint32 wrist_rest_tenting = 14;
 
   optional sint32 microcontroller_angle = 15;
+  optional int32 plate_thickness = 19;
+  repeated uint32 foot_indices = 20;
+  optional uint32 foot_diameter = 21;
+  optional uint32 plate_art = 22;
 }
 
 message Curvature {

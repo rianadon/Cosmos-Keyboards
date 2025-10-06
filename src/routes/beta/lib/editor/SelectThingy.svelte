@@ -1,16 +1,20 @@
 <script lang="ts">
-  import { createSelect, createSync, melt, type SelectOptionProps } from '@melt-ui/svelte'
+  import {
+    createSelect,
+    createSync,
+    melt,
+    type CreateSelectProps,
+    type SelectOptionProps,
+  } from '@melt-ui/svelte'
   import Icon from '$lib/presentation/Icon.svelte'
   import { mdiCheck, mdiChevronDown, mdiChevronUp } from '@mdi/js'
   import { createEventDispatcher, SvelteComponent, type ComponentType } from 'svelte'
+  import { openSelect } from '$lib/store'
 
   type Option = { key: string; label: string }
 
+  let syncing = false
   const dispatch = createEventDispatcher()
-  function onSelectedChange({ next }: { next: any }) {
-    dispatch('change', next.value)
-    return next
-  }
 
   export let options: Option[] | Record<string, Option[]>
   const allOptions = Array.isArray(options) ? options : Object.values(options).flat()
@@ -24,6 +28,20 @@
   export let clazz: string = ''
   export let pink = false
 
+  const instanceId = Symbol()
+  const onOpenChange: CreateSelectProps<string>['onOpenChange'] = ({ next }) => {
+    if (next || $openSelect == instanceId) {
+      $openSelect = next ? instanceId : null
+    }
+    return next
+  }
+
+  const onSelectedChange: CreateSelectProps<string>['onSelectedChange'] = ({ next }) => {
+    if (syncing) return next
+    dispatch('change', next!.value)
+    return next
+  }
+
   const {
     elements: { menu, trigger, option, group, groupLabel },
     states: { open, selectedLabel, selected },
@@ -31,6 +49,7 @@
   } = createSelect<string>({
     forceVisible: true,
     onSelectedChange,
+    onOpenChange,
     positioning: {
       placement: 'bottom-start',
       gutter: -30,
@@ -38,12 +57,24 @@
     },
   })
 
+  $: if ($openSelect && $openSelect !== instanceId) {
+    $open = false
+  }
+
   // This DX is pretty bad.
   const sync = createSync({ selected })
-  $: sync.selected(toOption(allOptions.find((opt) => opt.key == value)), (v) => v && (value = v.value))
+
+  function onValueChange(val: string) {
+    syncing = true
+    sync.selected(toOption(allOptions.find((opt) => opt.key == val)), (v) => v && (value = v.value))
+    syncing = false
+  }
+  $: onValueChange(value)
 
   export let component: ComponentType<SvelteComponent<{ option: Option }>>
-  export let labelComponent: ComponentType<SvelteComponent<{ option: { label: string; value: string } }>>
+  export let labelComponent:
+    | ComponentType<SvelteComponent<{ option: { label?: string; value: string } }>>
+    | undefined = undefined
   export let minWidth = 380
 
   export { clazz as class }
@@ -57,7 +88,7 @@
       {$selectedLabel || 'Choose One'}
     {/if}
   </button>
-  <div class="absolute right-4 top-1/2 z-10 -translate-y-1/2">
+  <div class="absolute right-4 top-1/2 z-10 -translate-y-1/2 pointer-events-none">
     {#if $open}
       <Icon path={mdiChevronUp} size="20px" />
     {:else}

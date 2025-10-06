@@ -38,7 +38,7 @@ interface FieldInfo {
   T: (() => { fields: FieldInfo[] }) | number
   name: string
   jsonName: string
-  options: any[]
+  options: Record<string, any>
 }
 
 function fieldToSchema(ns: string, field: FieldInfo): FieldSchema {

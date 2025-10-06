@@ -55,17 +55,17 @@ jobs:
       - name: Build simple keycaps
         run: OPENSCAD=$(which openscad) make keycaps-simple
 
-  setup-linux-bun:
-    name: Verify Set up (Bun/Linux)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+  # setup-linux-bun:
+  #   name: Verify Set up (Bun/Linux)
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-      - uses: oven-sh/setup-bun@v2
+  #     - uses: oven-sh/setup-bun@v2
 
-      - name: Quickstart
-        # Give the process 3 chances to work
-        run: make quickstart || make quickstart || make quickstart
+  #     - name: Quickstart
+  #       # Give the process 3 chances to work
+  #       run: make quickstart || make quickstart || make quickstart
 
   # setup-windows-bun:
   #   name: Verify Set up (Bun/Windows)

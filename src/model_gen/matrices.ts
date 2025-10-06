@@ -112,7 +112,7 @@ for (const keyboard of keyboards) {
   const center = fullEstimatedCenter(geometry, false)['both']
 
   const geos = drawStates(false, geometry)
-  const size = fullSizes(geos)['both']
+  const size = fullSizes(mapObj(geos, (l) => l.map((g) => g.geometry)))['both']
   const scene = new Scene()
 
   for (const [kbd, geo] of objEntries(geos)) {

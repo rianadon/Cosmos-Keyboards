@@ -35,15 +35,26 @@
 </div>
 
 {#if $tooltipOpen && option.key !== null}
+  {@const boardProps = BOARD_PROPERTIES[option.key]}
   <div
     use:melt={$content}
     transition:fade={{ duration: 50 }}
     class="z-100 rounded-md bg-pink-200 dark:text-pink-950 shadow"
+    class:cosmos={boardProps.soldByCosmos}
   >
     <div use:melt={$arrow} />
     <div class="px-6 py-4 max-w-80 cosmosprofileinfo">
       <img src={ucURL(option.key)} class="w-72 h-36 mx-auto" />
-      {#if option.key.includes('promicro')}
+
+      {#if boardProps.soldByCosmos}
+        <p
+          class="bg-purple-900 text-white flex items-center px-4 py-0.5 gap-2 justify-end rounded mt-1 mb-6"
+        >
+          <img class="size-5" src="favicon.png" alt="" />
+          Sold by Cosmos
+        </p>
+      {/if}
+      {#if option.key.includes('promicro') || option.key.includes('elite-c')}
         <div
           class="max-w-[32rem] text-sm mb-1 bg-pink-300 dark:border-gray-900 mx-[-0.5rem] px-2 py-2 rounded flex gap-3 relative"
         >
@@ -54,17 +65,18 @@
             />
           </div>
           <div class="opacity-80 dark:opacity-100">
-            Pro Micro boards are not recommended because they lack speed and program storage.
+            {option.key.includes('promicro') ? 'Pro Micro' : 'ATmega32U4-based'} boards are not recommended
+            because they lack speed and program storage.
           </div>
         </div>
       {/if}
-      {#if BOARD_PROPERTIES[option.key].description}
-        {@html '<p>' + BOARD_PROPERTIES[option.key].description.replaceAll('\n', '</p><p>') + '</p>'}
+      {#if boardProps.description}
+        {@html '<p>' + boardProps.description.replaceAll('\n', '</p><p>') + '</p>'}
       {/if}
       <p>{numGPIO(option.key)} I/O pins</p>
       <p>
-        {BOARD_PROPERTIES[option.key].size.x.toFixed(1)} mm &times;
-        {BOARD_PROPERTIES[option.key].size.y.toFixed(1)} mm
+        {boardProps.size.x.toFixed(1)} mm &times;
+        {boardProps.size.y.toFixed(1)} mm
       </p>
     </div>
   </div>

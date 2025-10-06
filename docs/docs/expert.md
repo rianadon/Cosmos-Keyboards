@@ -55,8 +55,10 @@ type Config = {
   wallThickness: number // Thickness of walls (mm)
   wallShrouding: number // By how much keys should be shrouded (mm)
   webThickness: number // Thickness of the web between keys (mm)
+  plateThickness: number // Thickness of the bottom plate
   webMinThicknessFactor: number // Controls minimum web thickness
   rounded: RoundedOptions // For configuring rounded walls
+  plate: PlateOptions // For improved bottom plate
   keyBasis: Profile // Controls how spacing relates to keycaps
   shell: ShellOptions // Configure the design of the case/shell
   // This is for tilted base, stilts mode, etc.

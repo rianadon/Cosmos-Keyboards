@@ -2,7 +2,7 @@
   import Icon from '$lib/presentation/Icon.svelte'
   import { encodeVariant, PART_INFO } from '$lib/geometry/socketsParts'
 
-  $: icon = PART_INFO[option.value]?.icon
+  $: icon = PART_INFO[option.value as keyof typeof PART_INFO]?.icon
 
   export let option: any
 </script>

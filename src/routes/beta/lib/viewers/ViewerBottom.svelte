@@ -2,11 +2,19 @@
   import * as THREE from 'three'
 
   import Viewer from './Viewer.svelte'
-  import { allScrewIndices, keyHolesTrsfs, screwOrigin } from '$lib/worker/geometry'
+  import {
+    allFootIndices,
+    allScrewIndices,
+    footOrigin,
+    keyHolesTrsfs,
+    possibleFootIndices,
+    possibleScrewIndices,
+    screwOrigin,
+  } from '$lib/worker/geometry'
   import { rectangle, drawWall, drawLinedWall, drawBezierWall, fullSizes } from './viewerHelpers'
   import { localHolderBounds } from '$lib/geometry/microcontrollers'
 
-  import { isRenderable, type ConfError } from '$lib/worker/check'
+  import { isRenderable, type ConfErrors } from '$lib/worker/check'
   import Trsf from '$lib/worker/modeling/transformation'
   import { fullEstimatedCenter, type Cuttleform, type Geometry } from '$lib/worker/config'
   import { Vector } from '$lib/worker/modeling/transformation'
@@ -17,12 +25,12 @@
   import { T } from '@threlte/core'
 
   export let geometry: FullGeometry | null
-  export let confError: ConfError | undefined
+  export let confError: ConfErrors
   export let style: string = ''
   export let darkMode: boolean
 
   interface Geo {
-    geometry: THREE.ShapeGeometry
+    geometry: THREE.BufferGeometry
     material: THREE.Material
   }
 
@@ -32,7 +40,7 @@
   $: hasError = confError && !isRenderable(confError)
   $: allGeometries =
     isRenderable(confError) && geometry ? drawStates(geometry) : ({} as ReturnType<typeof drawStates>)
-  $: sizes = fullSizes(allGeometries)
+  $: sizes = fullSizes(mapObj(allGeometries, (l) => l.map((g) => g.geometry)))
   $: size = sizes[$view]
 
   function drawStates(geometry: FullGeometry) {
@@ -155,7 +163,7 @@
 
     const boardInd = geo.boardIndices
     const initialPos = [
-      ...geo.boardIndicesThatAreScrewsToo.map((b) => boardInd[b]),
+      ...geo.boardIndicesThatAreScrewsToo.map((b) => boardInd[b]!),
       ...config.screwIndices,
     ].filter((i) => i != -1)
     const allScrewInd = [
@@ -169,10 +177,13 @@
         config.shell.type === 'stilts' ? -100 : geo.bottomZ
       ),
     ]
+    const indices = new Set(possibleScrewIndices(geo.c, walls2))
     const screwInd = geo.screwIndices
+    screwInd.forEach((i) => indices.add(i))
+    allScrewInd.forEach((i) => indices.add(i))
+    Object.values(boardInd).forEach((i) => indices.add(i))
 
-    for (let I = 0; I < walls2.length * 10; I++) {
-      const i = I / 10
+    for (const i of indices) {
       let size = 1.5
       let color: number | number[] = 0xff0000
 
@@ -184,8 +195,6 @@
         color = 0x0000ff
       } else if (allScrewInd.includes(i)) {
         color = 0xaaaaaa
-      } else {
-        if (I % 10 != 5) continue
       }
 
       const pos = screwOrigin(config, i, walls2)
@@ -210,6 +219,27 @@
         geos[geos.length - 1].material.map = tex
       }
     }
+
+    // geos.push({
+    //   geometry: new THREE.CircleGeometry(2, 32).translate(...geo.plateArtOrigin.xy(), 0),
+    //   material: new THREE.MeshBasicMaterial({ color: 0xff99cc }),
+    // })
+
+    // const existingFootInd = config.plate?.footIndices?.filter((f) => f != -1) || []
+    // const allFootInd = [
+    //   ...allFootIndices(config, geo.footWalls, walls2, existingFootInd, geo.screwIndices, geo.worldZ),
+    // ]
+    // const footInd = new Set(possibleFootIndices(geo.c, geo.footWalls))
+    // geo.footIndices.forEach((i) => footInd.add(i))
+    // allFootInd.forEach((i) => footInd.add(i))
+    // for (const i of footInd) {
+    //   const color = geo.footIndices.includes(i) ? 0xff99cc : allFootInd.includes(i) ? 0x990000 : 0x441122
+    //   const pos = footOrigin(config, i, geo.footWalls)
+    //   geos.push({
+    //     geometry: new THREE.CircleGeometry(2, 32).translate(...pos.xy(), 0),
+    //     material: new THREE.MeshBasicMaterial({ color }),
+    //   })
+    // }
 
     // const wristRestGeo = wristRestGeometry(conf, geo)
     // geos.push({

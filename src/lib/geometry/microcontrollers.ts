@@ -2,7 +2,7 @@ import { convertToMaybeCustomConnectors, type Cuttleform } from '$lib/worker/con
 import { Vector } from '$lib/worker/modeling/transformation'
 
 import type { ConnectorMaybeCustom, CustomConnector } from '$lib/worker/config.cosmos'
-import { PLATE_HEIGHT, screwInsertDimensions } from '$lib/worker/model'
+import { screwInsertDimensions } from '$lib/worker/geometry'
 import { closestScrewHeight, SCREWS } from './screws'
 
 const STOPPER_HEIGHT = 2 // Size of stopper used to align board
@@ -13,7 +13,7 @@ const BACKSTOP_HEIGHT = 0.5 // How much extra backstop height to add
 
 const IN = 25.4 // in to mm
 
-export const MICROCONTROLLER_SIZES = ['Small', 'Medium', 'Large'] as const
+export const MICROCONTROLLER_SIZES = ['Cosmos', 'Small', 'Medium', 'Large'] as const
 
 // Pi Pico Model: https://github.com/ncarandini/KiCad-RP-Pico
 // Pro Micro Model: https://grabcad.com/library/arduino-pro-micro-4
@@ -36,7 +36,7 @@ interface BoardProperties {
   cutouts: { origin: Vector; size: Vector }[]
   notches?: { origin: Vector; width: number; height: number }[]
   /** Amount to carve into the side to create the cutouts for pins */
-  sidecutout: number
+  sidecutout: number | number[]
   /** (optional) to how far in the positive Y direction the side cutout goes. */
   sidecutoutMaxY?: number
   /** Diameter of holes cut into the board holder used to attach the microcontroller. These should be tapped. */
@@ -50,6 +50,8 @@ interface BoardProperties {
   /** Names of pins on the rear side of the microcontroller (if any).
    * Connectors don't count. */
   rearPins?: string[]
+  /** Names of pins on the connectors on the rear side of the microcontroller (if any). */
+  rearConnectorPins?: string[]
   /** Regular expression to determine if a pin is gpio */
   isGPIO: RegExp
   /** If the microcontroller has castellated holes. */
@@ -60,6 +62,7 @@ interface BoardProperties {
   draft?: boolean
   dontCount?: boolean
   description?: string
+  soldByCosmos?: boolean
 }
 
 type Microcontroller = Exclude<Cuttleform['microcontroller'], null>
@@ -103,8 +106,8 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     description: 'My personal favorite. You can get these dirt cheap on AliExpress.',
   },
   'promicro-usb-c': {
-    name: 'Pro Micro - 34.7mm (USB-C)',
-    extraName: '(Low Storage)',
+    name: 'Pro Micro - 34.7mm',
+    extraName: '(USB-C, Low Storage)',
     size: new Vector(18.3, 34.7, 1.57),
     sizeName: 'Medium',
     boundingBoxZ: 5,
@@ -117,8 +120,8 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     isGPIO: /TX|RX|A?\d+/,
   },
   'promicro-usb-c-long': {
-    name: 'Pro Micro - 37mm (USB-C)',
-    extraName: '(Low Storage)',
+    name: 'Pro Micro - 37mm',
+    extraName: '(USB-C, Low Storage)',
     size: new Vector(18.3, 37, 1.57),
     sizeName: 'Medium',
     boundingBoxZ: 5,
@@ -226,7 +229,10 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     boundingBoxZ: 5,
     offset: new Vector(0, 0, 2.2),
     holes: [],
-    cutouts: [],
+    cutouts: [
+      { size: new Vector(3, 4.6, 0), origin: new Vector(-4.5, -9.2, 0) },
+      { size: new Vector(3, 4.6, 0), origin: new Vector(4.5, -9.2, 0) },
+    ],
     sidecutout: 2,
     leftSidePins: ['0', '1', '2', '3', '4', '5', '6'],
     rightSidePins: ['VUSB', 'GND', '3V3', '10', '9', '8', '7'],
@@ -304,21 +310,57 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
       "For use with Cyboard's Dactyl Flex PCBs. The Microcontroller has one native USB-C port and one fake one (good for connecting halves but not for plugging in).\nSupports both wired and wireless (longer) versions.",
   },
   'lemon-wired': {
-    name: 'Lemon',
-    extraName: '(Dual USB-C, Flex PCB)',
+    name: 'Lemon Wired',
+    extraName: '(Dual USB-C, Flex PCB) ☆',
     size: new Vector(31.94, 36, 1.57),
-    sizeName: 'Large',
+    sizeName: 'Cosmos',
     boundingBoxZ: 5,
     offset: new Vector(0, 0, 1.835),
     holes: [],
-    cutouts: [],
+    cutouts: [{ origin: new Vector(0, -16, 0), size: new Vector(11, 11, 0) }],
     sidecutout: 0.1 * IN,
-    leftSidePins: ['Vled', 'GND', 'GP2', 'GP3', 'GP4', 'GP5', 'GP6', 'GP7', 'GP8', 'GP9', 'GP10'],
+    leftSidePins: ['VRGB', 'GND', 'RGB', 'GP3', 'GP4', 'GP5', 'GP6', 'GP7', 'GP8', 'GP9', 'GP10', 'RESET'],
     rightSidePins: ['5V', '3V3', 'GND', 'GP29', 'GP28', 'GP27', 'GP26', 'GP25', 'GP24', 'GP23', 'GP22', 'GP21', 'GP20'],
+    rearConnectorPins: ['GP18', 'GP19', 'GP15', 'GP13', 'GP12', 'GP14'],
     isGPIO: /GP\d+/,
     backstopHeight: 0,
-    draft: true,
-    dontCount: true,
+    soldByCosmos: true,
+    description:
+      'A fast & feature-packed microcontroller with two USB-C ports to link together your keyboard halves (avoids TRRS hotplug issues). Based on the RP2040.\nLemon Microcontrollers also support firmware auto-generation!\n<a href="https://ryanis.cool/cosmos/lemon">Lemon Microcontrollers</a> are sold from the <a href="https://cosmos-store.ryanis.cool">Cosmos Store</a> and shipped from the US. They are <a href="https://github.com/rianadon/Cosmos-Keyboard-PCBs">open source</a> too.',
+  },
+  'lemon-wireless': {
+    name: 'Lemon Wireless',
+    extraName: '(Bluetooth, Flex PCB) ☆',
+    size: new Vector(29.9, 42, 1.57),
+    sizeName: 'Cosmos',
+    boundingBoxZ: 5,
+    offset: new Vector(0, 0, 1.835),
+    holes: [],
+    cutouts: [{ origin: new Vector(-3.6, -31.1, 0), size: new Vector(9, 9, 0) }],
+    sidecutout: [0, 6],
+    leftSidePins: ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7'],
+    rightSidePins: ['GP2', 'GP1', 'R7', 'R4', 'R6', 'R2', 'R3', 'R5', 'R1', 'RESET'],
+    rearConnectorPins: ['SDA', 'SCL', 'RGB', 'MOSI', 'CS', 'MISO', 'SCK'],
+    isGPIO: /R\d+|C\d+|GP\d+|SDA|SCL|MOSI|MISO|CS|SCK/,
+    backstopHeight: 0,
+    soldByCosmos: true,
+    description:
+      'Lots of I/Os, Bluetooth, and affordable! You can have all three.\nLemon Microcontrollers also support firmware auto-generation!\n<a href="https://ryanis.cool/cosmos/lemon">Lemon Microcontrollers</a> are sold from the <a href="https://cosmos-store.ryanis.cool">Cosmos Store</a> and shipped from the US. They are <a href="https://github.com/rianadon/Cosmos-Keyboard-PCBs">open source</a> too.',
+  },
+  'elite-c': {
+    name: 'Elite-C',
+    extraName: '(USB-C, Low Storage)',
+    size: new Vector(18.71, 33.45, 1.57),
+    sizeName: 'Medium',
+    boundingBoxZ: 5,
+    offset: new Vector(0, 0, 3.4),
+    holes: [],
+    cutouts: [],
+    sidecutout: 3.1,
+    leftSidePins: ['D3', 'D2', 'GND', 'GND', 'D1', 'D0', 'D4', 'C6', 'D7', 'E6', 'B4', 'B5'],
+    rightSidePins: ['B0', 'GND', 'RST', 'VCC', 'F4', 'F5', 'F6', 'F7', 'B1', 'B3', 'B2', 'B6'],
+    rearPins: ['F0', 'F1', 'C7', 'D5', 'B7'],
+    isGPIO: /TX|RX|A?\d+/,
   },
 }
 
@@ -329,6 +371,7 @@ export function sortMicrocontrollers(a: Microcontroller, b: Microcontroller) {
     if (BOARD_PROPERTIES[m].extraName?.includes('Low Storage')) s -= 10
     if (BOARD_PROPERTIES[m].extraName?.includes('USB-C')) s += 1
     if (BOARD_PROPERTIES[m].extraName?.includes('Flex PCB')) s += 1
+    if (BOARD_PROPERTIES[m].extraName?.includes('Bluetooth')) s += 1
     if (m.includes('promicro')) return 0.9 // Pro Micro is still popular
     return s
   }
@@ -512,9 +555,9 @@ export function holderScrewHeight(c: Cuttleform) {
 
 export function holderTallScrewHeight(c: Cuttleform) {
   const elements = boardElements(c, false)
-  const preferred = PLATE_HEIGHT + holderThickness(elements) + screwInsertDimensions(c).height * 0.75
-  const min = PLATE_HEIGHT + holderThickness(elements) + screwInsertDimensions(c).height * 0.25
-  const max = PLATE_HEIGHT + holderThickness(elements) + screwInsertDimensions(c).height * 0.25
+  const preferred = c.plateThickness + holderThickness(elements) + screwInsertDimensions(c).height * 0.75
+  const min = c.plateThickness + holderThickness(elements) + screwInsertDimensions(c).height * 0.25
+  const max = c.plateThickness + holderThickness(elements) + screwInsertDimensions(c).height * 0.25
   return closestScrewHeight(c, preferred, min, max)
 }
 
@@ -524,7 +567,37 @@ export function numGPIO(mcu: Microcontroller) {
   if (info.leftSidePins) pins.push(...info.leftSidePins)
   if (info.rightSidePins) pins.push(...info.rightSidePins)
   if (info.rearPins) pins.push(...info.rearPins)
+  if (info.rearConnectorPins) pins.push(...info.rearConnectorPins)
 
   const isGPIO = new RegExp('^' + info.isGPIO.source + '$')
   return pins.filter(p => isGPIO.test(p)).length
+}
+
+export function microcontrollerConnectors(mcu: Microcontroller | null, connectors: ConnectorMaybeCustom[]) {
+  const isBluetooth = mcu != null && BOARD_PROPERTIES[mcu].extraName?.toLowerCase().includes('bluetooth')
+
+  if (mcu == null) connectors = []
+  else if (mcu == 'cyboard-assimilator') {
+    connectors = [
+      { width: 2.3, height: 2.3, x: -12.1, y: 5, radius: 100 },
+      { preset: 'usb', size: 'average', x: -3.2 },
+      { preset: 'usb', size: 'average', x: 9.4 },
+    ]
+  } else if (mcu == 'lemon-wired') {
+    connectors = [
+      { preset: 'usb', size: 'average', x: -7 },
+      { preset: 'usb', size: 'average', x: 7 },
+    ]
+  } else if (mcu == 'lemon-wireless') {
+    connectors = [
+      { width: 7, height: 3, x: -8.8, y: 4, radius: 1 },
+      { preset: 'usb', size: 'average', x: 6 },
+    ]
+  } else if (isBluetooth) connectors = [{ preset: 'usb', size: 'average' }]
+  else connectors = [{ preset: 'trrs' }, { preset: 'usb', size: 'average' }]
+
+  const mirrorConnectors = mcu != 'cyboard-assimilator'
+    && mcu != 'lemon-wireless'
+
+  return { connectors, mirrorConnectors }
 }

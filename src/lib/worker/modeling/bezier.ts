@@ -1,7 +1,8 @@
-import { draw, Face, getOC, type PlaneName, type ShapeMesh } from 'replicad'
+import { draw, Face, getOC, type PlaneName } from 'replicad'
 import { BufferAttribute, ExtrudeGeometry, Shape } from 'three'
 import { bezierPatch, type Curve, evalPatch, lineToCurve, loftCurves, type Patch, patchGradient, triangleNormTrsf } from '../geometry'
-import { buildSewnSolid, buildSolid, makeQuad, makeTriangle } from './index'
+import { sum } from '../util'
+import { buildSewnSolid, buildSolid, makeQuad, makeTriangle, type ShapeMesh } from './index'
 import Trsf from './transformation'
 import { Vector } from './transformation'
 
@@ -179,26 +180,32 @@ function patchToMesh(p: Patch): FaceMesh {
   return mesh
 }
 
-function facesToMesh(faces: FaceMesh[]) {
+function facesToMesh(faces: FaceMesh[]): ShapeMesh {
+  const nVertices = sum(faces.map(f => f.vertices.length))
+  const nTriangles = sum(faces.map(f => f.triangles.length))
   const mesh: ShapeMesh = {
-    triangles: [],
-    vertices: [],
+    vertices: new Float32Array(nVertices),
+    normals: new Float32Array(nVertices),
+    triangles: new Uint16Array(nTriangles),
     faceGroups: [],
-    normals: [],
   }
 
+  let vertexIndex = 0, triangleIndex = 0
   faces.forEach((face, i) => {
-    const offset = mesh.vertices.length / 3
-    mesh.vertices.push(...face.vertices)
-    mesh.normals.push(...face.normals)
-    for (const t of face.triangles) {
-      mesh.triangles.push(t + offset)
+    mesh.vertices.set(face.vertices, vertexIndex)
+    mesh.normals.set(face.normals, vertexIndex)
+    for (let i = 0; i < face.triangles.length; i++) {
+      mesh.triangles[i + triangleIndex] = face.triangles[i] + vertexIndex / 3
     }
+
     mesh.faceGroups.push({
-      start: (mesh.triangles.length - face.triangles.length) / 3,
+      start: triangleIndex / 3,
       count: face.triangles.length / 3,
       faceId: i,
     })
+
+    vertexIndex += face.vertices.length
+    triangleIndex += face.triangles.length
   })
   return mesh
 }
@@ -312,12 +319,12 @@ export class BezierSketch {
       steps: 1,
       bevelEnabled: false,
     }).translate(0, 0, depth)
-    const index = new Float32Array((shape.attributes['position'] as BufferAttribute).array.length / 3)
+    const index = new Uint16Array((shape.attributes['position'] as BufferAttribute).array.length / 3)
     for (let i = 0; i < index.length; i++) index[i] = i
     return {
-      vertices: (shape.attributes['position'] as BufferAttribute).array as any as number[],
-      normals: (shape.attributes['normal'] as BufferAttribute).array as any as number[],
-      triangles: index as unknown as number[],
+      vertices: (shape.attributes['position'] as BufferAttribute).array as Float32Array,
+      normals: (shape.attributes['normal'] as BufferAttribute).array as Float32Array,
+      triangles: index,
       faceGroups: [],
     }
   }

@@ -1,4 +1,5 @@
 <script lang="ts">
+  // @ts-nocheck unused file
   import * as THREE from 'three'
 
   import Viewer from './Viewer.svelte'

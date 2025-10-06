@@ -4,17 +4,21 @@
   import GroupMatrix from './GroupMatrix.svelte'
   import Microcontroller from './Microcontroller.svelte'
   import KMesh from '$lib/3d/KeyboardMeshBetter.svelte'
-  import type { KeyboardMeshes } from 'src/routes/beta/lib/viewers/viewer3dHelpers'
+  import type { KeyboardMeshes } from '../../routes/beta/lib/viewers/viewer3dHelpers'
 
-  export let microcontrollerGeometry: Geometry | undefined
+  export let microcontrollerGeometry: Geometry | undefined = undefined
+  export let keebGeometry: Geometry | undefined = undefined
   export let meshes: KeyboardMeshes
-  export let transparency: number
+  export let transparency: number = 100
   export let side: 'left' | 'right' | 'unibody'
 
   export let noWeb = false
 
-  export let hideWall: boolean
-  export let showSupports: boolean
+  export let hideWall: boolean = false
+  export let showSupports: boolean = false
+
+  export let caseColor: [any, number] | undefined = undefined
+  export let plateColor: [any, number] | undefined = undefined
 
   $: cTransparency = showSupports ? 0 : transparency
   $: plateTopOpacity = Math.pow(
@@ -40,23 +44,39 @@
       kind="case"
       scale={key.flip && (side == 'left' || $view == 'left') ? [-1, 1, 1] : [1, 1, 1]}
       geometry={key.mesh}
+      color={caseColor}
     />
   </GroupMatrix>
 {/each}
-{#if !$noWall && !hideWall}<KMesh kind="case" geometry={meshes.wallBuf} debug />{/if}
-{#if !noWeb}<KMesh kind="case" geometry={meshes.webBuf} />{/if}
+{#if !$noWall && !hideWall}<KMesh
+    kind="case"
+    geometry={meshes.wallBuf}
+    color={caseColor}
+    castShadow={!!caseColor}
+  />{/if}
+{#if !noWeb}<KMesh kind="case" geometry={meshes.webBuf} color={caseColor} />{/if}
 {#if !$noBase}
-  <KMesh kind="case" geometry={meshes.screwBaseBuf} />
-  <KMesh kind="key" geometry={meshes.plateTopBuf} opacity={plateTopOpacity} renderOrder="10" />
+  <KMesh kind="case" geometry={meshes.screwBaseBuf} color={caseColor} />
+  <KMesh
+    kind="key"
+    geometry={meshes.plateTopBuf}
+    opacity={plateTopOpacity}
+    renderOrder="10"
+    color={plateColor}
+    cutoff={(keebGeometry?.floorZ ?? Infinity) + 0.1}
+    useColors
+  />
   <KMesh
     kind="key"
     geometry={meshes.plateBotBuf}
     opacity={Math.pow((cTransparency - 50) / 50, 3)}
     renderOrder="10"
+    color={plateColor}
+    useColors
   />
   <KMesh kind="key" geometry={meshes.screwPlateBuf} opacity={plateScrewOpacity} />
-  <KMesh kind="key" geometry={meshes.wristBuf} opacity={cTransparency / 100} />
-  <KMesh kind="key" geometry={meshes.secondWristBuf} opacity={cTransparency / 100} />
+  <KMesh kind="key" geometry={meshes.wristBuf} opacity={cTransparency / 100} useColors />
+  <KMesh kind="key" geometry={meshes.secondWristBuf} opacity={cTransparency / 100} useColors />
   <KMesh
     kind="case"
     geometry={meshes.holderBuf}

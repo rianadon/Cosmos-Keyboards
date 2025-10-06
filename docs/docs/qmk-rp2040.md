@@ -14,7 +14,11 @@ This guide will take you through
 
 !!! info "Why QMK?"
 
-    I'm a massochist. QMK is awesome when someone else has configured it for you but a terrible pain in the behind if you are the one configuring it. However, if you're using a trackball with a PMW60XX chip, it's necessary. I also really like Via, which requires QMK. Otherwise, you might want to give ZMK (used mostly for wireless keyboards) or KMK (which uses Python as configuration) instead.
+    I'm a massochist. QMK is awesome when someone else has configured it for you but a terrible pain in the behind if you are the one configuring it. However, it has the most features of any keyboard firmware. I also really like Via, which requires QMK. Otherwise, you might want to give ZMK (used mostly for wireless keyboards) or KMK (which uses Python as configuration) instead.
+
+!!! note "Skip writing firmware"
+
+    Cosmos now supports [Firmware Autogen](./firmware.md), which allows you to autogenerate QMK firmware with the Lemon Wired microcontroller.
 
 ## Background: Decisions, Decisions
 
@@ -64,7 +68,7 @@ There is no recommended way to wire a TRRS as long as you are consistent between
 
 !!! info "Notes on TRRS"
 
-    TRRS jacks come in 4-pin and 3-pin varieties, and QMK supports using either 3 pins or all 4 pins. I choose the 3-pin wiring because it makes your keyboard work with a much larger variety of TRRS cables. Regardless of whether you choose 3 pins or 4 pins, the PJ-320A connector is the easiest to source so that's what Cosmos uses.
+    TRRS jacks come in 4-pin and 3-pin varieties, and QMK supports using either 3 pins or all 4 pins. I choose the 3-pin wiring because it makes your keyboard work with a much larger variety of TRRS cables. However, 4-pin enables using full-duplex serial, which is [not sensitive to your cable's resistance](https://old.reddit.com/r/olkb/comments/18uf6nj/rp2040_split_keyboard_data_line_halfduplex_with/kinff4o/). Regardless of whether you choose 3 pins or 4 pins, the PJ-320A connector is the easiest to source so that's what Cosmos uses.
 
     Some boards have both Vin and Vout pins. Vout is directly connected to microcontroller power, whereas Vin has extra circuitry that ensures current only flows *in* to Vin. This prevents backpowering (e.g. if you've connected Vin to 4V and plugged in USB (5V), these power sources won't be shorted. Nevertheless, we'd like to be able to power our keyboards from either half, and the only power the keyboard receives is from USB, so it's safe to connect Vout to Vout.
 
@@ -129,10 +133,13 @@ Navigate to the qmk home folder that `qmk setup` generated. We'll be creating a 
        "processor": "RP2040",
        "bootloader": "rp2040",
        "diode_direction": "ROW2COL",
+       "bootmagic": {
+         "matrix": [0, 0]
+       },
        "split": {
            "soft_serial_pin": "GP1",
            "bootmagic": {
-               "matrix": [0, 0]
+               "matrix": [7, 0]
            }
        },
        "layouts": {
@@ -223,7 +230,7 @@ QMK is a little confusing in that a lot of settings are configurable _both_ in `
 
 7. Edit `rules.mk`
 
-   ```makefile title="mcuconf.h"
+   ```makefile title="rules.mk"
    # Build Options
    #   change yes to no to disable
 
@@ -246,7 +253,7 @@ QMK is a little confusing in that a lot of settings are configurable _both_ in `
 
    As before, omit the trackball and encoder sections if they are not applicable to you.
 
-8. At this point you should have 6 items in your folder: `config.h`, `info.json`, `keymaps`, `mcucont.h`, `readme.md`, and `rules.mk`. If there are any other files, delete them.
+8. At this point you should have 6 items in your folder: `config.h`, `info.json`, `keymaps`, `mcuconf.h`, `readme.md`, and `rules.mk`. If there are any other files, delete them.
 
 ### The Keymap
 
@@ -375,6 +382,46 @@ led_config_t g_led_config = { {
 #endif
 ```
 
+## QMK Debugging
+
+I recommend turning on the debug console, as it is very useful debugging wiring issues. You'll need to change two files:
+
+1. In your `keymap.c`, add the following lines:
+
+```c title="keymap.c"
+void keyboard_post_init_user(void) {
+  debug_enable=true;
+  debug_matrix=true;
+}
+```
+
+2. If you have `"features"` defined in your `keyboard.json`, enable console like so:
+
+```json title="keyboard.json"
+"features": {
+  ...
+  "console": true
+}
+```
+
+Otherwise, add `CONSOLE_ENABLE=yes` to `rules.mk`.
+
+Upload your program to the microcontroller, then run `qmk console`. You'll see output like this whenever you press a key on your keyboard:
+
+```
+  012345
+0 00000
+1 01000
+2 00000
+3 00000
+4 00000
+5 00000
+```
+
+The numbers represent rows and columns of the wiring matrix, and a `1` indicates a key that is currently being pressed down. You should be able to press every key on your keyboard and see the corresponding `1` appear in the matrix. If you don't see any messages printed when you press the key, check your wiring.
+
+_Thank you MoonDoggy for compiling these debugging instructions on the Cosmos Discord!_
+
 ## Setting up Via
 
 Instead of reading your keyboard configuration over USB like Vial does, Via needs to be told how your keyboard is laid out. In order to do this you'll need to recreate your keyboard in the [Keyboard Layout Editor](http://www.keyboard-layout-editor.com/) website.
@@ -440,4 +487,4 @@ qmk flash -kb handwired/cosmotyl -km via -bl uf2-split-right # For right side
 
 These commands will compile the `.uf2` firmware file and write it to the microcontroller, so make sure that you've entered bootloader mode. You can either do this by holding the **boot** button when plugging in the microcontroller or pressing the **reset** button while holding down **boot**.
 
-If you're changing the number of keys with Via enabled, then you will need to clear the EEPROM to reset the Via configuration. You can either hold down the bootmagic key when plugging in the keyboard (it both enters bootloader and clears EEPROM) or in Via assign a key to `QK_CLEAR_EEPROM` (Special->Any) then press that key. It does not matter which key you assigned because your Via configuration will be wiped.
+If you're changing the number of keys or the key mappings with Via enabled, then you will need to clear the EEPROM. This is because Via stores its keymappings in a different part of flash memory than your program, so program changes will not touch the Via keys. You can either hold down the bootmagic key when plugging in the keyboard (it both enters bootloader and clears EEPROM) or in Via assign a key to `QK_CLEAR_EEPROM` (Special->Any) then press that key. It does not matter which key you assigned because your Via configuration will be wiped. After Via's configuration is wiped, the key configuration will be copied from your program.

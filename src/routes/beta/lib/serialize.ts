@@ -8,11 +8,14 @@ import manuform from '$assets/manuform.json' assert { type: 'json' }
 import { cuttleConf, type CuttleformProto } from '$lib/worker/config'
 import { toCosmosConfig } from '$lib/worker/config.cosmos'
 import { decodeConfigIdk, encodeCosmosConfig, serializeCosmosConfig } from '$lib/worker/config.serialize'
-import * as pako from 'pako'
+import { strFromU8, strToU8, unzlibSync, zlibSync } from 'fflate'
+
+type Obj = Record<string, any>
+type Obj2 = Record<string, Obj>
 
 export interface State {
   keyboard: string
-  options: object
+  options: any
   content?: string
   upgradedFrom?: string
   error?: Error
@@ -26,7 +29,7 @@ const DEFAULT_CM =
   'CoUBChESBRCAPyAnEgASABIAODFAAAoREgUQgEsgJxIAEgASADgdQAAKHBIFEIBXICcSABIAEgMQsC8SAxCwXzgJQIDwvAIKGRIFEIBjICcSABIAEgMQsDsSAxCwazgKQAAKFRIFEIBvICcSABIAEgA4HkCAhorABxgAQOiFoK7wVUjc8KKgAQqKAQorEhMQwIACQICAmAJIwpmglZC8AVBDEhJAgIDMAkjCmaCVkLwBUIYBWDo4CAoVEhAQQECAgCBI0JWA3ZD1A1ALUJ4CCicSEBBAQICA+AFI5pn8p5ALUFcSEUCAgKQDSPCZxLXQMFB0WJUBUH8YAiIKCMgBEMgBGAAgAEDLi/yf0DFIrZHcjcGTBg=='
 
 /** Return true if there is a difference between the two objects */
-function areDifferent(data, reference) {
+function areDifferent(data: Obj, reference: Obj): boolean {
   return Object.keys(data).reduce((diff, key) => {
     if (Array.isArray(data[key])) {
       return (data[key].join(',') != reference[key].join(',')) || diff
@@ -38,7 +41,7 @@ function areDifferent(data, reference) {
 }
 
 /** Discard sub-dicts that are the same between two objects of objects. */
-function difference2(data, reference, output) {
+function difference2(data: Obj2, reference: Obj2, output: Obj2) {
   return Object.keys(data).reduce((diff, key) => {
     if (areDifferent(data[key], reference[key])) {
       output[key] = data[key]
@@ -49,14 +52,14 @@ function difference2(data, reference, output) {
 }
 
 /** Fill in missing sections from a reference dictionary. */
-function recreate2(data, reference) {
+function recreate2(data: Obj, reference: Obj) {
   return Object.keys(reference).reduce((diff, key) => {
     diff[key] = { ...reference[key], ...data[key] }
     if (!diff[key].oneofKind && reference[key].oneofKind) {
       diff[key].oneofKind = reference[key].oneofKind
     }
     return diff
-  }, {})
+  }, {} as Obj)
 }
 
 export function serialize(state: State) {
@@ -90,7 +93,14 @@ function clone(a: any) {
   return JSON.parse(JSON.stringify(a))
 }
 
-export function deserialize(str: string, fallback: () => State): State {
+function defaultFallback(): State {
+  return {
+    keyboard: 'cm',
+    options: decodeConfigIdk(DEFAULT_CM),
+  }
+}
+
+export function deserialize(str: string, fallback = defaultFallback): State {
   try {
     if (str === 'manuform') return clone(manuform)
     if (str === 'lightcycle') return clone(lightcycle)
@@ -111,7 +121,7 @@ export function deserialize(str: string, fallback: () => State): State {
     let options: object | null = null
     let content: string | undefined = undefined
     let upgradedFrom: string | undefined = undefined
-    console.log('DECODE CM', keyboard)
+    // console.log('DECODE CM', keyboard)
     if (keyboard === 'manuform') {
       options = recreate2(Manuform.fromBinary(data), clone(manuform.options))
     }
@@ -145,10 +155,10 @@ export function toCuttleformProto(b64: string): CuttleformProto {
 }
 
 export function serializeEditor(content: string) {
-  const data = pako.deflate(content)
+  const data = zlibSync(strToU8(content))
   return 'expert' + SPLIT_CHAR + btoa(String.fromCharCode(...data))
 }
 
 function deserializeEditor(data: Uint8Array) {
-  return pako.inflate(data, { to: 'string' })
+  return strFromU8(unzlibSync(data))
 }

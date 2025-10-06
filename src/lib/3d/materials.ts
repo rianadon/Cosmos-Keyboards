@@ -21,6 +21,11 @@ attribute float instanceTexOffset;
 varying float vBrightness;
 #endif
 
+#ifdef USE_CUTOFF
+attribute float cutoff;
+varying float vCutoff;
+#endif
+
 void main() {
     vNormal = normalize( normalMatrix * vec3(normal) );
     vUv = uv;
@@ -32,6 +37,9 @@ void main() {
     #endif
     vLightPosition = vec4(100, 100, 300, 1);
     gl_Position = projectionMatrix * viewMatrix * vPosition;
+    #ifdef USE_CUTOFF
+    vCutoff = cutoff;
+    #endif
 }
 `
 
@@ -56,6 +64,10 @@ varying float vBrightness;
 uniform float uBrightness;
 #endif
 
+#ifdef USE_CUTOFF
+varying float vCutoff;
+#endif
+
 // http://lolengine.net/blog/2013/07/27/rgb-to-hsv-in-glsl
 vec3 hsv2rgb(vec3 c) {
     vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
@@ -73,6 +85,11 @@ void main() {
     vec3 cnorm = vNormal.xyz * 0.5 + 0.5;
     float value = light * min(1.0, max(0.0, dot(n, l)) + uAmbient);
     vec3 letter = texture2D( tLetter, vUv ).rgb;
+
+    #ifdef USE_CUTOFF
+    if (vCutoff > 0.0) value *= 0.8;
+    #endif
+
     #ifdef USE_INSTANCING
     vec3 hsv = vec3(uColor.r, uColor.g, uColor.b * value * vBrightness - letter.g*0.5);
     #else
@@ -84,6 +101,9 @@ void main() {
 
 export const VERTEX_SHADER_INSTANCED = '#define USE_INSTANCING\n' + VERTEX_SHADER
 export const FRAGMENT_SHADER_INSTANCED = '#define USE_INSTANCING\n' + FRAGMENT_SHADER
+
+export const VERTEX_SHADER_CUTOFF = '#define USE_CUTOFF\n' + VERTEX_SHADER
+export const FRAGMENT_SHADER_CUTOFF = '#define USE_CUTOFF\n' + FRAGMENT_SHADER
 
 export class KeyboardMaterial extends ShaderMaterial {
   constructor() {
@@ -165,16 +185,16 @@ export const COLORCONFIG = {
 }
 export type ColorScheme = keyof typeof COLORCONFIG
 
-export class CaseMaterial extends KeyboardMaterial {
-  constructor(opacity: number, brightness = 1, colorScheme: ColorScheme) {
-    super({
-      opacity,
-      brightness,
-      color: COLORCONFIG[colorScheme].caseColor,
-      saturation: COLORCONFIG[colorScheme].caseSaturation,
-    })
-  }
-}
+// export class CaseMaterial extends KeyboardMaterial {
+//   constructor(opacity: number, brightness = 1, colorScheme: ColorScheme) {
+//     super({
+//       opacity,
+//       brightness,
+//       color: COLORCONFIG[colorScheme].caseColor,
+//       saturation: COLORCONFIG[colorScheme].caseSaturation,
+//     })
+//   }
+// }
 
 export function drawLetter(canvas: HTMLCanvasElement, letter: string, flip: boolean, color = 'white') {
   const ctx = canvas.getContext('2d')!
@@ -185,23 +205,23 @@ export function drawLetter(canvas: HTMLCanvasElement, letter: string, flip: bool
   ctx.fillText(letter, flip ? -256 : 256, 315)
 }
 
-export class KeyMaterial extends KeyboardMaterial {
-  constructor(opacity: number, brightness = 1, colorScheme: ColorScheme, letter = '', flip = false) {
-    super({
-      opacity,
-      brightness,
-      color: COLORCONFIG[colorScheme].keyColor,
-      saturation: COLORCONFIG[colorScheme].keySaturation,
-    })
-    if (letter) {
-      const canvas = document.createElement('canvas')
-      canvas.width = 512
-      canvas.height = 512
-      drawLetter(canvas, letter, flip)
-      this.uniforms.tLetter.value = new THREE.CanvasTexture(canvas)
-    }
-  }
-}
+// export class KeyMaterial extends KeyboardMaterial {
+//   constructor(opacity: number, brightness = 1, colorScheme: ColorScheme, letter = '', flip = false) {
+//     super({
+//       opacity,
+//       brightness,
+//       color: COLORCONFIG[colorScheme].keyColor,
+//       saturation: COLORCONFIG[colorScheme].keySaturation,
+//     })
+//     if (letter) {
+//       const canvas = document.createElement('canvas')
+//       canvas.width = 512
+//       canvas.height = 512
+//       drawLetter(canvas, letter, flip)
+//       this.uniforms.tLetter.value = new THREE.CanvasTexture(canvas)
+//     }
+//   }
+// }
 
 export function drawLetterToTex(letter: string | undefined, tex: THREE.CanvasTexture, flip: boolean) {
   tex.needsUpdate = true

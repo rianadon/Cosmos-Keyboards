@@ -4,8 +4,8 @@ import { PART_INFO, socketHeight } from '$lib/geometry/socketsParts'
 import { switchInfo } from '$lib/geometry/switches'
 import { simpleSocketTris } from '$lib/loaders/simpleparts'
 import type { Triangle } from 'three'
-import { Octree } from 'three/examples/jsm/math/Octree'
-import { Vector2 } from 'three/src/math/Vector2'
+import { Octree } from 'three/examples/jsm/math/Octree.js'
+import { Vector2 } from 'three/src/math/Vector2.js'
 import { calcTravel, ITriangle, simpleKey, simpleKeyPosition } from '../loaders/simplekeys'
 import type { Cuttleform, CuttleKey, Geometry } from './config'
 import { type CriticalPoints, keyHolesTrsfs2D } from './geometry'
@@ -29,7 +29,7 @@ interface MissingError {
 interface InvalidError {
   type: 'invalid'
   item: string
-  value: string
+  value: string | undefined
   valid: string[]
 }
 interface WrongError {
@@ -136,7 +136,7 @@ export function checkConfig(conf: Cuttleform, geometry: Geometry | undefined, ch
   let i = 0
   for (const pos of keyHolesTrsfs2D(conf, new Trsf())) {
     const hash = pos.matrix().join(',')
-    if (positions.has(hash)) errors.push({ type: 'samePosition', side, i, j: positions.get(hash) })
+    if (positions.has(hash)) errors.push({ type: 'samePosition', side, i, j: positions.get(hash)! })
     positions.set(hash, i)
     i++
   }
@@ -147,9 +147,6 @@ export function checkConfig(conf: Cuttleform, geometry: Geometry | undefined, ch
     const maxPins = numGPIO(conf.microcontroller)
     if (pinsNeeded > maxPins) return [{ type: 'notEnoughPins', side, needed: pinsNeeded, max: maxPins }]
   }
-
-  const cpts = geometry.allKeyCriticalPoints2D
-  const pts = cpts.map(a => a.map(x => new Vector2(...x.xy())))
 
   // for (const intersection of holeIntersections(pts)) {
   //   return intersection
@@ -177,6 +174,12 @@ export function checkConfig(conf: Cuttleform, geometry: Geometry | undefined, ch
       const wallPts = geometry.allWallCriticalPointsBase()
       if (conf.connectorIndex >= wallPts.length) {
         errors.push({ type: 'oob', idx: conf.connectorIndex, item: 'connectorIndex', len: wallPts.length, side })
+      }
+    }
+    if (conf.plate?.footIndices?.find(s => s >= 0)) {
+      const wallPts = geometry.footWalls
+      for (const idx of conf.plate.footIndices) {
+        if (idx >= wallPts.length) errors.push({ type: 'oob', idx, item: 'plate.footIndices', len: wallPts.length, side })
       }
     }
   } catch (e) {
@@ -214,10 +217,10 @@ export function minPinsNeeded(conf: Cuttleform, includeMatrix = true) {
   let keysInMatrix = 0
   for (const key of conf.keys) {
     const info = PART_INFO[key.type]
-    const wiredInMatrix = 'variants' in info ? info.wiredInMatrix && info.wiredInMatrix(key.variant!) : info.wiredInMatrix
-    const pinsNeeded = 'variants' in info ? info.pinsNeeded && info.pinsNeeded(key.variant!) : info.pinsNeeded
-    if (wiredInMatrix) keysInMatrix++
-    if (pinsNeeded) pins += pinsNeeded
+    const pinsMatrix = 'variants' in info ? info.numPinsMatrix && info.numPinsMatrix(key.variant!) : info.numPinsMatrix
+    const pinsGPIO = 'variants' in info ? info.numPinsGPIO && info.numPinsGPIO(key.variant!) : info.numPinsGPIO
+    if (pinsMatrix) pins += pinsMatrix
+    if (pinsGPIO) pins += pinsGPIO
   }
   if (includeMatrix) {
     const numCols = Math.ceil(Math.sqrt(keysInMatrix))
@@ -352,7 +355,7 @@ function* treeIntersections(
 }
 
 export function isPro(conf: Cuttleform): boolean {
-  return !!conf.rounded.side || !!conf.rounded.top || conf.shell?.type == 'stilts'
+  return !!conf.rounded.side || !!conf.rounded.top || conf.shell?.type == 'stilts' || !!conf.plate
 }
 
 // https://stackoverflow.com/questions/7113344/find-whether-two-triangles-intersect-or-not

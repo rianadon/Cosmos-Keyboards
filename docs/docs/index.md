@@ -21,11 +21,11 @@ There's so many settings! How do I know what to choose for them?
 
 The generator will adapt to the keycap you choose so that the top surface remains smooth, so the choice is really based on 1) aesthetics and 2) feel. Highly contoured keycaps like MT3 are great for column curvatures of at least 20°.
 
-**Switches**: I recommend using the PCB setting and investing in Amoeba King PCBs. The hotswap sockets will let you easily disassemble and reassemble your keyboard if you 3d print a new case. If your switch looks similar to a Cherry MX switch, the setting will probably work. The specific switch you choose to use in your keyboard will depend on your preferred feel and sound/clickiness
+**Switches**: If you're willing to spend I recommend Skree and Cyboard's flex PCBs. These will save you the the time of soldering all your switches. Otherwise, if you'd like hotswap I recommend the Plum Twists Cosmos sells or the 3D-printed hotswap socket options. The hotswap sockets will let you easily disassemble and reassemble your keyboard if you 3d print a new case. Otherwise, you can choose to solder directly to the switches. For help choosing a mechanical switch, refer to the [switches page](./switches/mechanical.md) in the docs. The specific switch you choose to use in your keyboard will depend on your preferred feel and sound/clickiness.
 
 **Curvature**: Do what feels right to you. The defaults are a mere suggestion and not backed by any thorough testing or science. Once you scan your hand, you can visualize how fitting your settings are. And don't be afraid to use negative curvatures, especially for the thumb cluster.
 
-**Thumb Cluster**: I recommend the curved preset, either 3 or 5 keys. Of all the different presets, this one lays out the keys in the way that it's probably most comfortable to press them. If you want a trackball, start with Orbyl but I _highly_ recommend you quickly switch to the Custom Thumb cluster mode and move things around so that you can easily press the thumb cluster keys & use your index/middle finger for moving the trackball.
+**Thumb Cluster**: I recommend the curved preset, either 3 or 5 keys. Of all the different presets, this one lays out the keys in the way that it's probably most comfortable to press them. If you want a trackball, I recommend turning one of the keys in the curved preset into the trackball and moving it into place. I don't recommend the Orbyl layout. Ideally, you can easily press the thumb cluster keys & use your index/middle finger for moving the trackball.
 
 **Microcontroller**: _Adafruit KB2040_ - it's more expensive than the RP2040 boards on AliExpress but it's smaller & has more peripherals. _Pro Micro_ - easily available. _Nice!Nano_ - if you want wireless.
 

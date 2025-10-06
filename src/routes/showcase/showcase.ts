@@ -172,6 +172,93 @@ const _keyboards: Record<string, Keyboard> = {
     switches: 'Choc Brown',
     keycaps: 'YMDK Choc Keycaps',
   },
+  '69c774a8': {
+    author: 'Blaise',
+    name: 'Nebulon',
+    type: 'split',
+    config:
+      '#cm:CpMBChASBRCQQSATEgASADg7QIBGCg0SBRCQTSATEgASADgnChwSBxCQWSATQAISABIDELAvEgMQsF84E0CG8LwCChUSBRCQZSATEgASAxCwOxIDELBrOAAKExIFEJBxIBMSABIAOBRAioaKwAcKFxIEEBAgExIDEKBOEgIQMDgoQJSGirAHGABAsomgrtBfSNzwoqABCpIBChcSExDAwAJAgICQAkjCmaCVkLwBUEM4CAoVEhAQQECAgBhI0JWA3ZD1A1ALUJ4CChYSEhBAQICA1AJIwpmglZC8AVCGAVA6ChQSEBBAQICA8AFI5pn8p5ALUFdQfwoVEhAQQECAgKwDSPCZzLXQMFB0UJUBGAIiCgjIARDIARgAIABAy4uEpNAxSK2R3I3BkwYYhCAoZIIBAgQDWENoAA==',
+    projectLink: 'https://github.com/rparker2003/qmk_firmware/tree/master/keyboards/nebulon',
+    details: 'A remix of <a href="../76410aa9/">joedevivo\'s keyboard</a>.',
+    filament: 'Overture PETG Sparkle Blue',
+    switches: 'Holy Panda 55g',
+    keycaps: 'Aliexpress Purple PBT XDA Keycaps',
+  },
+  'e2d0156d': {
+    author: 'Lazaralus',
+    type: 'split',
+    config:
+      '#cm:CrUBChgSBRCAbyAnEgASABIAOB5AgIaK4ANIwQcKFxIFEIBjICcSABIAEgMQsDsSAxCwUzgKChwSBRCAVyAnEgASABIDELAvEgMQsEc4CUCA3OUBChMSBRCASyAnEgASABIAOB1AgIBMChISBRCAPyAnEgASABIAODFAgDYKKRIIICdiBEJrc3ASAxCQFxIEEKDOChIHEDBiA+KGqTgyQICGiuADSMEHGABA6IWgrvBVSK6J+NWgMgqRAQo3EhkQwIACIABA/aiHiB9IgIDg7gZiBUVudGVyEhgIgCAQQCAAQOq0k8gqSLODgNDdBWICL1w4AAocEhgQQCAAQM2F/IywPEjCh4iesPcDYgPikKM4AgoYEhQIFhAwIABAzYnwj7AwSNOThJXgcTgRGAIiCgjIARDIARgAIAAwgDBAnY3MrPAzSKap4MbwswgKuQEKGBIFEIADICcSABIAEgA4HUCAhorgA0jBBwoUEgUQgA8gJxIAEgASABIDELBrOAkKGRIFEIAbICcSABIAEgASAxCwXzgKQIDc5QEKExIFEIAnICcSABIAEgA4HkCAgEwKEhIFEIAzICcSABIAEgA4MkCANgozEgYQgMABICcSBxAQYgNUYWISCxCggApiBVNoaWZ0EggQMGIEQ3RybDgxQICGiuADSMEHGAFA54WgrvBVSK6J9NWQMgqaAQo2EhcQwIACIABA/qiHiB9IgIDc7gZiA+KXhhIZCIAgEEAgAEDptJPIKkizg4DI3QViA0FsdDgACh4SGhBAGAAgAEDOhfyMsDxIwoeEnsD3A2ID4pCjOAEKIBIcCIEgEDAgAEC+h8CP0DdI5LyKyLoFWIIBYgLCpzgSGAMiCgjIARDIARgAIAAwgDBAno3MrPAzSKap3MaAtAgiBgjDARDDAYIBAgQCWEdoAA==',
+    filament: 'ELEGOO black PLA and AMOLEN translucent clear PETG',
+    switches: 'Kailh box whites',
+    keycaps: 'KPREPUBLIC XDA V2 Gentleman Blank Set Thick PBT',
+  },
+  'c2df5038': {
+    author: 'CreativeNothing',
+    type: 'split',
+    config:
+      '#cm:CpcBChMSBRCQcSATEgASADgeQICGisAHChcSBRCQZSATEgASAxCwOxIDELBrOApAAAoaEgUQkFkgExIAEgMQsC8SAxCwXzgJQIDwvAIKDxIFEJBNIBMSABIAOB1AAAoPEgUQkEEgExIAEgA4MUAAChoSBhAQIBNAABIEEKCAChICEDA4MkCAhorABxgAQOiFoK7wVUjc8KKgAQqQAQorEhMQwIACQICAmAJIwpmglZC8AVBDEhJAgIDMAkjCmaCVkLwBUIYBWDo4CAoVEhAQQECAgCBI0JWA3ZD1A1ALUJ4CCicSEBBAQICA+AFI5pn8p5ALUFcSEUCAgKQDSPCZxLXQMFB0WJUBUH8KA1CCAhgCIgsIyAEQyAEY6AIgAEDLi/yf0DFIrZHcjcGTBhACGIMgOAKCAQECWEhgA2gA',
+    filament: 'Polymaker Mattle PLA Filament Fossil Grey',
+    switches: 'Kailh clears',
+    keycaps: 'Purple from https://www.aliexpress.us/item/3256805819590269.html',
+  },
+  '0eb58ef6': {
+    author: 'Cuttlerat',
+    name: 'Krysopyos',
+    type: 'split',
+    modifiedInCAD: true,
+    config:
+      '#cm:CnMKExIFEJBxIBMSABIAOBRAgKaLkAYKFBIFEJBlIBMSABIDELA7EgIQMDgAChkSBRCQWSATEgASAxCwLxICEDA4E0CA8LwCCg0SBRCQTSATEgASADgnCg0SBRCQQSATEgASADg7GABAuomgrvBVSNzwoqABCj4KIBIaCICAlAEQQCAAMMgBQL6H0LAdSPCbnI6QvQkwFjgAGAoiCgjIARDIARgAIABA25GknPA3SISPlNageAptChMSBRCQBSATEgASADgTQICGisAHChESBRCQESATEgASABICEDA4AAoWEgUQkB0gExIAEgASAhAwOBRAgPC8AgoNEgUQkCkgExIAEgA4KAoNEgUQkDUgExIAEgA4PBgBQLmJoK7wVUjc7qKYAQqiAQqCARIWCIAwEMCAAiAAQIyF2JYQSI2FxOiJDhIWCICwBBBAIABAn8SW2AFIm4X05/CfGxIRIABAiIWcjOADSPaPtJawsRISEwiAgAQgAEDng+goSIeJtJfw1RMSECAAQOiykqACSJqJlJbQvRQSFAiAgAQgAEDthbSXkAFI5YuQu+8JOAAYAyIKCMgBEMgBGAAgAECejcys8DNIpqncxoC0CBADGIugAjAyOAOCAQgAAKwCQyYAAkgFWEhoAHINGCMYSxi5ARi7AhjZAniMg6yUwXHyAQIIAQ==',
+    projectLink: 'https://github.com/Cuttlerat/zmk-config-krysopyos',
+    filament: 'Bambu lab PETG-CF Black and Unknown Tranclusent PETG Red',
+    switches: 'Kailh Ambient Silent Twilight',
+    keycaps: 'Black - PBT from Aliexpress; Red - 3d printed KEA',
+  },
+  '4276ec9a': {
+    author: 'Ferrben',
+    type: 'split',
+    config:
+      '#cm:CnEKDxIFEJBBIBMSABIAODFAAAoPEgUQkE0gExIAEgA4HUAAChUSBRCQWSATEgASAxCwLzgJQIDwvAIKEhIFEJBlIBMSABIDELA7OApAAAoTEgUQkHEgExIAEgA4HkCAhorABxgAQOiFoK7wVUjc8KKgAQpoChcSExDAgAJAgICYAkjCmaCVkLwBUEM4CAoVEhAQQECAgCBI0JWA3ZD1A1ALUJ4CChQSEBBAQICA+AFI5pn8p5ALUFdQfwoDUIICGAIiCgjIARDIARgAIABAy4v8n9AxSK2R3I3BkwaCAQIEAlhHYANoAHIDeOgC',
+    filament: 'Elegoo PLA+ Sky Blue & PolyTerra PLA Peach',
+    switches: 'Gateron Brown',
+    keycaps: 'Blank XDA from Aliexpress',
+  },
+  'b70c1bcb': {
+    author: 'Kai.凱',
+    type: 'split',
+    config:
+      '#cm:CtIBChwSCQiAgAIQkEEgExIECICABBIECICABDgxQIAGChMSCQiAgAIQkE0gExIAEgA4HUAACjMSCQiAgAIQkFkgExIAEgMQsC8SBQgMELBfEhAICBAwMAFAgKCtAUikpewkOAlAgIiHmAIKIRIJCICAAhCQZSATEgASAxCwOxIHCAwQsGtAADgKQIDkNAoXEgkIgIACEJBxIBMSABIAOB5AgOaKwAIKHBIYCJaAkgEQMDCCBEDHg+C7B0ibibTG4bAIOEUYAEDohaCu8FVIuIPgxeAECnQKGxIXCICABBDAgAJAgICYAkjCmaCVkLwBUEM4CAoZEhQIgIAEEEBAgIAgSNCVgN2Q9QNQC1CeAgoYEhQIgIAEEEBAgID4AUjmmfynkAtQV1B/CgNQggIYAiIKCL4BEMgBGAAgAEDLi/yf0DFIrZHcjcGTBgquAQocEgkIgIACEJA1IBMSBAiAgAQSBAiAgAQ4MkCABgoTEgkIgIACEJApIBMSABIAOB5AAAowEgkIgIACEJAdIBMSABIAEgUIDBCwXxIQCAgQMDABQICgrQFIpKXwJDgKQICIh5gCCh4SCQiAgAIQkBEgExIAEgASBwgMELBrQAA4CUCA5DQKFxIJCICAAhCQBSATEgASADgdQIDmisACGAFA54WgrvBVSLiD3MXQBBACGIygBCIDCM0BOAKCAQIEA0gGUAJYSGACaAByE5ABhQIYChgqGFwYjAEYrAEY0QE=',
+    filament: '蘭博 from Taobao',
+    switches: 'Kailh Choc V2 Silent Low-Profile Switches (MX Stem)',
+    keycaps: "Nuphy's low profile keycaps",
+    name: 'Kai Cosmos',
+    modifiedInCAD: true,
+    projectLink: 'https://github.com/kaihchang/Kai_Cosmos_pmw3610_trackball_split_keybaord',
+    details:
+      'Wrist Rest from Printables and printed in TPU: <a href="https://www.printables.com/model/1199607-sliding-wrist-rest-v2-flat-with-no-feet-carpio-del">https://www.printables.com/model/1199607-sliding-wrist-rest-v2-flat-with-no-feet-carpio-del</a>',
+  },
+  'c3e94372': {
+    author: 'Seb',
+    type: 'split',
+    config:
+      '#cm:CpEBChUSBRCQcSATEgIgABIAOB5AgIaKwAcKEhIFEJBlIBMSAiAAEgMQsDs4CgoXEgUQkFkgExICIAASAxCwLzgJQIDwvAIKDxIFEJBNIBMSAiAAEgA4HQoPEgUQkEEgExICIAASADgxChoSBBAQIBMSBhCggAogABICEDA4MkCAhorABxgAQOiFoK7wVUjejKvAAQpjChYSEhDAgAJAjLQ0SMSZnJ2Q+QFQQzgIChYSERBAQJCM1ANItI+8nvDQA1ALUJ4CChQSEBBAQJKQOUi+m+SV0JMCUFdQfxgCIgoIyAEQyAEYACAAQNGHlJ2QOkitkdyNwZMGEAMYhqACIgkIvwEQvwEgiA4wHjgDggEBAkgEYAJoAHIZOBRAHpgBFKABAKABAKABAKABAKgBULABAg==',
+    filament: 'eSUN ePLA-Magic – Dark Twinkling Purple for the shell, e-Sun PLA+ Orange for the base and e-Sun PLA+ Gray for the keycaps. (might change out for the same orange as the base)',
+    switches: "Choc V1 Red Pro's",
+    keycaps: 'ScottoKeebs blank choc keycaps. Can be downloaded for free on his <a href="https://github.com/joe-scotto/scottokeebs/tree/main/Extras/ScottoCaps">github</a>',
+    name: 'CorneCave',
+    modifiedInCAD: true,
+    details: 'Wanted a concave corne-style keyboard with ZMK that is slightly tented but keeps a fairly good "low-profile" relative to the benefits you get from the slight tent and concavity.',
+  },
+  '82052649': {
+    author: 'johan.y',
+    type: 'split',
+    config:
+      '#cm:CrECCiESBRCAbyAnEgIgExICIAASADgeQJSmjogBSLeDsIzwtwEKMBIFEIBjICcSAiATEgIgABIDELA7Eg8QMCAoQIKQzQNI/ouoiAQ4CkCSyl1IgID0FwoxEgUQgFcgJxICIBMSAiAAEgMQsC8SDxAwIChAgOCUA0j8i8C4BzgJQICExQJIgICEAwodEgUQgEsgJxICIBMSAiAAEgA4HUCDlo0BSICA8AIKLRITCBIQICAAQILEhqgGSOyNzPewMhIPCBBAkIyUFEjCp8T98J4COEVAgIC4AgooEgUQgD8gJxICIBMSCBCwRSAUQIAGEgUQoEMgADgxQIKqjQFIgIDADQofEgQQECATEgIgABIEQICAXDgyQJqKjyBIq4PclNC8ARgAQOiFoK7wVUjthdjF0AgKbwomEhcIgDAQwIACGAhA7IrAAUirpLfY/ghQQzgIQKXqKEiLh6DE8AsKA1CCAgoeEhcIgDAQMEDEsqANSIejmObw1RBQQ1inATgLQJEmGAIiDwi+ARDIARiIDiCDByjKEUDNifyd0ApIjY+Ur+DZBBAFIgkIwwEQwQEg1AwoDzAjOAWCAQIEA0gEUAJYBmgAcgIgAA==',
+    filament: 'PLA (printed at local 3d printing service)',
+    switches: 'Gateron Silver Smoothie linear switches, spring-swapped with lighter 35g springs (it feels equivalent to 20g choc switches which I usually use in other boards)',
+    keycaps: 'White on Black MT3 keycaps, 1.5u XDA PBT keycaps for the thumb keys',
+    projectLink: 'https://www.reddit.com/r/ErgoMechKeyboards/s/FJrlwhkmcG',
+  },
 }
 
 function findImages(kbd: Keyboard) {

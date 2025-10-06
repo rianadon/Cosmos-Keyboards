@@ -1,6 +1,5 @@
 <script lang="ts">
   import { useFrame, T } from '@threlte/core'
-  import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial'
   import { FINGERS, SolvedHand } from './hand'
   import HandModel from './HandModel.svelte'
   import { MeshStandardMaterial, Vector3, type BufferGeometry, type Vector3Tuple } from 'three'

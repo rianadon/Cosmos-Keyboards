@@ -53,7 +53,7 @@
 import type { LandmarkList, NormalizedLandmarkList } from '@mediapipe/hands'
 import { SVD } from 'svd-js'
 import { Euler, Matrix4, Vector3, type Vector3Tuple } from 'three'
-import { DEG2RAD } from 'three/src/math/MathUtils'
+import { DEG2RAD } from 'three/src/math/MathUtils.js'
 
 interface PoseHand {
   keypoints: NormalizedLandmarkList

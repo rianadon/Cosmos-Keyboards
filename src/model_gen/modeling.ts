@@ -1,7 +1,7 @@
 import type { gp_Trsf, OpenCascadeInstance } from '$assets/replicad_single'
 import { buildSewnSolid, makeTriangle } from '$lib/worker/modeling/index'
 import Trsf from '$lib/worker/modeling/transformation'
-import { writeFileSync } from 'fs'
+import { stat } from 'fs/promises'
 import loadMF from 'manifold-3d'
 import type { CrossSection, Manifold, ManifoldToplevel } from 'manifold-3d'
 import {
@@ -138,7 +138,7 @@ export function sideNub(nubHeight: number) {
 
 function makeSidenub(nubHeight: number): Solid {
   const nub = draw().ellipse(-1, 1, 1, 1).lineTo([0, 5 - nubHeight])
-    .close().translate(14 / 2, 0).sketchOnPlane('XZ', -2.75 / 2)
+    .close().translate(14 / 2, nubHeight).sketchOnPlane('XZ', -2.75 / 2)
     .extrude(2.75)
   return nub as Solid
 }
@@ -343,3 +343,9 @@ export async function importSTEPSpecifically(blob: Blob, name: string) {
     throw new Error('Failed to load STEP file')
   }
 }
+
+export const maybeStat = (file: string) =>
+  stat(file).catch(err => {
+    if (err.code !== 'ENOENT') throw err
+    return undefined
+  })

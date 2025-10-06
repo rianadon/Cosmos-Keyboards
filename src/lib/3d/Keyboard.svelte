@@ -21,17 +21,20 @@
   import { nthIndex } from '$lib/worker/config.cosmos'
   import { switchInfo } from '$lib/geometry/switches'
   import { T } from '@threlte/core'
-  import { variantURL } from '$lib/geometry/socketsParts'
+  import { variantURL, PART_INFO } from '$lib/geometry/socketsParts'
   import { DefaultMap } from '$lib/worker/util'
-  import { Quaternion, Vector3, type Vector3Tuple, type Vector4Tuple } from 'three'
+  import { MeshStandardMaterial, Quaternion, Vector3, type Vector3Tuple, type Vector4Tuple } from 'three'
 
   export let geometry: Geometry | null
-  export let transparency: number
+  export let transparency: number = 100
   export let pressedLetter: string | null = null
-  export let translation: number
+  export let translation: number = 0
   export let flip = true
-  export let reachability: boolean[] | undefined
+  export let reachability: boolean[] | undefined = undefined
   export let side: 'left' | 'right' | 'unibody'
+  export let keyColor: [any, number] | undefined = undefined
+  export let trackballColor: any | undefined = undefined
+  export let switchColor: [any, number] | undefined = undefined
 
   $: console.log('new intersections', $confError)
 
@@ -72,10 +75,19 @@
   const rot = new Quaternion()
   const pos = new Vector3()
 
+  function shouldFlipSwitch(key: CuttleKey) {
+    if (key.type.startsWith('mx'))
+      return key.variant && 'led' in key.variant && key.variant.led == 'North LED'
+    if (key.type.startsWith('choc'))
+      return key.variant && 'led' in key.variant && key.variant.led == 'South LED'
+  }
+
   function gatherPartsAndVariants(geo: Geometry) {
     const ids = new DefaultMap<string, PartInfo[]>(() => [])
     geo.c.keys.forEach((key, i) => {
-      geo.keyHolesTrsfs[i].Matrix4().decompose(pos, rot, scale)
+      let position = geo.keyHolesTrsfs[i]
+      if (shouldFlipSwitch(key)) position = position.prerotated(180, [0, 0, 0], [0, 0, 1])
+      position.Matrix4().decompose(pos, rot, scale)
       const id = key.type + variantURL(key)
       ids.get(id).push({ key, pos: pos.toArray(), rot: rot.toArray() as Vector4Tuple, i })
     })
@@ -178,7 +190,7 @@
         {@const index = nthIndex($protoConfig, side, key.i)}
         <KeyboardKey
           {index}
-          {visible}
+          visible={visible && (!keyColor || keyColor[1] != 0)}
           position={pressedLetter && lett == pressedLetter
             ? adjustedPosition(key, translation)
             : key.pos}
@@ -186,14 +198,18 @@
           scale.x={flip ? -1 : 1}
         >
           <KeyboardKeycapGeo key={key.key} />
-          <KeyboardMaterial
-            textured
-            kind="key"
-            opacity={transparency / 100}
-            brightness={keyBrightness(index, $protoConfig, $selectMode, $clickedKey, $hoveredKey, 1)}
-            letter={$noLabels ? undefined : key.letter}
-            status={keyStatus(reachability, $confError, key.i)}
-          />
+          {#if keyColor}
+            <T.MeshStandardMaterial color={keyColor[0]} transparent={true} opacity={keyColor[1]} />
+          {:else}
+            <KeyboardMaterial
+              textured
+              kind="key"
+              opacity={transparency / 100}
+              brightness={keyBrightness(index, $protoConfig, $selectMode, $clickedKey, $hoveredKey, 1)}
+              letter={$noLabels ? undefined : key.letter}
+              status={keyStatus(reachability, $confError, key.i)}
+            />
+          {/if}
         </KeyboardKey>
       {/each}
     {/each}
@@ -203,7 +219,9 @@
       {@const index = nthIndex($protoConfig, side, key.i)}
       <KeyboardKey
         {index}
-        visible={visible && (key.key.type != 'blank' || !$noBlanks)}
+        visible={visible &&
+          (key.key.type != 'blank' || !($noBlanks || keyColor)) &&
+          (!PART_INFO[key.key.type].keycap || !switchColor || switchColor[1] != 0)}
         position={key.pos}
         quaternion={key.rot}
         scale.x={flip ? -1 : 1}
@@ -213,13 +231,23 @@
         {:else}
           <KeyboardPartGeo part={key.key.type} variant={key.key.variant} />
         {/if}
-        <KeyboardMaterial
-          textured
-          kind="key"
-          opacity={key.key.type == 'blank' ? Math.max(0, (transparency - 50) / 200) : transparency / 100}
-          brightness={keyBrightness(index, $protoConfig, $selectMode, $clickedKey, $hoveredKey, 0.7)}
-          status={partStatus($confError, key.i)}
-        />
+        {#if keyColor}
+          <T.MeshStandardMaterial
+            color={(key.key.type == 'trackball' && trackballColor) ||
+              (PART_INFO[key.key.type].keycap && switchColor && switchColor[0]) ||
+              0x41454d}
+          />
+        {:else}
+          <KeyboardMaterial
+            textured
+            kind="key"
+            opacity={key.key.type == 'blank'
+              ? Math.max(0, (transparency - 50) / 200)
+              : transparency / 100}
+            brightness={keyBrightness(index, $protoConfig, $selectMode, $clickedKey, $hoveredKey, 0.7)}
+            status={partStatus($confError, key.i)}
+          />
+        {/if}
       </KeyboardKey>
     {/each}
   {/each}

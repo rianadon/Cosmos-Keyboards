@@ -74,6 +74,13 @@ export function* intersectTriCircle(a: Vector, b: Vector, c: Vector, origin: Vec
   yield* intersectLineCircle(c, a, origin, radius)
 }
 
+export function* intersectPolyCircle(poly: Vector[], origin: Vector, radius: number) {
+  for (let i = 0; i < poly.length; i++) {
+    const j = (i + 1) % poly.length
+    yield* intersectLineCircle(poly[i], poly[j], origin, radius)
+  }
+}
+
 /**
  * Returns the intersection point between a bezier curve
  * and a plane containing both its endpoints, in approximate
@@ -107,4 +114,29 @@ export function intersectBezierSamePlane(curve: [Vector, Vector, Vector, Vector]
 
 export function intersectBezierTSamePlane(curve: [Trsf, Trsf, Trsf, Trsf], xDir: Vector) {
   return intersectBezierSamePlane([curve[0].origin(), curve[1].origin(), curve[2].origin(), curve[3].origin()], xDir)
+}
+
+/** Checks if a point is to the left of a directed edge (from a to b). */
+function isLeft(a: Vector, b: Vector, point: Vector): number {
+  return (b.x - a.x) * (point.y - a.y) - (point.x - a.x) * (b.y - a.y)
+}
+
+/** Determines if a point is inside a polygon using the winding number algorithm. */
+export function pointInPolygon(point: Vector, polygon: Vector[]): boolean {
+  let windingNumber = 0
+  for (let i = 0; i < polygon.length; i++) {
+    const curr = polygon[i]
+    const next = polygon[(i + 1) % polygon.length]
+
+    if (curr.y <= point.y) {
+      if (next.y > point.y && isLeft(curr, next, point) > 0) {
+        windingNumber++
+      }
+    } else {
+      if (next.y <= point.y && isLeft(curr, next, point) < 0) {
+        windingNumber--
+      }
+    }
+  }
+  return windingNumber !== 0
 }

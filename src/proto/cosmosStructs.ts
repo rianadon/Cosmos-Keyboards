@@ -25,8 +25,11 @@ enumeration('PART', {
   11: 'choc-v1-hotswap',
   12: 'choc-v2-hotswap',
   13: 'mx-pcb-plum',
-  // 14 reserved for mx-pumpkin
+  14: 'mx-pumpkin',
   15: 'mx-skree',
+  26: 'niz',
+  31: 'choc-pumpkin',
+  33: 'choc-v1-amoeba-hillside',
 
   // You wouldn't put many of these on a keyboard.
   16: 'ec11',
@@ -38,6 +41,12 @@ enumeration('PART', {
   22: 'trackball',
   23: 'trackpad-cirque',
   24: 'oled-128x32-0.91in-spi-adafruit',
+  25: 'trackpad-azoteq',
+  27: 'encoder-alps-rkjxt1f42001',
+  28: 'joystick-skqu-alps',
+  29: 'oled-160x68-1.08in-niceview',
+  30: 'thqwgd001',
+  32: 'meh01',
 
   // Old stuff no one should be using.
   110: 'old-mx',
@@ -82,6 +91,8 @@ enumeration('MICROCONTROLLER_NAME', [
   'cyboard-assimilator',
   'promicro-usb-c-long',
   'lemon-wired',
+  'lemon-wireless',
+  'elite-c',
 ])
 
 struct('PartVariant', {
@@ -125,6 +136,12 @@ struct('KeyboardFlags', { wrEnable: 'bool,1', unibody: 'bool,1', noMirrorConnect
 struct('BasicShellFlags', { lip: 'bool,1' })
 struct('StiltsShellFlags', { inside: 'bool,1' })
 struct('TiltShellFlags', { usePattern: 'bool,1' })
+
+enumeration('PLATE_ART', [
+  null,
+  'cosmos',
+  'circle',
+], true)
 
 // ----------------------------------------------------------------------------
 //                      UTILITIES FOR CODE GEN

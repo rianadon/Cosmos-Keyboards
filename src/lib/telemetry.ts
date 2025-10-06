@@ -32,3 +32,16 @@ export function trackEvent(event: string, keys: Record<string, string | number>)
     numbers: Object.fromEntries(entries.filter(([_, v]) => typeof v == 'number')),
   })
 }
+
+export async function sendError(error: Error, area = 'cosmos') {
+  try {
+    await (await fetch('https://pageviews.ryanis.cool/errors', {
+      method: 'POST',
+      body: JSON.stringify({ name: error.name, message: `On ${area}: ` + error.message, stack: error.stack + '\n@' + window.location.href }),
+    })).text()
+    return true
+  } catch (e) {
+    console.log(e)
+    return false
+  }
+}

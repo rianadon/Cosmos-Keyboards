@@ -5,7 +5,7 @@ import { makeAsyncCacher } from './modeling/cacher'
 import { getOC } from './modeling/index'
 import type Trsf from './modeling/transformation'
 
-let keyUrls: Record<string, { default: string }> = {}
+let keyUrls: Record<string, { default: string }> | undefined = {}
 try {
   keyUrls = import.meta.glob(['$target/*.step', '$assets/*.step'], { query: '?url', eager: true })
 } catch (e) {
@@ -24,7 +24,7 @@ const keyCacher = makeAsyncCacher(async (key: CuttleKey) => {
     ? await fetch(urls[url].default).then(r => r.blob())
       .then(r => importSTEP(r) as Promise<Solid>)
     : (await import(process.env.FS!)).readFile(urls[url].default)
-      .then(r => importSTEP(new Blob([r])) as Promise<Solid>)
+      .then((r: ArrayBuffer) => importSTEP(new Blob([r])) as Promise<Solid>)
 })
 
 const extendedKeyCacher = makeAsyncCacher(async (key: CuttleKey) => {
@@ -48,7 +48,7 @@ function extendPlate(plate: Solid, key: CuttleKey) {
 }
 
 export function keyHole(key: CuttleKey, trsf: Trsf) {
-  let cacheKey = key.type + ':' + key.aspect
+  let cacheKey = key.type + variantURL(key) + ':' + key.aspect
   if (key.type == 'blank') cacheKey += `-${key.size?.width}x${key.size?.height}`
   return extendedKeyCacher(cacheKey, trsf, key)
 }

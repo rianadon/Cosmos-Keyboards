@@ -32,6 +32,11 @@ const config = {
         // These are handled by mkdocs, and sveltekit does not know about them
         if (path.startsWith((process.env.BASE_PATH || '') + '/blog/')) return
         if (path.startsWith((process.env.BASE_PATH || '') + '/docs/')) return
+        if (!hasPro) {
+          if (path.startsWith((process.env.BASE_PATH || '') + '/plum-twist/')) return
+          if (path.startsWith((process.env.BASE_PATH || '') + '/pumpkin/')) return
+          if (path.startsWith((process.env.BASE_PATH || '') + '/lemon/')) return
+        }
         // otherwise fail the build
         throw new Error(message)
       },

@@ -5,8 +5,9 @@
   import { developer } from '$lib/store'
   import Part from './Part.svelte'
   import SharedRenderer from '$lib/3d/SharedRenderer.svelte'
+  import { objEntries } from '$lib/worker/util'
 
-  const entries = Object.entries(KEY_INFO)
+  const entries = objEntries(KEY_INFO)
   const uniformEntries = entries.filter((e) => UNIFORM.includes(e[0]))
   const nonuniformEntries = entries.filter((e) => !UNIFORM.includes(e[0]))
 </script>
@@ -48,7 +49,7 @@
 {/if}
 
 <main class="max-w-6xl mx-auto">
-  <SharedRenderer antialias alpha>
+  <SharedRenderer>
     <h2>Uniform Keycaps</h2>
     <section class="parts-grid" class:dev={$developer}>
       {#each uniformEntries as [part, rows]}

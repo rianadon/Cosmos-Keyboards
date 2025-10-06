@@ -1,0 +1,5 @@
+export const CASE_COLOR = '#f5a2db'
+export const PLATE_COLOR = '#f5a2db'
+export const KEY_COLOR = '#fafcfc'
+export const SWITCH_COLOR = '#41454d'
+export const TRACKBALL_COLOR = '#41454d'

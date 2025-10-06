@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte/internal'
+  import { onDestroy, onMount } from 'svelte'
   import Step from '../lib/Step.svelte'
   import Pose from '../lib/Pose.svelte'
   import { remoteStream, step, stats, poseStats, mmToPx } from '../store'
@@ -35,6 +35,8 @@
   let phase = 0
   let curlPhase = false
 
+  let camera: Camera
+
   onMount(async () => {
     console.log('Remote stream', $remoteStream)
 
@@ -51,14 +53,17 @@
       })
       hdetector = await createDetector()
 
-      const camera = new Camera(video, canvas)
+      camera = new Camera(video, canvas)
       camera.ondetect = ondetect
       camera.ontick = ontick
       camera.onsize = (s) => (size = s)
       camera.onfps = (f) => (fps = f)
       camera.start()
-      return () => camera.stop()
     }
+  })
+
+  onDestroy(() => {
+    if (camera) camera.stop()
   })
 
   async function ondetect(imageData: ImageData) {
@@ -181,6 +186,20 @@
     )
   }
   onMount(resize)
+
+  function skip() {
+    if (
+      confirm(
+        "This button exists because hand scanning still has bugs. The results of this step don't affect the quality of hand fitting in Cosmos–they only improve the accuracy of the 3D hand in the keyboard render preview.\n\nThat said, I intend to eventually use these results in hand fitting. Please do come back and take another scan when I make those changes."
+      )
+    ) {
+      leftSuccess = 0
+      rightSuccess = 0
+
+      phase++
+      curlPhase = false
+    }
+  }
 </script>
 
 <svelte:window on:resize={resize} />
@@ -213,6 +232,11 @@
         [3/{PHASES}] Stretch out your hands and point your fingertips upwardsand your palms towards the
         camera.
       </p>
+    {/if}
+    {#if !(nLeft == 0 && nRight == 0 && phase == 0)}
+      <button on:click={skip} class="opacity-70 mt-0.5 ml-4"
+        >Skip this step (these results only affect the 3D Hand visualization, not hand fitting)</button
+      >
     {/if}
   </div>
   <div slot="content">

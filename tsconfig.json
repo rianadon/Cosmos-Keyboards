@@ -9,7 +9,8 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "sourceMap": true,
-    "strict": true
+    "strict": true,
+    "typeRoots": ["src/types", "node_modules/@types"]
   },
   // Path aliases are handled by https://kit.svelte.dev/docs/configuration#alias
   //
@@ -18,12 +19,13 @@
 
   // To maybe avoid https://github.com/sveltejs/language-tools/issues/2171
   // "Svelte language sever detected a large amount of files" on Svelte build
-  "exclude": [
-    "./node_modules/**",
-    "./dist/**",
-    "./build/**",
-    "./.svelte/**",
-    "./coverage/**",
-    "**/_/**"
-  ]
+  // "exclude": [
+  //   "./node_modules/**",
+  //   "./dist/**",
+  //   "./build/**",
+  //   "./.svelte/**",
+  //   "./coverage/**",
+  //   "**/_/**"
+  // ]
+  "include": ["src/routes/**/*", "src/types/**/*", "src/proto/**/*"]
 }
