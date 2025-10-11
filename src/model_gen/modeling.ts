@@ -83,7 +83,7 @@ export function simplify(op: Operation) {
     case 'offset':
     case 'multmatrix':
     case 'translate':
-      op.obj = simplify(op.obj)
+      op.obj = simplify(op.obj)!
       if (op.obj == null) return null
       return op
   }
@@ -113,22 +113,22 @@ export function stringifyOperation(op: Operation, indent = 0): string {
   }
 }
 
-const filter = (x) => x.filter(s => s && s.length !== 0)
+// const filter = (x) => x.filter(s => s && s.length !== 0)
 
-// Build a syntax tree! Helps deal with duplicated nodes
-export const cube = (x, y, z) => ({ op: 'cube', x, y, z })
-export const cylinder = (r, h) => ({ op: 'cylinder', r, h })
-export const translate = (x, y, z, obj) => ({ op: 'translate', x, y, z, obj })
-export const mirror = (x, y, z, obj) => ({ op: 'mirror', x, y, z, obj })
-export const union = (shapes) => ({ op: 'union', shapes: filter(shapes) })
-export const difference = (shapes) => ({ op: 'difference', shapes: filter(shapes) })
-export const hull = (shapes) => ({ op: 'hull', shapes: filter(shapes) })
-export const square = (x, y) => ({ op: 'square', x, y })
-export const circle = (r) => ({ op: 'circle', r })
-export const extrudeLinear = (c, obj) => ({ op: 'linear_extrude', height: c.height, obj })
-export const extrudeRotate = (c, obj) => ({ op: 'rotate_extrude', angle: c.angle, obj })
-export const scale = (x, y, z, obj) => ({ op: 'multmatrix', matrix: to2d(new Matrix4().makeScale(x, y, z).transpose().elements), obj })
-export const rotate = (a, x, y, z, obj) => ({ op: 'multmatrix', matrix: to2d(new Trsf().rotate(a * 180 / Math.PI, [0, 0, 0], [x, y, z]).matrix()), obj })
+// // Build a syntax tree! Helps deal with duplicated nodes
+// export const cube = (x, y, z) => ({ op: 'cube', x, y, z })
+// export const cylinder = (r, h) => ({ op: 'cylinder', r, h })
+// export const translate = (x, y, z, obj) => ({ op: 'translate', x, y, z, obj })
+// export const mirror = (x, y, z, obj) => ({ op: 'mirror', x, y, z, obj })
+// export const union = (shapes) => ({ op: 'union', shapes: filter(shapes) })
+// export const difference = (shapes) => ({ op: 'difference', shapes: filter(shapes) })
+// export const hull = (shapes) => ({ op: 'hull', shapes: filter(shapes) })
+// export const square = (x, y) => ({ op: 'square', x, y })
+// export const circle = (r) => ({ op: 'circle', r })
+// export const extrudeLinear = (c, obj) => ({ op: 'linear_extrude', height: c.height, obj })
+// export const extrudeRotate = (c, obj) => ({ op: 'rotate_extrude', angle: c.angle, obj })
+// export const scale = (x, y, z, obj) => ({ op: 'multmatrix', matrix: to2d(new Matrix4().makeScale(x, y, z).transpose().elements), obj })
+// export const rotate = (a, x, y, z, obj) => ({ op: 'multmatrix', matrix: to2d(new Trsf().rotate(a * 180 / Math.PI, [0, 0, 0], [x, y, z]).matrix()), obj })
 
 const to2d = (m: number[]) => [m.slice(0, 4), m.slice(4, 8), m.slice(8, 12), m.slice(12, 16)]
 
@@ -269,7 +269,7 @@ export function serialize(filename: string, model: AnyShape) {
   writer.Model(true).delete()
   const progress = new oc.Message_ProgressRange_1()
 
-  writer.Transfer(model.wrapped, oc.STEPControl_StepModelType.STEPControl_AsIs, true, progress)
+  writer.Transfer(model.wrapped, oc.STEPControl_StepModelType.STEPControl_AsIs as any, true, progress)
 
   // Convert to a .STEP File
   const done = writer.Write(filename + '.step')

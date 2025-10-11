@@ -49,7 +49,7 @@ async function genKey(config: { profile: string; u: number; row?: number }, fold
 
   const loader = new STLLoader()
   const stl = await readFile(stlName)
-  const geometry = loader.parse(stl.buffer)
+  const geometry = loader.parse(stl.buffer as ArrayBuffer)
   exportGLTF(join(targetDir, `key-${name}.glb`), geometry)
 }
 

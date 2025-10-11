@@ -1,7 +1,8 @@
 import type { ShapeMesh } from '$lib/worker/modeling'
+import type { ShapeMesh as ReplicadShapeMesh } from 'replicad'
 import { Box3, BufferAttribute, BufferGeometry, type Matrix4, Vector3 } from 'three'
 
-export function fromGeometry(geometry: ShapeMesh | undefined | null, addColor = false) {
+export function fromGeometry(geometry: ShapeMesh | ReplicadShapeMesh | undefined | null, addColor = false) {
   if (!geometry) return undefined
 
   const geo = new BufferGeometry()
@@ -18,7 +19,8 @@ export function fromGeometry(geometry: ShapeMesh | undefined | null, addColor = 
   }
 
   if (addColor) {
-    geo.setAttribute('cutoff', new BufferAttribute(geometry.color || new Float32Array(geometry.vertices.length / 3), 1))
+    const geoColor = 'color' in geometry ? geometry.color : undefined
+    geo.setAttribute('cutoff', new BufferAttribute(geoColor || new Float32Array(geometry.vertices.length / 3), 1))
   }
 
   return geo

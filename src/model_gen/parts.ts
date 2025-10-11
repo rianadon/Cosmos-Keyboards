@@ -97,7 +97,7 @@ async function main() {
   /** Add task to generate both Choc V1 and Choc V2 variants of a part. It should work given either variant as input. */
   const poolChocV1 = (name: string, v1Name: CuttleKey['type'], v2Name: CuttleKey['type'], leds = false) =>
     pool.add(name + ' socket', async () => {
-      const stepFile = await readFile(join(assetsDir, 'key-' + name + '.step'))
+      const stepFile = await readFile(join(assetsDir, 'key-' + name + '.step')) as any as ArrayBuffer
       const model = await importSTEP(new Blob([stepFile])) as Solid
       const variantV1 = leds ? variantURL({ type: v1Name, variant: decodeVariant(v1Name, 0) } as any) : ''
       const variantV2 = leds ? variantURL({ type: v2Name, variant: decodeVariant(v2Name, 0) } as any) : ''
@@ -118,12 +118,12 @@ async function main() {
 
   type VariantWork = [Record<string, string>, Solid]
   type VariantFn = (v: VariantWork) => VariantWork[]
-  const variantFile = (n: string, v: Record<string, string>) => join(targetDir, `key-${n + variantURL({ type: n, variant: v })}.step`.toLowerCase())
+  const variantFile = (n: CuttleKey['type'], v: Record<string, string>) => join(targetDir, `key-${n + variantURL({ type: n, variant: v } as any)}.step`.toLowerCase())
   const poolVariants = (name: CuttleKey['type'], ...transformations: VariantFn[]) => {
     const input = join(assetsDir, 'key-' + name + '.step')
     const outputs = allVariants(name).map(v => variantFile(name, v))
     pool.addIfModified(name + ' socket', outputs, [input, partsCode], async () => {
-      const stepFile = await readFile(input)
+      const stepFile = await readFile(input) as any as ArrayBuffer
       const inp: VariantWork[] = [[{}, await importSTEP(new Blob([stepFile])) as Solid]]
       const results = transformations.reduce((work, f) => work.flatMap(f), inp)
       await Promise.all(results.map(([v, m]) => writeModel(variantFile(name, v), m)))
@@ -279,7 +279,7 @@ async function main() {
   await pool.run()
 
   const masses: Record<string, number> = {}
-  const partTasks: { socket: string; glbName: string; stepName: string; variantURL: string }[] = []
+  const partTasks: { socket: CuttleKey['type']; glbName: string; stepName: string; variantURL: string }[] = []
 
   // Record all the parts that need regenerating
   let nParts = 0
@@ -303,7 +303,7 @@ async function main() {
   console.log(`\nGenerating GLB files for ${partTasks.length} parts (skipped ${nParts - partTasks.length})...`)
 
   for (const { socket, variantURL, glbName, stepName } of partTasks) {
-    const blob = new Blob([await readFile(stepName)])
+    const blob = new Blob([await readFile(stepName) as any])
     if (toSplit.includes(socket)) {
       const socketModel = await importSTEPSpecifically(blob, 'Socket')
       const partModel = await importSTEPSpecifically(blob, 'Part')

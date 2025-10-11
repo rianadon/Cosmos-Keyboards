@@ -1,3 +1,5 @@
+// @ts-nocheck Unmaintained file
+
 import { CaseMaterial, COLORCONFIG, type ColorScheme, drawLetter, FRAGMENT_SHADER, KeyMaterial, VERTEX_SHADER } from '$lib/3d/materials'
 import { boundingSize, fromGeometry } from '$lib/loaders/geometry'
 import { keyGeometries } from '$lib/loaders/keycaps'
