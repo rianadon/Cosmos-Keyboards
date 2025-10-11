@@ -132,6 +132,16 @@ export function drawLinedRectangleOutside(x: number, y: number, w: number, h: nu
   return new THREE.ShapeGeometry(shape)
 }
 
+export function drawLinedCircleOutside(x: number, y: number, r: number, width = 0.2) {
+  const shape = new THREE.Shape()
+  shape.absarc(x, y, r + width, 0, 2 * Math.PI)
+
+  const hole = new THREE.Path()
+  hole.absarc(x, y, r, 0, 2 * Math.PI)
+  shape.holes = [hole]
+  return new THREE.ShapeGeometry(shape, 24)
+}
+
 export function makeBox(cx: number, cy: number, cz: number, w: number, h: number, d: number) {
   return new THREE.BoxGeometry(w, h, d).translate(cx, cy, cz)
 }

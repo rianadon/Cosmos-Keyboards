@@ -1,35 +1,17 @@
 <script lang="ts">
   import { base } from '$app/paths'
-  import { allVariants, PART_INFO } from '$lib/geometry/socketsParts'
+  import { allVariants, PART_INFO, sortedCategories } from '$lib/geometry/socketsParts'
   import Checkbox from '$lib/presentation/Checkbox.svelte'
   import { developer } from '$lib/store'
   import Part from './Part.svelte'
   import SharedRenderer from '$lib/3d/SharedRenderer.svelte'
-  import { notNull, objEntries } from '$lib/worker/util'
+  import { notNull, objKeys } from '$lib/worker/util'
+  import * as flags from '$lib/flags'
+  import Dialog from '$lib/presentation/Dialog.svelte'
+  import type { CuttleKey } from '$target/cosmosStructs'
+  import Description from './Description.svelte'
 
-  const BACK_COMPATIBLE = [
-    'old-mx',
-    'choc-hotswap',
-    'old-mx-snap-in',
-    'old-mx-hotswap',
-    'old-box',
-    'old-mx-snap-in-hotswap',
-  ]
-  const BLOCK = ['blank']
-
-  const variantEntries = notNull(
-    objEntries(PART_INFO).map(([p, info]) => ('variants' in info ? ([p, info] as const) : null))
-  )
-  const nonVariantEntries = notNull(
-    objEntries(PART_INFO).map(([p, info]) => ('variants' in info ? null : ([p, info] as const)))
-  )
-
-  const firstEntries = nonVariantEntries.filter(
-    ([part, _info]) => !BACK_COMPATIBLE.includes(part) && !BLOCK.includes(part)
-  )
-  const backEntries = nonVariantEntries.filter(
-    ([part, _info]) => BACK_COMPATIBLE.includes(part) && !BLOCK.includes(part)
-  )
+  export let expanded: CuttleKey['type'] | null = null
 </script>
 
 <svelte:head>
@@ -69,32 +51,50 @@
   </div>
 {/if}
 
-<main class="max-w-6xl mx-auto">
-  <SharedRenderer>
-    <h2>Included Parts</h2>
-    <section class="parts">
-      {#each firstEntries as [part, info]}
-        <Part name={info.partName} {part} dev={$developer} />
-      {/each}
-    </section>
-
-    {#each variantEntries as [part, info]}
-      <h2>{info.partName}</h2>
+<SharedRenderer>
+  <main class="max-w-6xl mx-auto">
+    {#each sortedCategories as cat}
+      <h2>{cat}</h2>
       <section class="parts">
-        {#each allVariants(part) as variant}
-          <Part name={info.partName} {part} {variant} dev={$developer} />
+        {#each notNull(objKeys(PART_INFO)).filter((v) => PART_INFO[v].category == cat && (flags.draftuc || !PART_INFO[v].draft) && v != 'blank') as p}
+          <Part
+            name={PART_INFO[p].partName}
+            part={p}
+            dev={$developer}
+            on:expand={() => (expanded = p)}
+          />
         {/each}
       </section>
     {/each}
+  </main>
 
-    <h2>For Backwards Compatibility</h2>
-    <section class="parts">
-      {#each backEntries as [part, info]}
-        <Part name={info.partName} {part} dev={$developer} />
-      {/each}
-    </section>
-  </SharedRenderer>
-</main>
+  {#if expanded}
+    {@const info = PART_INFO[expanded]}
+    <Dialog forceDark big on:close={() => (expanded = null)}>
+      <span slot="title" class="">{info.partName}</span>
+      <div slot="content" class="text-center text-white">
+        <div class="mx-auto mb-4 cosmospartinfo text-sm max-w-prose">
+          <Description description={info.description || ''} />
+        </div>
+        <div class="grid grid-cols-2">
+          {#each allVariants(expanded) as variant}
+            <Part
+              name={'variants' in info
+                ? Object.keys(info.variants)
+                    .map((v) => variant[v])
+                    .join(', ')
+                : ''}
+              part={expanded}
+              {variant}
+              dev={$developer}
+              editable={false}
+            />
+          {/each}
+        </div>
+      </div>
+    </Dialog>
+  {/if}
+</SharedRenderer>
 
 <style>
   h2 {
@@ -102,5 +102,12 @@
   }
   .parts {
     --at-apply: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ';
+  }
+
+  :global(.cosmospartinfo p) {
+    --at-apply: 'mb-1';
+  }
+  :global(.cosmospartinfo a) {
+    --at-apply: 'underline text-pink-400';
   }
 </style>

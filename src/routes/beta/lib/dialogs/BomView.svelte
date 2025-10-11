@@ -11,7 +11,7 @@
   import { screwInsertHeight } from '$lib/geometry/screws'
   import * as mdi from '@mdi/js'
   import type { FullGeometry } from '../viewers/viewer3dHelpers'
-  import { objEntries, objKeys } from '$lib/worker/util'
+  import { objEntries, objKeys, pluralize, pluralizeLastWord } from '$lib/worker/util'
   import type { Profile } from '$target/cosmosStructs'
   import { hasKeyGeometry } from '$lib/loaders/keycaps'
 
@@ -94,11 +94,11 @@
     const nSecondaryUSB = Math.max(nUSB - 1, 0)
     const nCustom = conn.filter((c) => !c.preset).length
     const items: Record<string, BomItem> = {}
-    if (nTrrs > 0) items['trrs'] = { item: 'PJ-320A TRRS Connectors', icon: 'trrs', count: nTrrs }
+    if (nTrrs > 0) items['trrs'] = { item: 'PJ-320A TRRS Connector', icon: 'trrs', count: nTrrs }
     if (nTrrs > 0) items['trrs-cable'] = { item: 'TRRS Cable', icon: 'cable', count: nTrrs / 2 }
-    if (nCustom > 0) items['custom'] = { item: 'Custom Connectors', icon: 'trrs', count: nCustom }
+    if (nCustom > 0) items['custom'] = { item: 'Custom Connector', icon: 'trrs', count: nCustom }
     if (nSecondaryUSB > 0)
-      items['usb'] = { item: 'USB Connectors', icon: 'usb-port', count: nSecondaryUSB }
+      items['usb'] = { item: 'USB Connector', icon: 'usb-port', count: nSecondaryUSB }
     return items
   }
 
@@ -169,7 +169,7 @@
             <div class="title">
               <span>
                 <span class="amount">{s.count}</span>
-                <span>{s.item}</span>
+                <span>{s.count > 1 ? pluralizeLastWord(s.item) : s.item}</span>
               </span>
             </div>
             <div class="info">{@html s.info}</div>
@@ -177,7 +177,7 @@
             <div class="title-full">
               <span>
                 <span class="amount">{s.count}</span>
-                <span>{s.item}</span>
+                <span>{s.count > 1 ? pluralizeLastWord(s.item) : s.item}</span>
               </span>
             </div>
           {/if}
@@ -209,7 +209,7 @@
           <div class="title-full">
             <div>
               <span class="amount">{Math.round(conn.count)}</span>
-              <span>{conn.item}</span>
+              <span>{conn.count > 1 ? pluralizeLastWord(conn.item) : conn.item}</span>
             </div>
           </div>
         </li>

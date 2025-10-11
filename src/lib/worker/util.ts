@@ -191,3 +191,40 @@ export function repeated<T>(arr: T[]) {
   arr.forEach(e => tally.incr(e))
   return Array.from(tally.entries()).filter((e) => e[1] > 1).map(e => e[0])
 }
+
+/** Very simplistic function to trim text with non-nested HTML tags to length. */
+export function trim(text: string, length: number): string {
+  const tag = text.match(/(<(\w+).*?>)(.*?)(<\/\2>)/)
+  if (tag && tag.index! < length) {
+    return (
+      text.substring(0, tag.index!)
+      + tag[1]
+      + trim(tag[3], length - tag.index!)
+      + tag[4]
+      + trim(text.substring(tag.index! + tag[0].length), length - tag.index! - tag[3].length)
+    )
+  } else {
+    const nextSpace = text.substring(length).search(/\s/)
+    return nextSpace == -1 ? text : text.substring(0, nextSpace + length)
+  }
+}
+
+function endsWithAny(str: string, endings: string[]) {
+  return endings.some(e => str.endsWith(e))
+}
+
+/** Simplistic pluralizer to take care of common cases. */
+export function pluralize(word: string) {
+  if (endsWithAny(word.toLowerCase(), ['s', 'ss', 'x', 'z', 'ch', 'sh'])) {
+    return word + 'es'
+  }
+  return word + 's'
+}
+
+export function pluralizeLastWord(str: string) {
+  const lastParen = str.lastIndexOf(' (')
+  const lastComma = str.lastIndexOf(',')
+  let lastThing = lastParen == -1 ? lastComma : lastParen
+  if (lastThing == -1) return pluralize(str)
+  return pluralize(str.substring(0, lastThing)) + str.substring(lastThing)
+}

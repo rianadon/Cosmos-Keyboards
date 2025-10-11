@@ -8,9 +8,9 @@ const CHOC_BOTTOM = box(12, 12, 5.2)
 const MX_PART = '/target/switch-cherry-mx.glb'
 const CHOC_PART = '/src/assets/switch-choc.glb'
 
-const BOM_MX_HOTSWAP = { 'pcb-hotswap': { item: 'Kailh Hotswap Sockets', icon: 'hotswap', count: 1 } }
-const BOM_CHOC_HOTSWAP = { 'pcb-hotswap': { item: 'Kailh Choc Hotswap Sockets', icon: 'hotswap', count: 1 } }
-const BOM_DIODE = { 'xdiodes': { item: '1N4148 Diodes', icon: 'diode', count: 1 } }
+const BOM_MX_HOTSWAP = { 'pcb-hotswap': { item: 'Kailh Hotswap Socket', icon: 'hotswap', count: 1 } }
+const BOM_CHOC_HOTSWAP = { 'pcb-hotswap': { item: 'Kailh Choc Hotswap Socket', icon: 'hotswap', count: 1 } }
+const BOM_DIODE = { 'xdiodes': { item: '1N4148 Diode', icon: 'diode', count: 1 } }
 const BOM_HE_SWITCH = { 'heswitch': { item: 'Hall-Effect Switch (AH3572)', icon: 'diode', count: 1 } }
 const BOM_DISC_MAGNET = { 'discmagnet': { item: 'Disc Magnet (2mm x 1mm)', icon: 'diode', count: 1 } }
 
@@ -21,7 +21,7 @@ const DESC_BACKCOMPAT = 'Old models from the Dactyl Generator project. The Cosmo
 export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   'mx-better': {
     partName: 'MX: Direct Solder',
-    bomName: 'MX-Compatible Switches',
+    bomName: 'MX-Compatible Switch',
     category: 'Sockets',
     stepFile: '/src/assets/key-mx-better.step',
     partOverride: MX_PART,
@@ -37,7 +37,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'mx-pcb-twist': {
     partName: 'MX + Plum Twist PCBs (old version)',
-    bomName: 'MX-Compatible Switches',
+    bomName: 'MX-Compatible Switch',
     category: 'Sockets',
     stepFile: '/src/assets/key-mx-pcb-twist.step',
     partOverride: MX_PART,
@@ -52,7 +52,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'mx-pcb-plum': {
     partName: 'MX + Plum Twist PCBs (1.2mm)',
-    bomName: () => 'MX-Compatible Switches',
+    bomName: () => 'MX-Compatible Switch',
     category: 'Sockets',
     stepFile: '/target/key-mx-pcb-plum.step',
     partOverride: MX_PART,
@@ -60,7 +60,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     socketSize: () => [18.7, 18.7, 7.6] as PartSize,
     partBottom: () => [box(18.7, 18.7, 9.1)],
     keycap: 'mx',
-    extraBomItems: () => ({ 'pcb': { item: 'Plum Twist PCBs, 1.2mm Thick (Standard Size)', icon: 'pcb', count: 1 } }),
+    extraBomItems: () => ({ 'pcb': { item: 'Plum Twist PCB, 1.2mm Thick (Standard Size)', icon: 'pcb', count: 1 } }),
     variants: {
       led: ['North LED', 'South LED'],
     },
@@ -76,7 +76,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'mx-pumpkin': {
     partName: 'MX + Pumpkin Flex PCBs',
-    bomName: () => 'MX-Compatible Switches',
+    bomName: () => 'MX-Compatible Switch',
     category: 'Sockets',
     stepFile: '/target/key-mx-pumpkin.step',
     partOverride: MX_PART,
@@ -84,7 +84,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     socketSize: () => [18, 18, 6.1] as PartSize,
     partBottom: () => [box(18, 18, 6.1)],
     keycap: 'mx',
-    extraBomItems: () => ({ 'pcb': { item: 'Pumpkin Flex PCBs', icon: 'pcb', count: 1 / 42 } }),
+    extraBomItems: () => ({ 'pcb': { item: 'Pumpkin Flex PCB', icon: 'pcb', count: 1 / 42 } }),
     variants: {
       led: ['North LED', 'South LED'],
       guides: ['Inner & Bottom Guides', 'Inner Guides', 'Bottom Guides'],
@@ -101,7 +101,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'mx-skree': {
     partName: 'MX + Skree Flexible PCBs',
-    bomName: () => 'MX-Compatible Switches',
+    bomName: () => 'MX-Compatible Switch',
     category: 'Sockets',
     stepFile: '/target/key-mx-skree.step',
     partOverride: MX_PART,
@@ -109,7 +109,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     socketSize: () => [18, 18, 4.7] as PartSize,
     partBottom: () => [box(18.7, 18.7, 7.5)],
     keycap: 'mx',
-    extraBomItems: () => ({ 'pcb': { item: 'Skree Flex PCBs', icon: 'pcb', count: 1 / 42 } }),
+    extraBomItems: () => ({ 'pcb': { item: 'Skree Flex PCB', icon: 'pcb', count: 1 / 42 } }),
     variants: {
       led: ['North LED', 'South LED'],
     },
@@ -124,7 +124,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'mx-pcb': {
     partName: 'MX + Amoeba King PCBs',
-    bomName: 'MX-Compatible Switches',
+    bomName: 'MX-Compatible Switch',
     category: 'Sockets',
     stepFile: '/src/assets/key-mx-pcb.step',
     partOverride: MX_PART,
@@ -132,10 +132,10 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     partBottom: [MX_BOTTOM, box(19.4, 19.4, 6.6)],
     keycap: 'mx',
     extraBomItems: {
-      'xdiodes-pcb': { item: '1N4148 Diodes (SOD-123)', icon: 'diode', count: 1 },
-      'pcb': { item: 'Amoeba King PCBs', icon: 'pcb', count: 1 },
-      'pcb-hotswap': { item: 'Kailh Hotswap Sockets', icon: 'hotswap', count: 1 },
-      'pcb-led': { item: 'SK6812MINI-E LEDs (Optional)', icon: 'led', count: 1 },
+      'xdiodes-pcb': { item: '1N4148 Diode (SOD-123)', icon: 'diode', count: 1 },
+      'pcb': { item: 'Amoeba King PCB', icon: 'pcb', count: 1 },
+      'pcb-hotswap': { item: 'Kailh Hotswap Socket', icon: 'hotswap', count: 1 },
+      'pcb-led': { item: 'SK6812MINI-E LED (Optional)', icon: 'led', count: 1 },
     },
     numPinsMatrix: 1,
     icon: 'amoeba-king',
@@ -146,7 +146,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'mx-hotswap': {
     partName: 'MX + 3DP Hotswap',
-    bomName: () => 'MX-Compatible Switches',
+    bomName: () => 'MX-Compatible Switch',
     category: 'Sockets',
     stepFile: '/target/key-mx-hotswap.step',
     partOverride: MX_PART,
@@ -173,7 +173,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'mx-klavgen': {
     partName: 'MX + 3DP Klavgen Hotswap',
-    bomName: 'MX-Compatible Switches',
+    bomName: 'MX-Compatible Switch',
     category: 'Sockets',
     stepFile: '/src/assets/key-mx-klavgen.step',
     partOverride: MX_PART,
@@ -190,7 +190,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'alps': {
     partName: 'Alps (and clones): Direct Solder',
-    bomName: 'Alps Switches',
+    bomName: 'Alps Switch',
     category: 'Sockets',
     stepFile: '/src/assets/key-alps.step',
     partOverride: '/src/assets/switch-alps.glb',
@@ -206,7 +206,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'choc-v1': {
     partName: 'Choc V1: Direct Solder',
-    bomName: 'Kailh Choc V1 Switches',
+    bomName: 'Kailh Choc V1 Switch',
     category: 'Sockets',
     stepFile: '/target/key-choc-v1.step',
     partOverride: CHOC_PART,
@@ -222,7 +222,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'choc-v2': {
     partName: 'Choc V2: Direct Solder',
-    bomName: 'Kailh Choc V2 Switches',
+    bomName: 'Kailh Choc V2 Switch',
     category: 'Sockets',
     stepFile: '/target/key-choc-v2.step',
     partOverride: CHOC_PART,
@@ -238,7 +238,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'choc-v1-hotswap': {
     partName: 'Choc V1 + 3DP Hotswap',
-    bomName: (v: Variant) => `Kailh Choc V1 Switches`,
+    bomName: (v: Variant) => `Kailh Choc V1 Switch`,
     category: 'Sockets',
     stepFile: '/target/key-choc-v1-hotswap.step',
     partOverride: CHOC_PART,
@@ -260,7 +260,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'choc-v2-hotswap': {
     partName: 'Choc V2 + 3DP Hotswap',
-    bomName: (v: Variant) => `Kailh Choc V2 Switches`,
+    bomName: (v: Variant) => `Kailh Choc V2 Switch`,
     category: 'Sockets',
     stepFile: '/target/key-choc-v2-hotswap.step',
     partOverride: CHOC_PART,
@@ -282,7 +282,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'choc-pumpkin': {
     partName: 'Choc: Pumpkin Flex PCBs',
-    bomName: () => 'Kailh Choc V1 Switches',
+    bomName: () => 'Kailh Choc V1 Switch',
     category: 'Sockets',
     stepFile: '/target/key-choc-pumpkin.step',
     partOverride: CHOC_PART,
@@ -290,7 +290,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     socketSize: () => [18.5, 18, 3.5] as PartSize,
     partBottom: () => [CHOC_BOTTOM],
     keycap: 'choc',
-    extraBomItems: () => ({ 'pcb': { item: 'Pumpkin Flex PCBs', icon: 'pcb', count: 1 / 42 } }),
+    extraBomItems: () => ({ 'pcb': { item: 'Pumpkin Flex PCB', icon: 'pcb', count: 1 / 42 } }),
     variants: {
       led: ['North LED', 'South LED'],
     },
@@ -304,7 +304,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'choc-v1-amoeba-hillside': {
     partName: 'Choc V1 + Amoeba Hillside PCBs',
-    bomName: 'Kailh Choc V1 Switches',
+    bomName: 'Kailh Choc V1 Switch',
     category: 'Sockets',
     stepFile: '/src/assets/key-choc-v1-amoeba-hillside.step',
     partOverride: CHOC_PART,
@@ -312,9 +312,9 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     partBottom: [CHOC_BOTTOM],
     keycap: 'choc',
     extraBomItems: {
-      pcb: { item: 'Choc Amoeba Hillside PCBs', icon: 'pcb', count: 1 },
-      'xdiodes-pcb': { item: '1N4148 Diodes (SOD-123)', icon: 'diode', count: 1 },
-      'pcb-hotswap': { item: 'Mill-Max 7305 Sockets', icon: 'hotswap', count: 2 },
+      pcb: { item: 'Choc Amoeba Hillside PCB', icon: 'pcb', count: 1 },
+      'xdiodes-pcb': { item: '1N4148 Diode (SOD-123)', icon: 'diode', count: 1 },
+      'pcb-hotswap': { item: 'Mill-Max 7305 Socket', icon: 'hotswap', count: 2 },
     },
     numPinsMatrix: 1,
     description: 'Uses the <a href="https://github.com/mmccoyd/hillside_amoeba_choc14">Amoeba PCB created for the Hillside Dactyl</a>. Supports hotswap with Mill-Max sockets.',
@@ -323,7 +323,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'niz': {
     partName: 'NIZ: Direct Solder [Experimental]',
-    bomName: 'NIZ Switches',
+    bomName: 'NIZ Switch',
     category: 'Sockets',
     stepFile: '/src/assets/key-niz.step',
     socketSize: [18, 18, 6.5],
@@ -353,7 +353,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'old-mx': {
     partName: 'Old MX-Compatible',
-    bomName: 'MX-Compatible Switches',
+    bomName: 'MX-Compatible Switch',
     category: 'Backwards-Compatible',
     stepFile: '/target/key-old-mx.step',
     partOverride: MX_PART,
@@ -366,7 +366,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'old-mx-snap-in': {
     partName: 'Old MX-Compatible snap-in',
-    bomName: 'MX-Compatible Switches',
+    bomName: 'MX-Compatible Switch',
     category: 'Backwards-Compatible',
     stepFile: '/target/key-old-mxSnapIn.step',
     partOverride: MX_PART,
@@ -379,7 +379,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'old-mx-hotswap': {
     partName: 'Old MX-Compatible',
-    bomName: 'MX-Compatible Switches',
+    bomName: 'MX-Compatible Switch',
     category: 'Backwards-Compatible',
     stepFile: '/target/key-old-mx-hotswap.step',
     partOverride: MX_PART,
@@ -392,7 +392,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'old-mx-snap-in-hotswap': {
     partName: 'Old MX-Compatible Hotswap',
-    bomName: 'MX-Compatible Switches',
+    bomName: 'MX-Compatible Switch',
     category: 'Backwards-Compatible',
     stepFile: '/target/key-old-mxSnapIn-hotswap.step',
     partOverride: MX_PART,
@@ -405,7 +405,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'old-box': {
     partName: 'Old Kailh Box Switches',
-    bomName: 'Kailh Box Switches',
+    bomName: 'Kailh Box Switch',
     category: 'Backwards-Compatible',
     stepFile: '/target/key-old-box.step',
     partOverride: MX_PART,
@@ -418,7 +418,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'old-choc-hotswap': {
     partName: 'Old Choc (Kailh)',
-    bomName: 'Kailh Choc Switches',
+    bomName: 'Kailh Choc Switch',
     category: 'Backwards-Compatible',
     stepFile: '/target/key-old-choc-hotswap.step',
     partOverride: CHOC_PART,
@@ -431,7 +431,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'ec11': {
     partName: 'EC11 Encoder',
-    bomName: 'EC11 Encoders',
+    bomName: 'EC11 Encoder',
     category: 'Encoders',
     stepFile: '/src/assets/key-ec11.step',
     socketSize: [14.5, 14.5, 4.5],
@@ -443,7 +443,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'evqwgd001': {
     partName: 'EVQWGD001 Encoder',
-    bomName: 'EVQWGD001 Encoders',
+    bomName: 'EVQWGD001 Encoder',
     category: 'Encoders',
     stepFile: '/src/assets/key-evqwgd001.step',
     partOverride: '/target/switch-evqwgd001.glb',
@@ -456,7 +456,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'thqwgd001': {
     partName: 'THQWGD001 (3DP) Encoder',
-    bomName: 'THQWGD001 Encoders',
+    bomName: 'THQWGD001 Encoder',
     category: 'Encoders',
     stepFile: '/src/assets/key-thqwgd001.step',
     socketSize: [20, 20, 5],
@@ -468,7 +468,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'meh01': {
     partName: 'MEH01 Encoder',
-    bomName: (v: Variant) => `MEH01 ${v.sw || ''} Encoders`,
+    bomName: (v: Variant) => `MEH01 ${v.sw || ''} Encoder`,
     category: 'Encoders',
     stepFile: '/src/assets/key-meh01.step',
     socketSize: () => [19.05, 19.05, 4] as PartSize,
@@ -502,7 +502,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'oled-128x32-0.91in-adafruit': {
     partName: 'Adafruit 128x32 1" I2C OLED',
-    bomName: 'Adafruit 128x32 1" Diagonal OLEDs, I2C (Part No. 4440)',
+    bomName: 'Adafruit 128x32 1" Diagonal OLED, I2C (Part No. 4440)',
     category: 'Displays',
     stepFile: '/src/assets/key-oled-128x32-0.91in-adafruit.step',
     socketSize: [22.044, 33.22, 5],
@@ -513,7 +513,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'oled-128x32-0.91in-spi-adafruit': {
     partName: 'Adafruit 128x32 1" SPI OLED',
-    bomName: 'Adafruit 128x32 1" Diagonal OLEDs, SPI (Part No. 661)',
+    bomName: 'Adafruit 128x32 1" Diagonal OLED, SPI (Part No. 661)',
     category: 'Displays',
     stepFile: '/target/key-oled-128x32-0.91in-spi-adafruit.step',
     partOverride: '/target/switch-oled-128x32-0.91in-spi-adafruit.glb',
@@ -525,7 +525,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'oled-128x32-0.91in-dfrobot': {
     partName: 'DFRobot 128x32 0.91" OLED',
-    bomName: 'DFRobot 128x32 0.91" Diagonal OLEDs (DFR0647)',
+    bomName: 'DFRobot 128x32 0.91" Diagonal OLED (DFR0647)',
     category: 'Displays',
     stepFile: '/target/key-oled-128x32-0.91in-dfrobot.step',
     partOverride: '/target/switch-oled-128x32-0.91in-dfrobot.glb',
@@ -548,7 +548,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'trackball': {
     partName: 'Trackball',
-    bomName: (v: Variant) => `${v.size || '25/34/43/55mm'} Trackballs`,
+    bomName: (v: Variant) => `${v.size || '25–55mm'} Trackball`,
     category: 'Trackballs & Trackpads',
     stepFile: '/target/key-trackball.step',
     partOverride: '/target/switch-trackball.glb',
@@ -593,17 +593,17 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
       const skreeInfo = 'Supports <a class="underline" href="https://skree.us/products/zmk-compatible-pmw3610-board">these PCBs</a> from Skree'
       const items: Record<string, BomItem> = {}
       if (variant.bearings == 'Roller') {
-        items['trackball-dowel'] = { item: '3 x 8 mm Dowel Pins', icon: 'trackball', count: 3 }
-        items['trackball-bearing'] = { item: '3 x 6 x 2.5 mm Bearings', icon: 'trackball', count: 3 }
+        items['trackball-dowel'] = { item: '3 x 8 mm Dowel Pin', icon: 'trackball', count: 3 }
+        items['trackball-bearing'] = { item: '3 x 6 x 2.5 mm Bearing', icon: 'trackball', count: 3 }
       } else if (variant.bearings == 'Ball') {
-        items['trackball-bearing'] = { item: '1/8" diameter (3.175mm) Si3N4/Zr02 Ceramic Ball Bearings', icon: 'trackball', count: 3 }
+        items['trackball-bearing'] = { item: '1/8" diameter (3.175mm) Si3N4/Zr02 Ceramic Ball Bearing', icon: 'trackball', count: 3 }
       } else if (variant.bearings == 'BTU (7.5mm)') {
-        items['trackball-bearing'] = { item: '7.5mm diameter BTUs', icon: 'trackball', count: 3, info: btuInfo }
+        items['trackball-bearing'] = { item: '7.5mm diameter BTU', icon: 'trackball', count: 3, info: btuInfo }
       } else if (variant.bearings == 'BTU (9mm)') {
-        items['trackball-bearing'] = { item: '9mm diameter BTUs', icon: 'trackball', count: 3, info: btuInfo }
+        items['trackball-bearing'] = { item: '9mm diameter BTU', icon: 'trackball', count: 3, info: btuInfo }
       }
       if (variant.sensor == 'Joe (QMK)') {
-        items['trackball-sensor'] = { item: 'PMW3360 or PMW3389 Sensors', icon: 'trackball', info: joeInfo, count: 1 }
+        items['trackball-sensor'] = { item: 'PMW3360 or PMW3389 Sensor', icon: 'trackball', info: joeInfo, count: 1 }
       } else if (variant.sensor == 'Skree (ZMK)') {
         items['trackball-sensor'] = { item: 'PMW3610 Sensor', icon: 'trackball', info: skreeInfo, count: 1 }
       }
@@ -620,7 +620,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'trackpad-azoteq': {
     partName: 'Azoteq Trackpad',
-    bomName: (v: Variant) => `Azoteq ${v.size || 'TPS65'} Trackpads`,
+    bomName: (v: Variant) => `Azoteq ${v.size || 'TPS65'} Trackpad`,
     category: 'Trackballs & Trackpads',
     stepFile: '/src/assets/trackpad-azoteq.step',
     socketSize: (v: Variant) => [65.2, 49, 4] as PartSize,
@@ -642,7 +642,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'trackpad-cirque': {
     partName: 'Cirque Flat Circle Trackpad',
-    bomName: (v: Variant) => `Cirque Flat Circle ${v.size || '23/35/40mm'} Trackpads`,
+    bomName: (v: Variant) => `Cirque Flat Circle ${v.size || '23/35/40mm'} Trackpad`,
     category: 'Trackballs & Trackpads',
     stepFile: '/src/assets/key-cirque.step',
     partOverride: '/src/assets/switch-cirque.glb',
@@ -669,7 +669,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'joystick-joycon-adafruit': {
     partName: 'Adafruit Mini Thumbstick',
-    bomName: 'Adafruit Mini Thumbsticks (Joycon style, #5628)',
+    bomName: 'Adafruit Mini Thumbstick (Joycon style, #5628)',
     category: 'Joysticks',
     stepFile: '/src/assets/key-joystick-joycon-adafruit.step',
     partOverride: '/target/switch-joystick-joycon-adafruit.glb',
@@ -682,7 +682,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'joystick-ps2-40x45': {
     partName: 'PS2 Style Joystick Module',
-    bomName: 'PS2 Style Joystick Modules',
+    bomName: 'PS2 Style Joystick Module',
     category: 'Joysticks',
     stepFile: '/src/assets/key-joystick-ps2-40x45.step',
     partOverride: '/target/switch-joystick-ps2-40x45.glb',
