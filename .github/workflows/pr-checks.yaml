@@ -32,6 +32,7 @@ jobs:
       - name: Mock files
         run: |
           echo "{}" > target/sockets-simple.json
+          echo "{}" > target/keys-simple.json
 
       - name: Test
         run: bun test
