@@ -43,7 +43,7 @@ export function displaySocket(name: CuttleKey['type'], opts: DisplayProps) {
   assertSize(name, size[1], opts.pcbLongSideWidth + 2 * DISP_TOL, 'height')
   assertSize(name, size[2], opts.displayThickness + opts.pcbThickness, 'thickness')
   let base = makeBaseBox(size[0], size[1], size[2]).translateZ(-size[2])
-  base = base.cut(displayModel(name, opts, DISP_TOL, 0))
+  base = base.cut(displayModel(name, { ...opts, displayRounding: 0 }, DISP_TOL))
 
   for (const rectangle of opts.alignmentRectangles || []) {
     const x0 = rectangle[0][0] + (Math.abs(rectangle[0][0]) == opts.pcbShortSideWidth / 2 ? -DISP_TOL : DISP_TOL)
