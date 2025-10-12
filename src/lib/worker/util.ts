@@ -62,6 +62,16 @@ export function mapObj<K extends string, V, R>(obj: Record<K, V>, f: (a: V, k: K
   return newObj
 }
 
+export async function mapObjAsync<K extends string, V, R>(obj: Record<K, V>, f: (a: V, k: K) => Promise<R>): Promise<Record<K, R>> {
+  const newObj: any = {}
+  const keys = Object.keys(obj) as K[]
+  const results = await Promise.all(keys.map((key) => f(obj[key], key)))
+  for (let i = 0; i < keys.length; i++) {
+    newObj[keys[i]] = results[i]
+  }
+  return newObj
+}
+
 export function mapObjNotNull<K extends string, V, R>(obj: Partial<Record<K, V>>, f: (a: Exclude<V, undefined>, k: K) => R): Record<K, R> {
   const newObj: any = {}
   for (const key of Object.keys(obj) as K[]) {
@@ -77,9 +87,9 @@ export function mapMap<K extends string, V, R>(map: Map<K, V>, f: (a: V, k: K) =
   return new Map(newEntries)
 }
 
-export function filterObj<V>(obj: Record<string, V>, f: (k: string, v: V) => boolean): Record<string, V> {
+export function filterObj<K extends string, V>(obj: Record<K, V>, f: (k: K, v: V) => boolean): Record<K, V> {
   const newObj: Record<string, V> = {}
-  for (const key of Object.keys(obj)) {
+  for (const key of Object.keys(obj) as K[]) {
     if (f(key, obj[key])) newObj[key] = obj[key]
   }
   return newObj

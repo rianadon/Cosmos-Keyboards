@@ -1,7 +1,8 @@
 import type { OpenCascadeInstance } from '$assets/replicad_single'
 import { fromGeometry, makeFlashy } from '$lib/loaders/geometry'
 import type { Cuttleform, CuttleKey } from '$lib/worker/config'
-import { objEntries, objKeys } from '$lib/worker/util'
+import type { Assembly } from '$lib/worker/modeling/assembly'
+import { filterObj, mapObjAsync, objKeys } from '$lib/worker/util'
 import type { TrackballVariant } from '$target/cosmosStructs'
 import { readFile, writeFile } from 'fs/promises'
 import { basename, join } from 'path'
@@ -13,7 +14,7 @@ import type { PartInfo } from '../lib/geometry/socketsParts'
 import { exportGLTF } from './exportGLTF'
 import { importSTEPSpecifically, maybeStat, serialize } from './modeling'
 import { setup } from './node-model'
-import { displayModel, type DisplayProps, displaySocket } from './parametric/display-gen'
+import { type DisplayProps, displaySocketAndModel } from './parametric/display-gen'
 import { DEFAULT_PROPS, type Holes, type MicrocontrollerProps, ucModel } from './parametric/microcontroller-gen'
 import { trackballPart, trackballSocket } from './parametric/trackball-gen'
 import { ProcessPool } from './processPool'
@@ -35,6 +36,12 @@ async function writeModel(filename: string, model: AnyShape) {
   const step = serialize(basename(filename), model)
   model.delete()
   await writeFile(filename, step)
+}
+
+async function writeAssembly(filename: string, model: Assembly) {
+  const step = await model.blobSTEP().arrayBuffer()
+  model.delete()
+  await writeFile(filename, new Uint8Array(step))
 }
 
 async function writeMesh(filename: string, model: AnyShape) {
@@ -67,6 +74,32 @@ function findStepFiles(socket: CuttleKey['type'], info: PartInfo): string[] {
 
 type Microcontroller = Exclude<Cuttleform['microcontroller'], null>
 
+async function gatherSTEPFilesToSplit(prefix: '/src/assets' | '/target', warn: boolean) {
+  // Skip parts with a specified part model
+  const relevantParts = filterObj(PART_INFO, (_socket, info) => !('partOverride' in info) && info.stepFile.startsWith(prefix))
+  // Check that the STEP files for these parts all contain a socket and part
+  const results = await mapObjAsync(relevantParts, (info, socket) =>
+    Promise.all(
+      findStepFiles(socket, info).map(async stepFile => {
+        const contents = await readFile('.' + stepFile, { encoding: 'utf-8' })
+        const names = [...contents.matchAll(/PRODUCT\('(.*?)'/g)].map(m => m[1])
+        const hasSocket = names.includes('Socket')
+        const hasPart = names.includes('Part')
+        if (warn && !(hasSocket && hasPart)) {
+          console.error(`The STEP file for part ${socket}, ${info.stepFile} does not a specify a partOverride,`)
+          console.error('so the file will be split into part and socket models based on component names in the assembly.')
+          console.error('The following names are missing:')
+          if (!hasPart) console.error(' - "Socket" for the socket')
+          if (!hasPart) console.error(' - "Part" for the part')
+          console.error(`Please rename the components ${JSON.stringify(names)} to "Part" and "Socket".`)
+          console.error()
+        }
+        return hasSocket && hasPart
+      }),
+    ).then(t => t.every(success => success)))
+  return { success: Object.values(results).every(sucess => sucess), toSplit: objKeys(results) }
+}
+
 async function main() {
   await setup()
 
@@ -82,16 +115,10 @@ async function main() {
       await writeMesh(glbName, await ucModel(name, { ...DEFAULT_PROPS, ...opts }, holes))
     })
   }
-  const poolDisplayModel = (name: CuttleKey['type'], opts: DisplayProps, rounding: number) => {
-    const glbName = join(targetDir, 'switch-' + name + '.glb')
-    pool.addIfModified(name + ' model', glbName, [displayCode], async () => {
-      await writeMesh(glbName, await displayModel(name, opts, 0, rounding))
-    })
-  }
-  const poolDisplaySocket = (name: CuttleKey['type'], opts: DisplayProps) => {
+  const poolDisplay = (name: CuttleKey['type'], opts: DisplayProps) => {
     const stepName = join(targetDir, 'key-' + name + '.step')
-    pool.addIfModified(name + ' socket', stepName, [displayCode], async () => {
-      await writeModel(stepName, displaySocket(name, opts))
+    pool.addIfModified(name, stepName, [displayCode], async () => {
+      await writeAssembly(stepName, displaySocketAndModel(name, opts, 0))
     })
   }
   /** Add task to generate both Choc V1 and Choc V2 variants of a part. It should work given either variant as input. */
@@ -185,7 +212,8 @@ async function main() {
     { start: 3.24, align: { side: 'right', offset: 1.35 }, ...defaults },
     { start: 4.12, end: 4.12, align: { side: 'bottom', offset: 1.35 }, ...defaults },
   ])
-  const dfDisplayProps: DisplayProps = {
+
+  poolDisplay('oled-128x32-0.91in-dfrobot', {
     pcbLongSideWidth: 41.08,
     pcbShortSideWidth: 11.5,
     offsetFromLeftLongSide: 0.29,
@@ -194,12 +222,10 @@ async function main() {
     offsetFromBottomShortSide: 5.23,
     displayThickness: 1.71,
     pcbThickness: 1.13,
-  }
+    displayRounding: 0.5,
+  })
 
-  poolDisplayModel('oled-128x32-0.91in-dfrobot', dfDisplayProps, 0.5)
-  poolDisplaySocket('oled-128x32-0.91in-dfrobot', dfDisplayProps)
-
-  const adafruitDisplayProps: DisplayProps = {
+  poolDisplay('oled-128x32-0.91in-spi-adafruit', {
     pcbLongSideWidth: 33, // Added 0.5mm to top and bottom each for the connector
     pcbShortSideWidth: 23.5, // Added 0.5mm on the left side to make the display symmetrical
     offsetFromLeftLongSide: 6,
@@ -214,12 +240,10 @@ async function main() {
       [[-23.5 / 2, 32 / 2], [-6, 33 / 2]],
       [[6, 32 / 2], [23.5 / 2, 33 / 2]],
     ],
-  }
+    displayRounding: 0.5,
+  })
 
-  poolDisplayModel('oled-128x32-0.91in-spi-adafruit', adafruitDisplayProps, 0.5)
-  poolDisplaySocket('oled-128x32-0.91in-spi-adafruit', adafruitDisplayProps)
-
-  const vista508DisplayProps: DisplayProps = {
+  poolDisplay('oled-168x144-1.26in-keydio-vista508', {
     pcbLongSideWidth: 36,
     pcbShortSideWidth: 24.75,
     offsetFromLeftLongSide: 0.1,
@@ -228,10 +252,8 @@ async function main() {
     offsetFromBottomShortSide: 4,
     displayThickness: 1,
     pcbThickness: 0.8,
-  }
-
-  poolDisplayModel('oled-168x144-1.26in-keydio-vista508', vista508DisplayProps, 0.5)
-  poolDisplaySocket('oled-168x144-1.26in-keydio-vista508', vista508DisplayProps)
+    displayRounding: 0.5,
+  })
 
   // Make all combinations of trackballs
   const trackballCode = fileURLToPath(new URL('./parametric/trackball-gen.ts', import.meta.url))
@@ -250,33 +272,15 @@ async function main() {
   }
 
   // Check that all STEP files that need to be split are split
-  const toSplit: CuttleKey['type'][] = []
-  for (const [socket, info] of objEntries(PART_INFO)) {
-    if ('partOverride' in info) continue // Skip parts with a specified part model
-    if (info.stepFile.startsWith('/target')) continue // Generated models not supported for now
-    const stepFiles = findStepFiles(socket, info)
-    await stepFiles.forEach(async (stepFile: string) => {
-      const contents = await readFile('.' + stepFile, { encoding: 'utf-8' })
-      const names = [...contents.matchAll(/PRODUCT\('(.*?)'/g)].map(m => m[1])
-      const hasSocket = names.includes('Socket')
-      const hasPart = names.includes('Part')
-      if (hasSocket && hasPart) {
-        toSplit.push(socket)
-      } else if (!pool.isWorker) {
-        console.error(`The STEP file for part ${socket}, ${info.stepFile} does not a specify a partOverride,`)
-        console.error('so the file will be split into part and socket models based on component names in the assembly.')
-        console.error('The following names are missing:')
-        if (!hasPart) console.error(' - "Socket" for the socket')
-        if (!hasPart) console.error(' - "Part" for the part')
-        console.error(`Please rename the components ${JSON.stringify(names)} to "Part" and "Socket".`)
-        console.error()
-      }
-    })
-  }
+  const { success, toSplit } = await gatherSTEPFilesToSplit('/src/assets', !pool.isWorker)
+  if (!success) return
 
   const skippedCount = await pool.skippedCount()
   if (!pool.isWorker && skippedCount) console.log(`Skipping re-generating ${skippedCount} models.`)
   await pool.run()
+
+  // Add in generated files that need splitting
+  toSplit.push(...(await gatherSTEPFilesToSplit('/target', !pool.isWorker)).toSplit)
 
   const masses: Record<string, number> = {}
   const partTasks: { socket: CuttleKey['type']; glbName: string; stepName: string; variantURL: string }[] = []
@@ -289,12 +293,16 @@ async function main() {
       nParts += 1
       const glbName = join(targetDir, 'socket-' + socket + variantURL + '.glb')
       const stepName = '.' + PART_INFO[socket].stepFile.replace('.step', variantURL + '.step')
+      const partName = join(targetDir, 'splitpart-' + socket + variantURL + '.glb')
       const glbStat = await maybeStat(glbName)
       const stepStat = await maybeStat(stepName)
+      const partStat = toSplit.includes(socket) && await maybeStat(partName)
       if (!stepStat) {
         console.log(`Warning: could not generate ${socket}${variantURL} since its file was not present in the filesystem`)
         console.log('This is OK as long as the models you generate do not include this part.')
       } else if (!glbStat || glbStat.mtime < stepStat.mtime) {
+        partTasks.push({ socket, glbName, stepName, variantURL })
+      } else if (toSplit.includes(socket) && (!partStat || partStat.mtime < stepStat.mtime)) {
         partTasks.push({ socket, glbName, stepName, variantURL })
       }
     }

@@ -1,4 +1,4 @@
-import type { gp_Trsf, OpenCascadeInstance } from '$assets/replicad_single'
+import { type gp_Trsf, Handle_TDocStd_Document_1, type OpenCascadeInstance, TCollection_ExtendedString_1, TDataStd_Name, TDF_Label } from '$assets/replicad_single'
 import { buildSewnSolid, makeTriangle } from '$lib/worker/modeling/index'
 import Trsf from '$lib/worker/modeling/transformation'
 import { stat } from 'fs/promises'
@@ -316,27 +316,38 @@ export async function importSTEPSpecifically(blob: Blob, name: string) {
   const oc = getOC() as OpenCascadeInstance
   const [r, gc] = localGC()
 
-  const text = await blob.text()
-  const re = new RegExp(`(#\\d*)\\s*=\\s*NEXT_ASSEMBLY_USAGE_OCCURRENCE\\([^\n;]*,'${name}'`)
-  const label = text.match(re)![1]
+  // const text = await blob.text()
+  // // const re = new RegExp(`(#\\d*)\\s*=\\s*NEXT_ASSEMBLY_USAGE_OCCURRENCE\\([^\n;]*,'${name}'`)
+  // const re = new RegExp(`(#\\d*)\\s*=\\s*PRODUCT\\('${name}'`)
+  // const label = text.match(re)![1]
 
   const fileName = Date.now().toString(36) + Math.random().toString(36).substring(2)
   const bufferView = new Uint8Array(await blob.arrayBuffer())
   oc.FS.writeFile(`/${fileName}`, bufferView)
 
-  const reader = r(new oc.STEPControl_Reader_1())
-  if (reader.ReadFile(fileName)) {
+  const reader = r(new oc.STEPCAFControl_Reader_1())
+  const doc = r(new oc.TDocStd_Document(new oc.TCollection_ExtendedString_2('XmlOcaf', false)))
+  if (reader.ReadFile(fileName) && reader.Transfer_1(new oc.Handle_TDocStd_Document_2(doc), new oc.Message_ProgressRange_1())) {
     oc.FS.unlink('/' + fileName)
 
-    const model = reader.StepModel().get()
-    const rank = model.NextNumberForLabel(label, 0, false)
-    if (rank == 0) throw new Error(`Model ${label} not found`)
-    reader.TransferOne(rank, r(new oc.Message_ProgressRange_1()))
-    const stepShape = r(reader.OneShape())
+    const shapeTool = oc.XCAFDoc_DocumentTool.ShapeTool(doc.Main()).get()
+    const labels = r(new oc.TDF_LabelSequence_1())
+    shapeTool.GetShapes(labels)
+    for (let i = 1; i <= labels.Length(); i++) {
+      const label: TDF_Label = labels.Value(i)
+      const handle = r(new oc.Handle_TDF_Attribute_1())
+      label.FindAttribute_1(oc.TDataStd_Name.GetID(), handle)
+      const nameObj = handle.get() as TDataStd_Name
+      const nameStr = r(new oc.TCollection_AsciiString_13(nameObj.Get(), 0)).ToCString()
+      if (nameStr == name) {
+        const shape = cast(r(oc.XCAFDoc_ShapeTool.GetShape_2(label)))
+        gc()
+        return shape
+      }
+    }
 
-    const shape = cast(stepShape)
     gc()
-    return shape
+    throw new Error(`Model "${name}" not found`)
   } else {
     oc.FS.unlink('/' + fileName)
     gc()
