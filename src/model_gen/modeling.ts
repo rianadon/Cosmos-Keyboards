@@ -24,7 +24,7 @@ import {
   Solid,
   Transformation,
 } from 'replicad'
-import { Vector3 } from 'three'
+import { Matrix4, Vector3 } from 'three'
 
 let mf: ManifoldToplevel
 export async function loadManifold(): Promise<void> {
@@ -113,22 +113,24 @@ export function stringifyOperation(op: Operation, indent = 0): string {
   }
 }
 
-// const filter = (x) => x.filter(s => s && s.length !== 0)
+type Op = Operation
+type N = number
+const filter = (x: Op[]) => x.filter(s => s && (s as any).length !== 0)
 
-// // Build a syntax tree! Helps deal with duplicated nodes
-// export const cube = (x, y, z) => ({ op: 'cube', x, y, z })
-// export const cylinder = (r, h) => ({ op: 'cylinder', r, h })
-// export const translate = (x, y, z, obj) => ({ op: 'translate', x, y, z, obj })
-// export const mirror = (x, y, z, obj) => ({ op: 'mirror', x, y, z, obj })
-// export const union = (shapes) => ({ op: 'union', shapes: filter(shapes) })
-// export const difference = (shapes) => ({ op: 'difference', shapes: filter(shapes) })
-// export const hull = (shapes) => ({ op: 'hull', shapes: filter(shapes) })
-// export const square = (x, y) => ({ op: 'square', x, y })
-// export const circle = (r) => ({ op: 'circle', r })
-// export const extrudeLinear = (c, obj) => ({ op: 'linear_extrude', height: c.height, obj })
-// export const extrudeRotate = (c, obj) => ({ op: 'rotate_extrude', angle: c.angle, obj })
-// export const scale = (x, y, z, obj) => ({ op: 'multmatrix', matrix: to2d(new Matrix4().makeScale(x, y, z).transpose().elements), obj })
-// export const rotate = (a, x, y, z, obj) => ({ op: 'multmatrix', matrix: to2d(new Trsf().rotate(a * 180 / Math.PI, [0, 0, 0], [x, y, z]).matrix()), obj })
+// Build a syntax tree! Helps deal with duplicated nodes
+export const cube = (x: N, y: N, z: N) => ({ op: 'cube', x, y, z })
+export const cylinder = (r: N, h: N) => ({ op: 'cylinder', r, h })
+export const translate = (x: N, y: N, z: N, obj: Op[]) => ({ op: 'translate', x, y, z, obj })
+export const mirror = (x: N, y: N, z: N, obj: Op[]) => ({ op: 'mirror', x, y, z, obj })
+export const union = (shapes: Op[]) => ({ op: 'union', shapes: filter(shapes) })
+export const difference = (shapes: Op[]) => ({ op: 'difference', shapes: filter(shapes) })
+export const hull = (shapes: Op[]) => ({ op: 'hull', shapes: filter(shapes) })
+export const square = (x: N, y: N) => ({ op: 'square', x, y })
+export const circle = (r: N) => ({ op: 'circle', r })
+export const extrudeLinear = (c: any, obj: Op[]) => ({ op: 'linear_extrude', height: c.height, obj })
+export const extrudeRotate = (c: any, obj: Op[]) => ({ op: 'rotate_extrude', angle: c.angle, obj })
+export const scale = (x: N, y: N, z: N, obj: Op[]) => ({ op: 'multmatrix', matrix: to2d(new Matrix4().makeScale(x, y, z).transpose().elements), obj })
+export const rotate = (a: N, x: N, y: N, z: N, obj: Op[]) => ({ op: 'multmatrix', matrix: to2d(new Trsf().rotate(a * 180 / Math.PI, [0, 0, 0], [x, y, z]).matrix()), obj })
 
 const to2d = (m: number[]) => [m.slice(0, 4), m.slice(4, 8), m.slice(8, 12), m.slice(12, 16)]
 
