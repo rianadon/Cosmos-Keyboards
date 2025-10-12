@@ -1,9 +1,9 @@
-import { type gp_Trsf, Handle_TDocStd_Document_1, type OpenCascadeInstance, TCollection_ExtendedString_1, TDataStd_Name, TDF_Label } from '$assets/replicad_single'
+import { type gp_Trsf, type OpenCascadeInstance, TDataStd_Name, TDF_Label } from '$assets/replicad_single'
 import { buildSewnSolid, makeTriangle } from '$lib/worker/modeling/index'
 import Trsf from '$lib/worker/modeling/transformation'
 import { stat } from 'fs/promises'
 import loadMF from 'manifold-3d'
-import type { CrossSection, Manifold, ManifoldToplevel } from 'manifold-3d'
+import type { Manifold, ManifoldToplevel } from 'manifold-3d'
 import {
   type AnyShape,
   cast,
@@ -24,7 +24,7 @@ import {
   Solid,
   Transformation,
 } from 'replicad'
-import { Matrix4, Triangle, Vector3 } from 'three'
+import { Vector3 } from 'three'
 
 let mf: ManifoldToplevel
 export async function loadManifold(): Promise<void> {
