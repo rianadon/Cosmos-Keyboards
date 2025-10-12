@@ -1,4 +1,4 @@
-import { type gp_Trsf, type OpenCascadeInstance, TDataStd_Name, TDF_Label } from '$assets/replicad_single'
+import type { gp_Trsf, OpenCascadeInstance, TDataStd_Name } from '$assets/replicad_single'
 import { buildSewnSolid, makeTriangle } from '$lib/worker/modeling/index'
 import Trsf from '$lib/worker/modeling/transformation'
 import { stat } from 'fs/promises'
@@ -334,7 +334,7 @@ export async function importSTEPSpecifically(blob: Blob, name: string) {
     const labels = r(new oc.TDF_LabelSequence_1())
     shapeTool.GetShapes(labels)
     for (let i = 1; i <= labels.Length(); i++) {
-      const label: TDF_Label = labels.Value(i)
+      const label = labels.Value(i)
       const handle = r(new oc.Handle_TDF_Attribute_1())
       label.FindAttribute_1(oc.TDataStd_Name.GetID(), handle)
       const nameObj = handle.get() as TDataStd_Name

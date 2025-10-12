@@ -111,13 +111,13 @@ async function main() {
 
   const poolUC = (name: Microcontroller, opts: Partial<MicrocontrollerProps>, holes: Holes[]) => {
     const glbName = join(targetDir, name + '.glb')
-    pool.addIfModified(name, glbName, [microcontrollerCode], async () => {
+    pool.addIfModified(name, glbName, [microcontrollerCode, partsCode], async () => {
       await writeMesh(glbName, await ucModel(name, { ...DEFAULT_PROPS, ...opts }, holes))
     })
   }
   const poolDisplay = (name: CuttleKey['type'], opts: DisplayProps) => {
     const stepName = join(targetDir, 'key-' + name + '.step')
-    pool.addIfModified(name, stepName, [displayCode], async () => {
+    pool.addIfModified(name, stepName, [displayCode, partsCode], async () => {
       await writeAssembly(stepName, displaySocketAndModel(name, opts, 0))
     })
   }
