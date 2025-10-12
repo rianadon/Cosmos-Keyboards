@@ -1,6 +1,7 @@
 import { socketSize } from '$lib/geometry/socketsParts'
 import type { CuttleKey } from '$lib/worker/config'
-import { drawRoundedRectangle, makeBaseBox } from 'replicad'
+import { Assembly } from '$lib/worker/modeling/assembly'
+import { drawRoundedRectangle, makeBaseBox, Solid } from 'replicad'
 
 /** Tolerance around PCB + Display on each side */
 const DISP_TOL = 0.05
@@ -25,6 +26,8 @@ export interface DisplayProps {
   pcbThickness: number
   /** Rectangles for PCB alignment that protrude PCB-thickness from the bottom */
   alignmentRectangles?: [Point, Point][]
+  /** Rounding around the display */
+  displayRounding: number
 }
 
 function assertSize(name: string, actual: number, expected: number, dimension: string) {
@@ -40,7 +43,7 @@ export function displaySocket(name: CuttleKey['type'], opts: DisplayProps) {
   assertSize(name, size[1], opts.pcbLongSideWidth + 2 * DISP_TOL, 'height')
   assertSize(name, size[2], opts.displayThickness + opts.pcbThickness, 'thickness')
   let base = makeBaseBox(size[0], size[1], size[2]).translateZ(-size[2])
-  base = base.cut(displayModel(name, opts, DISP_TOL, 0))
+  base = base.cut(displayModel(name, { ...opts, displayRounding: 0 }, DISP_TOL))
 
   for (const rectangle of opts.alignmentRectangles || []) {
     const x0 = rectangle[0][0] + (Math.abs(rectangle[0][0]) == opts.pcbShortSideWidth / 2 ? -DISP_TOL : DISP_TOL)
@@ -58,8 +61,8 @@ export function displaySocket(name: CuttleKey['type'], opts: DisplayProps) {
   return base
 }
 
-export function displayModel(_name: CuttleKey['type'], opts: DisplayProps, tol: number, rounding: number) {
-  const pcb = drawRoundedRectangle(opts.pcbShortSideWidth + 2 * tol, opts.pcbLongSideWidth + 2 * tol, rounding).sketchOnPlane('XY').extrude(opts.pcbThickness + tol)
+export function displayModel(_name: CuttleKey['type'], opts: DisplayProps, tol: number) {
+  const pcb = drawRoundedRectangle(opts.pcbShortSideWidth + 2 * tol, opts.pcbLongSideWidth + 2 * tol, opts.displayRounding).sketchOnPlane('XY').extrude(opts.pcbThickness + tol)
   let display = makeBaseBox(
     opts.pcbShortSideWidth + 2 * tol - opts.offsetFromLeftLongSide - opts.offsetFromRightLongSide,
     opts.pcbLongSideWidth + 2 * tol - opts.offsetFromBottomShortSide - opts.offsetFromTopShortSide,
@@ -71,4 +74,11 @@ export function displayModel(_name: CuttleKey['type'], opts: DisplayProps, tol: 
 
   return (pcb.translateZ(-opts.pcbThickness - opts.displayThickness) as Solid)
     .fuse(display.translateZ(-opts.displayThickness))
+}
+
+export function displaySocketAndModel(name: CuttleKey['type'], opts: DisplayProps, partTol: number) {
+  const assembly = new Assembly()
+  assembly.add('Socket', displaySocket(name, opts))
+  assembly.add('Part', displayModel(name, opts, partTol))
+  return assembly
 }

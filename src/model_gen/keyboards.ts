@@ -1,3 +1,5 @@
+// @ts-nocheck Unmaintained file
+
 import cuttleform from '$assets/cuttleform.json' assert { type: 'json' }
 import { cuttleConf, type Cuttleform, type CuttleKey, orbylThumbs } from '$lib/worker/config'
 import { fromCosmosConfig } from '$lib/worker/config.cosmos'

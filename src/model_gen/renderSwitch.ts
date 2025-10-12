@@ -9,7 +9,7 @@ const { page, browser } = await createRenderPage()
 
 const [width, height] = [256, 256]
 
-for (const sw of ['mx-better', 'choc-v1', 'alps']) {
+for (const sw of ['mx-better', 'choc-v1', 'alps'] as const) {
   const geo = await partGeometry(sw, {})
   const scene = new Scene()
 

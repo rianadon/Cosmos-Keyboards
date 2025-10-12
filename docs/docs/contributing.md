@@ -237,7 +237,7 @@ If you need to add any more icons, the file to edit is `src/lib/presentation/Ico
 Because there are many models of displays but very few differences between the sockets, Cosmos includes a parametric socket generator for displays. This means **you do not have to create STEP files for displays**. Instead, generate the sockets in `src/model_gen/parts.ts` using code like this:
 
 ```typescript
-const dfDisplayProps: DisplayProps = {
+poolDisplay('oled-128x32-0.91in-dfrobot', {
   pcbLongSideWidth: 41.08,
   pcbShortSideWidth: 11.5,
   offsetFromLeftLongSide: 0.29,
@@ -246,13 +246,11 @@ const dfDisplayProps: DisplayProps = {
   offsetFromBottomShortSide: 5.23,
   displayThickness: 1.71,
   pcbThickness: 1.13,
-}
-
-poolDisplayModel('oled-128x32-0.91in-dfrobot', dfDisplayProps, 0.5)
-poolDisplaySocket('oled-128x32-0.91in-dfrobot', dfDisplayProps)
+  displayRounding: 0.5,
+})
 ```
 
-Rename `dfDisplayProps` to `<yourdisplay>DisplayProps` and change `oled-128x32-0.91in-dfrobot` to the name you've given your socket. Because the code generates the display and socket separately, you'll need to specify both `stepFile` and `partOverride` when you configure the pair in `socketsParts.ts`.
+Change `oled-128x32-0.91in-dfrobot` to the name you've given your socket. You'll need to specify just `stepFile` (don't add a `partOverride`) when you configure the pair in `socketsParts.ts`.
 
 The numbers listed within `DisplayProps` are measurements of the display taken with calipers. All measurements are in millimeters.
 
@@ -264,8 +262,9 @@ The numbers listed within `DisplayProps` are measurements of the display taken w
 - `offsetFromBottomShortSide`: How much the display is offset from the bottom short side of the PCB
 - `displayThickness`: How thick the display part is (excluding PCB)
 - `pcbThickness`: How thick the PCB is
+- `displayRounding`: How much the corners of the display are rounded.
 
-The `0.5` passed to `poolDisplayModel` describes how much the corners of the display are rounded.
+Don't forget to edit `src/proto/cosmosStructs.ts` and add your socket/part to the `enumeration('PART', {` declaration. You'll need to give your part a unique number used to identify it in the URL. Switches get numbers from 1–15, and everything else uses 16–109.
 
 ### Contributing Microcontrollers
 
