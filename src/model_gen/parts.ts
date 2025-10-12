@@ -219,6 +219,20 @@ async function main() {
   poolDisplayModel('oled-128x32-0.91in-spi-adafruit', adafruitDisplayProps, 0.5)
   poolDisplaySocket('oled-128x32-0.91in-spi-adafruit', adafruitDisplayProps)
 
+  const vista508DisplayProps: DisplayProps = {
+    pcbLongSideWidth: 36,
+    pcbShortSideWidth: 24.75,
+    offsetFromLeftLongSide: 0.1,
+    offsetFromRightLongSide: 0.1,
+    offsetFromTopShortSide: 3.4,
+    offsetFromBottomShortSide: 4,
+    displayThickness: 1,
+    pcbThickness: 0.8,
+  }
+
+  poolDisplayModel('oled-168x144-1.26in-keydio-vista508', vista508DisplayProps, 0.5)
+  poolDisplaySocket('oled-168x144-1.26in-keydio-vista508', vista508DisplayProps)
+
   // Make all combinations of trackballs
   const trackballCode = fileURLToPath(new URL('./parametric/trackball-gen.ts', import.meta.url))
   for (const v of allVariants('trackball') as TrackballVariant[]) {
