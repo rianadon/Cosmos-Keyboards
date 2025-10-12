@@ -172,6 +172,7 @@ async function main() {
   pool.add('Cherry MX Switch', () => genPart('switch-cherry-mx'))
   pool.add('ECQWGD001 Encoder', () => genPart('switch-evqwgd001'))
   pool.add('Joycon Joystick', () => genPart('switch-joystick-joycon-adafruit'))
+  pool.add('PS2 Joystick', () => genPart('switch-joystick-ps2-40x45'))
 
   poolChocV1('choc', 'choc-v1', 'choc-v2')
   poolChocV1('choc-hotswap', 'choc-v1-hotswap', 'choc-v2-hotswap', true)
