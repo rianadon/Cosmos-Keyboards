@@ -703,7 +703,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     numPinsMatrix: 1,
     numPinsGPIO: 2,
     icon: 'joystick',
-    description: 'A large joystick for gaming or moving the mouse. Supports <a href="https://www.amazon.ca/gp/product/B089VXPHDH">this joystock on Amazon</a>.',
+    description: 'A large joystick for gaming or moving the mouse. Supports <a href="https://www.amazon.ca/gp/product/B089VXPHDH">this joystick on Amazon</a>.',
   },
   'joystick-skqu-alps': {
     partName: 'ALPS SKQU 5-WAY HAT',
