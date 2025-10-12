@@ -10,8 +10,21 @@
   import Dialog from '$lib/presentation/Dialog.svelte'
   import type { CuttleKey } from '$target/cosmosStructs'
   import Description from './Description.svelte'
+  import { createTableOfContents } from '@melt-ui/svelte'
+  import Tree from './Tree.svelte'
+  import { pushState } from '$app/navigation'
 
   export let expanded: CuttleKey['type'] | null = null
+
+  const {
+    elements: { item },
+    states: { activeHeadingIdxs, headingsTree },
+  } = createTableOfContents({
+    selector: '#toc-builder-preview',
+    exclude: ['h1', 'h4', 'h5', 'h6'],
+    activeType: 'highest',
+    pushStateFn: () => {}, // Disable history update
+  })
 </script>
 
 <svelte:head>
@@ -52,21 +65,31 @@
 {/if}
 
 <SharedRenderer>
-  <main class="max-w-6xl mx-auto">
-    {#each sortedCategories as cat}
-      <h2>{cat}</h2>
-      <section class="parts">
-        {#each notNull(objKeys(PART_INFO)).filter((v) => PART_INFO[v].category == cat && (flags.draftuc || !PART_INFO[v].draft) && v != 'blank') as p}
-          <Part
-            name={PART_INFO[p].partName}
-            part={p}
-            dev={$developer}
-            on:expand={() => (expanded = p)}
-          />
-        {/each}
-      </section>
-    {/each}
-  </main>
+  <div class="grid grid-cols-1 gap-2 xl:grid-cols-[1fr_14rem] max-w-[100rem] mx-auto">
+    <main id="toc-builder-preview" class="xl:pl-14rem">
+      {#each sortedCategories as cat}
+        <h2>{cat}</h2>
+        <section class="parts">
+          {#each notNull(objKeys(PART_INFO)).filter((v) => PART_INFO[v].category == cat && (flags.draftuc || !PART_INFO[v].draft) && v != 'blank') as p}
+            <Part
+              name={PART_INFO[p].partName}
+              part={p}
+              dev={$developer}
+              on:expand={() => (expanded = p)}
+            />
+          {/each}
+        </section>
+      {/each}
+    </main>
+    <div class="rounded-lg p-4 <lg:hidden sticky toc top-0 pt-20">
+      <p class="font-semibold text-white">Contents</p>
+      <nav>
+        {#key $headingsTree}
+          <Tree tree={$headingsTree} activeHeadingIdxs={$activeHeadingIdxs} {item} />
+        {/key}
+      </nav>
+    </div>
+  </div>
 
   {#if expanded}
     {@const info = PART_INFO[expanded]}
@@ -102,6 +125,9 @@
   }
   .parts {
     --at-apply: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ';
+  }
+  .toc {
+    align-self: start;
   }
 
   :global(.cosmospartinfo p) {
