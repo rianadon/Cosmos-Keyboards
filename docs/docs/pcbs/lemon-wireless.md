@@ -164,7 +164,7 @@ These are all taken care of if you autogenerate your firmware with Cosmos, but t
 
 ## Arduino Core
 
-I haven't contributed this board upstream yet since I don't know how popular this option is going to be. Therefore, if you do program the Lemon with Arduino then please tell me so I can prioritize this!
+I haven't contributed this board upstream yet since I don't know how popular this option is going to be. Therefore, if you do want to program the Lemon with Arduino then please tell me so I can prioritize this!
 
 ??? note "Expand Arduino Instructions (Caution: Not Easy)"
 
