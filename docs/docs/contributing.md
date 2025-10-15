@@ -110,7 +110,7 @@ Here's how to add a new socket to the codebase:
    ```typescript
    'ec11': {
       partName: 'EC11 Encoder',
-      bomName: 'EC11 Encoders',
+      bomName: 'EC11 Encoder',
       category: 'Encoders',
       stepFile: '/src/assets/key-ec11.step',
       socketSize: [14.5, 14.5, 4.5],
@@ -120,7 +120,7 @@ Here's how to add a new socket to the codebase:
       description: 'A vertical knob that you can...',
    },
    ```
-   The part/socket pair has two names: `partName` is the name shown in the editor, whereas `bomName` is shown in the bill of materials. Unlike `partName`, `bomName` is plural. Usually these are similar, but it's helpful to include vendors and part numbers in the `bomName`, whereas `partName` should be concise.<p></p>
+   The part/socket pair has two names: `partName` is the name shown in the editor, whereas `bomName` is shown in the bill of materials. Usually these are similar, but it's helpful to include vendors and part numbers in the `bomName`, whereas `partName` should be concise.<p></p>
    The field `stepFile` is the location where you saved the STEP file (`src/assets/key-(name).step`), and `socketSize` refers to the part boundary from step 3. The order of dimensions is `[x, y, z]`.</p><p>
    Finally, `partBottom` is a box describing the boundary of the part, referenced from the top of the socket. This is used to raise the model high enough so that your part doesn't collide with the ground!<p></p>
    There are also a few more fields to keep in mind. The `icon` and `description` set how the part appears in the BOM and parts dropdown respectively. `numPins` is used to count the total number of pins used on the microcontroller. It has the following fields:
