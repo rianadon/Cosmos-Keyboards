@@ -35,9 +35,9 @@ export function hasKeyGeometry(k: CuttleKey) {
 }
 
 export function hasPinsInMatrix(k: CuttleKey) {
-  const pins = PART_INFO[k.type].numPinsMatrix
-  if (typeof pins == 'function') return pins(k.variant || {}) > 0
-  return pins && pins > 0
+  const maybePins = PART_INFO[k.type].numPins
+  const pins = typeof maybePins == 'function' ? maybePins(k.variant || {}) : maybePins
+  return pins && pins.matrix && pins.matrix > 0
 }
 
 export async function keyGeometry(k: CuttleKey) {

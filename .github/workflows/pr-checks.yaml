@@ -29,6 +29,11 @@ jobs:
       - name: Generate definitions
         run: make ci-setup build
 
+      - name: Mock files
+        run: |
+          echo "{}" > target/sockets-simple.json
+          echo "{}" > target/keys-simple.json
+
       - name: Test
         run: bun test
 
