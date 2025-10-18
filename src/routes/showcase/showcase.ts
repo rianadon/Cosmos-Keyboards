@@ -259,6 +259,18 @@ const _keyboards: Record<string, Keyboard> = {
     keycaps: 'White on Black MT3 keycaps, 1.5u XDA PBT keycaps for the thumb keys',
     projectLink: 'https://www.reddit.com/r/ErgoMechKeyboards/s/FJrlwhkmcG',
   },
+  '35b52671': {
+    author: 'dealero',
+    type: 'split',
+    config:
+      '#cm:CrMBChMSBRCQQSATEgIgABIEQICAFDgxCg8SBRCQTSATEgIgABIAOB0KHxIFEJBZIBMSAiAAEgMQsC8SBRCwXyAoOAlAgPCHyAIKHRIFEJBlIBMSAiAAEgMQsDsSBRCwayAoOApAgMBNChUSBRCQcSATEgIgABIAOB5AgP6HgAIKGhIEEBAgExIGEKCACiAAEgIQMDgyQICGisAHCgoSBBAgIAASADhFGABA7JCX+CpI3PCioAEKfwoYEhQQwIACQJ78jrAESMKZoJWQvAFQQzgIChcSEBBAQNOGmQxI0JWAyPoBUAswFlCeAgoVEhEQQEC0yI7wA0jmmfynkAtQV1B/ChYSERBAQPLEjvgFSPCZxLXQMFB0UJUBGAIiCgjIARDIARgAIABArY3kp9AxSK2R3I3BkwYKsgEKDxIFEJBBIBMSAiAAEgA4MgoPEgUQkE0gExICIAASADgeCh8SBRCQWSATEgIgABIDELAvEgUQsF8gKDgKQICIh4gCCh0SBRCQZSATEgIgABIDELA7EgUQsGsgKDgJQICMVQoVEgUQkHEgExICIAASADgdQIDai/ACChwSBRCQZSATEgYQoOcKIAASAxCwOzgxQICGisAHCgsSBRCgTyAAEgA4RhgBQOuQl/gqSNzuopgBCpUBChcSExDAgAJAgICYAkjCmZyVoLwBUEM4BwoYEhQQwIACQICAzAJIwpmclaC8AVCGAVA5ChUSEBBAQICAIEjQlfzcoPUDUAtQnQIKFRIQEEBAgID4AUjmmYCsoAtQV1CAAQoVEhAQQECAgKQDSPCZyLXgMFB0UJYBGAMiCgi9ARDIARgAIABAro38n9AxSK2R4I2xkwYQAxiGICIGCMMBELUBOAOCAQIEAkgEaAByB5ABvAIQ5AJ4yIPkh+FQ',
+    switches: 'Kailh Choc Red v1',
+    keycaps: '<a href="https://github.com/klouderone/KEA-choc-keycaps/tree/main">KEA-choc-keycaps</a> Choc spaced printed in PLA ',
+    modifiedInCAD: true,
+    details:
+      'The trackball sensor is PMW3360. Tha ball is from Ergo M575. Wirst supports are Powerton Ergoline. Microcontrolers are Tenstar RP2040 Micro. I had to slightly modify the microcontroler holder to fit to the holes.',
+    filament: 'Sunlu PLA+ Grass Green and unknown semi-transparent filament',
+  },
 }
 
 function findImages(kbd: Keyboard) {
