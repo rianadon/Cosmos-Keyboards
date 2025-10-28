@@ -14,9 +14,7 @@ Go to the [landing page](https://ryanis.cool/cosmos/lemon/) :)
 
 ### Recommended Use
 
-I recommend using column-flex PCBs to wire your keys, not only because they are easy to connect via the FPC connectors on the bottom of the microcontroller, but also because you will save yourself hours of wiring together keys. This example shows the two I sell, the [Pumpkin Patch](https://ryanis.cool/cosmos/pumpkin/) (for upper keys & some thumb keys) and Pumpkin Vine (for the further away thumb keys), used to wire the keys as well as an encoder attached to the spare I/O pins.
-
-> The Pumpkin Vine is not released yet, but you can buy [Skree Toe Beans](https://cosmos-store.ryanis.cool/products/skree-toe-beans) in the meantime from the Cosmos store as a substitute.
+I recommend using column-flex PCBs to wire your keys, not only because they are easy to connect via the FPC connectors on the bottom of the microcontroller, but also because you will save yourself hours of wiring together keys. This example shows the two I sell, the [Pumpkin Patch](https://ryanis.cool/cosmos/pumpkin/) (for upper keys & some thumb keys) and [Pumpkin Vine](https://cosmos-store.ryanis.cool/products/pumpkin-vine-pcb) (for the further away thumb keys), used to wire the keys as well as an encoder attached to the spare I/O pins.
 
 ![Wiring Diagram of Pumpkin PCBs and an encoder](../../assets/lemon_wired_pumpkin.png){width=600 .center}
 
