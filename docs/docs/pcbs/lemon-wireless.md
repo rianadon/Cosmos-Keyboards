@@ -409,6 +409,14 @@ Add `flash-sd` to the `make` command if you'd also like to flash SoftDevice, Nor
 
 Besides flashing, you can also use the SWD pins for debugging!
 
+## Troubleshooting
+
+For connection issues with ZMK, I recommend you take a look at the [ZMK Connection Issues](https://zmk.dev/docs/troubleshooting/connection-issues) troubleshooting page.
+
+If you are having pairing issues after programming _for the first time_, you likely are having issues with the device you are pairing to. Try pairing to another device and see if issues persist.
+
+If you are having pairing issues after you have changed the program and re-flashed, try [building a reset firmware](https://zmk.dev/docs/troubleshooting/connection-issues#building-a-reset-firmware) and flashing it. I also once heard flashing the opposite side's firmware then re-flashing your desired side's firmware works.
+
 ## PCB Drawing and Dimensions
 
 ![PCB Layout for Wireless Lemon](../../assets/lemon-wireless-layout.png){ width=500 .center }

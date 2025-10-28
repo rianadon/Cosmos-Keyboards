@@ -457,6 +457,20 @@ I don't recommend using headers or sockets with Cosmos, ever.
 
 However, if you want to do some prototyping or found a use for the microcontroller outside your keyboard, the microcontroller will fit in a breadboard using standard 2.54mm/100mils pitch pin headers, but it will take up the entire width of the breadboard and leave no space to the side for pins! I recommend either straddling it across two breadboards or using preformed jumper wire underneath (the kind that stays really flat and neat) to bring the pins you need to somewhere accessible.
 
+## Troubleshooting
+
+For QMK-specific troubleshooting, see the [Troubleshooting QMK](https://docs.qmk.fm/faq_misc) and [Debugging QMK](https://docs.qmk.fm/faq_debug) pages on the docs.
+
+I also recommend flashing this [testing uf2](https://github.com/rianadon/Cosmos-Keyboard-PCBs/raw/refs/heads/main/lemon-microcontroller/cosmos_led_test_default.uf2) to your microcontroller. It's based on QMK and will pulse the LED red if USB is not detected and greed if USB is detected. If the RGB LED is not pulsing, you have a defective microcontroller and you should get in touch to get a replacement.
+
+### MacOS Connection Issues
+
+In rare cases (maybe this is a Tahoe-specific bug?), I've seen the prompt to allow the microcontroller to connect to the computer flash for less than a second before disappearing.
+
+The configurations that Cosmos and PeaMK are built around have `SPLIT_USB_DETECT` enabled and `SPLIT_USB_TIMEOUT` set to the default of 2000. This means the microcontroller will prevent itself as a USB device for 2 seconds, and if the computer denies the connection, its USB will turn off and the microcontroller will go into peripheral mode (i.e. the half that does _not_ connect to your computer). In theory this means you have 2 seconds to click the "Allow accessory to connect" button.
+
+If the dialog goes away before you can press it, temporarily [change the "Allow Accessories to Connect" setting](https://support.apple.com/en-us/102282#settings) from "Ask for New Accessories" to "Automatically Allow When Unlocked". You can change it back after the microcontroller is successfully connected.
+
 ## PCB Drawing and Dimensions
 
 ![PCB Layout for Wired Lemon](../../assets/lemon-wired-layout.png){ width=500 .center }
