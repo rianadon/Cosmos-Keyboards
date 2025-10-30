@@ -353,55 +353,34 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'skree-con-mx-ff': {
     partName: 'MX CONNECTOR fully flexible with midplate',
-    bomName: () => 'MX-Compatible Switch',
+    bomName: 'MX-Compatible Switch',
     category: 'Sockets',
-    stepFile: '/target/key-con-mx-ff.step',
+    stepFile: '/src/assets/key-con-mx-ff.step',
     partOverride: MX_PART,
-    singlePartForVariants: true,
-    socketSize: [18, 18, 4.7],
-    partBottom: [box(18, 18, 10)],
+    socketSize: () => [18, 18, 4.7] as [number, number, number],
+    partBottom: () => [box(18, 18, 10)],
     keycap: 'mx',
-    extraBomItems: () => ({ ...BOM_MX_HOTSWAP, ...BOM_DIODE }),
-    variants: {
-      hotswap: ['Kailh', 'Gateron', 'Outemu'],
-    },
-    encodeVariant: (variant: Variant) => {
-      return ['Kailh', 'Gateron', 'Outemu'].indexOf(variant.hotswap)
-    },
-    decodeVariant: (variant: number) => {
-      return {
-        hotswap: ['Kailh', 'Gateron', 'Outemu'][variant] || 'Kailh',
-      }
-    },
-    numPins: () => ({ matrix: 1 }),
-    description: 'This socket integrates a 3D-printed diode and hotswap socket holder. Useful if you have a great 3D printer, want hotswap, but cannot buy PCBs.' + DESC_MX,
+    extraBomItems: { ...BOM_DIODE },
+    numPins: { matrix: 1 },
+    description: 'Placeholder'
+      + DESC_MX,
     icon: 'mx',
     bomIcon: 'switch',
   },
   'skree-norm-mx-ff': {
     partName: '<MX fully flexible with midplate>',
-    bomName: () => 'MX-Compatible Switch',
+    bomName: 'MX-Compatible Switch',
     category: 'Sockets',
-    stepFile: '/target/key-norm-mx-ff.step',
+    stepFile: '/src/assets/key-norm-mx-ff.step',
     partOverride: MX_PART,
     singlePartForVariants: true,
-    socketSize: [18, 18, 4.7],
-    partBottom: [box(18, 18, 10)],
+    socketSize: () => [18, 18, 4.7] as [number, number, number],
+    partBottom: () => [box(18, 18, 10)],
     keycap: 'mx',
-    extraBomItems: () => ({ ...BOM_MX_HOTSWAP, ...BOM_DIODE }),
-    variants: {
-      hotswap: ['Kailh', 'Gateron', 'Outemu'],
-    },
-    encodeVariant: (variant: Variant) => {
-      return ['Kailh', 'Gateron', 'Outemu'].indexOf(variant.hotswap)
-    },
-    decodeVariant: (variant: number) => {
-      return {
-        hotswap: ['Kailh', 'Gateron', 'Outemu'][variant] || 'Kailh',
-      }
-    },
-    numPins: () => ({ matrix: 1 }),
-    description: 'This socket integrates a 3D-printed diode and hotswap socket holder. Useful if you have a great 3D printer, want hotswap, but cannot buy PCBs.' + DESC_MX,
+    extraBomItems: { ...BOM_DIODE },
+    numPins: { matrix: 1 },
+    description: 'Placeholder'
+      + DESC_MX,
     icon: 'mx',
     bomIcon: 'switch',
   },
