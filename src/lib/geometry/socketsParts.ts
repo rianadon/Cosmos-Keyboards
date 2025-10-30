@@ -352,7 +352,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     icon: 'shaper',
   },
   'skree-con-mx-ff': {
-    partName: 'MX CONNECTOR fully flexible with midplate',
+    partName: 'MX FF con',
     bomName: 'MX-Compatible Switch',
     category: 'Sockets',
     stepFile: '/src/assets/key-con-mx-ff.step',
@@ -368,7 +368,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     bomIcon: 'switch',
   },
   'skree-norm-mx-ff': {
-    partName: 'MX fully flexible with midplate',
+    partName: 'MX FF norm',
     bomName: 'MX-Compatible Switch',
     category: 'Sockets',
     stepFile: '/src/assets/key-norm-mx-ff.step',
