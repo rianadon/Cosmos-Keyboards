@@ -368,7 +368,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     bomIcon: 'switch',
   },
   'skree-norm-mx-ff': {
-    partName: '<MX fully flexible with midplate>',
+    partName: 'MX fully flexible with midplate',
     bomName: 'MX-Compatible Switch',
     category: 'Sockets',
     stepFile: '/src/assets/key-norm-mx-ff.step',
