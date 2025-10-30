@@ -352,19 +352,29 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     icon: 'shaper',
   },
   'skree-con-mx-ff': {
-    partName: '<MX CONNECTOR fully flexible with midplate>',
+    partName: 'MX CONNECTOR fully flexible with midplate',
     bomName: () => 'MX-Compatible Switch',
     category: 'Sockets',
     stepFile: '/target/key-con-mx-ff.step',
     partOverride: MX_PART,
     singlePartForVariants: true,
-    socketSize: () => [18.7, 18.7, 4.7] as PartSize,
-    partBottom: () => [box(18.7, 18.7, 10)],
+    socketSize: () => [18, 18, 4.7] as [number, number, number],
+    partBottom: () => [box(18, 18, 10)],
     keycap: 'mx',
-    extraBomItems: { ...BOM_DIODE },
-    numPins: { matrix: 1 },
-    description: 'Used for Custom Mid-Column-Plate for Skree keyboard Production Use one per column 2nd or 3rd key from the top row.'
-      + DESC_MX,
+    extraBomItems: () => ({ ...BOM_MX_HOTSWAP, ...BOM_DIODE }),
+    variants: {
+      hotswap: ['Kailh', 'Gateron', 'Outemu'],
+    },
+    encodeVariant: (variant: Variant) => {
+      return ['Kailh', 'Gateron', 'Outemu'].indexOf(variant.hotswap)
+    },
+    decodeVariant: (variant: number) => {
+      return {
+        hotswap: ['Kailh', 'Gateron', 'Outemu'][variant] || 'Kailh',
+      }
+    },
+    numPins: () => ({ matrix: 1 }),
+    description: 'This socket integrates a 3D-printed diode and hotswap socket holder. Useful if you have a great 3D printer, want hotswap, but cannot buy PCBs.' + DESC_MX,
     icon: 'mx',
     bomIcon: 'switch',
   },
@@ -375,13 +385,23 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     stepFile: '/target/key-norm-mx-ff.step',
     partOverride: MX_PART,
     singlePartForVariants: true,
-    socketSize: () => [18.7, 18.7, 4.7] as PartSize,
-    partBottom: () => [box(18.7, 18.7, 10)],
+    socketSize: () => [18, 18, 4.7] as [number, number, number],
+    partBottom: () => [box(18, 18, 10)],
     keycap: 'mx',
-    extraBomItems: { ...BOM_DIODE },
-    numPins: { matrix: 1 },
-    description: 'Used for Custom Mid-Column-Plate for Skree keyboard Production'
-      + DESC_MX,
+    extraBomItems: () => ({ ...BOM_MX_HOTSWAP, ...BOM_DIODE }),
+    variants: {
+      hotswap: ['Kailh', 'Gateron', 'Outemu'],
+    },
+    encodeVariant: (variant: Variant) => {
+      return ['Kailh', 'Gateron', 'Outemu'].indexOf(variant.hotswap)
+    },
+    decodeVariant: (variant: number) => {
+      return {
+        hotswap: ['Kailh', 'Gateron', 'Outemu'][variant] || 'Kailh',
+      }
+    },
+    numPins: () => ({ matrix: 1 }),
+    description: 'This socket integrates a 3D-printed diode and hotswap socket holder. Useful if you have a great 3D printer, want hotswap, but cannot buy PCBs.' + DESC_MX,
     icon: 'mx',
     bomIcon: 'switch',
   },
