@@ -351,6 +351,42 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
       'Allocates an empty space on the keyboard. Useful filling in gaps and changing the keyboard boundary. <a target="_blank" href="https://ryanis.cool/cosmos/docs/tips-and-tricks/#shaper-keys">Read more in the docs</a>.',
     icon: 'shaper',
   },
+    'skree-con-mx-ff': {
+    partName: '<MX CONNECTOR fully flexible with midplate>',
+    bomName: () => 'MX-Compatible Switch',
+    category: 'Sockets',
+    stepFile: '/target/key-con-mx-ff.step',
+    partOverride: MX_PART,
+    singlePartForVariants: true,
+    socketSize: () => [18.7, 18.7, 4.7] as PartSize,
+    partBottom: () => [box(18.7, 18.7, 10)],
+    keycap: 'mx',
+    extraBomItems: { ...BOM_DIODE },
+    numPins: { matrix: 1 },
+    description:
+      'Used for Custom Mid-Column-Plate for Skree keyboard Production Use one per column 2nd or 3rd key from the top row.'
+      + DESC_MX,
+    icon: 'mx',
+    bomIcon: 'switch',
+  },
+    'skree-norm-mx-ff': {
+    partName: '<MX fully flexible with midplate>',
+    bomName: () => 'MX-Compatible Switch',
+    category: 'Sockets',
+    stepFile: '/target/key-norm-mx-ff.step',
+    partOverride: MX_PART,
+    singlePartForVariants: true,
+    socketSize: () => [18.7, 18.7, 4.7] as PartSize,
+    partBottom: () => [box(18.7, 18.7, 10)],
+    keycap: 'mx',
+    extraBomItems: { ...BOM_DIODE },
+    numPins: { matrix: 1 },
+    description:
+      'Used for Custom Mid-Column-Plate for Skree keyboard Production'
+      + DESC_MX,
+    icon: 'mx',
+    bomIcon: 'switch',
+  },
   'old-mx': {
     partName: 'Old MX-Compatible',
     bomName: 'MX-Compatible Switch',
