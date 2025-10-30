@@ -358,8 +358,8 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     stepFile: '/target/key-con-mx-ff.step',
     partOverride: MX_PART,
     singlePartForVariants: true,
-    socketSize: () => [18, 18, 4.7] as [number, number, number],
-    partBottom: () => [box(18, 18, 10)],
+    socketSize: [18, 18, 4.7],
+    partBottom: [box(18, 18, 10)],
     keycap: 'mx',
     extraBomItems: () => ({ ...BOM_MX_HOTSWAP, ...BOM_DIODE }),
     variants: {
@@ -385,8 +385,8 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     stepFile: '/target/key-norm-mx-ff.step',
     partOverride: MX_PART,
     singlePartForVariants: true,
-    socketSize: () => [18, 18, 4.7] as [number, number, number],
-    partBottom: () => [box(18, 18, 10)],
+    socketSize: [18, 18, 4.7],
+    partBottom: [box(18, 18, 10)],
     keycap: 'mx',
     extraBomItems: () => ({ ...BOM_MX_HOTSWAP, ...BOM_DIODE }),
     variants: {
