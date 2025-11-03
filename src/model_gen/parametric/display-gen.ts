@@ -38,7 +38,7 @@ function assertSize(name: string, actual: number, expected: number, dimension: s
 
 export function displaySocket(name: CuttleKey['type'], opts: DisplayProps) {
   const size = socketSize({ type: name } as CuttleKey)
-  if ('radius' in size) throw new Error('Expected rectangular size, not circular')
+  if ('radiusX' in size) throw new Error('Expected rectangular size, not circular')
   assertSize(name, size[0], opts.pcbShortSideWidth + 2 * DISP_TOL, 'width')
   assertSize(name, size[1], opts.pcbLongSideWidth + 2 * DISP_TOL, 'height')
   assertSize(name, size[2], opts.displayThickness + opts.pcbThickness, 'thickness')

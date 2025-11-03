@@ -231,10 +231,10 @@ for (const [part, info] of objEntries(PART_INFO)) {
     const body = Object.entries(info.variants).map(([k, v]) => k + ':' + v.map(i => JSON.stringify(i)).join('|')).join(',')
     code += `export type ${safeCaps(part)}Variant = {${body}}\n`
   }
-  code += `export interface Cuttle${safeCaps(part)}Key extends CuttleBaseKey { type: '${part}',`
+  code += `export interface Cuttle${safeCaps(part)}Key extends CuttleBaseKey { type: '${part}', marginX?: number, marginY?: number,`
   if ('variants' in info) code += `variant: ${safeCaps(part)}Variant,`
   if (PART_INFO[part].keycap) code += 'keycap: IKeycap,'
-  if ('radius' in socketSize({ type: part, variant: {} } as any)) code += 'size?: { sides: number },'
+  if ('radiusX' in socketSize({ type: part, variant: {} } as any)) code += 'size?: { sides: number },'
   code += '}\n'
 }
 code += 'export type CuttleKey = ' + objKeys(PART_INFO).map(p => `Cuttle${safeCaps(p)}Key`).join('|') + '\n'

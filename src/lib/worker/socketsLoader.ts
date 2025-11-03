@@ -36,7 +36,7 @@ const extendedKeyCacher = makeAsyncCacher(async (key: CuttleKey) => {
 function extendPlate(plate: Solid, key: CuttleKey) {
   const size = socketSize(key)
   if (key.aspect == 1) return plate
-  if ('radius' in size) return plate
+  if ('radiusX' in size) return plate
 
   const extension = drawRoundedRectangle(size[0] * Math.max(key.aspect, 1), size[1] * Math.max(1 / key.aspect, 1))
     .cut(drawRoundedRectangle(size[0], size[1]))

@@ -725,7 +725,8 @@ export const sortedCategories = [...new Set(Object.values(PART_INFO).map((p) => 
 // ------------------------------------------------------------------------------------------------------
 // TYPES
 
-type PartSize = [number, number, number] | { radius: number; sides: number; height: number }
+type PartSize = [number, number, number] | { radiusX: number; radiusY: number; sides: number; height: number }
+type ShortcutPartSize = PartSize | { radius: number; sides: number; height: number }
 type Variant = Record<string, any>
 export type BomItem = { item: string; icon: string; count: number; info?: string }
 type Pins = {
@@ -742,14 +743,14 @@ type Pins = {
 
 type PartInfoNonVariant = {
   bomName: string
-  socketSize: PartSize | ((k: CuttleKey) => PartSize)
+  socketSize: ShortcutPartSize | ((k: CuttleKey) => ShortcutPartSize)
   partBottom: [number, number, number][][]
   extraBomItems?: Record<string, BomItem>
   numPins?: Pins
 }
 type PartInfoVariant = {
   bomName: (v: Variant) => string
-  socketSize: (v: Variant, k: CuttleKey) => PartSize
+  socketSize: (v: Variant, k: CuttleKey) => ShortcutPartSize
   partBottom: (v: Variant) => [number, number, number][][]
   variants: Record<string, string[]>
   decodeVariant: (n: number) => Variant
@@ -791,11 +792,22 @@ export function variantURL(key: CuttleKey) {
   ).join('-').toLowerCase()
 }
 
-export function socketSize(k: CuttleKey): PartSize {
+function truePartSize(k: CuttleKey, size: ShortcutPartSize, withMargin: boolean): PartSize {
+  const theSize = 'radius' in size ? { radiusX: size.radius, radiusY: size.radius, sides: size.sides, height: size.height } : size
+  if (k.type == 'blank') return theSize
+  if (withMargin) {
+    const mx = k.marginX || 0
+    const my = k.marginY || 0
+    if ('radiusX' in theSize) return { ...theSize, radiusX: theSize.radiusX + mx, radiusY: theSize.radiusY + my }
+    return [theSize[0] + mx * 2, theSize[1] + my * 2, theSize[2]]
+  }
+  return theSize
+}
+export function socketSize(k: CuttleKey, withMargin = true): PartSize {
   const info = PART_INFO[k.type]
-  if ('variants' in info) return info.socketSize(k.variant!, k)
-  if (typeof info.socketSize == 'function') return info.socketSize(k)
-  return info.socketSize
+  if ('variants' in info) return truePartSize(k, info.socketSize(k.variant!, k), withMargin)
+  if (typeof info.socketSize == 'function') return truePartSize(k, info.socketSize(k), withMargin)
+  return truePartSize(k, info.socketSize, withMargin)
 }
 export function socketHeight(k: CuttleKey): number {
   const size = socketSize(k)

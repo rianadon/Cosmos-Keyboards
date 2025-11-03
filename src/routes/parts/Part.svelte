@@ -56,9 +56,9 @@
     : null
 
   $: size = socketSize(key)
-  $: width = 'radius' in size ? size.radius * 2 : size[0]
-  $: length = 'radius' in size ? size.radius * 2 : size[1]
-  $: height = 'radius' in size ? size.height : size[2]
+  $: width = 'radiusX' in size ? size.radiusX * 2 : size[0]
+  $: length = 'radiusX' in size ? size.radiusX * 2 : size[1]
+  $: height = 'radiusX' in size ? size.height : size[2]
   $: bottom = partBottom(key)
 
   $: Promise.all([partPromise, socketPromise]).then(() => (loading = false))
@@ -159,8 +159,8 @@
         {/await}
         {#if dev}
           <T.Mesh
-            geometry={'radius' in size
-              ? drawLinedCircleOutside(0, 0, size.radius, 0.8)
+            geometry={'radiusX' in size
+              ? drawLinedCircleOutside(0, 0, size.radiusX, 0.8)
               : drawLinedRectangleOutside(-width / 2, -length / 2, width, length, 0.8)}
             material={new MeshBasicMaterial({ color: 0x14b8a6 })}
           />

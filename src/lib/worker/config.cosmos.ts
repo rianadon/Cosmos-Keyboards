@@ -64,6 +64,8 @@ export type CosmosKey = {
   rotation: bigint | undefined
   sizeA?: number
   sizeB?: number
+  marginX?: number
+  marginY?: number
 }
 
 interface CosmosWristRestProps {
@@ -111,7 +113,7 @@ export type CosmosKeyboard =
   }
   & ScrewFlags
 
-export const ROUND_PARTS = objKeys(PART_INFO).filter(p => 'radius' in socketSize({ type: p, variant: {} } as any))
+export const ROUND_PARTS = objKeys(PART_INFO).filter(p => 'radiusX' in socketSize({ type: p, variant: {} } as any))
 export const PARTS_WITH_KEYCAPS = objKeys(PART_INFO).filter(p => PART_INFO[p].keycap)
 
 export function getRowColumn(t: ETrsf) {
@@ -216,6 +218,9 @@ function toCosmosClusters(keys: CuttleKey[], side: 'left' | 'right', globalProfi
         if (colKey.type == 'blank') size = { sizeA: colKey.size.width, sizeB: colKey.size.height }
         if (ROUND_PARTS.includes(colKey.type)) size = { sizeA: undefined, sizeB: (colKey as any).size.sides }
 
+        let margin = { x: undefined as number | undefined, y: undefined as number | undefined }
+        if (colKey.type != 'blank') margin = { x: colKey.marginX, y: colKey.marginY }
+
         column.keys.push({
           partType: {
             type: diff(colKey.type, columnPartType.type),
@@ -230,6 +235,8 @@ function toCosmosClusters(keys: CuttleKey[], side: 'left' | 'right', globalProfi
           row: keyRow,
           sizeA: size.sizeA,
           sizeB: size.sizeB,
+          marginX: margin.x,
+          marginY: margin.y,
           ...toPosRotation(trsf.Matrix4()),
         })
       }
@@ -506,6 +513,10 @@ export function toCuttleKey(c: CosmosKeyboard, cluster: CosmosCluster, col: Cosm
     cuttleKey.aspect = 1
   }
   if (cuttleKey.type == 'blank') cuttleKey.size = { width: key.sizeA!, height: key.sizeB! }
+  else {
+    cuttleKey.marginX = key.marginX
+    cuttleKey.marginY = key.marginY
+  }
   // @ts-ignore
   if (ROUND_PARTS.includes(cuttleKey.type)) cuttleKey.size = { sides: key.sizeB }
   return cuttleKey

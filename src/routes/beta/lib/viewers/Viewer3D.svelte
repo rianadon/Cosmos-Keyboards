@@ -190,6 +190,7 @@
       if ($selectMode == 'key') {
         key.partType.type = newType
         key.partType.variant = key.sizeA = key.sizeB = undefined
+        if (newType == 'blank') key.marginX = key.marginY = undefined
       }
       if ($selectMode == 'column') {
         column.partType.type = newType
@@ -1001,7 +1002,7 @@
       </button>
       {#if popoutShown}
         <div
-          class="absolute right-10 bottom-[-4rem]"
+          class="absolute right-10 bottom-[-8rem]"
           class:w-60={$clickedKey != null}
           class:w-50={$clickedKey == null}
         >
@@ -1170,6 +1171,31 @@
                   {:else}<span class="fallback">-</span>{/if}
                 </Field>
                 <div class="my-2" />
+                {#if $clickedKey != null ? nthPartType($protoConfig, $clickedKey, 'key') != 'blank' : $hoveredKey == null || nthPartType($protoConfig, $hoveredKey, 'key') != 'blank'}
+                  <Field small name="Margin X" icon="expand-horizontal" iconColor="#ff3653">
+                    {#if keyIsClicked}<DecimalInputInherit
+                        small
+                        noColor
+                        inherit={0}
+                        bind:value={keyIsClicked.marginX}
+                        on:change={updateProto}
+                      />
+                    {:else if keyIsHovered}<span class="fallback">{keyIsHovered.marginX || '0'}</span>
+                    {:else}<span class="fallback">-</span>{/if}
+                  </Field>
+                  <Field small name="Margin Y" icon="expand-vertical" iconColor="#8adb00">
+                    {#if keyIsClicked}<DecimalInputInherit
+                        small
+                        noColor
+                        inherit={0}
+                        bind:value={keyIsClicked.marginY}
+                        on:change={updateProto}
+                      />
+                    {:else if keyIsHovered}<span class="fallback">{keyIsHovered.marginY || '0'}</span>
+                    {:else}<span class="fallback">-</span>{/if}
+                  </Field>
+                  <div class="my-2" />
+                {/if}
                 <Field
                   small
                   name={$useAbsolute ? 'Position X' : 'Offset X'}
@@ -1200,7 +1226,10 @@
                   {:else if hoveredPosition}<span class="fallback">{hoveredPosition[2]}</span>
                   {:else}<span class="fallback">-</span>{/if}
                 </Field>
-                <div class="my-2" />
+                <div class="text-sm opacity-70 mt-0.5 mb-1 text-center">
+                  Margin &amp; {$useAbsolute ? 'position' : 'offset'} are in
+                  <span class="font-bold italic">mm</span>
+                </div>
                 <Field small name="Rotation X" icon="rotatex" iconColor="#ff3653">
                   {#if $clickedKey != null}
                     <AngleInput small bind:value={$rotationX} />
