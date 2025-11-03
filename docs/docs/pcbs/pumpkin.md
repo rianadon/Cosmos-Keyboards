@@ -116,14 +116,14 @@ If you cut any of these PCBs off, they effectively turn into minature Plum Twist
 
 ## Revision History
 
-**v1.1: Useful Fixes**
+**v1.1: Useful Fixes (not released yet, in progress)**
 
 - Rerouted the PCB so only a minimum of 2 rows is required to connect everything (before 3 rows were needed).
 - Fattened power and GND traces so LEDs can be run brighter
 - Improved soldering for GND pad (On v1.0, the GND pad was fully connected to the GND fill on the top and right sides. As a result, you might find it difficult to heat up this pad and solder to it, as the pad will sink a lot of heat into the ground fill. In v1.1, it's only connected by a small trace).
 - Secured the FPC cable to the frame.
 
-**v1.0: New Connector Scheme**
+**v1.0: New Connector Scheme (currently sold)**
 
 - Switched middle two rows of FPC connectors to pads.
 - Added solder jumpers to the 2nd row from bottom to bridge column's LED data out to PCB data out. This allows you to still have the last Pumpkin Patch LED connected to the first thumb cluster LED, even if you cut off a column from the Pumpkin Patch.
