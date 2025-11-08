@@ -1388,7 +1388,7 @@ export function screwIndices(
   const positiveInd = screwPositions.filter(i => i != -1)
 
   // if (true || positiveInd.length) {
-  for (const pos of allScrewIndices(c, walls, connOrigin, boardIdx, indexCadidates, worldZ, bottomZ, minDisplacement)) {
+  for (const pos of allScrewIndices(c, walls, indexCandidates, connOrigin, boardIdx, positiveInd, worldZ, bottomZ, minDisplacement)) {
     // Find next position with index -1. It will be replaced.
     const nextIndex = screwPositions.indexOf(-1)
     if (nextIndex == -1) break
