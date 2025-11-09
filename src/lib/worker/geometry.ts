@@ -8,6 +8,7 @@ import cdt2d from 'cdt2d'
 import findBoundary from 'simplicial-complex-boundary'
 import { ExtrudeGeometry, Matrix3, Shape, Triangle, type Vector3Tuple } from 'three'
 import { Vector2 } from 'three/src/math/Vector2.js'
+import { doTrianglesIntersect } from './check'
 import { Clipper, ClipperOffset, EndType, JoinType, Paths, PolyType } from './clipper'
 import concaveman from './concaveman'
 import { type Cuttleform, type CuttleKey, type Geometry } from './config'
@@ -228,24 +229,29 @@ export function wallCriticalPoints(
 
   // This produces uniform thickness shrouds
   if (c.wallShrouding) z = pt.trsf.axis(0, 0, 1)
-  if (c.shell.type == 'stilts') {
-    z = pt.trsf.axis(0, 0, 1) // new Vector(0, 0, 1)
-    // const displacement = pt.trsf.origin().sub(pt.keyTrsf.origin())
-    // const keyInv = pt.trsf.inverted()
-    // const keyZ = keyInv.axis(...z.xyz())
-    // const keyDisplacement = keyInv.axis(...displacement.xyz())
-    // if (keyZ.x * keyDisplacement.x > 0 || keyZ.y * keyDisplacement.y > 0) {
-    //     if (keyZ.x * keyDisplacement.x > 0) keyZ.x = 0
-    //     if (keyZ.y * keyDisplacement.y > 0) keyZ.y = 0
-    //     keyZ.normalize()
-    //     z = pt.trsf.axis(...keyZ.xyz())
-    // }
-  }
+  // if (c.shell.type == 'stilts') {
+  //   z = pt.trsf.axis(0, 0, 1) // new Vector(0, 0, 1)
+  // const displacement = pt.trsf.origin().sub(pt.keyTrsf.origin())
+  // const keyInv = pt.trsf.inverted()
+  // const keyZ = keyInv.axis(...z.xyz())
+  // const keyDisplacement = keyInv.axis(...displacement.xyz())
+  // if (keyZ.x * keyDisplacement.x > 0 || keyZ.y * keyDisplacement.y > 0) {
+  //     if (keyZ.x * keyDisplacement.x > 0) keyZ.x = 0
+  //     if (keyZ.y * keyDisplacement.y > 0) keyZ.y = 0
+  //     keyZ.normalize()
+  //     z = pt.trsf.axis(...keyZ.xyz())
+  // }
+  // }
 
-  const bisect = offsetBisector(prevPt.trsf, pt.trsf, nextPt.trsf, thickness, z)
+  let bisect = offsetBisector(prevPt.trsf, pt.trsf, nextPt.trsf, thickness, z)
+  if (c.shell.type == 'stilts') {
+    const a = offsetAxis(prevPt.trsf, pt.trsf, nextPt.trsf, z)
+    bisect = pt.trsf.cleared().coordSystemChange(pt.trsf.origin(), a, pt.trsf.axis(0, 0, 1))
+  }
   const mul = offsetScale(c, bisect, pt.trsf)
   const xOut = wallXYOffset(c) * mul
-  const zOut = height ? height : wallZOffset(c)
+  let zOut = height ? height : wallZOffset(c)
+  if (c.shell.type == 'stilts') zOut = 40
 
   const ti = bisect
   const ki = pt.trsf.pretranslated(0, 0, -webThickness(c, pt.key))
@@ -253,7 +259,8 @@ export function wallCriticalPoints(
   // Find the X offset that makes the thickness of the wall exactly = thickness
   const cos_th = zOut / Math.sqrt(xOut ** 2 + zOut ** 2)
   const tan_th = xOut / zOut
-  const xOffset = thickness / cos_th - webThickness(c, pt.key) * tan_th
+  let xOffset = thickness / cos_th - webThickness(c, pt.key) * tan_th
+  if (c.shell.type == 'stilts') xOffset = thickness
 
   const to = bisect.pretranslated(xOffset, 0, 0)
   let mo = to.pretranslated(xOut, 0, -zOut)
@@ -327,6 +334,142 @@ export function wallCriticalPoints(
 
     // if (mo.origin().z < 0)
     // mo = bo.translated(0, 0, 0.001)
+
+    return { si, sm, ti, ki, mi, bi, to, mo, bo, key: pt.key, pt: ptIndex, nRoundNext: pt.key == nextPt.key, nRoundPrev: pt.key == prevPt.key }
+  }
+
+  return { ti, ki, mi, bi, to, mo, bo, key: pt.key, pt: ptIndex, nRoundNext: pt.key == nextPt.key, nRoundPrev: pt.key == prevPt.key }
+}
+
+export function stiltsWallsInnerPoints(
+  c: Cuttleform,
+  pts: KeyTrsf[],
+  offset: number,
+  height: number,
+) {
+  const thickness = wallThickness(c) + offset
+
+  const ti = new Array<Trsf>(pts.length)
+  const bi = new Array<Trsf>(pts.length)
+  const to = new Array<Trsf>(pts.length)
+  const bo = new Array<Trsf>(pts.length)
+  const triangles = new Array<Triangle>(pts.length)
+  for (let i = 0; i < pts.length; i++) {
+    const n = (i + 1) % pts.length
+    const p = (i + pts.length - 1) % pts.length
+    const bisectZ = pts[i].trsf.axis(0, 0, 1).add(pts[p].trsf.axis(0, 0, 0.5)).add(pts[n].trsf.axis(0, 0, 0.5))
+    const a = offsetAxis(pts[p].trsf, pts[i].trsf, pts[n].trsf, bisectZ)
+    const bisect = pts[i].trsf.cleared().coordSystemChange(pts[i].trsf.origin(), a, pts[i].trsf.axis(0, 0, 1))
+
+    // const bisect = offsetBisector(pts[p].trsf, pts[i].trsf, pts[n].trsf, thickness, pts[i].trsf.axis(0, 0, 1))
+    ti[i] = bisect
+    to[i] = bisect.pretranslated(thickness, 0, 0)
+    bi[i] = bisect.pretranslated(0, 0, -height)
+    bo[i] = bisect.pretranslated(thickness, 0, -height)
+    triangles[i] = new Triangle(to[i].origin(), bi[i].origin(), bo[i].origin())
+  }
+
+  // let anyIntersects = true
+  // for (let i = 0; i < 100 && anyIntersects; i++) {
+  //   anyIntersects = false
+  //   for (let i = 0; i < pts.length; i++) {
+  //     const j = (i + 1) % pts.length
+  //     const intersect = doTrianglesIntersect(triangles[i], triangles[j])
+  //     // || doTrianglesIntersect(triangles[i], new Triangle(to[i].origin(), bo[i].origin(), bo[j].origin()))
+  //     // || doTrianglesIntersect(triangles[j], new Triangle(to[j].origin(), bo[j].origin(), bo[i].origin()))
+  //     if (intersect) {
+  //       // Rotate both bottom points about the axis
+  //       const axis0 = ti[i].axis(1, 0, 0).xyz()
+  //       const axis1 = ti[j].axis(1, 0, 0).xyz()
+
+  //       bi[i] = bi[i].rotated(3, ti[i].xyz(), axis0)
+  //       bo[i] = bo[i].rotated(3, ti[i].xyz(), axis0)
+
+  //       bi[j] = bi[j].rotated(-3, ti[j].xyz(), axis1)
+  //       bo[j] = bo[j].rotated(-3, ti[j].xyz(), axis1)
+
+  //       triangles[i] = new Triangle(to[i].origin(), bi[i].origin(), bo[i].origin())
+  //       triangles[j] = new Triangle(to[j].origin(), bi[j].origin(), bo[j].origin())
+
+  //       anyIntersects = true
+  //     }
+  //   }
+  // }
+  // if (anyIntersects) throw new Error('FIXME: Walls intersect')
+
+  return { ti, bi, to, bo }
+}
+
+export function stiltsWallCriticalPoints(
+  c: Cuttleform,
+  prevPt: KeyTrsf,
+  pt: KeyTrsf,
+  nextPt: KeyTrsf,
+  ptIndex: number,
+  offset: number,
+  bottomZ: number,
+  worldZ: Vector,
+  wallPts: ReturnType<typeof stiltsWallsInnerPoints>,
+  wallPtsI: number,
+  height?: number,
+): WallCriticalPoints {
+  // const worldX = new Vector(0, 1, 0).addScaledVector(worldZ, -worldZ.y).normalize()
+  // const thickness = wallThickness(c) + offset
+  // // Take z as the average of the three axes, only if they are close enough.
+  // let z = pt.trsf.axis(0, 0, 1).add(prevPt.trsf.axis(0, 0, 0.5)).add(nextPt.trsf.axis(0, 0, 0.5))
+
+  // // This produces uniform thickness shrouds
+  // if (c.wallShrouding) z = pt.trsf.axis(0, 0, 1)
+  // if (c.shell.type == 'stilts') {
+  //   z = pt.trsf.axis(0, 0, 1)
+  // }
+
+  // const bisect = offsetBisector(prevPt.trsf, pt.trsf, nextPt.trsf, thickness, z)
+  // const xOut = 0
+  // const zOut = height ? height : wallZOffset(c)
+
+  // const ti = bisect
+  const ki = pt.trsf.pretranslated(0, 0, -webThickness(c, pt.key))
+
+  // // Find the X offset that makes the thickness of the wall exactly = thickness
+  // const cos_th = zOut / Math.sqrt(xOut ** 2 + zOut ** 2)
+  // const tan_th = xOut / zOut
+  // const xOffset = thickness / cos_th - webThickness(c, pt.key) * tan_th
+
+  // const to = bisect.pretranslated(xOffset, 0, 0)
+  // const mo = to.pretranslated(xOut, 0, -zOut)
+  // let bo = mo
+
+  // let mi = ti.pretranslated(xOut, 0, -zOut)
+  // // Ensure that mi is in enough to create a bottom wall at exactly = thickness
+  // const yAxis = bisect.axis(0, 1, 0)
+  // const xAxis = new Vector(yAxis.y, -yAxis.x, 0) // The x axis projected onto the floor
+  // const moX = mo.origin().dot(xAxis) // Find x coordinates of mo and mi
+  // const miX = mi.origin().dot(xAxis)
+  // const xAdj = thickness - moX + miX // mi needs to move in this amount
+  // const yAdj = xAdj * Math.tan(Math.asin(bisect.axis(0, 0, 1).z)) // and up this amount
+  // // in order to ensure that the upper wall remains constant thickness
+  // mi.translate(xAxis.multiplyScalar(-xAdj).xyz())
+  // // mi.translate(0, 0, yAdj)
+
+  // // Orient bi upwards
+  // const bi = mi
+
+  const ti = wallPts.ti[wallPtsI]
+  const to = wallPts.to[wallPtsI]
+  const bi = wallPts.bi[wallPtsI]
+  const bo = wallPts.bo[wallPtsI]
+  const mi = wallPts.bi[wallPtsI]
+  const mo = wallPts.bo[wallPtsI]
+
+  // 1e-6 is the tolerance used for modeling
+  // While it's ok to adjust the layout for very tiny wall shrouding,
+  // it is not ok to add extra points to the model, for they will intersect and cause problems.
+  if (c.wallShrouding > 1e-6) {
+    const dy = pt.trsf.axis(0, 0, c.wallShrouding).xyz()
+    const si = ti.pretranslated(0.5, 0, 0)
+    const sm = ti.pretranslated(0.5, 0, 0).translate(dy)
+    to.pretranslate(0, 0, c.wallShrouding)
 
     return { si, sm, ti, ki, mi, bi, to, mo, bo, key: pt.key, pt: ptIndex, nRoundNext: pt.key == nextPt.key, nRoundPrev: pt.key == prevPt.key }
   }

@@ -9,10 +9,13 @@ import wasmUrl from '$assets/replicad_single.wasm?url'
 // import loadOC from 'opencascade/dist/opencascade.full';
 // import wasmUrl from 'opencascade/dist/opencascade.full.wasm?url';
 import { combinedKeyHoleMesh, keyHoleMeshes } from '$lib/loaders/sockets'
+import { setManifold } from '@pro/fourdutil'
 import type { InitOutput } from '@pro/rust_offset'
 import __wbg_init from '@pro/rust_offset'
 import { makeStiltsWalls, makeStiltsWallsQuick } from '@pro/stiltsModel'
 import { wristRest } from '@pro/wristRest'
+import loadManifold, { type ManifoldToplevel } from 'manifold-3d'
+import manifoldUrl from 'manifold-3d/manifold.wasm?url'
 import type { BufferAttribute, BufferGeometry, Mesh } from 'three'
 import { getUser } from '../../routes/beta/lib/login'
 import { ITriangle } from '../loaders/simplekeys'
@@ -27,6 +30,7 @@ import ETrsf from './modeling/transformation-ext'
 
 let oc: OpenCascadeInstance
 let rust: InitOutput
+let manifold: ManifoldToplevel
 let model: Solid
 let ocTime = 0
 
@@ -48,6 +52,9 @@ async function ensureOC() {
 async function ensureRust() {
   if (!rust) {
     rust = await __wbg_init({} as any)
+    manifold = await loadManifold({ locateFile: () => manifoldUrl })
+    manifold.setup()
+    setManifold(manifold)
   }
 }
 

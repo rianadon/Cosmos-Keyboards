@@ -7,6 +7,8 @@
 import type { Cuttleform } from '$lib/worker/config'
 import { type WallCriticalPoints, wallUpDir } from '$lib/worker/geometry'
 import type Trsf from '$lib/worker/modeling/transformation'
+import { Triangle } from 'three/src/math/Triangle.js'
+import { doTrianglesIntersect } from './check'
 
 // function refineBoundary(c, Cuttleform, wallPts: WallCriticalPoints[]) {
 //   let intersections: boolean[] = []
@@ -58,6 +60,14 @@ export function doWallsIntersect(c: Cuttleform, wall0: WallCriticalPoints, wall1
     const o1 = dot(subtract(wall2.bo, wall1.bo), normal)
     if (o0 * o1 > 0) return true // They intersect if the projections lie on the same side
   }
+
+  // if (c.shell.type == 'stilts') {
+  //   // Also check the triangles
+  //   const t0 = new Triangle(wall0.to.origin(), wall0.bo.origin(), wall0.bi.origin())
+  //   const t1 = new Triangle(wall1.to.origin(), wall1.bo.origin(), wall1.bi.origin())
+  //   const t2 = new Triangle(wall2.to.origin(), wall2.bo.origin(), wall2.bi.origin())
+  //   if (doTrianglesIntersect(t0, t1) || doTrianglesIntersect(t1, t2)) return true
+  // }
 
   if (('si' in wall0) && wall0.si) {
     // Because everything is 3d I can't use the 2d shorcut dot/subtract methods here.
