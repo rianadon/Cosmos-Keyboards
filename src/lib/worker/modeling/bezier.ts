@@ -1,7 +1,7 @@
 import { draw, Face, getOC, type PlaneName } from 'replicad'
 import { BufferAttribute, ExtrudeGeometry, Shape } from 'three'
 import { bezierPatch, type Curve, evalPatch, lineToCurve, loftCurves, type Patch, patchGradient, triangleNormTrsf } from '../geometry'
-import { sum } from '../util'
+import { DefaultMap, sum } from '../util'
 import { buildSewnShell, buildSewnSolid, buildShell, buildSolid, makeQuad, makeTriangle, type ShapeMesh } from './index'
 import Trsf from './transformation'
 import { Vector } from './transformation'
@@ -47,6 +47,79 @@ export class CompBezierSurface {
       else if (f.length == 3) return triangleToMesh(f as any)
       return quadToMesh(f as any)
     }))
+  }
+
+  toMeshManifold(): ShapeMesh {
+    const vertices: number[] = []
+    const triangles: number[] = []
+    const normals: number[] = []
+    const faceGroups: ShapeMesh['faceGroups'] = []
+
+    const blocks: number[] = []
+    for (let i = 0; i <= 7; i++) {
+      blocks.push(i / 7)
+    }
+
+    const edgeMap = new DefaultMap<Vector, Map<Vector, number[]>>(() => new Map())
+    ;(this.faces as Patch[]).forEach((patch, faceIndex) => {
+      const patchVertices = blocks.map(() => new Array(blocks.length))
+      const n = blocks.length - 1
+
+      // Look up preexisting vertices for edges
+      const e00_03 = edgeMap.get(patch[0][0]).get(patch[0][3])
+      const e03_33 = edgeMap.get(patch[0][3]).get(patch[3][3])
+      const e33_30 = edgeMap.get(patch[3][3]).get(patch[3][0])
+      const e30_00 = edgeMap.get(patch[3][0]).get(patch[0][0])
+      if (e00_03) patchVertices.forEach((r, i) => r[0] = e00_03[i])
+      if (e03_33) patchVertices[n] = e03_33
+      if (e33_30) patchVertices.forEach((r, i) => r[n] = e33_30[n - i])
+      if (e30_00) patchVertices[0] = e30_00.toReversed()
+
+      for (let i = 0; i < blocks.length; i++) {
+        for (let j = 0; j < blocks.length; j++) {
+          if (typeof patchVertices[i][j] !== 'undefined') continue
+          patchVertices[i][j] = vertices.length / 3
+          vertices.push(...evalPatchV(patch, blocks[i], blocks[j]).xyz())
+          normals.push(...patchNormal(patch, blocks[i], blocks[j]).xyz())
+        }
+      }
+
+      // Set edgemap for opposite edges
+      edgeMap.get(patch[0][3]).set(patch[0][0], patchVertices.map(r => r[0]).toReversed())
+      edgeMap.get(patch[3][3]).set(patch[0][3], patchVertices[n].toReversed())
+      edgeMap.get(patch[3][0]).set(patch[3][3], patchVertices.map(r => r[n]))
+      edgeMap.get(patch[0][0]).set(patch[3][0], patchVertices[0])
+
+      // Add triangles
+      const trianglesStart = triangles.length
+      for (let i = 0; i < blocks.length - 1; i++) {
+        for (let j = 0; j < blocks.length - 1; j++) {
+          triangles.push(
+            patchVertices[i][j],
+            patchVertices[i][j + 1],
+            patchVertices[i + 1][j],
+          )
+          triangles.push(
+            patchVertices[i][j + 1],
+            patchVertices[i + 1][j + 1],
+            patchVertices[i + 1][j],
+          )
+        }
+      }
+
+      // Add facegroup
+      faceGroups.push({
+        start: trianglesStart / 3,
+        count: (triangles.length - trianglesStart) / 3,
+        faceId: faceIndex,
+      })
+    })
+    return {
+      vertices: new Float32Array(vertices),
+      normals: new Float32Array(normals),
+      triangles: new Uint16Array(triangles),
+      faceGroups,
+    }
   }
 
   /** Create a Solid that can be used in opencascade from this surface. */

@@ -68,6 +68,26 @@ export function* intersectLineCircle(pa: Vector, pb: Vector, porigin: Vector, ra
   }
 }
 
+/** Intersection of a 3D line and sphere. */
+export function* intersectLineSphereTs(pt: Vector, direction: Vector, sphereOrigin: Vector, radius: number) {
+  const d = direction.clone()
+  const o = pt.clone().sub(sphereOrigin)
+
+  const a = d.dot(d)
+  const b = 2 * o.dot(d)
+  const c = o.dot(o) - radius * radius
+
+  const discriminant = b * b - 4 * a * c
+  if (discriminant < 0) return // no intersection
+
+  const sqrtD = Math.sqrt(discriminant)
+  const t1 = (-b - sqrtD) / (2 * a)
+  const t2 = (-b + sqrtD) / (2 * a)
+
+  yield t1
+  yield t2
+}
+
 export function* intersectTriCircle(a: Vector, b: Vector, c: Vector, origin: Vector, radius: number) {
   yield* intersectLineCircle(a, b, origin, radius)
   yield* intersectLineCircle(b, c, origin, radius)
