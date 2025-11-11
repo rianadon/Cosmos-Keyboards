@@ -28,7 +28,7 @@ const wallXYOffset = (c: Cuttleform) => {
   return c.wallXYOffset
 }
 export const wallZOffset = (c: Cuttleform) => {
-  if (c.shell.type == 'stilts') return c.wallZOffset
+  if (c.shell.type == 'stilts') return 20
   return c.wallZOffset
 }
 
@@ -251,7 +251,6 @@ export function wallCriticalPoints(
   const mul = offsetScale(c, bisect, pt.trsf)
   const xOut = wallXYOffset(c) * mul
   let zOut = height ? height : wallZOffset(c)
-  if (c.shell.type == 'stilts') zOut = 40
 
   const ti = bisect
   const ki = pt.trsf.pretranslated(0, 0, -webThickness(c, pt.key))
@@ -341,141 +340,141 @@ export function wallCriticalPoints(
   return { ti, ki, mi, bi, to, mo, bo, key: pt.key, pt: ptIndex, nRoundNext: pt.key == nextPt.key, nRoundPrev: pt.key == prevPt.key }
 }
 
-export function stiltsWallsInnerPoints(
-  c: Cuttleform,
-  pts: KeyTrsf[],
-  offset: number,
-  height: number,
-) {
-  const thickness = wallThickness(c) + offset
+// export function stiltsWallsInnerPoints(
+//   c: Cuttleform,
+//   pts: KeyTrsf[],
+//   offset: number,
+//   height: number,
+// ) {
+//   const thickness = wallThickness(c) + offset
 
-  const ti = new Array<Trsf>(pts.length)
-  const bi = new Array<Trsf>(pts.length)
-  const to = new Array<Trsf>(pts.length)
-  const bo = new Array<Trsf>(pts.length)
-  const triangles = new Array<Triangle>(pts.length)
-  for (let i = 0; i < pts.length; i++) {
-    const n = (i + 1) % pts.length
-    const p = (i + pts.length - 1) % pts.length
-    const bisectZ = pts[i].trsf.axis(0, 0, 1).add(pts[p].trsf.axis(0, 0, 0.5)).add(pts[n].trsf.axis(0, 0, 0.5))
-    const a = offsetAxis(pts[p].trsf, pts[i].trsf, pts[n].trsf, bisectZ)
-    const bisect = pts[i].trsf.cleared().coordSystemChange(pts[i].trsf.origin(), a, pts[i].trsf.axis(0, 0, 1))
+//   const ti = new Array<Trsf>(pts.length)
+//   const bi = new Array<Trsf>(pts.length)
+//   const to = new Array<Trsf>(pts.length)
+//   const bo = new Array<Trsf>(pts.length)
+//   const triangles = new Array<Triangle>(pts.length)
+//   for (let i = 0; i < pts.length; i++) {
+//     const n = (i + 1) % pts.length
+//     const p = (i + pts.length - 1) % pts.length
+//     const bisectZ = pts[i].trsf.axis(0, 0, 1).add(pts[p].trsf.axis(0, 0, 0.5)).add(pts[n].trsf.axis(0, 0, 0.5))
+//     const a = offsetAxis(pts[p].trsf, pts[i].trsf, pts[n].trsf, bisectZ)
+//     const bisect = pts[i].trsf.cleared().coordSystemChange(pts[i].trsf.origin(), a, pts[i].trsf.axis(0, 0, 1))
 
-    // const bisect = offsetBisector(pts[p].trsf, pts[i].trsf, pts[n].trsf, thickness, pts[i].trsf.axis(0, 0, 1))
-    ti[i] = bisect
-    to[i] = bisect.pretranslated(thickness, 0, 0)
-    bi[i] = bisect.pretranslated(0, 0, -height)
-    bo[i] = bisect.pretranslated(thickness, 0, -height)
-    triangles[i] = new Triangle(to[i].origin(), bi[i].origin(), bo[i].origin())
-  }
+//     // const bisect = offsetBisector(pts[p].trsf, pts[i].trsf, pts[n].trsf, thickness, pts[i].trsf.axis(0, 0, 1))
+//     ti[i] = bisect
+//     to[i] = bisect.pretranslated(thickness, 0, 0)
+//     bi[i] = bisect.pretranslated(0, 0, -height)
+//     bo[i] = bisect.pretranslated(thickness, 0, -height)
+//     triangles[i] = new Triangle(to[i].origin(), bi[i].origin(), bo[i].origin())
+//   }
 
-  // let anyIntersects = true
-  // for (let i = 0; i < 100 && anyIntersects; i++) {
-  //   anyIntersects = false
-  //   for (let i = 0; i < pts.length; i++) {
-  //     const j = (i + 1) % pts.length
-  //     const intersect = doTrianglesIntersect(triangles[i], triangles[j])
-  //     // || doTrianglesIntersect(triangles[i], new Triangle(to[i].origin(), bo[i].origin(), bo[j].origin()))
-  //     // || doTrianglesIntersect(triangles[j], new Triangle(to[j].origin(), bo[j].origin(), bo[i].origin()))
-  //     if (intersect) {
-  //       // Rotate both bottom points about the axis
-  //       const axis0 = ti[i].axis(1, 0, 0).xyz()
-  //       const axis1 = ti[j].axis(1, 0, 0).xyz()
+//   // let anyIntersects = true
+//   // for (let i = 0; i < 100 && anyIntersects; i++) {
+//   //   anyIntersects = false
+//   //   for (let i = 0; i < pts.length; i++) {
+//   //     const j = (i + 1) % pts.length
+//   //     const intersect = doTrianglesIntersect(triangles[i], triangles[j])
+//   //     // || doTrianglesIntersect(triangles[i], new Triangle(to[i].origin(), bo[i].origin(), bo[j].origin()))
+//   //     // || doTrianglesIntersect(triangles[j], new Triangle(to[j].origin(), bo[j].origin(), bo[i].origin()))
+//   //     if (intersect) {
+//   //       // Rotate both bottom points about the axis
+//   //       const axis0 = ti[i].axis(1, 0, 0).xyz()
+//   //       const axis1 = ti[j].axis(1, 0, 0).xyz()
 
-  //       bi[i] = bi[i].rotated(3, ti[i].xyz(), axis0)
-  //       bo[i] = bo[i].rotated(3, ti[i].xyz(), axis0)
+//   //       bi[i] = bi[i].rotated(3, ti[i].xyz(), axis0)
+//   //       bo[i] = bo[i].rotated(3, ti[i].xyz(), axis0)
 
-  //       bi[j] = bi[j].rotated(-3, ti[j].xyz(), axis1)
-  //       bo[j] = bo[j].rotated(-3, ti[j].xyz(), axis1)
+//   //       bi[j] = bi[j].rotated(-3, ti[j].xyz(), axis1)
+//   //       bo[j] = bo[j].rotated(-3, ti[j].xyz(), axis1)
 
-  //       triangles[i] = new Triangle(to[i].origin(), bi[i].origin(), bo[i].origin())
-  //       triangles[j] = new Triangle(to[j].origin(), bi[j].origin(), bo[j].origin())
+//   //       triangles[i] = new Triangle(to[i].origin(), bi[i].origin(), bo[i].origin())
+//   //       triangles[j] = new Triangle(to[j].origin(), bi[j].origin(), bo[j].origin())
 
-  //       anyIntersects = true
-  //     }
-  //   }
-  // }
-  // if (anyIntersects) throw new Error('FIXME: Walls intersect')
+//   //       anyIntersects = true
+//   //     }
+//   //   }
+//   // }
+//   // if (anyIntersects) throw new Error('FIXME: Walls intersect')
 
-  return { ti, bi, to, bo }
-}
+//   return { ti, bi, to, bo }
+// }
 
-export function stiltsWallCriticalPoints(
-  c: Cuttleform,
-  prevPt: KeyTrsf,
-  pt: KeyTrsf,
-  nextPt: KeyTrsf,
-  ptIndex: number,
-  offset: number,
-  bottomZ: number,
-  worldZ: Vector,
-  wallPts: ReturnType<typeof stiltsWallsInnerPoints>,
-  wallPtsI: number,
-  height?: number,
-): WallCriticalPoints {
-  // const worldX = new Vector(0, 1, 0).addScaledVector(worldZ, -worldZ.y).normalize()
-  // const thickness = wallThickness(c) + offset
-  // // Take z as the average of the three axes, only if they are close enough.
-  // let z = pt.trsf.axis(0, 0, 1).add(prevPt.trsf.axis(0, 0, 0.5)).add(nextPt.trsf.axis(0, 0, 0.5))
+// export function stiltsWallCriticalPoints(
+//   c: Cuttleform,
+//   prevPt: KeyTrsf,
+//   pt: KeyTrsf,
+//   nextPt: KeyTrsf,
+//   ptIndex: number,
+//   offset: number,
+//   bottomZ: number,
+//   worldZ: Vector,
+//   wallPts: ReturnType<typeof stiltsWallsInnerPoints>,
+//   wallPtsI: number,
+//   height?: number,
+// ): WallCriticalPoints {
+//   // const worldX = new Vector(0, 1, 0).addScaledVector(worldZ, -worldZ.y).normalize()
+//   // const thickness = wallThickness(c) + offset
+//   // // Take z as the average of the three axes, only if they are close enough.
+//   // let z = pt.trsf.axis(0, 0, 1).add(prevPt.trsf.axis(0, 0, 0.5)).add(nextPt.trsf.axis(0, 0, 0.5))
 
-  // // This produces uniform thickness shrouds
-  // if (c.wallShrouding) z = pt.trsf.axis(0, 0, 1)
-  // if (c.shell.type == 'stilts') {
-  //   z = pt.trsf.axis(0, 0, 1)
-  // }
+//   // // This produces uniform thickness shrouds
+//   // if (c.wallShrouding) z = pt.trsf.axis(0, 0, 1)
+//   // if (c.shell.type == 'stilts') {
+//   //   z = pt.trsf.axis(0, 0, 1)
+//   // }
 
-  // const bisect = offsetBisector(prevPt.trsf, pt.trsf, nextPt.trsf, thickness, z)
-  // const xOut = 0
-  // const zOut = height ? height : wallZOffset(c)
+//   // const bisect = offsetBisector(prevPt.trsf, pt.trsf, nextPt.trsf, thickness, z)
+//   // const xOut = 0
+//   // const zOut = height ? height : wallZOffset(c)
 
-  // const ti = bisect
-  const ki = pt.trsf.pretranslated(0, 0, -webThickness(c, pt.key))
+//   // const ti = bisect
+//   const ki = pt.trsf.pretranslated(0, 0, -webThickness(c, pt.key))
 
-  // // Find the X offset that makes the thickness of the wall exactly = thickness
-  // const cos_th = zOut / Math.sqrt(xOut ** 2 + zOut ** 2)
-  // const tan_th = xOut / zOut
-  // const xOffset = thickness / cos_th - webThickness(c, pt.key) * tan_th
+//   // // Find the X offset that makes the thickness of the wall exactly = thickness
+//   // const cos_th = zOut / Math.sqrt(xOut ** 2 + zOut ** 2)
+//   // const tan_th = xOut / zOut
+//   // const xOffset = thickness / cos_th - webThickness(c, pt.key) * tan_th
 
-  // const to = bisect.pretranslated(xOffset, 0, 0)
-  // const mo = to.pretranslated(xOut, 0, -zOut)
-  // let bo = mo
+//   // const to = bisect.pretranslated(xOffset, 0, 0)
+//   // const mo = to.pretranslated(xOut, 0, -zOut)
+//   // let bo = mo
 
-  // let mi = ti.pretranslated(xOut, 0, -zOut)
-  // // Ensure that mi is in enough to create a bottom wall at exactly = thickness
-  // const yAxis = bisect.axis(0, 1, 0)
-  // const xAxis = new Vector(yAxis.y, -yAxis.x, 0) // The x axis projected onto the floor
-  // const moX = mo.origin().dot(xAxis) // Find x coordinates of mo and mi
-  // const miX = mi.origin().dot(xAxis)
-  // const xAdj = thickness - moX + miX // mi needs to move in this amount
-  // const yAdj = xAdj * Math.tan(Math.asin(bisect.axis(0, 0, 1).z)) // and up this amount
-  // // in order to ensure that the upper wall remains constant thickness
-  // mi.translate(xAxis.multiplyScalar(-xAdj).xyz())
-  // // mi.translate(0, 0, yAdj)
+//   // let mi = ti.pretranslated(xOut, 0, -zOut)
+//   // // Ensure that mi is in enough to create a bottom wall at exactly = thickness
+//   // const yAxis = bisect.axis(0, 1, 0)
+//   // const xAxis = new Vector(yAxis.y, -yAxis.x, 0) // The x axis projected onto the floor
+//   // const moX = mo.origin().dot(xAxis) // Find x coordinates of mo and mi
+//   // const miX = mi.origin().dot(xAxis)
+//   // const xAdj = thickness - moX + miX // mi needs to move in this amount
+//   // const yAdj = xAdj * Math.tan(Math.asin(bisect.axis(0, 0, 1).z)) // and up this amount
+//   // // in order to ensure that the upper wall remains constant thickness
+//   // mi.translate(xAxis.multiplyScalar(-xAdj).xyz())
+//   // // mi.translate(0, 0, yAdj)
 
-  // // Orient bi upwards
-  // const bi = mi
+//   // // Orient bi upwards
+//   // const bi = mi
 
-  const ti = wallPts.ti[wallPtsI]
-  const to = wallPts.to[wallPtsI]
-  const bi = wallPts.bi[wallPtsI]
-  const bo = wallPts.bo[wallPtsI]
-  const mi = wallPts.bi[wallPtsI]
-  const mo = wallPts.bo[wallPtsI]
+//   const ti = wallPts.ti[wallPtsI]
+//   const to = wallPts.to[wallPtsI]
+//   const bi = wallPts.bi[wallPtsI]
+//   const bo = wallPts.bo[wallPtsI]
+//   const mi = wallPts.bi[wallPtsI]
+//   const mo = wallPts.bo[wallPtsI]
 
-  // 1e-6 is the tolerance used for modeling
-  // While it's ok to adjust the layout for very tiny wall shrouding,
-  // it is not ok to add extra points to the model, for they will intersect and cause problems.
-  if (c.wallShrouding > 1e-6) {
-    const dy = pt.trsf.axis(0, 0, c.wallShrouding).xyz()
-    const si = ti.pretranslated(0.5, 0, 0)
-    const sm = ti.pretranslated(0.5, 0, 0).translate(dy)
-    to.pretranslate(0, 0, c.wallShrouding)
+//   // 1e-6 is the tolerance used for modeling
+//   // While it's ok to adjust the layout for very tiny wall shrouding,
+//   // it is not ok to add extra points to the model, for they will intersect and cause problems.
+//   if (c.wallShrouding > 1e-6) {
+//     const dy = pt.trsf.axis(0, 0, c.wallShrouding).xyz()
+//     const si = ti.pretranslated(0.5, 0, 0)
+//     const sm = ti.pretranslated(0.5, 0, 0).translate(dy)
+//     to.pretranslate(0, 0, c.wallShrouding)
 
-    return { si, sm, ti, ki, mi, bi, to, mo, bo, key: pt.key, pt: ptIndex, nRoundNext: pt.key == nextPt.key, nRoundPrev: pt.key == prevPt.key }
-  }
+//     return { si, sm, ti, ki, mi, bi, to, mo, bo, key: pt.key, pt: ptIndex, nRoundNext: pt.key == nextPt.key, nRoundPrev: pt.key == prevPt.key }
+//   }
 
-  return { ti, ki, mi, bi, to, mo, bo, key: pt.key, pt: ptIndex, nRoundNext: pt.key == nextPt.key, nRoundPrev: pt.key == prevPt.key }
-}
+//   return { ti, ki, mi, bi, to, mo, bo, key: pt.key, pt: ptIndex, nRoundNext: pt.key == nextPt.key, nRoundPrev: pt.key == prevPt.key }
+// }
 
 export function blockWallCriticalPoints(
   c: Cuttleform,
@@ -1719,9 +1718,9 @@ export type Patch = Vector[][]
 export function bezierPatch(p1: Curve, p2: Curve, p3: Curve, p4?: Curve) {
   const poles: Patch = [[], [], [], []]
 
-  let c1 = p1.map(p => p.origin())
-  let c2 = p2.map(p => p.origin())
-  let c3 = p3.map(p => p.origin())
+  let c1 = p1.map(p => p.constorigin())
+  let c2 = p2.map(p => p.constorigin())
+  let c3 = p3.map(p => p.constorigin())
   let c4: Vector[]
 
   // Try to correct curves that are in the wrong directions
@@ -1736,7 +1735,7 @@ export function bezierPatch(p1: Curve, p2: Curve, p3: Curve, p4?: Curve) {
   // c2 and c2 are guaranteed to be pointing the right way. Now connect c3 and c4
   if (c3[0].approxEq(c2[3])) c3.reverse()
   if (p4) {
-    c4 = p4.map(p => p.origin())
+    c4 = p4.map(p => p.constorigin())
     if (c1[0].approxEq(c4[3])) c4.reverse()
   } else {
     c4 = [c1[0], c1[0].clone().lerp(c3[0], 1 / 3), c1[0].clone().lerp(c3[0], 2 / 3), c3[0]]
@@ -2407,19 +2406,22 @@ export function triangleMap(triangles: [number, number, number][]) {
 
 /** Yield all points that may have minimum or maximum Z coordinates
     when intersecting a circle with the given triangles on the XY plane */
-export function* extremaCircleZOnBT(origin: Vector, radius: number, points: Trsf[], triangles: number[][]) {
+export function* extremaCircleZOnBT(origin: Vector, radius: number, points: Trsf[], triangles: number[][], filterNormal?: 'up' | 'down') {
   for (const [a, b, c] of triangles) {
     const pa = points[a].origin()
     const pb = points[b].origin()
     const pc = points[c].origin()
 
-    for (const intersection of intersectTriCircle(pa, pb, pc, origin, radius)) {
-      yield intersection.z
-    }
-
     const u = points[b].origin().sub(pa)
     const v = points[c].origin().sub(pa)
     const normal = u.cross(v).normalize()
+
+    if (filterNormal == 'up' && normal.z <= 0) continue
+    if (filterNormal == 'down' && normal.z >= 0) continue
+
+    for (const intersection of intersectTriCircle(pa, pb, pc, origin, radius)) {
+      yield intersection.z
+    }
 
     // Solutions to the optimization problem by finding the minimum and maximum z coordinates
     // on the triangle with the constraint that the solution lies on the circle
@@ -2436,7 +2438,7 @@ export function* extremaCircleZOnBT(origin: Vector, radius: number, points: Trsf
   }
 }
 
-export function adjustedStiltsScrewOrigin(walls: WallCriticalPoints[], origin: Vector, radius: number) {
+export function adjustedStiltsScrewOrigin(walls: WallCriticalPoints[], origin: Vector, radius: number, plateThickness: number) {
   let converged: boolean
   let iterations = 0
   do {
@@ -2444,8 +2446,8 @@ export function adjustedStiltsScrewOrigin(walls: WallCriticalPoints[], origin: V
     walls.forEach((wall, i) => {
       const nextWall = walls[(i + 1) % walls.length]
 
-      const bo = wall.bo.origin()
-      const bon = nextWall.bo.origin()
+      const bo = wall.bo.pretranslated(0, 0, plateThickness).origin()
+      const bon = nextWall.bo.pretranslated(0, 0, plateThickness).origin()
 
       const intersects = [...intersectLineCircle(bo, bon, origin, radius)]
       if (intersects.length > 0) {
