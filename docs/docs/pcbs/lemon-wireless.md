@@ -336,8 +336,8 @@ I haven't contributed this board upstream yet since I don't know how popular thi
      */
     #define WIRE_INTERFACES_COUNT 1
 
-    #define PIN_WIRE_SDA         (22)
-    #define PIN_WIRE_SCL         (23)
+    #define PIN_WIRE_SDA         (18)
+    #define PIN_WIRE_SCL         (19)
 
     // QSPI Pins
     #define PIN_QSPI_SCK         27

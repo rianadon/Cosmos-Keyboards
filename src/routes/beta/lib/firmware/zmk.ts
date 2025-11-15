@@ -1,7 +1,7 @@
 import { download } from '$lib/browser'
 import { hasPinsInMatrix } from '$lib/loaders/keycaps'
 import type { CuttleKey, Geometry } from '$lib/worker/config'
-import { filterObj, findIndexIter, mapObjNotNull, mapObjNotNullToObj, mapObjToObj, objEntries, objEntriesNotNull, objKeysOfNotNull } from '$lib/worker/util'
+import { filterObj, findIndexIter, mapObjNotNull, mapObjNotNullToObj, mapObjToObj, objEntries, objEntriesNotNull, objKeysOfNotNull, sum } from '$lib/worker/util'
 import { strToU8, zip } from 'fflate'
 import type { FullGeometry } from '../viewers/viewer3dHelpers'
 import { dtsFile, encoderKeys, fullLayout, logicalKeys, type Matrix, raw, yamlFile } from './firmwareHelpers'
@@ -150,7 +150,14 @@ function generateKeycodes(config: FullGeometry, matrix: Matrix, options: ZMKOpti
   return keycodes
 }
 
+function generateEncoderMap(encodersPerSide: Record<keyof FullGeometry, number>) {
+  const numEncoders = sum(Object.values(encodersPerSide).map(s => Math.min(s, 1)))
+  return new Array(numEncoders).fill('&inc_dec_kp C_VOL_UP C_VOL_DN').join(' ')
+}
+
 function generateKeymap(config: FullGeometry, matrix: Matrix, options: ZMKOptions) {
+  const encodersPerSide = mapObjNotNull(config, c => encoderKeys(c.c).length)
+  const hasEncoders = Object.values(encodersPerSide).some(e => e > 0)
   return dtsFile({
     [raw()]: '#include <behaviors.dtsi>',
     [raw()]: '#include <dt-bindings/zmk/keys.h>',
@@ -159,6 +166,11 @@ function generateKeymap(config: FullGeometry, matrix: Matrix, options: ZMKOption
         compatible: 'zmk,keymap',
         default_layer: {
           bindings: '<' + generateKeycodes(config, matrix, options).join(' ') + '>',
+          ...(hasEncoders
+            ? {
+              sensorBindings: '<' + generateEncoderMap(encodersPerSide) + '>',
+            }
+            : {}),
         },
         ...(options.enableStudio
           ? {

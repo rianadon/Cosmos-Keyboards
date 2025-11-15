@@ -416,12 +416,14 @@ I haven't contributed this board upstream yet since I don't know how popular thi
     #define PIN_SERIAL2_RX (31u)
 
     // SPI
-    #define PIN_SPI0_MISO  (20u)
-    #define PIN_SPI0_MOSI  (19u)
-    #define PIN_SPI0_SCK   (18u)
-    #define PIN_SPI0_SS    (17u)
+    #define __SPI0_DEVICE  spi1
+    #define PIN_SPI0_MISO  (12u)
+    #define PIN_SPI0_MOSI  (15u)
+    #define PIN_SPI0_SCK   (14u)
+    #define PIN_SPI0_SS    (13u)
 
     // Not pinned out
+    #define __SPI1_DEVICE  spi0
     #define PIN_SPI1_MISO  (31u)
     #define PIN_SPI1_MOSI  (31u)
     #define PIN_SPI1_SCK   (31u)
@@ -429,11 +431,11 @@ I haven't contributed this board upstream yet since I don't know how popular thi
 
     // Wire
     #define __WIRE0_DEVICE i2c1
-    #define PIN_WIRE0_SDA  (2u)
-    #define PIN_WIRE0_SCL  (3u)
+    #define PIN_WIRE0_SDA  (18u)
+    #define PIN_WIRE0_SCL  (19u)
     #define __WIRE1_DEVICE i2c0
-    #define PIN_WIRE1_SDA  (24u)
-    #define PIN_WIRE1_SCL  (25u)
+    #define PIN_WIRE1_SDA  (31u)
+    #define PIN_WIRE1_SCL  (31u)
 
     #define SERIAL_HOWMANY (2u)
     #define SPI_HOWMANY    (1u)
@@ -448,6 +450,8 @@ I haven't contributed this board upstream yet since I don't know how popular thi
     ```
 
     After modifying these files, restart Arduino IDE. You should now see Cosmos Lemon Wired listed as the last option when choosing a board through **Tools -> Board -> Raspberry Pi Pico -> Cosmos Lemon Wireled**.
+
+Because I2C1 and SPI1 are the only two buses you'll probably use, I've mapped them to `Wire` and `SPI` in Arduino (drop the 1). They are set up to by default follow the offical Lemon Wired pinout.
 
 --8<-- "docs/docs/pcbs/.shared/vik.md"
 
