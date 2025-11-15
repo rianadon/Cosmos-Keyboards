@@ -1,12 +1,11 @@
 import qmkVik from '$assets/qmk-vik.zip?url'
 import { download } from '$lib/browser'
 import { hasKeyGeometry, hasPinsInMatrix } from '$lib/loaders/keycaps'
-import type { CuttleKey } from '$lib/worker/config'
+import type { CuttleKey, Geometry } from '$lib/worker/config'
+import { mapObjNotNull, sum } from '$lib/worker/util'
 import { strToU8, zip } from 'fflate'
 import type { FullGeometry } from '../viewers/viewer3dHelpers'
-import { jsonFile, logicalKeys, unzipURL, yamlFile, zipPromise } from './firmwareHelpers'
-
-export type Matrix = Map<CuttleKey, [number, number]>
+import { encoderKeys, fullLayout, jsonFile, logicalKeys, type Matrix, unzipURL, yamlFile, zipPromise } from './firmwareHelpers'
 
 const RE_PID_VID = /^0x[0-9A-Fa-f]{4}$/
 
@@ -27,91 +26,84 @@ export function validateConfig(options: QMKOptions) {
 
 /** Generates the key layout used in keyboard.json */
 function generateLayout(config: FullGeometry, matrix: Matrix) {
-  const layout: { matrix: [number, number]; x: number; y: number }[] = []
-
-  const keyPositions = new Map<CuttleKey, { x: number; y: number }>()
-  for (const [side, keyboard] of Object.entries(config)) {
-    const positions = keyboard.keyHolesTrsfs2D
-    for (let i = 0; i < positions.length; i++) {
-      const keyPos = positions[i].xyz()
-      const x = side === 'left' ? -keyPos[0] : keyPos[0]
-      const y = keyPos[1]
-      keyPositions.set(keyboard.c.keys[i], { x, y })
-    }
-  }
-
-  for (const key of logicalKeys(config)) {
-    if (!hasPinsInMatrix(key)) continue
-    const matrixPosition = matrix.get(key)
-    const { x, y } = keyPositions.get(key)!
-    if (!matrixPosition) throw new Error('Key has no matrix position')
-    layout.push({ matrix: matrixPosition, x, y })
-  }
-  const minX = Math.min(...layout.map(l => l.x))
-  const minY = Math.min(...layout.map(l => l.y))
-  return layout.map(({ matrix, x, y }) => ({ matrix, x: x - minX, y: y - minY }))
+  return fullLayout(config, matrix).map(({ matrix, x, y }) => ({ matrix, x, y }))
 }
 
 /** Generates keyboard.json, in JSON format */
 function generateInfoJSON(config: FullGeometry, matrix: Matrix, options: QMKOptions) {
   if (validateConfig(options)) throw new Error('Invalid config')
+  const encodersPerSide = mapObjNotNull(config, c => encoderKeys(c.c).length)
+  const hasEncoders = Object.values(encodersPerSide).some(e => e > 0)
   return jsonFile({
-    'keyboard_name': options.keyboardName,
-    'manufacturer': options.yourName,
-    'url': 'ryanis.cool/cosmos',
-    'maintainer': options.yourName,
-    'usb': {
-      'vid': options.vid,
-      'pid': options.pid,
-      'device_version': '0.0.1',
+    keyboard_name: options.keyboardName,
+    manufacturer: options.yourName,
+    url: 'ryanis.cool/cosmos',
+    maintainer: options.yourName,
+    usb: {
+      vid: options.vid,
+      pid: options.pid,
+      device_version: '0.0.1',
     },
-    'processor': 'RP2040',
-    'bootloader': 'rp2040',
-    'features': {
-      'bootmagic': true,
-      'rgblight': true,
-      'console': options.enableConsole,
+    processor: 'RP2040',
+    bootloader: 'rp2040',
+    features: {
+      bootmagic: true,
+      rgblight: true,
+      console: options.enableConsole,
+      encoder: hasEncoders,
+      encoder_map: hasEncoders,
+      extrakey: hasEncoders || EXTRAKEY_REQUIRED.intersection(new Set(generateKeycodes(config))).size,
     },
-    'matrix_pins': {
-      'cols': ['GP25', 'GP24', 'GP23', 'GP22', 'GP21', 'GP20', 'GP10'],
-      'rows': ['GP3', 'GP4', 'GP5', 'GP6', 'GP7', 'GP8', 'GP9'],
+    matrix_pins: {
+      cols: ['GP25', 'GP24', 'GP23', 'GP22', 'GP21', 'GP20', 'GP10'],
+      rows: ['GP3', 'GP4', 'GP5', 'GP6', 'GP7', 'GP8', 'GP9'],
     },
-    'diode_direction': options.diodeDirection,
-    'ws2812': {
-      'pin': 'GP2',
-      'driver': 'vendor',
+    diode_direction: options.diodeDirection,
+    ws2812: {
+      pin: 'GP2',
+      driver: 'vendor',
     },
-    'rgblight': {
-      'driver': 'ws2812',
-      'animations': {
-        'rainbow_mood': true,
+    rgblight: {
+      driver: 'ws2812',
+      animations: {
+        rainbow_mood: true,
       },
-      'default': {
-        'animation': 'rainbow_mood',
-        'val': 50,
+      default: {
+        animation: 'rainbow_mood',
+        val: 50,
       },
-      'led_count': 98,
-      'split': true,
-      'split_count': [49, 49],
+      led_count: 98,
+      split: true,
+      split_count: [49, 49],
     },
-    'bootmagic': {
-      'matrix': [0, 0],
+    bootmagic: {
+      matrix: [0, 0],
     },
-    'split': {
-      'enabled': true,
-      'bootmagic': {
-        'matrix': [7, 0],
+    ...(hasEncoders
+      ? {
+        encoder: {
+          rotary: encodersPerSide.unibody || encodersPerSide.left ? [{ pin_a: 'GP28', pin_b: 'GP29', resolution: 1 }] : [],
+          right: {
+            rotary: encodersPerSide.right ? [{ pin_a: 'GP28', pin_b: 'GP29', resolution: 1 }] : [],
+          },
+        },
+      }
+      : {}),
+    split: {
+      enabled: true,
+      bootmagic: {
+        matrix: [7, 0],
       },
-      'serial': {
-        'driver': 'vendor',
+      serial: {
+        driver: 'vendor',
       },
-      'transport': {
-        'watchdog': true,
+      transport: {
+        watchdog: true,
       },
     },
-    'layouts': {
-      'LAYOUT': {
-        'layout': generateLayout(config, matrix),
+    layouts: {
+      LAYOUT: {
+        layout: generateLayout(config, matrix),
       },
     },
   })
@@ -258,6 +250,40 @@ const SPECIALS = [
   'up',
 ]
 
+// dprint-ignore
+const EXTRAKEY_REQUIRED = new Set([
+  'KC_SYSTEM_POWER', 'KC_PWR',
+  'KC_SYSTEM_SLEEP', 'KC_SLEP',
+  'KC_SYSTEM_WAKE', 'KC_WAKE',
+  'KC_AUDIO_MUTE', 'KC_MUTE',
+  'KC_AUDIO_VOL_UP', 'KC_VOLU',
+  'KC_AUDIO_VOL_DOWN', 'KC_VOLD',
+  'KC_MEDIA_NEXT_TRACK', 'KC_MNXT',
+  'KC_MEDIA_PREV_TRACK', 'KC_MPRV',
+  'KC_MEDIA_STOP', 'KC_MSTP',
+  'KC_MEDIA_PLAY_PAUSE', 'KC_MPLY',
+  'KC_MEDIA_SELECT', 'KC_MSEL',
+  'KC_MEDIA_EJECT', 'KC_EJCT',
+  'KC_MEDIA_FAST_FORWARD', 'KC_MFFD',
+  'KC_MEDIA_REWIND', 'KC_MRWD',
+  'KC_MAIL',
+  'KC_CALCULATOR', 'KC_CALC',
+  'KC_MY_COMPUTER', 'KC_MYCM',
+  'KC_CONTROL_PANEL', 'KC_CPNL',
+  'KC_ASSISTANT', 'KC_ASST',
+  'KC_MISSION_CONTROL', 'KC_MCTL',
+  'KC_LAUNCHPAD',
+  'KC_WWW_SEARCH', 'KC_WSCH',
+  'KC_WWW_HOME', 'KC_WHOM',
+  'KC_WWW_BACK', 'KC_WBAK',
+  'KC_WWW_FORWARD', 'KC_WFWD',
+  'KC_WWW_STOP', 'KC_WSTP',
+  'KC_WWW_REFRESH', 'KC_WREF',
+  'KC_WWW_FAVORITES', 'KC_WFAV',
+  'KC_BRIGHTNESS_UP', 'KC_BRIU',
+  'KC_BRIGHTNESS_DOWN', 'KC_BRID',
+])
+
 /** Return the QMK keycode for a letter */
 function keycode(code: string | undefined) {
   const c = code?.toLowerCase()
@@ -275,7 +301,7 @@ function keycode(code: string | undefined) {
 }
 
 /** Generates the keycodes for the QMK keymap */
-function generateKeycodes(config: FullGeometry, matrix: Matrix) {
+function generateKeycodes(config: FullGeometry) {
   const keycodes: string[] = []
   for (const key of logicalKeys(config)) {
     if (!hasPinsInMatrix(key)) continue
@@ -284,12 +310,30 @@ function generateKeycodes(config: FullGeometry, matrix: Matrix) {
   return keycodes
 }
 
+function generateEncoderMap(encodersPerSide: Record<keyof FullGeometry, number>) {
+  const numEncoders = sum(Object.values(encodersPerSide).map(s => Math.min(s, 1)))
+  return new Array(numEncoders).fill('ENCODER_CCW_CW(KC_VOLD, KC_VOLU)').join(', ')
+}
+
 function generateKeymap(config: FullGeometry, matrix: Matrix, options: QMKOptions) {
+  const encodersPerSide = mapObjNotNull(config, c => encoderKeys(c.c).length)
+  const hasEncoders = Object.values(encodersPerSide).some(e => e > 0)
   return [
     '#include QMK_KEYBOARD_H\n',
     'const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {',
-    `    [0] = LAYOUT(${generateKeycodes(config, matrix).join(', ')}),`,
+    `    [0] = LAYOUT(${generateKeycodes(config).join(', ')}),`,
     '};',
+    ...(
+      hasEncoders
+        ? [
+          '#if defined(ENCODER_MAP_ENABLE)',
+          'const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = {',
+          `    [0] = { ${generateEncoderMap(encodersPerSide)} },`,
+          '};',
+          '#endif',
+        ]
+        : ['']
+    ),
     ...(
       options.enableConsole
         ? [
@@ -363,4 +407,12 @@ export function downloadQMKCode(config: FullGeometry, matrix: Matrix, options: Q
       download(blob, `firmware-${options.keyboardName}.zip`)
     })
     .catch(err => console.error(err))
+}
+
+export function* qmkInfo(config: Geometry) {
+  if (encoderKeys(config.c).length > 0) yield 'Encoder detected. Make sure it is wired to GPIO28 and GPIO29'
+}
+
+export function* qmkErrors(config: Geometry) {
+  if (encoderKeys(config.c).length > 1) yield 'Multiple encoders detected on this side. Only the first will be configured in the firmware.'
 }

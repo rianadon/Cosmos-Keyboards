@@ -471,6 +471,12 @@ The configurations that Cosmos and PeaMK are built around have `SPLIT_USB_DETECT
 
 If the dialog goes away before you can press it, temporarily [change the "Allow Accessories to Connect" setting](https://support.apple.com/en-us/102282#settings) from "Ask for New Accessories" to "Automatically Allow When Unlocked". You can change it back after the microcontroller is successfully connected.
 
+### LEDs not Working
+
+There have been cases where LEDs on a Pumpkin Patch PCB have not turned on when the Wired Lemon was been plugged into USB ports with higher than normal voltages (at least 5.4V). If you are sure that your USB port has this high of a voltage, then you should follow the steps in the [Wireless Lemon troubleshooting section](../lemon-wireless#leds-not-working-fix-for-v03-and-below), but instead use a supplemental 10kΩ resistor (as the Wired Lemon internally uses a 5.1kΩ as its pullup).
+
+Otherwise, your LEDs might not be turning on if the LED power relay is not engaged. Check that the VRGB pin is really getting 5V and that GPIO11 is low.
+
 ## PCB Drawing and Dimensions
 
 ![PCB Layout for Wired Lemon](../../assets/lemon-wired-layout.png){ width=500 .center }

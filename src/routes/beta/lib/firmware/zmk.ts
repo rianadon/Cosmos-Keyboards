@@ -1,18 +1,17 @@
 import { download } from '$lib/browser'
 import { hasPinsInMatrix } from '$lib/loaders/keycaps'
-import type { CuttleKey } from '$lib/worker/config'
-import { findIndexIter } from '$lib/worker/util'
+import type { CuttleKey, Geometry } from '$lib/worker/config'
+import { filterObj, findIndexIter, mapObjNotNull, mapObjNotNullToObj, mapObjToObj, objEntries, objEntriesNotNull, objKeysOfNotNull } from '$lib/worker/util'
 import { strToU8, zip } from 'fflate'
 import type { FullGeometry } from '../viewers/viewer3dHelpers'
-import { dtsFile, logicalKeys, raw, yamlFile } from './firmwareHelpers'
-
-export type Matrix = Map<CuttleKey, [number, number]>
+import { dtsFile, encoderKeys, fullLayout, logicalKeys, type Matrix, raw, yamlFile } from './firmwareHelpers'
 
 const RE_PID_VID = /^0x[0-9A-Fa-f]{4}$/
 
 interface ZMKPeripherals {
   pmw3610: boolean
   cirque: boolean
+  encoder: boolean
 }
 
 export interface ZMKOptions {
@@ -28,6 +27,9 @@ export interface ZMKOptions {
     right: ZMKPeripherals
     unibody: ZMKPeripherals
   }
+  underGlowAtStart: boolean
+  enableConsole: boolean
+  enableStudio: boolean
 }
 
 export function validateConfig(options: ZMKOptions) {
@@ -134,11 +136,16 @@ function keycode(code: string | undefined) {
 }
 
 /** Generates the keycodes for the ZMK keymap */
-function generateKeycodes(config: FullGeometry, matrix: Matrix) {
+function generateKeycodes(config: FullGeometry, matrix: Matrix, options: ZMKOptions) {
   const keycodes: string[] = []
   for (const key of logicalKeys(config)) {
     if (!hasPinsInMatrix(key)) continue
-    keycodes.push(keycode('keycap' in key ? key.keycap?.letter : undefined))
+    let kc = keycode('keycap' in key ? key.keycap?.letter : undefined)
+    if (options.enableStudio) {
+      const matrixPos = matrix.get(key)
+      if (matrixPos && matrixPos[0] == 0 && matrixPos[1] % 7 == 0) kc = '&studio_unlock'
+    }
+    keycodes.push(kc)
   }
   return keycodes
 }
@@ -151,8 +158,21 @@ function generateKeymap(config: FullGeometry, matrix: Matrix, options: ZMKOption
       keymap: {
         compatible: 'zmk,keymap',
         default_layer: {
-          bindings: ['<' + generateKeycodes(config, matrix).join(' ') + '>'],
+          bindings: '<' + generateKeycodes(config, matrix, options).join(' ') + '>',
         },
+        ...(options.enableStudio
+          ? {
+            extra1: {
+              status: 'reserved',
+            },
+            extra2: {
+              status: 'reserved',
+            },
+            extra3: {
+              status: 'reserved',
+            },
+          }
+          : {}),
       },
     },
   })
@@ -174,25 +194,32 @@ function generateBuildYaml(config: FullGeometry, options: ZMKOptions): string {
     if (peripherals.cirque) shields.push('vik_cirque_spi')
     return shields.join(' ')
   }
+  let snippets: string[] = []
+  if (options.enableConsole) snippets.push('zmk-usb-logging')
+  if (options.enableStudio) snippets.push('studio-rpc-usb-uart')
+
   return yamlFile({
     include: config.unibody
       ? [
         {
           board: 'cosmos_lemon_wireless',
           shield: shieldList(`${options.folderName}`, options.peripherals.unibody),
-          snippet: 'zmk-usb-logging',
+          snippet: snippets.join(';'),
+          'cmake-args': options.enableStudio ? '-DCONFIG_ZMK_STUDIO=y' : undefined,
         },
       ]
       : [
         {
           board: 'cosmos_lemon_wireless',
           shield: shieldList(`${options.folderName}_left`, options.peripherals.left),
-          snippet: 'zmk-usb-logging',
+          snippet: options.centralSide == 'left' ? snippets.join(';') : undefined,
+          'cmake-args': options.centralSide == 'left' && options.enableStudio ? '-DCONFIG_ZMK_STUDIO=y' : undefined,
         },
         {
           board: 'cosmos_lemon_wireless',
           shield: shieldList(`${options.folderName}_right`, options.peripherals.right),
-          snippet: 'zmk-usb-logging',
+          snippet: options.centralSide == 'right' ? snippets.join(';') : undefined,
+          'cmake-args': options.centralSide == 'right' && options.enableStudio ? '-DCONFIG_ZMK_STUDIO=y' : undefined,
         },
       ],
   }, true)
@@ -255,13 +282,6 @@ if SHIELD_${folderName}_LEFT || SHIELD_${folderName}_RIGHT
 config ZMK_SPLIT
     default y
 
-config SPI
-    default y
-
-config ZMK_RGB_UNDERGLOW
-    select WS2812_STRIP
-    select SPI
-
 endif # SHIELD_${folderName}_LEFT || SHIELD_${folderName}_RIGHT
 `
 }
@@ -278,22 +298,33 @@ config SHIELD_${options.folderName}_RIGHT
 
 function generateConf(config: FullGeometry, options: ZMKOptions) {
   return [
-    '# Uncomment the following lines to enable RGB underglow',
+    '# RGB underglow configuration',
     'CONFIG_ZMK_RGB_UNDERGLOW=y',
+    'CONFIG_WS2812_STRIP=y',
+    'CONFIG_ZMK_RGB_UNDERGLOW_BRT_START=50',
+    'CONFIG_ZMK_RGB_UNDERGLOW_EFF_START=3',
+    'CONFIG_ZMK_RGB_UNDERGLOW_ON_START=' + (options.underGlowAtStart ? 'y' : 'n'),
     '',
     '# zmk mouse emulation for trackball/trackpad',
     'CONFIG_ZMK_POINTING=' + (Object.values(options.peripherals).some(p => p.pmw3610 || p.cirque) ? 'y' : 'n'),
+    '',
+    '# encoder support',
+    'CONFIG_EC11=' + (Object.values(options.peripherals).some(p => p.encoder) ? 'y' : 'n'),
+    'CONFIG_EC11_TRIGGER_GLOBAL_THREAD=' + (Object.values(options.peripherals).some(p => p.encoder) ? 'y' : 'n'),
   ].join('\n') + '\n'
 }
 
 function generateDTSI(config: FullGeometry, matrix: Matrix, options: ZMKOptions) {
   const activeMode = options.diodeDirection == 'COL2ROW' ? 'GPIO_ACTIVE_HIGH' : 'GPIO_ACTIVE_LOW'
   const pullMode = options.diodeDirection == 'COL2ROW' ? 'GPIO_PULL_DOWN' : 'GPIO_PULL_UP'
+  const encoders = mapObjNotNull(config, (g) => encoderKeys(g.c))
+  const encodersWithLength = filterObj(encoders, (k, v) => v.length > 0)
 
   return dtsFile({
     [raw()]: '#include <behaviors.dtsi>',
     [raw()]: '#include <dt-bindings/zmk/matrix_transform.h>',
     [raw()]: '#include <dt-bindings/zmk/keys.h>',
+    [raw()]: `#include "${options.folderName}-layouts.dtsi"`,
     [raw()]: '// Tell VIK that there is 1 other device on the SPI bus.',
     [raw()]: '// You will need to increase this number if you add another SPI device.',
     [raw()]: '#define VIK_SPI_REG_START 1',
@@ -315,13 +346,14 @@ function generateDTSI(config: FullGeometry, matrix: Matrix, options: ZMKOptions)
     '/': {
       'chosen': {
         'zmk,kscan': '&kscan0',
-        'zmk,matrix_transform': '&default_transform',
+        'zmk,physical-layout': '&default_layout',
+        // 'zmk,matrix_transform': '&default_transform',
       },
       'default_transform: keymap_transform_0': {
         compatible: 'zmk,matrix-transform',
         columns: 14,
         rows: 7,
-        map: ['<' + Array.from(matrix.values()).map(([r, c]) => `RC(${r},${c})`).join(' ') + '>'],
+        map: '<' + Array.from(matrix.values()).map(([r, c]) => `RC(${r},${c})`).join(' ') + '>',
       },
       'kscan0: kscan_0': {
         compatible: 'zmk,kscan-gpio-matrix',
@@ -345,6 +377,49 @@ function generateDTSI(config: FullGeometry, matrix: Matrix, options: ZMKOptions)
           `<&shifter 6 ${activeMode}>`,
         ],
       },
+      ...mapObjToObj(encodersWithLength, (encoders, side) => ({
+        [`${side}_encoder: encoder_${side}`]: {
+          compatible: 'alps,ec11',
+          aGpios: '<&gpio0 29 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>',
+          bGpios: '<&gpio0 31 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>',
+          steps: 80,
+          status: 'disabled',
+        },
+      })),
+      ...(Object.keys(encodersWithLength).length
+        ? {
+          'sensors: sensors': {
+            compatible: 'zmk,keymap-sensors',
+            sensors: '<' + Object.keys(encodersWithLength).map(s => `&${s}_encoder`).join(' ') + '>',
+            triggersPerRotation: 20,
+          },
+        }
+        : {}),
+    },
+  })
+}
+
+function generateLayouts(config: FullGeometry, matrix: Matrix, options: ZMKOptions) {
+  const KEY_UNIT = 19
+  return dtsFile({
+    [raw()]: '#include <physical_layouts.dtsi>',
+    '/': {
+      'default_layout: physical_layout_0': {
+        compatible: 'zmk,physical-layout',
+        displayName: 'Default Layout',
+        transform: '<&default_transform>',
+        keys: fullLayout(config, matrix).map(({ x, y, angle }) => {
+          const w = 100
+          const h = 100
+          const tx = Math.round(x / KEY_UNIT * 100)
+          const ty = Math.round(y / KEY_UNIT * 100)
+          const rot = Math.round(angle * 100)
+          const rx = rot == 0 ? 0 : tx + 50
+          const ry = rot == 0 ? 0 : ty + 50
+
+          return `<&key_physical_attrs ${w} ${h} ${tx} ${ty} ${rot < 0 ? '(' + rot + ')' : rot} ${rx} ${ry}>`
+        }),
+      },
     },
   })
 }
@@ -357,18 +432,26 @@ function generateZMKYaml(config: FullGeometry, options: ZMKOptions) {
     name: keyboardName,
     type: 'shield',
     url: 'https://github.com/rianadon/Cosmos-Keyboards',
-    features: ['keys', 'studio'],
+    features: objKeysOfNotNull({
+      keys: true,
+      underglow: true,
+      encoder: Object.values(options.peripherals).some(p => p.encoder),
+      studio: options.enableStudio,
+    }),
     siblings: config.unibody ? [folderName] : [`${folderName}_left`, `${options.folderName}_right`],
   })
 }
 
-function generateOverlay(config: FullGeometry, matrix: Matrix, options: ZMKOptions, right: boolean) {
+function generateOverlay(config: FullGeometry, matrix: Matrix, options: ZMKOptions, side: keyof FullGeometry) {
   // Find the bootloader position, which should be the index of the key with (0,0) matrix position.
   // If no suck key exists, fall back to the first key on the left/right side.
+  const right = side === 'right'
   let bootloaderPosition = findIndexIter(matrix.values(), m => m[0] == 0 && m[1] == (right ? 7 : 0))
   if (bootloaderPosition == -1 && right && config.right) bootloaderPosition = findIndexIter(matrix.keys(), k => config.right!.c.keys.includes(k))
   if (bootloaderPosition == -1 && !right && config.left) bootloaderPosition = findIndexIter(matrix.keys(), k => config.left!.c.keys.includes(k))
   if (bootloaderPosition == -1) bootloaderPosition = 0
+
+  const encoders = config[side] ? encoderKeys(config[side].c) : []
 
   return dtsFile({
     [raw()]: `#include "${options.folderName}.dtsi"`,
@@ -382,6 +465,13 @@ function generateOverlay(config: FullGeometry, matrix: Matrix, options: ZMKOptio
     '&default_transform': right && {
       colOffset: 7,
     },
+    ...(encoders.length
+      ? {
+        [`&${side}_encoder`]: {
+          status: 'okay',
+        },
+      }
+      : {}),
   })
 }
 
@@ -390,13 +480,13 @@ const BOARD_OVERLAY = `#include <dt-bindings/led/led.h>
 &pinctrl {
     spi3_default: spi3_default {
         group1 {
-            psels = <NRF_PSEL(SPIM_MOSI, 0, 6)>;
+            psels = <NRF_PSEL(SPIM_MOSI, 0, 26)>;
         };
     };
 
     spi3_sleep: spi3_sleep {
         group1 {
-            psels = <NRF_PSEL(SPIM_MOSI, 0, 6)>;
+            psels = <NRF_PSEL(SPIM_MOSI, 0, 26)>;
             low-power-enable;
         };
     };
@@ -418,9 +508,10 @@ const BOARD_OVERLAY = `#include <dt-bindings/led/led.h>
         spi-max-frequency = <4000000>;
 
         /* WS2812 */
-        chain-length = <10>; /* arbitrary; change at will */
-        spi-one-frame = <0x70>;
-        spi-zero-frame = <0x40>;
+        chain-length = <49>;
+        spi-one-frame = <0xE0>;
+        spi-zero-frame = <0x80>;
+        reset-delay = <50>;
 
         color-mapping = <LED_COLOR_ID_GREEN LED_COLOR_ID_RED LED_COLOR_ID_BLUE>;
     };
@@ -467,17 +558,20 @@ export function downloadZMKCode(config: FullGeometry, matrix: Matrix, options: Z
         'boards/cosmos_lemon_wireless.overlay': strToU8(BOARD_OVERLAY),
         'Kconfig.defconfig': strToU8(generateDefconfig(config, options)),
         'Kconfig.shield': strToU8(generateShield(config, options)),
-        [folderName + '.conf']: strToU8(generateConf(config, options)),
         [folderName + '.dtsi']: strToU8(generateDTSI(config, matrix, options)),
+        [folderName + '-layouts.dtsi']: strToU8(generateLayouts(config, matrix, options)),
         [folderName + '.keymap']: strToU8(generateKeymap(config, matrix, options)),
         [folderName + '.zmk.yml']: strToU8(generateZMKYaml(config, options)),
         ...(config.unibody
           ? {
-            [folderName + '.overlay']: strToU8(generateOverlay(config, matrix, options, false)),
+            [folderName + '.overlay']: strToU8(generateOverlay(config, matrix, options, 'unibody')),
+            [folderName + '.conf']: strToU8(generateConf(config, options)),
           }
           : {
-            [folderName + '_left.overlay']: strToU8(generateOverlay(config, matrix, options, false)),
-            [folderName + '_right.overlay']: strToU8(generateOverlay(config, matrix, options, true)),
+            [folderName + '_left.overlay']: strToU8(generateOverlay(config, matrix, options, 'left')),
+            [folderName + '_right.overlay']: strToU8(generateOverlay(config, matrix, options, 'right')),
+            [folderName + '_left.conf']: strToU8(generateConf(config, options)),
+            [folderName + '_right.conf']: strToU8(generateConf(config, options)),
           }),
       },
     },
@@ -487,4 +581,12 @@ export function downloadZMKCode(config: FullGeometry, matrix: Matrix, options: Z
       download(blob, `firmware-${options.folderName}.zip`)
     }
   })
+}
+
+export function* zmkInfo(config: Geometry) {
+  if (encoderKeys(config.c).length > 0) yield 'Encoder detected. Make sure it is wired to P0.29 and P0.31'
+}
+
+export function* zmkErrors(config: Geometry) {
+  if (encoderKeys(config.c).length > 1) yield 'Multiple encoders detected on this side. Only the first will be configured in the firmware.'
 }

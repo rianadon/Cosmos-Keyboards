@@ -75,6 +75,7 @@
   import ConfError from './lib/ConfError.svelte'
   import { SORTED_VENDORS } from '@pro/assemblyService'
   import { microcontrollerConnectors } from '$lib/geometry/microcontrollers'
+  import PeaWarnings from './lib/editor/PeaWarnings.svelte'
 
   const DEF_CENTER = [-35.510501861572266, -17.58449935913086, 35.66889877319336] as [
     number,
@@ -995,6 +996,7 @@
               <li>If a key doesn't work, double check your wiring.</li>
               <li>When all keys have been pressed Cosmos will auto-generate your firmware.</li>
             </ol>
+            <PeaWarnings {config} {geometry} />
           {/if}
         {:else}
           <p class="mt-4 mb-2">Some things that will happen here in the future:</p>

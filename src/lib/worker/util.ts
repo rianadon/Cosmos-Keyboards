@@ -72,12 +72,35 @@ export async function mapObjAsync<K extends string, V, R>(obj: Record<K, V>, f: 
   return newObj
 }
 
+export function mapObjToObj<K extends string, L extends string, V, R>(obj: Record<K, V>, f: (a: V, k: K) => Record<L, R>): Record<L, R> {
+  const newObj: any = {}
+  for (const key of Object.keys(obj) as K[]) {
+    for (const [newKey, newValue] of Object.entries(f(obj[key], key))) {
+      newObj[newKey] = newValue
+    }
+  }
+  return newObj
+}
+
 export function mapObjNotNull<K extends string, V, R>(obj: Partial<Record<K, V>>, f: (a: Exclude<V, undefined>, k: K) => R): Record<K, R> {
   const newObj: any = {}
   for (const key of Object.keys(obj) as K[]) {
     const value = obj[key]
     if (typeof value === 'undefined' || value === null) continue
     newObj[key] = f(value as Exclude<V, undefined>, key)
+  }
+  return newObj
+}
+
+export function mapObjNotNullToObj<K extends string, L extends string, V, R>(obj: Partial<Record<K, V>>, f: (a: Exclude<V, undefined>, k: K) => Record<L, R>): Record<L, R> {
+  const newObj: any = {}
+  for (const key of Object.keys(obj) as K[]) {
+    const value = obj[key]
+    if (typeof value === 'undefined' || value === null) continue
+    const result = f(value as Exclude<V, undefined>, key)
+    for (const [newKey, newValue] of Object.entries(result)) {
+      newObj[newKey] = newValue
+    }
   }
   return newObj
 }
@@ -142,6 +165,12 @@ export class TallyMap<K> extends DefaultMap<K, number> {
   }
 }
 
+export function groupBy<K, T>(items: T[], keyFn: (item: T) => K): Map<K, T[]> {
+  const map = new DefaultMap<K, T[]>(() => [])
+  items.forEach(item => map.get(keyFn(item)).push(item))
+  return map
+}
+
 export function diff<T>(n: T, parent: T) {
   if (n == parent) return undefined
   return n
@@ -158,6 +187,10 @@ export function objEntries<T extends object>(obj: T) {
 export function objEntriesNotNull<T extends object>(obj: T) {
   const entries = objEntries(obj)
   return entries.filter(([k, v]) => v != null && typeof v != 'undefined') as [keyof T, Exclude<T[keyof T], null | undefined>][]
+}
+
+export function objKeysOfNotNull<T extends object>(obj: T) {
+  return objEntriesNotNull(obj).map(([k, v]) => k)
 }
 
 export function capitalize(str: string) {

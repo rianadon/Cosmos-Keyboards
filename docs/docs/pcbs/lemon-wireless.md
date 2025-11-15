@@ -415,7 +415,25 @@ For connection issues with ZMK, I recommend you take a look at the [ZMK Connecti
 
 If you are having pairing issues after programming _for the first time_, you likely are having issues with the device you are pairing to. Try pairing to another device and see if issues persist.
 
-If you are having pairing issues after you have changed the program and re-flashed, try [building a reset firmware](https://zmk.dev/docs/troubleshooting/connection-issues#building-a-reset-firmware) and flashing it. I also once heard flashing the opposite side's firmware then re-flashing your desired side's firmware works.
+If you are having pairing issues after you have changed the program and re-flashed, try flashing the [reset firmware](https://github.com/rianadon/peaMK/releases/download/latest/settings_reset-cosmos_lemon_wireless-zmk.uf2) to clear all settings including Bluetooth profiles. I also once heard flashing the opposite side's firmware then re-flashing your desired side's firmware works.
+
+### LEDs Not Working (Fix for v0.3 or Earlier)
+
+If you are using the Wireless Lemon with a Pumpkin Patch PCB that is v0.3 or earlier, solder a 5.1kΩ resistor between the RGB* and VDDH pins, as shown in the image below.
+
+![Wireless Lemon with 5.1kohm resistor](../../assets/lemon_wireless_resistor.png){ width=200 .center }
+
+I've tested resistors between 2.2kΩ and 6.8kΩ, but even 1kΩ should do. Smaller resistors will yield more improvement but increased current draw (e.g. 1kΩ would about 2.7mA of current draw).
+
+!!! info "Why this works"
+
+    The level shifter used in all designs up to and including v0.3 uses an open drain converter with a pullup. This means that the transition from low to high of the signals is unfortunately very suceptible to the wire's capacitance.  The close spacing of the wires in the Pumpkin Patch PCB creates enough parasitic capacitance to make the edges in the LED signal too slow for the addressable LEDs to pick up.
+
+    Reducing the 10kΩ pullup resistor used on the design to 5kΩ or less makes the edges fast enough to be noticed by the LED. My recommendation is 5.1kΩ in parallel with the onboard resistor, which gives 3.4kΩ of effective pullup resistance.
+
+    Note: The current draw estimation comes from the LED signal being low about 75% of the time, in which case the resistor is dissipating a current of 3.3V/(1/10k + 1/chosen R).
+
+If your LEDs are still not working, I recommend downloading the PeaMK firmware onto your Lemon to eliminate software issues. Then check that the LEDs have power and that the first LED's data input pin is electrically connected to the RGB* pin.
 
 ## PCB Drawing and Dimensions
 
