@@ -30,6 +30,8 @@ enumeration('PART', {
   26: 'niz',
   31: 'choc-pumpkin',
   33: 'choc-v1-amoeba-hillside',
+  35: 'skree-norm-mx-ff',
+  36: 'skree-con-mx-ff',
 
   // You wouldn't put many of these on a keyboard.
   16: 'ec11',
