@@ -551,6 +551,19 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     icon: 'oled',
     description: DESC_DISPLAY,
   },
+
+  'oled-128x64-0.96-aliexpress': {
+    partName: 'Generic 128x64 0.96" OLED',
+    bomName: 'Generic 128x64 0.96" OLED',
+    category: 'Displays',
+    stepFile: '/target/key-oled-128x64-0.96-aliexpress.step',
+    socketSize: [27.4, 27.4, 2.9],
+    partBottom: [box(27.3, 27.3, 3.9)],
+    numPins: { i2c: true },
+    icon: 'oled',
+    description: '0.96" I2C display designed for Arduino and available in all sorts of variations on Aliexpress.',
+  },
+
   'trackball': {
     partName: 'Trackball',
     bomName: (v: Variant) => `${v.size || '25–55mm'} Trackball`,
