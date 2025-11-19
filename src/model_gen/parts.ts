@@ -256,6 +256,18 @@ async function main() {
     displayRounding: 0.5,
   })
 
+  poolDisplay('oled-128x64-0.96-aliexpress', {
+    pcbLongSideWidth: 27.3,
+    pcbShortSideWidth: 27.3,
+    offsetFromLeftLongSide: 2.5,
+    offsetFromRightLongSide: 2.5,
+    offsetFromTopShortSide: 6.5,
+    offsetFromBottomShortSide: 9.4,
+    displayThickness: 1.4,
+    pcbThickness: 1.5,
+    displayRounding: 0,
+  })
+
   // Make all combinations of trackballs
   const trackballCode = fileURLToPath(new URL('./parametric/trackball-gen.ts', import.meta.url))
   for (const v of allVariants('trackball') as TrackballVariant[]) {
