@@ -10,6 +10,8 @@
   import { downloadZMKCode, type ZMKOptions } from '../firmware/zmk'
   import { downloadVia } from '../firmware/via'
   import Checkbox from '$lib/presentation/Checkbox.svelte'
+  import { encoderKeys } from '../firmware/firmwareHelpers'
+  import InfoBox from '$lib/presentation/InfoBox.svelte'
 
   export let config: FullCuttleform
   export let geometry: FullGeometry
@@ -22,7 +24,9 @@
     yourName: 'Cosmos',
     diodeDirection: 'ROW2COL',
     centralSide: 'left',
+    underGlowAtStart: true,
     enableConsole: true,
+    enableStudio: true,
   })
   $: fullOptions = {
     ...$options,
@@ -31,6 +35,7 @@
     peripherals: mapObjNotNull(config, (c) => ({
       pmw3610: c.keys.some((k) => k.type == 'trackball' && k.variant.sensor == 'Skree (ZMK)'),
       cirque: c.keys.some((k) => k.type == 'trackpad-cirque'),
+      encoder: !!encoderKeys(c).length,
     })),
   } satisfies Partial<QMKOptions | ZMKOptions>
 
@@ -53,8 +58,8 @@
 {#if anyConfig.microcontroller == 'lemon-wired'}
   <Field name="Diode Direction" icon="diode-direction">
     <Select bind:value={$options.diodeDirection}>
-      <option value="COL2ROW">COL2ROW (Pumpkin and Plum Twists)</option>
-      <option value="ROW2COL">ROW2COL (Skree Flex PCBs)</option>
+      <option value="ROW2COL">ROW2COL (Pumpkin and Plum Twists)</option>
+      <option value="COL2ROW">COL2ROW (Skree Flex PCBs)</option>
     </Select>
   </Field>
   <Field name="Manufacturer Name (for USB)" icon="person">
@@ -98,6 +103,19 @@
       <option value="right">Right</option>
     </Select>
   </Field>
+  <Field
+    name="Use RGB LEDs"
+    icon="led"
+    help="Turns on power to the LEDs when the keyboard is first plugged in"
+  >
+    <Checkbox bind:value={$options.underGlowAtStart} />
+  </Field>
+  <Field name="Enable ZMK Studio" icon="studio">
+    <Checkbox bind:value={$options.enableStudio} />
+  </Field>
+  <Field name="Enable USB Logging" icon="debug" help="Writes debug information to a USB serial port">
+    <Checkbox bind:value={$options.enableConsole} />
+  </Field>
 
   <button class="button" on:click={() => downloadZMKCode(geometry, matrix, fullOptions)}
     >Download ZMK code</button
@@ -118,6 +136,12 @@
       class="text-brand-pink">bootmagic key</span
     >. If there is no bootmagic key, you will need to double-tap the reset button.
   </div>
+  {#if $options.enableStudio}
+    <InfoBox class="mt-4">
+      The key configured as bootmagic key will be assigned the &studio_unlock binding. You can change the
+      assignment after entering studio.
+    </InfoBox>
+  {/if}
 {/if}
 
 <style>

@@ -54,7 +54,7 @@
     "concurrently": "^8.2.2",
     "fflate": "^0.8.2",
     "lint-staged": "^15.1.0",
-    "manifold-3d": "^2.2.2",
+    "manifold-3d": "^3.2.1",
     "meshoptimizer": "^0.20.0",
     "ml-matrix": "^6.10.4",
     "node-three-gltf": "^1.8.2",

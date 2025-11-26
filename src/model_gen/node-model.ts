@@ -9,6 +9,7 @@ import { combine } from '$lib/worker/modeling/index'
 import fg from 'fast-glob'
 import { createRequire } from 'module'
 import { type AnyShape, setOC } from 'replicad'
+import type { BufferGeometry } from 'three'
 
 // patch require and __dirname so that opencascade can import
 globalThis.__dirname = 'src/assets'
@@ -34,7 +35,7 @@ export async function setup() {
 }
 
 export type Part = 'walls' | 'web' | 'holes' | 'inserts' | 'plate'
-type Models = Partial<Record<Part, THREE.BufferGeometry>>
+type Models = Partial<Record<Part, BufferGeometry>>
 export const DEFAULT_PARTS: Part[] = ['walls', 'web', 'holes', 'inserts', 'plate']
 
 export async function generate(config: Cuttleform, parts = DEFAULT_PARTS) {
@@ -42,13 +43,13 @@ export async function generate(config: Cuttleform, parts = DEFAULT_PARTS) {
 
   const components: Record<Part, () => Promise<AnyShape | undefined>> = {
     walls: async () => {
-      let walls = makeWalls(config, geo.allWallCriticalPoints(), geo.worldZ, geo.bottomZ).toSolid(true)
-      if (config.connector) {
-        walls = cutWithConnector(config, walls, config.connector, geo.connectorOrigin!)
+      let walls = makeWalls(config, geo.allWallCriticalPoints(), geo.worldZ, geo.bottomZ).toSolid(true, false)
+      if (geo.connectorOrigin) {
+        walls = cutWithConnector(config, walls, geo.connectorOrigin)
       }
       return walls
     },
-    web: async () => webSolid(config, geo).toSolid(false),
+    web: async () => webSolid(config, geo).toSolid(false, true),
     holes: async () => keyHoles(config, geo.keyHolesTrsfs.flat()),
     inserts: async () => geo.screwPositions.length ? makerScrewInserts(config, geo, ['base']) : undefined,
     plate: async () => combine(Object.values(makePlate(config, geo, true, true)).map(a => a())),

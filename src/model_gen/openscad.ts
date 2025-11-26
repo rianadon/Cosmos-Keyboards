@@ -211,7 +211,7 @@ export async function parseString(code: string) {
   return new MyVisitor().visitScadFile(ast)
 }
 
-export interface OpenSCAD extends EmscriptenModule {
+export interface OpenSCAD {
   FS: {
     mkdir(path: string, mode?: number): any
     readFile(path: string, opts: { encoding: 'binary'; flags?: string | undefined }): Uint8Array

@@ -1,7 +1,7 @@
-
+// @ts-nocheck
 var OpenSCAD = (() => {
   var _scriptDir = import.meta.url;
-  
+
   return (
 function(OpenSCAD = {})  {
 

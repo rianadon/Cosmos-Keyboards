@@ -213,21 +213,43 @@ export function checkConfig(conf: Cuttleform, geometry: Geometry | undefined, ch
 // }
 
 export function minPinsNeeded(conf: Cuttleform, includeMatrix = true) {
-  let pins = 0
-  let keysInMatrix = 0
+  let matrixPins = 0
+  let analogPins = 0
+  let gpioPins = 0
+
+  let needsI2C = false
+  let needsSCLK = false
+  let needsMISO = false
+  let needsMOSI = false
+  let csPins = 0
+
   for (const key of conf.keys) {
     const info = PART_INFO[key.type]
-    const pinsMatrix = 'variants' in info ? info.numPinsMatrix && info.numPinsMatrix(key.variant!) : info.numPinsMatrix
-    const pinsGPIO = 'variants' in info ? info.numPinsGPIO && info.numPinsGPIO(key.variant!) : info.numPinsGPIO
-    if (pinsMatrix) pins += pinsMatrix
-    if (pinsGPIO) pins += pinsGPIO
+    const pins = 'variants' in info ? info.numPins && info.numPins(key.variant!) : info.numPins
+    if (pins) {
+      if (pins.matrix) matrixPins += pins.matrix
+      if (pins.gpio) gpioPins += pins.gpio
+      if (pins.analog) gpioPins += pins.analog
+      if (pins.i2c) needsI2C = true
+      if (pins.spi) {
+        csPins += 1
+        needsSCLK = true
+        needsMISO = needsMISO || pins.spi == 'bidirectional' || pins.spi == 'output-only'
+        needsMOSI = needsMOSI || pins.spi == 'bidirectional' || pins.spi == 'input-only'
+      }
+    }
   }
-  if (includeMatrix) {
-    const numCols = Math.ceil(Math.sqrt(keysInMatrix))
-    const numRows = Math.ceil(keysInMatrix / numCols)
-    pins += numCols + numRows
+  let totalPins = gpioPins + analogPins + csPins
+  if (needsI2C) totalPins += 2
+  if (needsMISO) totalPins += 1
+  if (needsMOSI) totalPins += 1
+  if (needsSCLK) totalPins += 1
+  if (includeMatrix && matrixPins > 0) {
+    const numCols = Math.ceil(Math.sqrt(matrixPins))
+    const numRows = Math.ceil(matrixPins / numCols)
+    totalPins += numCols + numRows
   }
-  return pins
+  return totalPins
 }
 
 /** Return triangles covering a prism defined by its top face & depth.

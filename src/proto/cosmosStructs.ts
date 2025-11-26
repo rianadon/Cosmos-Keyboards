@@ -47,6 +47,7 @@ enumeration('PART', {
   29: 'oled-160x68-1.08in-niceview',
   30: 'thqwgd001',
   32: 'meh01',
+  34: 'oled-168x144-1.26in-keydio-vista508',
 
   // Old stuff no one should be using.
   110: 'old-mx',
@@ -230,10 +231,10 @@ for (const [part, info] of objEntries(PART_INFO)) {
     const body = Object.entries(info.variants).map(([k, v]) => k + ':' + v.map(i => JSON.stringify(i)).join('|')).join(',')
     code += `export type ${safeCaps(part)}Variant = {${body}}\n`
   }
-  code += `export interface Cuttle${safeCaps(part)}Key extends CuttleBaseKey { type: '${part}',`
+  code += `export interface Cuttle${safeCaps(part)}Key extends CuttleBaseKey { type: '${part}', marginX?: number, marginY?: number,`
   if ('variants' in info) code += `variant: ${safeCaps(part)}Variant,`
   if (PART_INFO[part].keycap) code += 'keycap: IKeycap,'
-  if ('radius' in socketSize({ type: part, variant: {} } as any)) code += 'size?: { sides: number },'
+  if ('radiusX' in socketSize({ type: part, variant: {} } as any)) code += 'size?: { sides: number },'
   code += '}\n'
 }
 code += 'export type CuttleKey = ' + objKeys(PART_INFO).map(p => `Cuttle${safeCaps(p)}Key`).join('|') + '\n'

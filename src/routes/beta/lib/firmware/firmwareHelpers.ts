@@ -1,12 +1,29 @@
+import { PART_INFO } from '$lib/geometry/socketsParts'
+import { hasPinsInMatrix } from '$lib/loaders/keycaps'
+import { type Cuttleform, fullEstimatedCenter, type Geometry } from '$lib/worker/config'
 import { getRowColumn } from '$lib/worker/config.cosmos'
-import { DefaultMap, objEntriesNotNull } from '$lib/worker/util'
+import { DefaultMap, objEntries, objEntriesNotNull } from '$lib/worker/util'
 import type { CuttleKey } from '$target/cosmosStructs'
 import { type AsyncZippable, unzip, type Unzipped, zip } from 'fflate'
 import type { FullGeometry } from '../viewers/viewer3dHelpers'
 
+export type Matrix = Map<CuttleKey, [number, number]>
+
+const YAML_INDENT = '  ' // 2 spaces
+const DTS_INDENT = '    ' // 4 spaces
+
+const MAX_ARR_LENGTH = 80 // For DTS
+
+let rawNum = 0
+export const raw = () => '/*' + (rawNum++) // For emitting raw things to DTS
+
+function camelToSnakeCase(str: string): string {
+  return str.replace(/[A-Z]/g, (letter) => '-' + letter.toLowerCase())
+}
+
 /** Very simple function to process converting arrays and objects to YAML. */
 function jsonToYaml(data: any, indent: number = 0): string {
-  const indentation = '  '.repeat(indent)
+  const indentation = YAML_INDENT.repeat(indent)
 
   if (Array.isArray(data)) {
     return data
@@ -14,6 +31,7 @@ function jsonToYaml(data: any, indent: number = 0): string {
       .join('\n')
   } else if (typeof data === 'object' && data !== null) {
     return Object.entries(data)
+      .filter(([key, value]) => typeof value !== 'undefined')
       .map(([key, value]) => {
         const prefix = typeof value === 'object' && value !== null ? '\n' : ' '
         return `${indentation}${key}:${prefix}${jsonToYaml(value, indent + 1)}`
@@ -32,6 +50,64 @@ export function yamlFile(data: any, newDoc = false): string {
 export function jsonFile(json: any) {
   return JSON.stringify(json, null, 4) + '\n'
 }
+
+export function dtsFile(json: any) {
+  return formatDTSExpression(json)
+}
+
+/** Formats a DTS property like rows = <7> */
+function formatDTSProperty(k: string, v: any, indent: number): string {
+  if (v === true) return camelToSnakeCase(k) + ';'
+  let joiner = typeof v == 'object' ? ' ' : ' = '
+  if (Array.isArray(v)) joiner = v.join(', ').length < MAX_ARR_LENGTH ? ' = ' : '\n' + DTS_INDENT.repeat(indent + 1) + '= '
+  if (!k.startsWith('/*')) return camelToSnakeCase(k) + joiner + formatDTSExpression(v, indent + 1) + ';'
+
+  return v
+}
+
+/** Joines lines of a DTS file together, adding newlines when appropriate */
+function joinDTSLines(lines: string[]) {
+  let output = ''
+  for (let i = 0; i < lines.length; i++) {
+    output += lines[i] + '\n'
+
+    if (!lines[i + 1]) continue
+    const t = lines[i].trimStart()
+    const tn = lines[i + 1].trimStart()
+
+    if (t.startsWith('#include') && !tn.startsWith('#include')) {
+      output += '\n' // Add newline after the includes
+    } else if (t.startsWith('#define') && !tn.startsWith('#define') && !tn.startsWith('//')) {
+      output += '\n' // Add newline after the definitions
+    } else if (t.includes('\n') || tn.includes('\n')) {
+      output += '\n' // Add newline after properties and blocks
+    }
+  }
+  return output
+}
+
+/** Formats a DTS expression */
+function formatDTSExpression(json: any, indent: number = 0): string {
+  if (typeof json == 'string') return (json.startsWith('&') || json.startsWith('<')) ? json : '"' + json + '"'
+  if (typeof json == 'number') return '<' + json + '>'
+
+  const indentation = DTS_INDENT.repeat(indent)
+  if (Array.isArray(json)) {
+    const simpleJoin = json.join(', ')
+    if (simpleJoin.length < MAX_ARR_LENGTH) return simpleJoin
+    return json.map((l, i) => i == 0 ? l : indentation + ', ' + l).join('\n') + '\n' + indentation
+  }
+
+  if (typeof json == 'object') {
+    return (indent ? '{\n' : '') + joinDTSLines(
+      Object.entries(json).filter(([k, v]) => v !== false && v !== null && typeof v !== 'undefined').map(([k, v]) => (
+        indentation + formatDTSProperty(k, v, indent)
+      )),
+    ) + (indent ? DTS_INDENT.repeat(indent - 1) + '}' : '')
+  }
+  throw new Error(`Cannot cast type ${typeof json} to DTS`)
+}
+
 type ModifiedKey = { key: CuttleKey; offsetX: number }
 function sortKeysFn(a: ModifiedKey, b: ModifiedKey) {
   const aPos = getRowColumn(a.key.position)
@@ -78,4 +154,41 @@ export function unzipPromise(arg: Uint8Array): Promise<Unzipped> {
 export async function unzipURL(url: string): Promise<Unzipped> {
   const buffer = await (await fetch(url)).arrayBuffer()
   return await unzipPromise(new Uint8Array(buffer))
+}
+
+export function encoderKeys(config: Cuttleform) {
+  return config.keys.filter(k => PART_INFO[k.type].category == 'Encoders')
+}
+
+export function fullLayout(config: FullGeometry, matrix: Matrix) {
+  const layout: { matrix: [number, number]; x: number; y: number; angle: number }[] = []
+  const centers = fullEstimatedCenter(config, false)
+  const center = centers.both
+
+  const keyPositions = new Map<CuttleKey, { x: number; y: number; angle: number }>()
+  for (const [side, keyboard] of objEntriesNotNull(config)) {
+    const positions = keyboard.keyHolesTrsfs2D
+    for (let i = 0; i < positions.length; i++) {
+      const keyPos = positions[i].xyz()
+      const scaleX = side === 'left' ? -1 : 1
+
+      const v = positions[i].axis(1, 0, 0)
+      const angle = -Math.atan2(v.y, v.x) * 180 / Math.PI * scaleX
+
+      const x = scaleX * keyPos[0] - center[side]![0]
+      const y = -(keyPos[1] - center[side]![1])
+      keyPositions.set(keyboard.c.keys[i], { x, y, angle })
+    }
+  }
+
+  for (const key of logicalKeys(config)) {
+    if (!hasPinsInMatrix(key)) continue
+    const matrixPosition = matrix.get(key)
+    const keyPosition = keyPositions.get(key)!
+    if (!matrixPosition) throw new Error('Key has no matrix position')
+    layout.push({ matrix: matrixPosition, ...keyPosition })
+  }
+  const minX = Math.min(...layout.map(l => l.x))
+  const minY = Math.min(...layout.map(l => l.y))
+  return layout.map(({ x, y, ...rest }) => ({ x: x - minX, y: y - minY, ...rest }))
 }

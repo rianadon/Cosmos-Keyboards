@@ -27,18 +27,20 @@ From the first PCB to the microcontroller, there is 160mm of stretch. This is li
 
 ### Sizing
 
-The PCBs are wired under the assumption that every column will have at least 3 keys (so that both rows of vines, plus the pumpkins above and below, are always used).
-
-If there are any columns where you need only two keys (such as in the thumb cluster), you have two options:
-
-1. Leave 3 keys on the column, and let the 3rd key dangle loose with no switch inside. You can tape/glue it on to secure it.
-2. Cut the column down to 2 keys. You will need to bridge the 3rd and 5th rows from the bottom (R3/R5) across the column that you have cut. Take a wire and solder each end to the hotswap pad furthest from the diode on the pumpkins. If you have cut the first column, you will need to wire the hotswap pads on R3 and R5 directly to the microcontroller.
-
-_I will fix this in a later revision so that you can use 2 keys on a column without soldering._
+The PCBs are wired under the assumption that every column will have at least 2 keys (so that both rows of vines, plus the pumpkins above and below, are always used).
 
 The only situation where you can use only the bottom vine (1 key on a column) is if you 1) have 4 or fewer columns and 2) will not use the LEDs. For such extremely small boards, the [Plum Twists](https://ryanis.cool/cosmos/plum-twist/) or directly soldering to the switches are a better fit.
 
-If you are using this PCB together with a PCB for the thumb cluster, you will either have to use all 7 columns or solder a jumper wire onto the LEDs themselves. This will be fixed in future revisions.
+!!! info "Limitations for Older Revisions"
+
+    **Prior to v1.1**: The PCBs are wired under the assumption that every column will have at least 3 keys (so that both rows of vines, plus the pumpkins above and below, are always used).
+
+    If there are any columns where you need only two keys (such as in the thumb cluster), you have two options:
+
+    1. Leave 3 keys on the column, and let the 3rd key dangle loose with no switch inside. You can tape/glue it on to secure it.
+    2. Cut the column down to 2 keys. You will need to bridge the 3rd and 5th rows from the bottom (R3/R5) across the column that you have cut. Take a wire and solder each end to the hotswap pad furthest from the diode on the pumpkins. If you have cut the first column, you will need to wire the hotswap pads on R3 and R5 directly to the microcontroller.
+
+    **Prior to v1.0**: If you are using this PCB together with a PCB for the thumb cluster, you will either have to use all 7 columns or solder a jumper wire onto the LEDs themselves. This was fixed in v1.0 by adding extra solder jumpers.
 
 ### Electrical
 
@@ -92,8 +94,43 @@ With the switches already inserted, plug in the Pumpkin Patch from the rear. Als
 
 !!!warning "Pay More Attention!"
 
-    The connectors connecting each pumpkin are delicate. I will probably make them larger next revision because I have damaged a few pumpkins by bending the wavy parts too much. If you do craese or even snap a connector, you can handwire directly to hotswap socket side or top of the diode to create row/column connections.
+    The connectors connecting each pumpkin are delicate. If you do crease or even snap a connector, you can handwire directly to hotswap socket side or top of the diode to create row/column connections.
 
-Trim off any remaining unused Pumpkins. For columns that you cut down, there will be a solder jumpers on the tops of the columns that you cut. Solder these so that data signals can correctly flow from the LEDs on one column to the next. In the example below the jumpers are highlighted in green.
+Trim off any remaining unused Pumpkins. If you are cutting between the bottom (1st) or 2nd rows, or 2nd and 3rd rows, leave at least a 1mm stub. For columns that you cut down, there will be a solder jumpers on the tops of the columns that you cut. Solder these so that data signals can correctly flow from the LEDs on one column to the next. In the example below the jumpers are highlighted in green.
 
 ![Locations of solder jumpers on Pumpkin PCB](../../assets/pumpkin-solder.jpg){ width=500 .center }
+
+In v1.0 and onwards, there are additional solder jumpers on the second row of PCBs from the bottom. If you cut off an entire column and are using a Pumpkin Vine PCB for the thumb cluster, solder the solder jumper oriented horizontally on your last column to re-establish continuity between the Pumpkin Patch PCB and the Pumpkin Vine PCB. _Picture coming soon_.
+
+The new version also changes out the FPC connectors on the middle two rows for solder pads.
+
+<figure markdown>
+![6 Pad Footprint on the back of the Pumpkin Patch PCB](../../assets/pumpkin-individual-pads.png){ width=400 }
+<figcaption markdown>
+From top left to right: Row, DIN, GND <br>
+From bottom left to right: Column, DOUT, LED Voltage (5V not 3V3)
+</figcaption>
+</figure>
+
+If you cut any of these PCBs off, they effectively turn into minature Plum Twist PCBs... except they don't twist. If you leave them on, you can use these pads in case you make a cut where you weren't supposed to and need to bridge signals across Pumpkins. Just be aware these pads are very small due to them being in a tight spot, so you will need either a fine soldering iron or a very steady and experienced hand.
+
+## Revision History
+
+**v1.1: Useful Fixes (not released yet, in progress)**
+
+- Rerouted the PCB so only a minimum of 2 rows is required to connect everything (before 3 rows were needed).
+- Fattened power and GND traces so LEDs can be run brighter
+- Improved soldering for GND pad (On v1.0, the GND pad was fully connected to the GND fill on the top and right sides. As a result, you might find it difficult to heat up this pad and solder to it, as the pad will sink a lot of heat into the ground fill. In v1.1, it's only connected by a small trace).
+- Secured the FPC cable to the frame.
+
+**v1.0: New Connector Scheme (currently sold)**
+
+- Switched middle two rows of FPC connectors to pads.
+- Added solder jumpers to the 2nd row from bottom to bridge column's LED data out to PCB data out. This allows you to still have the last Pumpkin Patch LED connected to the first thumb cluster LED, even if you cut off a column from the Pumpkin Patch.
+- Cleaned up remaining right-angle connections to robustify the PCB.
+
+**v0.0: Initial Release!**
+
+- It's a Pumpkin Patch!
+- Very orange.
+- Much Halloween?

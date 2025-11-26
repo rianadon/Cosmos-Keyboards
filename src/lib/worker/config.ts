@@ -1489,11 +1489,11 @@ export function matrixToConfig(m: Matrix4, key: CuttleKey | undefined = undefine
   const keyType = key ? TYPE_TO_ID[key.type] : 0
 
   const size = key ? socketSize(key) : undefined
-  const roundSize = size && 'radius' in size ? size : undefined
+  const roundSize = size && 'radiusX' in size ? size : undefined
   return {
     position: encodeTuple([Math.round(translation.x * 10), Math.round(translation.y * 10), Math.round(translation.z * 10), keyType]),
     rotation: encodeTuple([Math.round(rpy[0] * 45), Math.round(rpy[1] * 45), Math.round(rpy[2] * 45), Math.round((aspect < 1 ? -1 / aspect : aspect) * 100)]),
-    trackballRadius: key?.type == 'trackball' ? Math.round(roundSize!.radius * 10) : undefined,
+    trackballRadius: key?.type == 'trackball' ? Math.round(roundSize!.radiusX * 10) : undefined,
     trackballSides: (key as any).size.sides,
   }
 }

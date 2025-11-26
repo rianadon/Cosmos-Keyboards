@@ -14,9 +14,7 @@ Go to the [landing page](https://ryanis.cool/cosmos/lemon/) :)
 
 ### Recommended Use
 
-I recommend using column-flex PCBs to wire your keys, not only because they are easy to connect via the FPC connectors on the bottom of the microcontroller, but also because you will save yourself hours of wiring together keys. This example shows the two I sell, the [Pumpkin Patch](https://ryanis.cool/cosmos/pumpkin/) (for upper keys & some thumb keys) and Pumpkin Vine (for the further away thumb keys), used to wire the keys as well as an encoder attached to the spare I/O pins.
-
-> The Pumpkin Vine is not released yet, but you can buy [Skree Toe Beans](https://cosmos-store.ryanis.cool/products/skree-toe-beans) in the meantime from the Cosmos store as a substitute.
+I recommend using column-flex PCBs to wire your keys, not only because they are easy to connect via the FPC connectors on the bottom of the microcontroller, but also because you will save yourself hours of wiring together keys. This example shows the two I sell, the [Pumpkin Patch](https://ryanis.cool/cosmos/pumpkin/) (for upper keys & some thumb keys) and [Pumpkin Vine](https://cosmos-store.ryanis.cool/products/pumpkin-vine-pcb) (for the further away thumb keys), used to wire the keys as well as an encoder attached to the spare I/O pins.
 
 ![Wiring Diagram of Pumpkin PCBs and an encoder](../../assets/lemon_wired_pumpkin.png){width=600 .center}
 
@@ -135,7 +133,7 @@ So far KMK is the only keyboard firmware on which I've been able to use the righ
 
 ## Arduino Core
 
-I haven't contributed this board upstream yet since I don't know how popular this option is going to be. Therefore, if you do program the Lemon with Arduino then please tell me so I can prioritize this!
+I haven't contributed this board upstream yet since I don't know how popular this option is going to be. Therefore, if you do want to program the Lemon with Arduino then please tell me so I can prioritize this!
 
 ??? note "Expand Arduino Instructions (Caution: Not Easy)"
 
@@ -418,12 +416,14 @@ I haven't contributed this board upstream yet since I don't know how popular thi
     #define PIN_SERIAL2_RX (31u)
 
     // SPI
-    #define PIN_SPI0_MISO  (20u)
-    #define PIN_SPI0_MOSI  (19u)
-    #define PIN_SPI0_SCK   (18u)
-    #define PIN_SPI0_SS    (17u)
+    #define __SPI0_DEVICE  spi1
+    #define PIN_SPI0_MISO  (12u)
+    #define PIN_SPI0_MOSI  (15u)
+    #define PIN_SPI0_SCK   (14u)
+    #define PIN_SPI0_SS    (13u)
 
     // Not pinned out
+    #define __SPI1_DEVICE  spi0
     #define PIN_SPI1_MISO  (31u)
     #define PIN_SPI1_MOSI  (31u)
     #define PIN_SPI1_SCK   (31u)
@@ -431,11 +431,11 @@ I haven't contributed this board upstream yet since I don't know how popular thi
 
     // Wire
     #define __WIRE0_DEVICE i2c1
-    #define PIN_WIRE0_SDA  (2u)
-    #define PIN_WIRE0_SCL  (3u)
+    #define PIN_WIRE0_SDA  (18u)
+    #define PIN_WIRE0_SCL  (19u)
     #define __WIRE1_DEVICE i2c0
-    #define PIN_WIRE1_SDA  (24u)
-    #define PIN_WIRE1_SCL  (25u)
+    #define PIN_WIRE1_SDA  (31u)
+    #define PIN_WIRE1_SCL  (31u)
 
     #define SERIAL_HOWMANY (2u)
     #define SPI_HOWMANY    (1u)
@@ -451,6 +451,8 @@ I haven't contributed this board upstream yet since I don't know how popular thi
 
     After modifying these files, restart Arduino IDE. You should now see Cosmos Lemon Wired listed as the last option when choosing a board through **Tools -> Board -> Raspberry Pi Pico -> Cosmos Lemon Wireled**.
 
+Because I2C1 and SPI1 are the only two buses you'll probably use, I've mapped them to `Wire` and `SPI` in Arduino (drop the 1). They are set up to by default follow the offical Lemon Wired pinout.
+
 --8<-- "docs/docs/pcbs/.shared/vik.md"
 
 ## Breadboard and Headers
@@ -458,6 +460,26 @@ I haven't contributed this board upstream yet since I don't know how popular thi
 I don't recommend using headers or sockets with Cosmos, ever.
 
 However, if you want to do some prototyping or found a use for the microcontroller outside your keyboard, the microcontroller will fit in a breadboard using standard 2.54mm/100mils pitch pin headers, but it will take up the entire width of the breadboard and leave no space to the side for pins! I recommend either straddling it across two breadboards or using preformed jumper wire underneath (the kind that stays really flat and neat) to bring the pins you need to somewhere accessible.
+
+## Troubleshooting
+
+For QMK-specific troubleshooting, see the [Troubleshooting QMK](https://docs.qmk.fm/faq_misc) and [Debugging QMK](https://docs.qmk.fm/faq_debug) pages on the docs.
+
+I also recommend flashing this [testing uf2](https://github.com/rianadon/Cosmos-Keyboard-PCBs/raw/refs/heads/main/lemon-microcontroller/cosmos_led_test_default.uf2) to your microcontroller. It's based on QMK and will pulse the LED red if USB is not detected and greed if USB is detected. If the RGB LED is not pulsing, you have a defective microcontroller and you should get in touch to get a replacement.
+
+### MacOS Connection Issues
+
+In rare cases (maybe this is a Tahoe-specific bug?), I've seen the prompt to allow the microcontroller to connect to the computer flash for less than a second before disappearing.
+
+The configurations that Cosmos and PeaMK are built around have `SPLIT_USB_DETECT` enabled and `SPLIT_USB_TIMEOUT` set to the default of 2000. This means the microcontroller will prevent itself as a USB device for 2 seconds, and if the computer denies the connection, its USB will turn off and the microcontroller will go into peripheral mode (i.e. the half that does _not_ connect to your computer). In theory this means you have 2 seconds to click the "Allow accessory to connect" button.
+
+If the dialog goes away before you can press it, temporarily [change the "Allow Accessories to Connect" setting](https://support.apple.com/en-us/102282#settings) from "Ask for New Accessories" to "Automatically Allow When Unlocked". You can change it back after the microcontroller is successfully connected.
+
+### LEDs not Working
+
+There have been cases where LEDs on a Pumpkin Patch PCB have not turned on when the Wired Lemon was been plugged into USB ports with higher than normal voltages (at least 5.4V). If you are sure that your USB port has this high of a voltage, then you should follow the steps in the [Wireless Lemon troubleshooting section](../lemon-wireless#leds-not-working-fix-for-v03-and-below), but instead use a supplemental 10kΩ resistor (as the Wired Lemon internally uses a 5.1kΩ as its pullup).
+
+Otherwise, your LEDs might not be turning on if the LED power relay is not engaged. Check that the VRGB pin is really getting 5V and that GPIO11 is low.
 
 ## PCB Drawing and Dimensions
 

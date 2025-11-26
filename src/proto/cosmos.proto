@@ -108,4 +108,7 @@ message Key {
   optional sint32 row2 = 10;
   optional sint32 column2 = 11;
   optional string letter = 12;
+  // 13-15 reserved
+  optional uint32 margin_x = 16;
+  optional uint32 margin_y = 17;
 }

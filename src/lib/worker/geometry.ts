@@ -134,14 +134,15 @@ export function offsetBisector(p1: Trsf, p2: Trsf, p3: Trsf, offset: number, z: 
   return p2.cleared().coordSystemChange(p2.origin(), a, z)
 }
 
-export function keyCriticalPoints(c: Cuttleform, key: CuttleKey, hole: Trsf, offset = 0): CriticalPoints {
-  const size = socketSize(key)
-  if ('radius' in size) {
+export function keyCriticalPoints(c: Cuttleform, key: CuttleKey, hole: Trsf, offset = 0, withMargin = true): CriticalPoints {
+  const size = socketSize(key, withMargin)
+  if ('radiusX' in size) {
     const pts: Trsf[] = []
-    const r = size.radius
+    const rx = size.radiusX
+    const ry = size.radiusY
     const sides = (key as any).size?.sides ?? size.sides
     for (let j = 0; j < sides; j++) {
-      pts.push(hole.pretranslated(r * Math.cos(2 * Math.PI / sides * -j), r * Math.sin(2 * Math.PI / sides * -j), 0))
+      pts.push(hole.pretranslated(rx * Math.cos(2 * Math.PI / sides * -j), ry * Math.sin(2 * Math.PI / sides * -j), 0))
     }
     return pts
   }
