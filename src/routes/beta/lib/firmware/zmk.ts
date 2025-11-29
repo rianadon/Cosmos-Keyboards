@@ -310,12 +310,19 @@ config SHIELD_${options.folderName}_RIGHT
 
 function generateConf(config: FullGeometry, options: ZMKOptions) {
   return [
+    'CONFIG_SPI=y',
+    '',
     '# RGB underglow configuration',
-    'CONFIG_ZMK_RGB_UNDERGLOW=y',
-    'CONFIG_WS2812_STRIP=y',
-    'CONFIG_ZMK_RGB_UNDERGLOW_BRT_START=50',
-    'CONFIG_ZMK_RGB_UNDERGLOW_EFF_START=3',
-    'CONFIG_ZMK_RGB_UNDERGLOW_ON_START=' + (options.underGlowAtStart ? 'y' : 'n'),
+    'CONFIG_ZMK_RGB_UNDERGLOW=' + (options.underGlowAtStart ? 'y' : 'n'),
+    'CONFIG_WS2812_STRIP=' + (options.underGlowAtStart ? 'y' : 'n'),
+    ...(options.underGlowAtStart
+      ? [
+        'CONFIG_ZMK_RGB_UNDERGLOW_BRT_START=50',
+        'CONFIG_ZMK_RGB_UNDERGLOW_EFF_START=3',
+      ]
+      : [
+        'CONFIG_ZMK_EXT_POWER=n',
+      ]),
     '',
     '# zmk mouse emulation for trackball/trackpad',
     'CONFIG_ZMK_POINTING=' + (Object.values(options.peripherals).some(p => p.pmw3610 || p.cirque) ? 'y' : 'n'),
@@ -408,6 +415,18 @@ function generateDTSI(config: FullGeometry, matrix: Matrix, options: ZMKOptions)
         }
         : {}),
     },
+    ...(!options.underGlowAtStart
+      ? {
+        [raw()]: '// Hack to force-drive the LED power pin high, ensuring LED power is off. Ext power is also disabled in the conf file.',
+        '&gpio0': {
+          'ext_power_hog: ext_power_hog': {
+            'gpio-hog': true,
+            'gpios': ['<2 GPIO_ACTIVE_LOW>'],
+            'output-high': true,
+          },
+        },
+      }
+      : {}),
   })
 }
 
