@@ -8,7 +8,8 @@ The Lemon Wireless is an nRF52840-based microcontroller for split keyboards with
 
 If you haven't already, I suggest you check out the [Lemon Landing page](https://ryanis.cool/cosmos/lemon/) to learn more.
 
---8<-- "docs/docs/pcbs/.shared/info.md"
+--8<-- "docs/docs/pcbs/.shared/flex-info.md"
+--8<-- "docs/docs/pcbs/.shared/vik-info.md"
 
 ## Pinout
 

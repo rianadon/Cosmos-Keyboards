@@ -70,6 +70,10 @@ When you download the firmware from Cosmos, you'll get a zipped folder with a fe
 
 The actual firmware code is within the `keyboards/<your-keyboard>` folder. The `.github` and `qmk.json` files are generated to help you set up GitHub Actions.
 
+### Hardware Limitations
+
+- For OLED displays, the display size is set to 128×32. If your display has some other size, make sure to change it in `config.h`.
+
 ### Building
 
 #### GitHub Actions Build
@@ -138,12 +142,48 @@ Select the JSON file you downloaded, and if all goes well your keyboard design w
 
 Now plug in your keyboard, and you'll be able to change the key assignments!
 
+### Further Modification
+
+QMK is a very unopinionated firmware. This means you get lots of flexibility to plug into QMK's APIs and run whatever custom code you like on your keyboard firmware. The downside is that you're required to implement some functionality yourself.
+
+#### Pointing Devices (Trackballs and Trackpads)
+
+You will very likely need to tune the rotation angle of your trackpad so that what's left/right for you translates to left/right on the screen.
+
+First add one of:
+
+- `#!c #define POINTING_DEVICE_ROTATION_90`
+- `#!c #define POINTING_DEVICE_ROTATION_180`
+- `#!c #define POINTING_DEVICE_ROTATION_270`
+
+to your `config.h` to coarsely rotate the pointing device to the right orientation. If you need to invert the X or Y axes, use `POINTING_DEVICE_INVERT_X` and `POINTING_DEVICE_INVERT_Y`.
+
+Use the `ROTATIONAL_TRANSFORM_ANGLE` variable to fine tune the offset by adjusting it +/- 127 degrees.
+
+The PMW and Cirque drivers also have lots of configuration options. I recommend you read through the [QMK Pointing Devices](https://docs.qmk.fm/features/pointing_device) docs.
+
+#### OLED Displays
+
+There are no built-in OLED display programs in QMK. It's up to you to code your display. Firmware Autogen by default uses the [OLED Driver](https://docs.qmk.fm/features/oled_driver) to display a logo. This driver is very low level, so it's great at showing images, animations, and very basic text output. The OLED Driver page in QMK has a full list of examples and methods.
+
+If you'd like a more powerful graphics API, you can switch from the OLED Driver to the [Quantum Painter LVGL](https://docs.qmk.fm/quantum_painter_lvgl) driver. That said, most QMK code on the internet uses the OLED Driver.
+
+For some inspiration:
+
+- [OLED Display Ideas on Reddit](https://www.reddit.com/r/ErgoMechKeyboards/comments/1cxbmtu/oled_display_ideas/)
+- [GitHub Repository of Animations](https://github.com/marekpiechut/qmk-animations)
+- [Script to Send Information from Your Computer to the Display](https://github.com/Klathmon/qmk-hid-display)
+- [The Website I Use for Converting Logos to QMK Code](https://joric.github.io/qle/)
+
+P.S. QMK turns the display off after 1 minute of inactivity to help prevent burn-in. You can tune this delay or disable it entirely by changing `OLED_TIMEOUT`.
+
 ## ZMK (Wireless) Generation
 
 ### Hardware Limitations
 
 - For the Cirque trackpad, only SPI communication is supported! This is how they come out of the box. Don't listen to guides that tell you to remove R1. SPI is what you want to use because it is faster than I2C.
 - Trackballs and trackpads are only officially supported (for now) on the central side. You can use a cirque trackpad on the peripheral side by changing `vik_cirque_spi` in your `build.yaml` to `vik_cirque_spi_split`. There's no such thing for the pmw3610 yet. Dual trackballs/trackpads are not yet supported either.
+- For OLED displays, the display size is hardcoded to 128×32. If your display has some other size, make sure to change it in `config.h`. For now, you'll need to set up the display yourself, similar to [how I do it in the VIK modules](https://github.com/rianadon/zmk-fingerpunch-vik/blob/main/boards/shields/vik_display_i2c/vik_display_i2c.overlay).
 
 ### Building
 
@@ -188,3 +228,15 @@ Those extra modules come from these repositories, which you will need to clone o
 - [zmk-fingerpunch-vik](https://github.com/rianadon/zmk-fingerpunch-vik/)
 - [zmk-pmw3610-driver](https://github.com/sadekbaroudi/zmk-pmw3610-driver)
 - [cirque-input-module](https://github.com/petejohanson/cirque-input-module)
+
+### Further Modification
+
+ZMK has very sane defaults for most features. My philosophy for firmware autogen is to use those defaults but inform you of which options you may wish to change.
+
+#### OLED Displays
+
+Some useful options from the [ZMK display docs](https://zmk.dev/docs/config/displays) are:
+
+- `CONFIG_ZMK_DISPLAY_BLANK_ON_IDLE`: The display turns off on idle to save power and prevent burn-in. This is generally a good thing, but you can disable it.
+- `CONFIG_ZMK_WIDGET_BATTERY_STATUS_SHOW_PERCENTAGE`: set this to show a battery precentage instead of just the icon.
+- Widgest: `CONFIG_ZMK_WIDGET_LAYER_STATUS`, `CONFIG_ZMK_WIDGET_BATTERY_STATUS`, and `CONFIG_ZMK_WIDGET_OUTPUT_STATUS` are on by default. `CONFIG_ZMK_WIDGET_WPM_STATUS` is off by default.
