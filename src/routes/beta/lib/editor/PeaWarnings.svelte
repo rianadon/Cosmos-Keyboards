@@ -14,14 +14,11 @@
 
   function collect(g: FullGeometry, f: typeof zmkInfo) {
     const entries = objEntriesNotNull(g).flatMap(([side, g]) =>
-      f(g)
-        .map((v) => ({ side, message: v }))
-        .toArray()
+      Array.from(f(g)).map((v) => ({ side, message: v }))
     )
-    return groupBy(entries, (entry) => entry.message)
-      .entries()
-      .map(([message, entries]) => ({ message, sides: entries.map(({ side }) => side) }))
-      .toArray()
+    return Array.from(groupBy(entries, (entry) => entry.message).entries()).map(
+      ([message, entries]) => ({ message, sides: entries.map(({ side }) => side) })
+    )
   }
 
   $: info = collect(geometry, wireless ? zmkInfo : qmkInfo)
