@@ -123,7 +123,7 @@ vs smooth walls
 
 ![smooth walls](../assets/smooth-walls.png)
 
-With these settings enabled you get another pair of settings to controll the smoothing. TODO explain these settings
+With these settings enabled you get another pair of settings to controll the smoothing.
 
 No wall shrouding
 
@@ -135,11 +135,11 @@ vs wall shrouding
 
 The wall thickness controlls the tickness of the wall. If you make it thicker the footprint will get larger, as the additional wall is added on the ouside.
 
-Minimum web thickness TODO
+Minimum web thickness acts as compensation for thin web walls. Specifically, the targeted thickness of the web as a percentage of socket thickness.
 
 The vertical part clearance adds clearance on the bottom so you have more space for wiring or other stuff.
 
-The auto clear screw inserts adds additional height so all scre inserts fit in there. TODO
+The auto clear screw inserts adds additional height so that most screw locations are feasable.
 
 ## Extras
 Show wrist rest shows / hides the wrist rest.

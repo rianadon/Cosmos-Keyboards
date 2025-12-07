@@ -28,7 +28,7 @@ This is the standard view. It shows you your keyboard.
 
 ### Keys view
 
-TODO
+Shows you all the keys in a top down view.
 
 ### Program view
 
@@ -51,8 +51,6 @@ This slider changes the opacity of the keys and the baseplate. You can check, ho
 ## Hand scanning
 Allows you to [scan your hand](hand-scans.md), to show or hide your hand scan and to [fit the keyboard to your hand](hand-fitting.md).
 
-**Todo** describe how to scan the hand in greater detail
-
 ## Settings
 ![Settings](../assets/settings.png)
 
@@ -72,7 +70,7 @@ Hides the base plate and the microcontroller-holder.
 Hides the letters on the keycaps.
 
 ### Hide shapers
-**Todo**
+Hides the outline of the shaper keys.
 
 ## Edit key
 ![edit key](../assets/edit-key.png)
