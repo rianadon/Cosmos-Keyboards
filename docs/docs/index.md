@@ -5,6 +5,7 @@
 You'll get the most help in the [Discord Server](https://discord.gg/nXjqkfgtGy), especially if you have questions related to using the generator or ergonomics. You may also report bugs through GitHub Issues, but I recommend you ask in the Discord Server first if you encouter problems.
 
 ## Basics
+
 The basics of the editor can be found [here](editor-basics.md).
 
 ## Contributing

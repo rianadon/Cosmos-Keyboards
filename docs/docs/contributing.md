@@ -356,12 +356,14 @@ If you wish to only preview documentation instead of the entire site, you can fo
 
 4. Edit the documentation in the `docs/docs` folder.
 
-### Local with Docker
+### Local with Docker **todo review this section**
+
 If you have any problems with the local installation, you can try using docker. This should mitigate dependency conflicts.
 
 1. Install Docker
 2. Create a file with the name "Dockerfile" in the root directory of the project
 3. Put the following content in there
+
 ```Dockerfile
 FROM squidfunk/mkdocs-material
 
@@ -372,9 +374,11 @@ RUN pip install mkdocs-awesome-pages-plugin==2.9.2 \
 ENTRYPOINT ["/sbin/tini", "--", "mkdocs"]
 CMD ["serve", "--dev-addr=0.0.0.0:8000"]
 ```
+
 4. Run `docker build . -t your-name/mkdocs` in the root directory
 5. Rename the existing docker-compose.yml and create a new docker-compose.yml
 6. Add the following content
+
 ```yaml
 version: '3'
 services:
@@ -387,8 +391,10 @@ services:
     stdin_open: true
     tty: true
 ```
+
 7. Execute `docker compose up -d` in the root directory
 8. Go to [localhost:8005](localhost:8005)
+
 !!! tip "The port can be changed in the docker docker compose."
 
 ### Adding Images
