@@ -4,7 +4,7 @@ import Trsf from '$lib/worker/modeling/transformation'
 import { Vector } from '$lib/worker/modeling/transformation'
 import { objEntries } from '$lib/worker/util'
 import type { FullGeometry } from '../viewers/viewer3dHelpers'
-import type { Matrix } from './qmk'
+import type { Matrix } from './firmwareHelpers'
 
 const TRANSFORM = new Vector(1 / 19, -1 / 19, 0)
 

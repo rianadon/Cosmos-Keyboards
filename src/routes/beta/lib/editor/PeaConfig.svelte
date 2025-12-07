@@ -5,12 +5,12 @@
   import { modelName, storable } from '$lib/store'
   import type { FullCuttleform } from '$lib/worker/config'
   import { mapObjNotNull } from '$lib/worker/util'
-  import { downloadQMKCode, type Matrix, type QMKOptions } from '../firmware/qmk'
+  import { downloadQMKCode, type QMKOptions } from '../firmware/qmk'
   import type { FullGeometry } from '../viewers/viewer3dHelpers'
   import { downloadZMKCode, type ZMKOptions } from '../firmware/zmk'
   import { downloadVia } from '../firmware/via'
   import Checkbox from '$lib/presentation/Checkbox.svelte'
-  import { encoderKeys } from '../firmware/firmwareHelpers'
+  import { encoderKeys, type Matrix } from '../firmware/firmwareHelpers'
   import InfoBox from '$lib/presentation/InfoBox.svelte'
 
   export let config: FullCuttleform

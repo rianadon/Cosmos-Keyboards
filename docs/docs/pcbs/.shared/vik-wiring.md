@@ -1,6 +1,6 @@
 ### VIK Breakout and Display
 
-Here is how you wire the breakout with a Nice!View. Other displays should be very similar.
+All displays require at least 3.3V and GND connected. For SPI displays like the Nice!View shown below, also connect CS, SCK, and MOSI. Many displays alternatively use I2C: for these connect SDA and SCL.
 
 ![Wiring Diagram of VIK and Display](../../assets/vik_display.png){width=600 .center}
 

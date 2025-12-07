@@ -287,6 +287,9 @@ async function main() {
   const partTasks: { socket: CuttleKey['type']; glbName: string; stepName: string; variantURL: string }[] = []
 
   // Record all the parts that need regenerating
+  const partsMassesFile = join(targetDir, `part-masses.json`)
+  const previousMasses: Record<string, number> = (await maybeStat(partsMassesFile)) ? JSON.parse(await readFile(partsMassesFile, 'utf-8')) : {}
+
   let nParts = 0
   for (const socket of objKeys(PART_INFO)) {
     if (socket == 'blank') continue // These don't get a part
@@ -305,6 +308,12 @@ async function main() {
         partTasks.push({ socket, glbName, stepName, variantURL })
       } else if (toSplit.includes(socket) && (!partStat || partStat.mtime < stepStat.mtime)) {
         partTasks.push({ socket, glbName, stepName, variantURL })
+      } else if (!previousMasses.hasOwnProperty(socket + variantURL)) {
+        console.log(`Note: Regenenerating ${socket}${variantURL} GLB because its mass is unknown.`)
+        partTasks.push({ socket, glbName, stepName, variantURL })
+      } else {
+        // Use the same mass as before.
+        masses[socket + variantURL] = previousMasses[socket + variantURL]
       }
     }
   }
@@ -325,8 +334,7 @@ async function main() {
     }
   }
 
-  const filename = join(targetDir, `part-masses.json`)
-  await writeFile(filename, JSON.stringify(masses))
+  await writeFile(partsMassesFile, JSON.stringify(masses))
 
   console.log('Done! Have fun playing with Cosmos.')
 }
