@@ -376,7 +376,7 @@ CMD ["serve", "--dev-addr=0.0.0.0:8000"]
 ```
 
 4. Run `docker build . -t your-name/mkdocs` in the root directory
-5. Rename/delete the existing docker-compose.yml and create a new docker-compose.yml. Make sure to exclude the new compose and the renaming of the old one in your commits.
+5. Rename/delete the existing docker-compose.yml and create a new docker-compose.yml. Make sure to exclude the new compose and the renaming of the old one from your commits.
 6. Add the following content
 
 ```yaml
