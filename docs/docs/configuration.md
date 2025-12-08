@@ -167,4 +167,19 @@ You can set the separation and the angle with their respective settings.
 
 ### Wrist rest
 
-todo
+Wrist position changes the position of your wrist of the hand scan. The move arrows on the wrist model can also be used, they do the same thing.
+
+The max width changes the width of the wrist rest for its respective side.
+
+The extension changes how far the wrist rest extends from it's normal size. This can be set to negative values to make it shorter.
+
+The attachment angle angles the wrist rests outward.
+
+Tapers the sides of the wrist rest to make the non-keyboard side more pointy for a bigger angle.
+
+Forwar slope adds a slope from the back up (with a positive taper value).
+
+Tenting adds a slope from the outside to the middle (middle goes up with a positive tenting value).
+
+![wrist rest settings](../assets/wristrest.png){ width=550 }
+

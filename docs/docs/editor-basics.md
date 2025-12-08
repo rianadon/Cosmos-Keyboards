@@ -111,7 +111,7 @@ The letter to be shown on this keycap
 The row and column allow you to align the keys to the grid.
 The offset offsetts the keys from the position given by the row and column.
 The rotation rotates the key in it's position. The rotation set in the curvature panel is not shown here.
-**Todo link to the curvature panel**
+See [curvature](./configuration.md#curvature) for that.
 
 ## Filament information
 

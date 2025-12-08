@@ -356,7 +356,7 @@ If you wish to only preview documentation instead of the entire site, you can fo
 
 4. Edit the documentation in the `docs/docs` folder.
 
-### Local with Docker **todo review this section**
+### Local with Docker
 
 If you have any problems with the local installation, you can try using docker. This should mitigate dependency conflicts.
 
