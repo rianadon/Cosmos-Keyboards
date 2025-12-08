@@ -182,4 +182,3 @@ Forwar slope adds a slope from the back up (with a positive taper value).
 Tenting adds a slope from the outside to the middle (middle goes up with a positive tenting value).
 
 ![wrist rest settings](../assets/wristrest.png){ width=550 }
-
