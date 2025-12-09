@@ -7,11 +7,11 @@ There are three modes for the configuration. This documentation is written for t
 This documentation tries to cover all of the important settings. Some settings might've been left out, as they are easily understandable and documentation would not add anything of value.
 
 - Basic
-  - Only shows the most used configuration options.
+    - Only shows the most used configuration options.
 - Advanced
-  - Shows most things, that you'll need to create your keyboard.
+    - Shows most things, that you'll need to create your keyboard.
 - Expert
-  - Allows to edit the code directly, to enable even more possibilities. See [expert mode](expert.md) for that.
+    - Allows to edit the code directly, to enable even more possibilities. See [expert mode](expert.md) for that.
 
 ## General
 

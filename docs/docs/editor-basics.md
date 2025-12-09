@@ -80,13 +80,13 @@ Hides the letters on the keycaps.
 
 Hides the outline of the shaper keys.
 
+## Switch and keycap size
+
+When you select a key, there will be an edit bar in the top middle. In that bar you can select which switch and keycap size you are using for this key. You can also delete the key here.
+
 ## Edit key
 
 ![edit key](../assets/edit-key.png)
-
-### Switch and keycap size
-
-With the bar at the top, you can select which switch you are using, and the keycap size. You can also delete the key here.
 
 ### Keycap
 
