@@ -62,7 +62,7 @@ The buttons allow you to show the left, right or both halves.
 
 ### Show grid
 
-Shows a grid. Each line is 1cm from the next. **Todo confirm spacing**
+Shows a grid. Each line is 1cm from the next.
 
 ### Hide wall
 
@@ -100,7 +100,7 @@ Some keycap profiles have different keycaps for different rows to be more comfor
 
 #### Homing
 
-**Todo** doesn't seem to make any visual difference?
+This setting is used to determinet what finger of your hand model goes where. Thumb will go to thumb homing key, index finger to index hotming key and so on.
 
 #### Letter
 
