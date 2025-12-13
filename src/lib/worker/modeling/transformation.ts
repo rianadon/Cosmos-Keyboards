@@ -115,6 +115,17 @@ export default class Trsf {
     return this
   }
 
+  prerotate(angle: number, position: Point = [0, 0, 0], direction: Point = [0, 0, 1]) {
+    const t1 = new Matrix4().makeTranslation(-position[0], -position[1], -position[2])
+    const t2 = new Matrix4().makeRotationAxis(new Vector(...direction), angle * Math.PI / 180)
+    const t3 = new Matrix4().makeTranslation(position[0], position[1], position[2])
+    const t = t3.multiply(t2).multiply(t1)
+    this.wrapped.multiply(t)
+    this._vertex = null
+    this._point = null
+    return this
+  }
+
   rotateEulerZYX(x: number, y: number, z: number, position: Point = [0, 0, 0]) {
     return this.rotate(x, position, [1, 0, 0])
       .rotate(y, position, [0, 1, 0])
@@ -127,6 +138,14 @@ export default class Trsf {
     const t3 = new Matrix4().makeTranslation(position[0], position[1], position[2])
     const t = t3.multiply(t2).multiply(t1)
     return new Trsf(t.multiply(this.wrapped))
+  }
+
+  prerotated(angle: number, position: Point = [0, 0, 0], direction: Point = [0, 0, 1]) {
+    const t1 = new Matrix4().makeTranslation(-position[0], -position[1], -position[2])
+    const t2 = new Matrix4().makeRotationAxis(new Vector(...direction), angle * Math.PI / 180)
+    const t3 = new Matrix4().makeTranslation(position[0], position[1], position[2])
+    const t = t3.multiply(t2).multiply(t1)
+    return new Trsf(t.premultiply(this.wrapped))
   }
 
   mirror(axis: Point, origin: Point = [0, 0, 0]) {

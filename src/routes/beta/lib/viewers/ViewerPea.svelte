@@ -1,20 +1,13 @@
 <script lang="ts">
-  import * as THREE from 'three'
-
   import Viewer from './Viewer.svelte'
-  import { rectangle, drawLinedWall, drawWall, drawPath, fullSizes } from './viewerHelpers'
-
-  import {
-    fullEstimatedCenter,
-    type Cuttleform,
-    type CuttleKey,
-    type Geometry,
-  } from '$lib/worker/config'
-  import { isRenderable, type ConfError, type ConfErrors } from '$lib/worker/check'
+  import { drawLinedWall, drawWall, fullSizes } from './viewerHelpers'
+  import { logicalKeys } from '../firmware/firmwareHelpers'
+  import { fullEstimatedCenter, type CuttleKey } from '$lib/worker/config'
+  import { isRenderable, type ConfErrors } from '$lib/worker/check'
   import { view } from '$lib/store'
-  import { hasKeyGeometry } from '$lib/loaders/keycaps'
+  import { hasKeyGeometry, hasPinsInMatrix } from '$lib/loaders/keycaps'
   import type { FullGeometry } from './viewer3dHelpers'
-  import { mapObj, objEntries } from '$lib/worker/util'
+  import { mapObjNotNull, objEntries, repeated } from '$lib/worker/util'
   import { T } from '@threlte/core'
   import { HTML } from '@threlte/extras'
 
@@ -24,128 +17,64 @@
   export let darkMode: boolean
 
   let activeIndex = 0
-  $: possibleKeys = Object.values(geometry)
-    .flatMap((g) => g.c.keys)
-    .filter(hasKeyGeometry)
+  $: possibleKeys = logicalKeys(geometry).filter(hasPinsInMatrix)
   $: activeKey = possibleKeys[activeIndex]
   let matrices = new Map<CuttleKey, [number, number]>()
   let matrixState: [typeof matrices, number] = [matrices, 0]
-  export let fullMatrix: typeof matrices | undefined
-  $: fullMatrix = activeKey ? undefined : matrices
+  export let fullMatrix: typeof matrices | null
+  $: fullMatrix = activeKey ? null : matrices
+  $: repeatedMatrices = repeated(Array.from(matrixState[0].values()).map((v) => v.join(',')))
 
   $: centers = fullEstimatedCenter(geometry, false)
   $: center = centers[$view]
 
-  $: allGeometries =
-    isRenderable(confError) && geometry
-      ? drawStates(darkMode, confError, geometry)
-      : ({} as ReturnType<typeof drawStates>)
   $: allGeometriesSize =
     isRenderable(confError) && geometry
-      ? drawStatesForSizing(darkMode, confError, geometry)
-      : ({} as ReturnType<typeof drawStates>)
+      ? drawStatesForSizing(geometry)
+      : ({} as ReturnType<typeof drawStatesForSizing>)
   $: sizes = fullSizes(allGeometriesSize)
   $: size = sizes[$view]
 
-  function drawStates(darkMode: boolean, confError: ConfErrors, geometry: FullGeometry) {
-    return mapObj(geometry as Required<typeof geometry>, (g, kbd) =>
-      drawState(g!.c, darkMode, confError?.side == kbd ? confError : undefined, g!)
+  function drawStatesForSizing(geometry: FullGeometry) {
+    return mapObjNotNull(geometry, (g) =>
+      g.allKeyCriticalPoints2D.flatMap((p) => drawLinedWall(p.map((p) => p.xy())))
     )
   }
 
-  function drawStatesForSizing(darkMode: boolean, confError: ConfErrors, geometry: FullGeometry) {
-    return mapObj(geometry as Required<typeof geometry>, (g, kbd) =>
-      drawStateForSizing(g!.c, darkMode, confError?.side == kbd ? confError : undefined, g!)
-    )
-  }
-
-  /** Group keys by the cluster they belong to. */
-  function splitByCluster(conf: Cuttleform) {
-    const clusters: Record<string, CuttleKey[]> = {}
-    for (const k of conf.keys) {
-      if (!clusters.hasOwnProperty(k.cluster)) clusters[k.cluster] = []
-      clusters[k.cluster].push(k)
+  /** Returns the physical key pressed (irrespective of OS keyboard settings) */
+  function keyForEvent(event: KeyboardEvent) {
+    if (event.code) {
+      if (event.code == 'Space') return ' '
+      if (event.code == 'Comma') return ','
+      if (event.code.startsWith('Key')) return event.code[3].toLowerCase()
+      if (event.code.startsWith('Digit')) {
+        const digit = Number(event.code[5])
+        if (event.shiftKey) return ')!@#$%^&*('.charAt(digit)
+        return String(digit)
+      }
     }
-    return Object.values(clusters)
-  }
-
-  function drawStateForSizing(
-    conf: Cuttleform,
-    darkMode: boolean,
-    confError: ConfError | undefined,
-    geo: Geometry
-  ) {
-    const geos: { geometry: THREE.ShapeGeometry; material: THREE.Material }[] = []
-    const pts = geo.allKeyCriticalPoints2D
-
-    geos.push(
-      ...pts.map((p) => ({
-        geometry: drawLinedWall(p.map((p) => p.xy())),
-        material: new THREE.MeshBasicMaterial({ color: 0xffcc33 }),
-      }))
-    )
-    return geos
-  }
-
-  /** Computes matrix and renders Three.js geometry for displaying it and the keys. */
-  function drawState(
-    conf: Cuttleform,
-    darkMode: boolean,
-    confError: ConfError | undefined,
-    geo: Geometry
-  ) {
-    const geos: { geometry: THREE.ShapeGeometry; material: THREE.Material }[] = []
-
-    const keys = geo.keyHolesTrsfs2D
-
-    const pts = geo.allKeyCriticalPoints2D
-
-    if (confError?.type == 'intersection') {
-      console.log(pts.map((po) => po.map((p) => p.xyz())))
-      geos.push(
-        ...pts.map((po) => ({
-          geometry: drawLinedWall(po.map((p) => p.xy())),
-          material: new THREE.MeshBasicMaterial({ color: 0xffcc33 }),
-        }))
-      )
-      if (confError.i >= 0)
-        geos.push({
-          geometry: drawLinedWall(
-            pts[confError.i].map((p) => p.xy()),
-            0.5
-          ),
-          material: new THREE.MeshBasicMaterial({ color: 0xff0000 }),
-        })
-      if (confError.j >= 0)
-        geos.push({
-          geometry: drawLinedWall(
-            pts[confError.j].map((p) => p.xy()),
-            0.5
-          ),
-          material: new THREE.MeshBasicMaterial({ color: 0xff0000 }),
-        })
-      return geos
-    }
-
-    return geos
+    return event.key
   }
 
   let recording = false
   let recorded = ''
   function handleKeydown(event: KeyboardEvent) {
-    if (recording && event.key == ' ') {
+    const pressedKey = keyForEvent(event)
+    if (recording && pressedKey == ' ') {
       recording = false
       recorded = recorded.toLowerCase()
+      console.log('key press', recorded)
       if (/^[a-f\d]+,[a-f\d]+$/.test(recorded)) {
         event.preventDefault()
+        if (!activeKey) return
         const [row, column] = recorded.split(',').map((n) => (isNaN(+n) ? parseInt(n, 16) : Number(n)))
         matrices.set(activeKey, [row, column])
         matrixState = [matrices, matrixState[1] + 1]
         activeIndex++
       }
       recorded = ''
-    } else if (recording) recorded += event.key
-    else if (event.key == '!') recording = true
+    } else if (recording) recorded += pressedKey
+    else if (pressedKey == '!') recording = true
   }
 
   function undo() {
@@ -160,6 +89,12 @@
     matrices.clear()
     matrixState = [matrices, matrixState[1] + 1]
   }
+
+  function isBootmagic(kbd: string, pos: [number, number] | undefined) {
+    if (!pos) return false
+    if (kbd == 'right') return (pos[0] == 7 && pos[1] == 0) || (pos[0] == 0 && pos[1] == 0) // First is QMK, second is ZMK
+    return pos[0] == 0 && pos[1] == 0
+  }
 </script>
 
 <svelte:window on:keydown={handleKeydown} />
@@ -169,40 +104,55 @@
     <button class="button" on:click={() => undo()}>Undo</button>
     <button class="button" on:click={() => reset()}>Reset</button>
   </div>
+  {#if !activeKey}
+    <div>
+      <div class="flex items-center">
+        <div class="w-8">
+          <div class="bg-brand-pink/10 border-1 border-brand-pink w-4 h-4 mx-auto" />
+        </div>
+        Bootmagic Key
+      </div>
+    </div>
+  {/if}
 </div>
 
 <Viewer {size} {style} cameraPosition={[0, 0, 1]} enableRotate={false}>
-  {#each objEntries(allGeometries) as [kbd, geos]}
-    {@const geo = geometry[kbd]}
+  {#each objEntries(geometry) as [kbd, geo]}
     {@const cent = center[kbd]}
-    {#if cent}
+    {#if cent && geo}
       <T.Group position={[-cent[0], -cent[1], -cent[2]]} scale.x={kbd == 'left' ? -1 : 1}>
-        {#each geos as geometry}
-          <T.Mesh geometry={geometry.geometry} material={geometry.material} />
-        {/each}
         {#if isRenderable(confError) && geometry}
           {#each geo.allKeyCriticalPoints2D as p, i}
             {@const active = geo.c.keys[i] == activeKey}
-            {@const letter = hasKeyGeometry(geo.c.keys[i])}
+            {@const hasMatrix = hasPinsInMatrix(geo.c.keys[i])}
+            {@const mat = matrixState[0].get(geo.c.keys[i])}
+            {@const bm = !activeKey && isBootmagic(kbd, mat)}
+            {@const rep = mat && repeatedMatrices.includes(mat.join(','))}
+            {@const meshColor = active
+              ? 0x0000ff
+              : rep
+              ? 0xff0000
+              : hasMatrix
+              ? bm
+                ? 0xf57aec
+                : 0xffcc33
+              : 0xcccccc}
             <T.Mesh geometry={drawWall(p.map((p) => p.xy()))}>
-              <T.MeshBasicMaterial
-                color={active ? 0x0000ff : letter ? 0xffcc33 : 0xcccccc}
-                transparent={true}
-                opacity={0.1}
-              />
+              <T.MeshBasicMaterial color={meshColor} transparent={true} opacity={0.1} />
             </T.Mesh>
             <T.Mesh geometry={drawLinedWall(p.map((p) => p.xy()))}>
-              <T.MeshBasicMaterial color={active ? 0x0000ff : letter ? 0xffcc33 : 0xcccccc} />
+              <T.MeshBasicMaterial color={meshColor} />
             </T.Mesh>
           {/each}
           {#each geo.keyHolesTrsfs2D.flat().map((k) => k.xyz()) as p, i}
             {@const key = geo.c.keys[i]}
+            {@const mat = matrixState[0].get(key)}
             <HTML position={[p[0], p[1], 0]} center>
               <div class="leading-none text-center">
-                {(hasKeyGeometry(key) && key.keycap?.letter) || ' '}
+                {(hasKeyGeometry(key) && 'keycap' in key && key.keycap?.letter) || ' '}
               </div>
               <div class="text-xs leading-none text-center opacity-70">
-                {#if matrixState[0].has(key)} {matrixState[0].get(key).join(',')}{/if}
+                {#if mat} {mat.join(',')}{/if}
               </div>
             </HTML>
           {/each}

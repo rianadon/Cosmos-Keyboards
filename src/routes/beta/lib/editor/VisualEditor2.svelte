@@ -9,6 +9,7 @@
     decodeTuple,
     encodeTuple,
     type FullCuttleform,
+    newFullGeometry,
   } from '$lib/worker/config'
   import {
     MICROCONTROLLER_NAME,
@@ -50,8 +51,8 @@
   import Checkbox from '$lib/presentation/Checkbox.svelte'
   import CheckboxOpt from '$lib/presentation/CheckboxOptDef.svelte'
   import Select from '$lib/presentation/Select.svelte'
-  import { capitalize, notNull, objEntries, objKeys } from '$lib/worker/util'
-  import { profileName, sortProfiles } from '../viewers/viewer3dHelpers'
+  import { capitalize, mapObj, mapObjNotNull, notNull, objEntries, objKeys } from '$lib/worker/util'
+  import { profileName, sortProfiles, type FullGeometry } from '../viewers/viewer3dHelpers'
   import { encodeVariant, PART_INFO } from '$lib/geometry/socketsParts'
   import DecimalInputInherit from './DecimalInputInherit.svelte'
   import {
@@ -101,6 +102,7 @@
   export let cosmosConf: CosmosKeyboard
   export let conf: FullCuttleform
   export let basic: boolean
+  export let geometry: FullGeometry
 
   let connectorView = false
   let sizeEditView = false
@@ -187,10 +189,11 @@
   }
 
   function updatePlate() {
+    // @ts-ignore
     $protoConfig.plate = { ...$protoConfig.plate }
   }
 
-  let lastSwitch: Record<string, PartType['type']> = { choc: 'choc-v1', mx: 'mx-better' }
+  let lastSwitch: Record<'choc' | 'mx', PartType['type']> = { choc: 'choc-v1', mx: 'mx-better' }
   let lastProfile: Record<string, Exclude<Profile, null>> = { choc: 'choc', mx: 'xda' }
 
   function updateKeycaps(ev: CustomEvent) {
@@ -199,9 +202,9 @@
     const switchType = PART_INFO[$protoConfig.partType.type].keycap
     const profileType = $protoConfig.profile == 'choc' ? 'choc' : 'mx'
     console.log(switchType, profileType)
-    if (switchType != profileType) {
+    if (switchType && switchType != profileType) {
       lastSwitch[switchType] = $protoConfig.partType.type!
-      $protoConfig.partType.type = lastSwitch[profileType]
+      $protoConfig.partType.type = lastSwitch[profileType]!
     }
   }
 
@@ -209,7 +212,7 @@
     $protoConfig.partType.type = ev.detail
     const switchType = PART_INFO[$protoConfig.partType.type].keycap
     const profileType = $protoConfig.profile == 'choc' ? 'choc' : 'mx'
-    if (switchType != profileType) {
+    if (switchType && switchType != profileType) {
       lastProfile[profileType] = $protoConfig.profile
       $protoConfig.profile = lastProfile[switchType]
       $protoConfig.keyBasis = $protoConfig.profile
@@ -279,8 +282,13 @@
   }
   function enterScrewIndices() {
     const ind = $protoConfig.screwIndices.join(',')
+    const computedScrewInd = mapObjNotNull(geometry, (g) => g.screwIndices)
+    const nScrews = Math.min(...Object.values(geometry).map((g) => g.allWallCriticalPoints().length))
     const newInd = prompt(
-      'Enter the indices of the screw holes separated by commas. For information on what these indices mean, refer to the expert mode documentation.',
+      `Enter the indices of the screw holes (0–${nScrews}) separated by commas. For information on what these indices mean, refer to the expert mode documentation.\n\nThe computed screw indices are:\n` +
+        Object.entries(computedScrewInd)
+          .map(([k, s]) => `${k}: ${s.join(',')}`)
+          .join('\n'),
       ind
     )
     if (newInd) {
@@ -309,8 +317,13 @@
   function enterFootIndices() {
     if (!$protoConfig.plate) return
     const ind = $protoConfig.plate?.footIndices.join(',')
+    const computedFootInd = mapObjNotNull(geometry, (g) => g.footIndices)
+    const nFeet = Math.min(...Object.values(geometry).map((g) => g.footWalls.length))
     const newInd = prompt(
-      'Enter the indices of the foot holes separated by commas. For information on what these indices mean, refer to the expert mode documentation.',
+      `Enter the indices of the foot holes (0–${nFeet}) separated by commas. For information on what these indices mean, refer to the expert mode documentation.\n\nThe computed foot indices are:\n` +
+        Object.entries(computedFootInd)
+          .map(([k, s]) => `${k}: ${s.join(',')}`)
+          .join('\n'),
       ind
     )
     if (newInd) {
@@ -386,11 +399,19 @@
 
   function rearPins(conf: CosmosKeyboard): number {
     if (conf.microcontroller == null) return 0
-    return BOARD_PROPERTIES[conf.microcontroller].rearPins || 0
+    return BOARD_PROPERTIES[conf.microcontroller].rearPins?.length || 0
   }
   function castellated(conf: CosmosKeyboard): boolean {
     if (conf.microcontroller == null) return false
     return BOARD_PROPERTIES[conf.microcontroller].castellated || false
+  }
+
+  function attempt<T>(f: () => T) {
+    try {
+      return f()
+    } catch {
+      return '{error}'
+    }
   }
 
   $: rightThumbCluster = $protoConfig.clusters.find((c) => c.name == 'thumbs' && c.side == 'right')!
@@ -1052,14 +1073,20 @@
     {#if $protoConfig.unibody}
       <Field
         name="Connector Index"
-        help="Position of the microcontroller and connector, expressed as a wall index. See expert mode documentation for details."
+        help="Position of the microcontroller and connector, expressed as a wall index. See expert mode documentation for details.<br>Currently, it is {attempt(
+          () => geometry.unibody?.connectorIndex
+        )} (0–{geometry.unibody?.allWallCriticalPoints().length})."
       >
         <DecimalInput bind:value={$protoConfig.connectorRightIndex} />
       </Field>
     {:else}
       <Field
         name="Connector Index (L/R)"
-        help="Position of the microcontroller and connector, expressed as a wall index. See expert mode documentation for details."
+        help="Position of the microcontroller and connector, expressed as a wall index. See expert mode documentation for details.<br>Currently, it is {attempt(
+          () => geometry.left?.connectorIndex
+        )} (0–{geometry.left?.allWallCriticalPoints().length}) on the left and {attempt(
+          () => geometry.right?.connectorIndex
+        )} (0–{geometry.right?.allWallCriticalPoints().length}) on the right."
       >
         <DecimalInput bind:value={$protoConfig.connectorLeftIndex} class="w-[5.2rem]" />
         <DecimalInput bind:value={$protoConfig.connectorRightIndex} class="w-[5.2rem]" />
@@ -1119,6 +1146,12 @@
       if you do! Any protrusions in this area under the microcontroller will prevent it from sliding into
       its holder.
     </InfoBox>
+  {/if}
+  {#if flags.lemons && $protoConfig.microcontroller && !$protoConfig.microcontroller.startsWith('lemon')}
+    <InfoBox
+      ><a class="text-pink-600 underline" href="docs/firmware/" target="_blank">Firmware autogen</a> is not
+      yet supported for this microcontroller. Switch to a Lemon microcontroller to use it.</InfoBox
+    >
   {/if}
   {#if castellated($protoConfig)}
     <InfoBox>
@@ -1261,6 +1294,12 @@
     </Field>
     <Field name="Wall Thickness" help="Thickness of the sides the keyboard">
       <DecimalInput bind:value={$protoConfig.wallThickness} units="mm" />
+    </Field>
+    <Field name="Wall XY Offset" icon="expand-horizontal" help="Horizontal offset for wall positioning">
+      <DecimalInput bind:value={$protoConfig.wallXYOffset} units="mm" />
+    </Field>
+    <Field name="Wall Z Offset" icon="expand-vertical" help="Vertical offset for wall positioning">
+      <DecimalInput bind:value={$protoConfig.wallZOffset} units="mm" />
     </Field>
     <Field
       name="Minimum Web Thickness"

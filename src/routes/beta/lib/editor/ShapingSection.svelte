@@ -1,4 +1,6 @@
 <script lang="ts">
+  // @ts-nocheck Unused file
+
   import type { FieldSchema } from '../schema'
   import FloatInput from './FloatInput.svelte'
   import Field from './Field.svelte'

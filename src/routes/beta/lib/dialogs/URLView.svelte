@@ -67,7 +67,7 @@
           start: index,
           end: parts[0].start,
         })
-      const part = parts.shift()
+      const part = parts.shift()!
       allParts.push({
         ...part,
         clazz: 'c' + ++classIdx,

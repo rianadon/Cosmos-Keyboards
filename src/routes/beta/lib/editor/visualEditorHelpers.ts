@@ -1,6 +1,5 @@
-import cuttleform from '$assets/cuttleform.json'
 import { PART_INFO } from '$lib/geometry/socketsParts'
-import { approximateCosmosThumbOrigin, cosmosFingers, cuttleConf, type CuttleKey, decodeTuple, encodeTuple, newGeometry } from '$lib/worker/config'
+import { approximateCosmosThumbOrigin, cosmosFingers, type Cuttleform, decodeTuple, encodeTuple, type FullCuttleform, newGeometry } from '$lib/worker/config'
 import {
   type ConnectorMaybeCustom,
   type CosmosCluster,
@@ -244,6 +243,21 @@ export function isThumb(c: CosmosKeyboard, type: Thumb, side: 'left' | 'right') 
   )
 }
 
+/** Returns a test print for a given config */
+export function testPrint(c: FullCuttleform) {
+  // Use the first key of the curved thumb cluster
+  const keyboard: Cuttleform = {
+    ...c[objKeys(c)[0]]!,
+    microcontroller: null,
+    connectors: [],
+    screwIndices: [],
+  }
+  const cosmosBoard = toCosmosConfig(keyboard, 'right', false)
+  cosmosBoard.clusters.forEach(c => c.clusters.length = 0)
+  setThumbCluster(cosmosBoard, 'curved', 'right', 1)
+  return fromCosmosConfig(cosmosBoard).right!
+}
+
 function connnectorString(connector: ConnectorMaybeCustom) {
   if (!connector.preset) return 'Custom'
   if (connector.preset == 'trrs') return 'TRRS'
@@ -355,7 +369,7 @@ export function addRow(kbd: CosmosKeyboard, fn: (side: 'left' | 'right', alphas:
 
 function numberKeyAdder(side: 'left' | 'right', alphas: number[], i: number, nColumns: number) {
   const ind = alphas.indexOf(i)
-  if (ind < 0) return
+  if (ind < 0) return null
   if (side == 'right') {
     return ['6', '7', '8', '9', '0'][ind]
   } else {

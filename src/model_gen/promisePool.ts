@@ -22,13 +22,17 @@ export class PromisePool {
   }
 
   /** Add a task to the queue only if the generated file is older than any of its dependencies */
-  addIfModified(name: string, output: string, dependencies: string[], f: () => Promise<R>): void {
+  addIfModified(name: string, output: string | string[], dependencies: string[], f: () => Promise<R>): void {
     this.queuePromises.push((async () => {
-      const [outStat, ...depStats] = await Promise.all([maybeStat(output), ...dependencies.map(maybeStat)])
+      const [outStats, depStats] = await Promise.all([
+        Promise.all((Array.isArray(output) ? output : [output]).map(maybeStat)),
+        Promise.all(dependencies.map(maybeStat)),
+      ])
       for (let i = 0; i < depStats.length; i++) {
         if (!depStats[i]) throw new Error(`Dependency ${dependencies[i]} was not found in the filesystem.`)
       }
-      if (!outStat?.mtime || depStats.some(d => !d!.mtime || outStat.mtime < d!.mtime)) {
+      const minMTime = Math.min(...outStats.map(m => m?.mtime.getTime() || Infinity))
+      if (minMTime == Infinity || depStats.some(d => !d!.mtime || minMTime < d!.mtime.getTime())) {
         this.queue.push({ name, f })
       } else {
         this.nSkipped++

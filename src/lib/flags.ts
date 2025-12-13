@@ -19,4 +19,4 @@ export const noUMR = search.includes('NoUMR')
 export const rtcb = search.includes('rtcb')
 export const draftuc = search.includes('draftuc')
 export const assembly = true
-export const lemons = search.includes('lemons')
+export const lemons = true

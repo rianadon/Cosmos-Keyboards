@@ -1,9 +1,8 @@
 import { type CosmosKeyboard, nthKey } from '$lib/worker/config.cosmos'
-import type { BufferGeometry, Mesh } from 'three'
-import type { KeyMaterial } from './materials'
+import type { BufferGeometry, Material, Mesh } from 'three'
 
 export type KeyStatus = 'error' | 'warning' | undefined
-export type KeyMesh = Mesh<BufferGeometry, KeyMaterial>
+export type KeyMesh = Mesh<BufferGeometry, Material>
 
 export function statusColor(status: string) {
   if (status == 'warning') return 'orange'

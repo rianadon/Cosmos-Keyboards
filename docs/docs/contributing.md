@@ -110,21 +110,26 @@ Here's how to add a new socket to the codebase:
    ```typescript
    'ec11': {
       partName: 'EC11 Encoder',
-      bomName: 'EC11 Encoders',
+      bomName: 'EC11 Encoder',
       category: 'Encoders',
       stepFile: '/src/assets/key-ec11.step',
       socketSize: [14.5, 14.5, 4.5],
       partBottom: [box(12, 12, 14.5)],
-      numPinsMatrix: 1,
-      numPinsGPIO: 2,
+      numPins: { matrix: 1, gpio: 2 },
       icon: 'knob',
       description: 'A vertical knob that you can...',
    },
    ```
-   The part/socket pair has two names: `partName` is the name shown in the editor, whereas `bomName` is shown in the bill of materials. Unlike `partName`, `bomName` is plural. Usually these are similar, but it's helpful to include vendors and part numbers in the `bomName`, whereas `partName` should be concise.<p></p>
+   The part/socket pair has two names: `partName` is the name shown in the editor, whereas `bomName` is shown in the bill of materials. Usually these are similar, but it's helpful to include vendors and part numbers in the `bomName`, whereas `partName` should be concise.<p></p>
    The field `stepFile` is the location where you saved the STEP file (`src/assets/key-(name).step`), and `socketSize` refers to the part boundary from step 3. The order of dimensions is `[x, y, z]`.</p><p>
    Finally, `partBottom` is a box describing the boundary of the part, referenced from the top of the socket. This is used to raise the model high enough so that your part doesn't collide with the ground!<p></p>
-   There are also a few more fields to keep in mind. `numPinsMatrix` and `numPinsGPIO` are used to count the total number of pins used on the microcontroller. Set `numPinMatrix` to the maximum number of pins that can be wired into the switch matrix (in the case of encoders, the encoder "button" can be wired as a switch). For most parts will likely omit `numPinMatrix` (it is 0 by default). The encoder has A & B pins that connect to the microcontroller's I/O pins, so `numPinsGPIO` is set to 2. Together, `numPinMatrix` and `numPinsGPIO` should add to the total number of I/O pins on the part. The `icon` and `description` set how the part appears in the BOM and parts dropdown respectively.
+   There are also a few more fields to keep in mind. The `icon` and `description` set how the part appears in the BOM and parts dropdown respectively. `numPins` is used to count the total number of pins used on the microcontroller. It has the following fields:
+
+       - `matrix`: the maximum number of pins that can be wired into the switch matrix (in the case of encoders, the encoder "button" can be wired as a switch). For most parts will likely omit `numPins.matrix` (it is 0 by default).
+       - `i2c`: set to true if the part uses I2C
+       - `spi`: if the part uses SPI, you have 3 options: `bidirectional`, `output-only`, and `input-only`. Some displays only have a single data pin for input only. If your part has both SO and SI pins, it is `bidirectional`.
+       - `analog`: how many pins must be wired to analog pins on the microcontroller. For instance, joysticks use two analog pins to report their position.
+       - `gpio`: for anything else. From the total number of pins used by the part, subtract gnd/vcc, sda/scl, cs/si/so/sck, and any analog or matrix pins. In this example the encoder has A & B pins that connect to the microcontroller's I/O pins, so `gpio` is set to 2.
 
 5. Edit `src/proto/cosmosStructs.ts` and add your socket/part to the `enumeration('PART', {` declaration. You'll need to give your part a unique number used to identify it in the URL. Switches get numbers from 1–15, and everything else uses 16–109.
 
@@ -237,7 +242,7 @@ If you need to add any more icons, the file to edit is `src/lib/presentation/Ico
 Because there are many models of displays but very few differences between the sockets, Cosmos includes a parametric socket generator for displays. This means **you do not have to create STEP files for displays**. Instead, generate the sockets in `src/model_gen/parts.ts` using code like this:
 
 ```typescript
-const dfDisplayProps: DisplayProps = {
+poolDisplay('oled-128x32-0.91in-dfrobot', {
   pcbLongSideWidth: 41.08,
   pcbShortSideWidth: 11.5,
   offsetFromLeftLongSide: 0.29,
@@ -246,13 +251,11 @@ const dfDisplayProps: DisplayProps = {
   offsetFromBottomShortSide: 5.23,
   displayThickness: 1.71,
   pcbThickness: 1.13,
-}
-
-poolDisplayModel('oled-128x32-0.91in-dfrobot', dfDisplayProps, 0.5)
-poolDisplaySocket('oled-128x32-0.91in-dfrobot', dfDisplayProps)
+  displayRounding: 0.5,
+})
 ```
 
-Rename `dfDisplayProps` to `<yourdisplay>DisplayProps` and change `oled-128x32-0.91in-dfrobot` to the name you've given your socket. Because the code generates the display and socket separately, you'll need to specify both `stepFile` and `partOverride` when you configure the pair in `socketsParts.ts`.
+Change `oled-128x32-0.91in-dfrobot` to the name you've given your socket. You'll need to specify just `stepFile` (don't add a `partOverride`) when you configure the pair in `socketsParts.ts`.
 
 The numbers listed within `DisplayProps` are measurements of the display taken with calipers. All measurements are in millimeters.
 
@@ -264,8 +267,9 @@ The numbers listed within `DisplayProps` are measurements of the display taken w
 - `offsetFromBottomShortSide`: How much the display is offset from the bottom short side of the PCB
 - `displayThickness`: How thick the display part is (excluding PCB)
 - `pcbThickness`: How thick the PCB is
+- `displayRounding`: How much the corners of the display are rounded.
 
-The `0.5` passed to `poolDisplayModel` describes how much the corners of the display are rounded.
+Don't forget to edit `src/proto/cosmosStructs.ts` and add your socket/part to the `enumeration('PART', {` declaration. You'll need to give your part a unique number used to identify it in the URL. Switches get numbers from 1–15, and everything else uses 16–109.
 
 ### Contributing Microcontrollers
 

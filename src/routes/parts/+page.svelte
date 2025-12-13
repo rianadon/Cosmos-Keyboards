@@ -1,35 +1,30 @@
 <script lang="ts">
   import { base } from '$app/paths'
-  import { allVariants, PART_INFO } from '$lib/geometry/socketsParts'
+  import { allVariants, PART_INFO, sortedCategories } from '$lib/geometry/socketsParts'
   import Checkbox from '$lib/presentation/Checkbox.svelte'
   import { developer } from '$lib/store'
   import Part from './Part.svelte'
   import SharedRenderer from '$lib/3d/SharedRenderer.svelte'
-  import { notNull, objEntries } from '$lib/worker/util'
+  import { notNull, objKeys } from '$lib/worker/util'
+  import * as flags from '$lib/flags'
+  import Dialog from '$lib/presentation/Dialog.svelte'
+  import type { CuttleKey } from '$target/cosmosStructs'
+  import Description from './Description.svelte'
+  import { createTableOfContents } from '@melt-ui/svelte'
+  import Tree from './Tree.svelte'
+  import { pushState } from '$app/navigation'
 
-  const BACK_COMPATIBLE = [
-    'old-mx',
-    'choc-hotswap',
-    'old-mx-snap-in',
-    'old-mx-hotswap',
-    'old-box',
-    'old-mx-snap-in-hotswap',
-  ]
-  const BLOCK = ['blank']
+  export let expanded: CuttleKey['type'] | null = null
 
-  const variantEntries = notNull(
-    objEntries(PART_INFO).map(([p, info]) => ('variants' in info ? ([p, info] as const) : null))
-  )
-  const nonVariantEntries = notNull(
-    objEntries(PART_INFO).map(([p, info]) => ('variants' in info ? null : ([p, info] as const)))
-  )
-
-  const firstEntries = nonVariantEntries.filter(
-    ([part, _info]) => !BACK_COMPATIBLE.includes(part) && !BLOCK.includes(part)
-  )
-  const backEntries = nonVariantEntries.filter(
-    ([part, _info]) => BACK_COMPATIBLE.includes(part) && !BLOCK.includes(part)
-  )
+  const {
+    elements: { item },
+    states: { activeHeadingIdxs, headingsTree },
+  } = createTableOfContents({
+    selector: '#toc-builder-preview',
+    exclude: ['h1', 'h4', 'h5', 'h6'],
+    activeType: 'highest',
+    pushStateFn: () => {}, // Disable history update
+  })
 </script>
 
 <svelte:head>
@@ -69,32 +64,60 @@
   </div>
 {/if}
 
-<main class="max-w-6xl mx-auto">
-  <SharedRenderer>
-    <h2>Included Parts</h2>
-    <section class="parts">
-      {#each firstEntries as [part, info]}
-        <Part name={info.partName} {part} dev={$developer} />
+<SharedRenderer>
+  <div class="grid grid-cols-1 gap-2 xl:grid-cols-[1fr_14rem] max-w-[100rem] mx-auto">
+    <main id="toc-builder-preview" class="xl:pl-14rem">
+      {#each sortedCategories as cat}
+        <h2>{cat}</h2>
+        <section class="parts">
+          {#each notNull(objKeys(PART_INFO)).filter((v) => PART_INFO[v].category == cat && (flags.draftuc || !PART_INFO[v].draft) && v != 'blank') as p}
+            <Part
+              name={PART_INFO[p].partName}
+              part={p}
+              dev={$developer}
+              on:expand={() => (expanded = p)}
+            />
+          {/each}
+        </section>
       {/each}
-    </section>
+    </main>
+    <div class="rounded-lg p-4 <lg:hidden sticky toc top-0 pt-20">
+      <p class="font-semibold text-white">Contents</p>
+      <nav>
+        {#key $headingsTree}
+          <Tree tree={$headingsTree} activeHeadingIdxs={$activeHeadingIdxs} {item} />
+        {/key}
+      </nav>
+    </div>
+  </div>
 
-    {#each variantEntries as [part, info]}
-      <h2>{info.partName}</h2>
-      <section class="parts">
-        {#each allVariants(part) as variant}
-          <Part name={info.partName} {part} {variant} dev={$developer} />
-        {/each}
-      </section>
-    {/each}
-
-    <h2>For Backwards Compatibility</h2>
-    <section class="parts">
-      {#each backEntries as [part, info]}
-        <Part name={info.partName} {part} dev={$developer} />
-      {/each}
-    </section>
-  </SharedRenderer>
-</main>
+  {#if expanded}
+    {@const info = PART_INFO[expanded]}
+    <Dialog forceDark big on:close={() => (expanded = null)}>
+      <span slot="title" class="">{info.partName}</span>
+      <div slot="content" class="text-center text-white">
+        <div class="mx-auto mb-4 cosmospartinfo text-sm max-w-prose">
+          <Description description={info.description || ''} />
+        </div>
+        <div class="grid grid-cols-2">
+          {#each allVariants(expanded) as variant}
+            <Part
+              name={'variants' in info
+                ? Object.keys(info.variants)
+                    .map((v) => variant[v])
+                    .join(', ')
+                : ''}
+              part={expanded}
+              {variant}
+              dev={$developer}
+              editable={false}
+            />
+          {/each}
+        </div>
+      </div>
+    </Dialog>
+  {/if}
+</SharedRenderer>
 
 <style>
   h2 {
@@ -102,5 +125,15 @@
   }
   .parts {
     --at-apply: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ';
+  }
+  .toc {
+    align-self: start;
+  }
+
+  :global(.cosmospartinfo p) {
+    --at-apply: 'mb-1';
+  }
+  :global(.cosmospartinfo a) {
+    --at-apply: 'underline text-pink-400';
   }
 </style>

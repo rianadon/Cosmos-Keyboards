@@ -14,7 +14,11 @@ This guide will take you through
 
 !!! info "Why QMK?"
 
-    I'm a massochist. QMK is awesome when someone else has configured it for you but a terrible pain in the behind if you are the one configuring it. However, if you're using a trackball with a PMW60XX chip, it's necessary. I also really like Via, which requires QMK. Otherwise, you might want to give ZMK (used mostly for wireless keyboards) or KMK (which uses Python as configuration) instead.
+    I'm a massochist. QMK is awesome when someone else has configured it for you but a terrible pain in the behind if you are the one configuring it. However, it has the most features of any keyboard firmware. I also really like Via, which requires QMK. Otherwise, you might want to give ZMK (used mostly for wireless keyboards) or KMK (which uses Python as configuration) instead.
+
+!!! note "Skip writing firmware"
+
+    Cosmos now supports [Firmware Autogen](./firmware.md), which allows you to autogenerate QMK firmware with the Lemon Wired microcontroller.
 
 ## Background: Decisions, Decisions
 
@@ -64,7 +68,7 @@ There is no recommended way to wire a TRRS as long as you are consistent between
 
 !!! info "Notes on TRRS"
 
-    TRRS jacks come in 4-pin and 3-pin varieties, and QMK supports using either 3 pins or all 4 pins. I choose the 3-pin wiring because it makes your keyboard work with a much larger variety of TRRS cables. Regardless of whether you choose 3 pins or 4 pins, the PJ-320A connector is the easiest to source so that's what Cosmos uses.
+    TRRS jacks come in 4-pin and 3-pin varieties, and QMK supports using either 3 pins or all 4 pins. I choose the 3-pin wiring because it makes your keyboard work with a much larger variety of TRRS cables. However, 4-pin enables using full-duplex serial, which is [not sensitive to your cable's resistance](https://old.reddit.com/r/olkb/comments/18uf6nj/rp2040_split_keyboard_data_line_halfduplex_with/kinff4o/). Regardless of whether you choose 3 pins or 4 pins, the PJ-320A connector is the easiest to source so that's what Cosmos uses.
 
     Some boards have both Vin and Vout pins. Vout is directly connected to microcontroller power, whereas Vin has extra circuitry that ensures current only flows *in* to Vin. This prevents backpowering (e.g. if you've connected Vin to 4V and plugged in USB (5V), these power sources won't be shorted. Nevertheless, we'd like to be able to power our keyboards from either half, and the only power the keyboard receives is from USB, so it's safe to connect Vout to Vout.
 

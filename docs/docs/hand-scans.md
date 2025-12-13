@@ -31,6 +31,14 @@ I also assign each joint a number of rotational degrees of freedom (DOF) based o
 - The thumb MCP and DIP joints have 1 DOF from curl.
 - All PIP and DIP joints have 1 DOF from curl.
 
+## Checking Your Scan
+
+A common question that I get is how do I check that my hand scan measurements are correct? What I recommmend is you measure from your fingertip to your knuckle, then add up the 3 lengths from knuckle to fingertip that Cosmos reports. These should be about equal.
+
+The reason for this is that individual lengths are noisy due to the difficulty of guessing where your joint is from a top-down image. However, adding together multiple lengths will reduce the significance of this error.
+
+When measuring, try to measure from the center of your finger (where your bones are), not the top or bottom surface. This is the distance that Cosmos approximates to correctly estimate how your hand is shaped when your fingers are bent.
+
 ## Hand Scan Files
 
 The layout of the hand scan file is as follows:

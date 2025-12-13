@@ -28,7 +28,7 @@
 </script>
 
 <svelte:head>
-  <title>Cosmos Keyboard</title>
+  <title>Cosmos Keyboards</title>
   <link rel="canonical" href="https://ryanis.cool/cosmos/" />
   <link rel="icon" href="{base}/favicon.png" />
 </svelte:head>
@@ -71,7 +71,7 @@
     on:click={join}
   >
     Try the Beta
-    <Icon path={mdiChevronRight} size="100%" class="w-[28px] sm:w-[32px]" />
+    <Icon path={mdiChevronRight} size="100%" class="w-[1.75rem] sm:w-[2rem]" />
   </a>
 </section>
 <section class="mt-6 mb-24 px-8">
@@ -168,22 +168,36 @@
     class="text-black font-semibold rounded inline-flex items-center gap-16 my-4 pl-6 pr-4 bg-brand-green <sm:ml-6 transition hover:shadow-lg shadow-teal/30"
   >
     Browse the Parts
-    <Icon path={mdiChevronRight} size="100%" class="w-[28px] sm:w-[32px]" />
+    <Icon path={mdiChevronRight} size="100%" class="w-[1.75rem] sm:w-[2rem]" />
   </a>
   <section class="section">
     <h2 class="heading">Order Online or Build it Yourself</h2>
     <p class="font-system">
       Cosmos partners with keyboard builders to deliver your customized keyboard with premium materials.
       If you're handy with 3D printing and soldering, you can save money by building your keyboard
-      yourself.
+      yourself. Cosmos also sells specialized PCBs for keyboard building!
     </p>
     <a
       href="{base}/docs/assembly-service/"
       class="text-black font-semibold rounded inline-flex items-center gap-16 my-4 pl-6 pr-4 bg-brand-green ml-6 transition hover:shadow-lg shadow-teal/30"
     >
       Assembly Service Docs
-      <Icon path={mdiChevronRight} size="100%" class="w-[28px] sm:w-[32px]" />
+      <Icon path={mdiChevronRight} size="100%" class="w-[1.75rem] sm:w-[2rem]" />
     </a>
+    <div class="flex flex-wrap gap-4 sectionitem">
+      <a class="pcblogo" href="{base}/plum-twist/">
+        <img src="{base}/plum-web.svg" alt="Plum Twist PCB" />
+        Plum Twist PCB
+      </a>
+      <a class="pcblogo" href="{base}/lemon/">
+        <img src="{base}/lemon-web.svg" alt="Lemon Microcontroller" />
+        Lemon Microcontroller
+      </a>
+      <a class="pcblogo" href="{base}/pumpkin/">
+        <img src="{base}/pumpkin-web.svg" alt="Pumpkin Patch PCB" />
+        Pumpkin Patch PCB
+      </a>
+    </div>
   </section>
 </section>
 <section class="max-w-240 mx-auto bg-gradient-rc-far from-[#f57aec]/15 to-transparent">
@@ -248,7 +262,7 @@
     class="text-black font-semibold rounded inline-flex items-center gap-16 my-4 pl-6 pr-4 bg-brand-green <sm:ml-6 transition hover:shadow-lg shadow-teal/30"
   >
     Learn About CAD Export
-    <Icon path={mdiChevronRight} size="100%" class="w-[28px] sm:w-[32px]" />
+    <Icon path={mdiChevronRight} size="100%" class="w-[1.75rem] sm:w-[2rem]" />
   </a>
 </section>
 
@@ -267,7 +281,7 @@
     <div class="bg-gray-800 inline-flex my-6 py-2 px-4 rounded items-center gap-4">
       <img src="{base}/cosmos-icon.png" class="w-12 h-12 rounded-4" />
       <div class="text-left mr-8">
-        <p class="text-lg">Cosmos Keyboard</p>
+        <p class="text-lg">Cosmos Keyboards</p>
         <p class="text-gray-400 mt--1">
           <span class="mr-1">●</span>
           {#await discordUsers then count}{count} members{/await}
@@ -301,7 +315,7 @@
     on:click={join}
   >
     Try the Beta
-    <Icon path={mdiChevronRight} size="100%" class="w-[28px] sm:w-[32px]" />
+    <Icon path={mdiChevronRight} size="100%" class="w-[1.75rem] sm:w-[2rem]" />
   </a>
   <p class="mt-6 max-w-prose mx-auto px-6 text-gray-200">
     Psst! Come here from my Dactyl generator? You should give Cosmos a try. It's changing a&nbsp;lot but
@@ -314,7 +328,7 @@
 </footer>
 
 {#if joining}
-  <Dialog forceDark center on:close={() => (joining = false)}>
+  <Dialog forceDark on:close={() => (joining = false)}>
     <span slot="title" class="font-urbanist">Before you leave…</span>
     <div slot="content" class="text-center text-white font-urbanist">
       <p class="font-system">
@@ -324,7 +338,7 @@
       <div class="bg-gray-700 inline-flex my-6 py-2 px-4 rounded items-center gap-4">
         <img src="{base}/cosmos-icon.png" class="w-12 h-12 rounded-4" />
         <div class="text-left mr-8">
-          <p class="text-lg">Cosmos Keyboard</p>
+          <p class="text-lg">Cosmos Keyboards</p>
           <p class="text-gray-400 mt--1">
             <span class="mr-1">●</span>
             {#await discordUsers then count}{count} members{/await}
@@ -386,7 +400,8 @@
     --at-apply: 'uppercase text-xl sm:text-3xl text-[#68e4a9] font-medium mb-4';
   }
   .section p,
-  .section .heading {
+  .section .heading,
+  .section .sectionitem {
     --at-apply: 'mx-6';
   }
   .bg-gradient-rct {
@@ -491,5 +506,13 @@
 
   .citem:hover > .vignette > img {
     filter: brightness(1.3);
+  }
+
+  .pcblogo {
+    --at-apply: 'flex items-center gap-2 bg-[#f57aec]/15 rounded pl-2 pr-3 h-7 sm:h-8 font-semibold transition hover:shadow-lg shadow-brand-pink/30';
+  }
+
+  .pcblogo img {
+    --at-apply: 'w-8.5 h-8.5 sm:(w-10 h-10) drop-shadow-color-brand-pink/30 drop-shadow-md';
   }
 </style>

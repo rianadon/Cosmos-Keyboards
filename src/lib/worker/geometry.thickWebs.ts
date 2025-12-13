@@ -15,6 +15,7 @@
 
 import { socketSize } from '$lib/geometry/socketsParts'
 import { switchInfo } from '$lib/geometry/switches'
+import { gosper } from 'three/examples/jsm/utils/GeometryUtils.js'
 import { Matrix3 } from 'three/src/math/Matrix3.js'
 import { createTriangleMap, type TriangleMap } from './concaveman'
 import { doWallsIntersect } from './concaveman-extra'
@@ -138,9 +139,9 @@ function calcThickness(thisTop: Trsf, thisThick: number, nextTop: Trsf, normal: 
  * since the keycaps stick out from where the switch thing is
  */
 function maxReinfMargin(key: CuttleKey) {
-  const keyWidth = (key.type == 'choc') ? 17.5 : 18.5
+  const keyWidth = (key.type.startsWith('choc')) ? 17.5 : 18.5
   const size = socketSize(key)
-  const socketWidth = 'radius' in size ? size.radius * 2 : size[0]
+  const socketWidth = 'radiusX' in size ? size.radiusX * 2 : size[0]
   return (keyWidth - socketWidth) / 2 + 0.25
 }
 /**
@@ -344,7 +345,16 @@ export function flipAllTriangles(triangles: number[][], allPts: Trsf[]) {
  * and the offset of the right side. This adds a little more flexibility in the kind of geometry this method
  * can tackle.
  */
-export function reinforceTriangles(c: Cuttleform, geo: Geometry, triangles: number[][], allPolys: CriticalPoints[], worldZ: Vector, bottomZ: number, top = true, walls?: WallCriticalPoints[]) {
+export function reinforceTriangles(
+  c: Cuttleform,
+  geo: Geometry,
+  triangles: number[][],
+  allPolys: CriticalPoints[],
+  worldZ = geo.worldZ,
+  bottomZ = geo.bottomZ,
+  top = true,
+  walls?: WallCriticalPoints[],
+) {
   // addExtraWallsForExtremeAngles(c, geo, allPolys, walls)
 
   const keyIdx = allPolys.flatMap((p, i) => p.map(_ => i))
@@ -454,7 +464,7 @@ export function reinforceTriangles(c: Cuttleform, geo: Geometry, triangles: numb
 
       // Adjust length if necessary to ensure wall stays valid
       const wallNext = boundary.indexOf(pi2)
-      if (!top && wallNext >= 0 && walls) offsetNext = maxOffsetForWall(c, walls, wallNext, offsetNext, normal, worldZ)
+      if (!top && wallNext >= 0 && walls) offsetNext = maxOffsetForWall(c, walls, wallNext, offsetNext, normal, worldZ, bottomZ)
 
       if (offsetNext > OFFSET_THRESH) {
         // Add the new point

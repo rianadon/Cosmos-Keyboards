@@ -65,7 +65,7 @@
   import { hasPro } from '@pro'
   import ViewerDev from './lib/viewers/ViewerDev.svelte'
   import DownloadDialog from './lib/dialogs/DownloadDialog.svelte'
-  import { fromCosmosConfig, toFullCosmosConfig } from '$lib/worker/config.cosmos'
+  import { fromCosmosConfig, toFullCosmosConfig, type CosmosKeyboard } from '$lib/worker/config.cosmos'
   import KeyboardModel from '$lib/3d/KeyboardModel.svelte'
   import { type FullGeometry, type FullKeyboardMeshes } from './lib/viewers/viewer3dHelpers'
   import { notNull, objEntriesNotNull, objKeys } from '$lib/worker/util'
@@ -75,6 +75,7 @@
   import ConfError from './lib/ConfError.svelte'
   import { SORTED_VENDORS } from '@pro/assemblyService'
   import { microcontrollerConnectors } from '$lib/geometry/microcontrollers'
+  import PeaWarnings from './lib/editor/PeaWarnings.svelte'
 
   const DEF_CENTER = [-35.510501861572266, -17.58449935913086, 35.66889877319336] as [
     number,
@@ -106,12 +107,10 @@
   let editorContent: string
   let hideWall = false
   let lastRenderNumber = 0
-  let fullMatrix: any = undefined
+  let fullMatrix: any = null
 
   // @ts-ignore
-  let state: State = deserialize(browser ? location.hash.substring(1) : '', () =>
-    deserialize('cm', null)
-  )
+  let state: State = deserialize(browser ? location.hash.substring(1) : '')
   if (state.error)
     confError.set([{ type: 'exception', error: state.error, side: 'right', when: 'parsing URL' }])
   $: $confError.forEach((e) => {
@@ -127,7 +126,7 @@
       console.log('URL CHANGE: Change state? =', oldHash != newHash)
       if (oldHash != newHash) {
         // The page navigated!
-        state = deserialize(location.hash.substring(1), () => deserialize('cm', null))
+        state = deserialize(location.hash.substring(1))
         const newMode = state.content ? 'advanced' : 'basic'
         if (state.content) initialEditorContent = state.content
         if (mode === 'advanced' && newMode !== 'advanced') {
@@ -441,6 +440,7 @@
         const errors: Error[] = []
         generatorProgress = 0.2
         while (queue.length) {
+          // @ts-ignore
           const { result, finished, error } = await Promise.race(
             queue.map((p) =>
               p.prom.then(
@@ -528,7 +528,7 @@
   }
 
   $: hasLemon = (config?.right || config?.unibody)?.microcontroller?.startsWith('lemon')
-  function switchUC(uc: string) {
+  function switchUC(uc: Exclude<CosmosKeyboard['microcontroller'], null>) {
     $protoConfig.microcontroller = uc
     lemonSwitch = false
 
@@ -980,11 +980,23 @@
           {:else}
             <p class="mt-4 mb-2">Autogenerate your firmware with peaMK!</p>
             <ol class="list-decimal ml-6">
-              <li>Download and flash peaMK to your microcontroller.</li>
+              <li>
+                <a class="text-pink-600 underline" target="_blank" href="docs/firmware/#key-labeling"
+                  >Label all your keys</a
+                > to your liking.
+              </li>
+              <li>
+                Download and flash <a
+                  class="text-pink-600 underline"
+                  target="_blank"
+                  href="https://github.com/rianadon/peaMK/tree/main?tab=readme-ov-file#binaries">peaMK</a
+                > to your microcontroller(s).
+              </li>
               <li>Press the indicated blue key (on the right) on your keyboard.</li>
               <li>If a key doesn't work, double check your wiring.</li>
               <li>When all keys have been pressed Cosmos will auto-generate your firmware.</li>
             </ol>
+            <PeaWarnings {config} {geometry} />
           {/if}
         {:else}
           <p class="mt-4 mb-2">Some things that will happen here in the future:</p>
@@ -1069,6 +1081,7 @@
             <VisualEditor2
               basic={mode == 'basic'}
               cosmosConf={state.options}
+              {geometry}
               bind:conf={config}
               on:goAdvanced={() => (mode = 'intermediate')}
             />
@@ -1108,7 +1121,7 @@
           Bill of Materials will not be available until you fix the errors in your configuration.
         </div>
       {:else}
-        {#if (config?.right ?? config?.unibody).shell.type != 'basic'}
+        {#if (config?.right || config?.unibody)?.shell.type != 'basic'}
           <div class="bg-yellow-200 m-4 rounded p-4 dark:bg-yellow-700">
             Screw information is not yet finished non-standard cases. Make sure to check the model for
             any additional screws needed.

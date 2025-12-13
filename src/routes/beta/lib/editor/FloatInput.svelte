@@ -7,7 +7,7 @@
 
   $: rounded = Math.round(value * 100) / 100
 
-  function onChange(e) {
+  function onChange(e: any) {
     value = Math.round(100 * e.target.value) / 100
   }
 </script>

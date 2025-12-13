@@ -144,5 +144,5 @@ export interface ShapeMesh {
     count: number
     faceId: number
   }[]
-  color?: Uint16Array
+  color?: Float32Array
 }

@@ -120,7 +120,7 @@ export class BaseGeometry<C extends Cuttleform = SpecificCuttleform<BasicShell>>
     if (!this.c.microcontroller) return {}
     return boardIndices(this.c, this.connectorOrigin, this.allWallCriticalPoints(), this.worldZ, this.bottomZ, this.selectedBoardIndices)
   }
-  get boardIndicesThatAreScrewsToo() {
+  get boardIndicesThatAreScrewsToo(): (keyof LabeledBoardInd)[] {
     return this.c.microcontroller ? ['topLeft'] : []
   }
   @Memoize()

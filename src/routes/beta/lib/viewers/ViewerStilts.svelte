@@ -6,9 +6,9 @@
   import { rectangle, drawLinedWall, drawWall } from './viewerHelpers'
   import { boundingSize } from '$lib/loaders/geometry'
 
-  import type { Cuttleform } from '$lib/worker/config'
+  import type { Cuttleform, Geometry } from '$lib/worker/config'
   import type { ConfError } from '$lib/worker/check'
-  import type { Geometry } from '$lib/worker/cachedGeometry'
+  import { T } from '@threlte/core'
 
   export let conf: Cuttleform
   export let geometry: Geometry
@@ -75,6 +75,8 @@
       pts2DC,
       geo.allKeyCriticalPoints,
       geo.keyHolesTrsfs,
+      geo.bottomZ,
+      geo.worldZ,
       {
         noBadWalls: true,
         constrainKeys: false,
@@ -100,6 +102,7 @@
     geos.push(
       ...triangles.flatMap(([a, b, c]) => [
         {
+          // @ts-ignore
           geometry: drawWall([allPts[a], allPts[b], allPts[c]]),
           material: new THREE.MeshBasicMaterial({
             color: 0xffcc33,
@@ -108,6 +111,7 @@
           }),
         },
         {
+          // @ts-ignore
           geometry: drawLinedWall([allPts[a], allPts[b], allPts[c]]),
           material: new THREE.MeshBasicMaterial({ color: 0xffcc33 }),
         },
@@ -115,6 +119,7 @@
     )
 
     geos.push({
+      // @ts-ignore
       geometry: drawLinedWall(boundary.map((p) => allPts[p])),
       material: new THREE.MeshBasicMaterial({ color: darkMode ? 0x6699ff : 0x3333ff }),
     })
@@ -130,7 +135,13 @@
   }
 </script>
 
-<Viewer {geometries} {center} {size} {style} cameraPosition={[0, 0, 1]} enableRotate={false} />
+<Viewer {size} {style} cameraPosition={[0, 0, 1]} enableRotate={false}>
+  {#each geometries as geometry}
+    <T.Group position={[-center[0], -center[1], -center[2]]}>
+      <T.Mesh geometry={geometry.geometry} material={geometry.material} />
+    </T.Group>
+  {/each}
+</Viewer>
 {#if !conf}
   <div class="bg-red-200 m-4 rounded p-4 dark:bg-red-700">
     Key layout will not be available until the configuration is evaluated.

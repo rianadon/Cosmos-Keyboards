@@ -28,7 +28,7 @@
     showHelp,
   } from '$lib/store'
   import HandModel from '$lib/3d/HandModel.svelte'
-  import { FINGERS, type Joints, SolvedHand } from '../hand'
+  import { type Finger, FINGERS, type Joints, SolvedHand } from '../hand'
   import { refine } from '../handoptim'
   import Keyboard from '$lib/3d/Keyboard.svelte'
   import AddButton from '$lib/3d/AddButton.svelte'
@@ -38,11 +38,19 @@
   import ETrsf, { keyPosition, keyPositionTop } from '$lib/worker/modeling/transformation-ext'
   import { keyInfo } from '$lib/geometry/keycaps'
   import { switchInfo } from '$lib/geometry/switches'
-  import { KeyMaterial } from '$lib/3d/materials'
   import { componentBoxes, componentGeometry } from '$lib/worker/geometry'
   import * as mdi from '@mdi/js'
   import Icon from '$lib/presentation/Icon.svelte'
-  import { diff, notNull, objEntriesNotNull, objKeys } from '$lib/worker/util'
+  import {
+    diff,
+    filterObj,
+    mapObj,
+    mapObjNotNull,
+    notNull,
+    objEntries,
+    objEntriesNotNull,
+    objKeys,
+  } from '$lib/worker/util'
   import { readHands, type HandData } from '$lib/handhelpers'
   import { simpleSocketGeos } from '$lib/loaders/simpleparts'
   import GroupMatrix from '$lib/3d/GroupMatrix.svelte'
@@ -182,6 +190,7 @@
       if ($selectMode == 'key') {
         key.partType.type = newType
         key.partType.variant = key.sizeA = key.sizeB = undefined
+        if (newType == 'blank') key.marginX = key.marginY = undefined
       }
       if ($selectMode == 'column') {
         column.partType.type = newType
@@ -215,8 +224,8 @@
   function changeKeyVariant(e: Event, elem: string) {
     const newValue = (e.target as HTMLInputElement).value
     protoConfig.update((proto) => {
-      const oldVariant = nthPartVariant(proto, $clickedKey)
-      const type = nthPartType(proto, $clickedKey, 'key')
+      const oldVariant = nthPartVariant(proto, $clickedKey!)
+      const type = nthPartType(proto, $clickedKey!, 'key')
       oldVariant[elem] = newValue
       const { key } = nthKey(proto, $clickedKey!)
       key.partType.variant = encodeVariant(type, oldVariant)
@@ -311,6 +320,7 @@
 
   function updateProto() {
     protoConfig.update((p) => p)
+    console.log('New proto', $protoConfig)
   }
 
   const initialLength = browser ? window.history.length : 0
@@ -424,7 +434,7 @@
   $: hoveredLRotation = clusterIsHovered == null ? null : decodeTuple(clusterIsHovered.rotation || 0n)
 
   const sentence = 'pink,plum;youlhuminjoy.'
-  const fingersToKeys = {
+  const fingersToKeys: Record<string, Finger> = {
     '6': 'indexFinger',
     '7': 'indexFinger',
     '8': 'middleFinger',
@@ -447,17 +457,18 @@
     '/': 'pinky',
   }
 
-  function reachability(conf: Cuttleform, joints: Joints[], origin: Vector3) {
+  function reachability(conf: Cuttleform, joints: Joints, origin: Vector3) {
     const keys = conf.keys
     return keys.map((k) => {
-      const finger = 'keycap' in k && k.keycap.letter ? fingersToKeys[k.keycap.letter] : 'thumb'
+      const finger = 'keycap' in k && k.keycap?.letter ? fingersToKeys[k.keycap.letter] : 'thumb'
       const reach = joints[finger || 'thumb'].reduce((a, j) => a + j.length, 0) * 1000
-      const distance = pos15(conf, k).distanceTo(origin)
+      const distance = pos15(conf, k)!.distanceTo(origin)
       return distance <= reach
     })
   }
 
   let jointsJSON: HandData | undefined = readHands()
+  let whichHand: 'left' | 'right'
   $: whichHand = flip ? 'left' : 'right'
 
   let theHand = jointsJSON ? new SolvedHand(jointsJSON[whichHand], new Matrix4()) : undefined
@@ -482,13 +493,15 @@
 
   let debug = new Matrix4()
 
-  function fit(targets: Record<string, Vector3 | undefined>) {
-    const tg = Object.fromEntries(
-      Object.entries(targets)
-        .filter(([k, v]) => !!v)
-        .map(([k, v]) => (flip ? [k, new Vector3(-v.x, v.y, v.z)] : [k, v]))
-    )
-    const ik = Object.fromEntries(
+  function fit(targets: Record<Finger, Vector3 | undefined>) {
+    if (!jointsJSON) throw new Error('No jointsJSON')
+    // const tg = Object.fromEntries(
+    //   Object.entries(targets)
+    //     .filter(([k, v]) => !!v)
+    //     .map(([k, v]) => (flip ? [k, new Vector3(-v.x, v.y, v.z)] : [k, v]))
+    // )
+    const tg = mapObjNotNull(targets, (v) => (flip ? new Vector3(-v.x, v.y, v.z) : v))
+    const ik: Record<string, Vector3[] | false> = Object.fromEntries(
       FINGERS.map((f) => [f, [new Vector3(), new Vector3(), new Vector3(), new Vector3()]])
     )
     let handMatrix = flip ? leftHandMatrix : rightHandMatrix
@@ -500,7 +513,7 @@
     handMatrix = m
     debug = new Matrix4().multiplyMatrices(handMatrix, new Matrix4().copy(Vt))
     theHand = new SolvedHand(jointsJSON[whichHand], handMatrix)
-    for (const [finger, position] of Object.entries(tg)) {
+    for (const [finger, position] of objEntries(tg)) {
       ik[finger] = theHand.ik(finger, position, 1000)
     }
     if (flip) {
@@ -570,7 +583,8 @@
   }
 
   let playing = false
-  function play(sentence: string, beginning?: Record<string, Vector3[]>, index = 0) {
+  function play(sentence: string, beginning?: Record<string, Vector3[] | false>, index = 0) {
+    if (!fitConf) throw new Error('No fitConf')
     if (index > sentence.length) {
       playing = false
       return
@@ -595,6 +609,8 @@
 
     const tStart = window.performance.now()
     ;(function step(t) {
+      if (!jointsJSON) throw new Error('No jointsJSON')
+      if (!beginning) throw new Error('No beginning')
       const p = (t - tStart) / 500
       if (p > 0.5) {
         pressedLetter = sentence[index]
@@ -646,7 +662,7 @@
         [finger]: pos15(conf, findKeyByAttr(conf, 'letter', pressedLetter)),
       })
     } else {
-      theBigFit(fitConf)
+      theBigFit(fitConf!)
     }
   }
 
@@ -986,7 +1002,7 @@
       </button>
       {#if popoutShown}
         <div
-          class="absolute right-10 bottom-[-4rem]"
+          class="absolute right-10 bottom-[-8rem]"
           class:w-60={$clickedKey != null}
           class:w-50={$clickedKey == null}
         >
@@ -1155,6 +1171,31 @@
                   {:else}<span class="fallback">-</span>{/if}
                 </Field>
                 <div class="my-2" />
+                {#if $clickedKey != null ? nthPartType($protoConfig, $clickedKey, 'key') != 'blank' : $hoveredKey == null || nthPartType($protoConfig, $hoveredKey, 'key') != 'blank'}
+                  <Field small name="Margin X" icon="expand-horizontal" iconColor="#ff3653">
+                    {#if keyIsClicked}<DecimalInputInherit
+                        small
+                        noColor
+                        inherit={0}
+                        bind:value={keyIsClicked.marginX}
+                        on:change={updateProto}
+                      />
+                    {:else if keyIsHovered}<span class="fallback">{keyIsHovered.marginX || '0'}</span>
+                    {:else}<span class="fallback">-</span>{/if}
+                  </Field>
+                  <Field small name="Margin Y" icon="expand-vertical" iconColor="#8adb00">
+                    {#if keyIsClicked}<DecimalInputInherit
+                        small
+                        noColor
+                        inherit={0}
+                        bind:value={keyIsClicked.marginY}
+                        on:change={updateProto}
+                      />
+                    {:else if keyIsHovered}<span class="fallback">{keyIsHovered.marginY || '0'}</span>
+                    {:else}<span class="fallback">-</span>{/if}
+                  </Field>
+                  <div class="my-2" />
+                {/if}
                 <Field
                   small
                   name={$useAbsolute ? 'Position X' : 'Offset X'}
@@ -1185,7 +1226,10 @@
                   {:else if hoveredPosition}<span class="fallback">{hoveredPosition[2]}</span>
                   {:else}<span class="fallback">-</span>{/if}
                 </Field>
-                <div class="my-2" />
+                <div class="text-sm opacity-70 mt-0.5 mb-1 text-center">
+                  Margin &amp; {$useAbsolute ? 'position' : 'offset'} are in
+                  <span class="font-bold italic">mm</span>
+                </div>
                 <Field small name="Rotation X" icon="rotatex" iconColor="#ff3653">
                   {#if $clickedKey != null}
                     <AngleInput small bind:value={$rotationX} />
@@ -1687,7 +1731,7 @@
     --at-apply: 'appearance-none hover:bg-purple-200 dark:hover:bg-gray-200 dark:hover:bg-gray-700 p-1.5 rounded-full text-gray-800 dark:text-gray-200';
   }
   .sidemenu {
-    --at-apply: 'text-sm relative z-10 appearance-none hover:bg-purple-200 dark:hover:bg-gray-200 dark:hover:bg-gray-700 py-4 rounded-5 bg-[#EFE8FF] dark:bg-gray-900 text-gray-800 dark:text-gray-200 write-vertical-left flex items-center';
+    --at-apply: 'text-sm relative z-10 appearance-none hover:bg-purple-200 dark:hover:bg-gray-200 dark:hover:bg-gray-700 py-4 rounded-5 bg-[#EFE8FF] dark:bg-gray-900 text-gray-800 dark:text-gray-200 write-vertical-left flex items-center w-full';
   }
   .sidebutton.selected,
   .sidemenu.selected {

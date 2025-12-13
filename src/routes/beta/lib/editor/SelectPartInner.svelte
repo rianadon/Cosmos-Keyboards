@@ -4,6 +4,7 @@
   import { fade } from 'svelte/transition'
   import { type PartInfo } from '$lib/geometry/socketsParts'
   import { mdiAlertCircleOutline } from '@mdi/js'
+  import { pluralizeLastWord } from '$lib/worker/util'
 
   type Option = { key: string; label: string } & PartInfo
 
@@ -85,15 +86,14 @@
         <div class="requirements bg-pink-300 mx--4 mb--1 mt-3 px-4 pb-1 py-0.5 rounded">
           <p class="text-xs font-medium">Requirements</p>
           <li class="flex items-center gap-2 text-sm">
-            <Icon
-              name={option.bomIcon || option.icon || 'switch'}
-              class="opacity-70"
-            />{requirements.bomName}
+            <Icon name={option.bomIcon || option.icon || 'switch'} class="opacity-70 flex-none" />
+            <div class="flex-start">1 {requirements.bomName}</div>
           </li>
           <ul>
             {#each Object.values(requirements.extraBomItems) as item}
               <li class="flex items-center gap-2 text-sm">
-                <Icon name={item.icon} class="opacity-70" />{item.item}
+                <Icon name={item.icon} class="opacity-70 flex-none" />{Math.ceil(item.count)}
+                <div class="flex-start">{item.count > 1 ? pluralizeLastWord(item.item) : item.item}</div>
               </li>
             {/each}
           </ul>

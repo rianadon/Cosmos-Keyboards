@@ -15,8 +15,8 @@ The header image on this post is a microcontroller [I'm developing](https://gith
 Using USB-C to connect split keyboards is rare. I can probably count the number of commercial boards using USB-C for interconnect on my hands. _Every single other_ split keyboard uses 3.5mm audio jacks, except for a few projects using ethernet or even stranger connectors.[^1] There are a few reasons for this:
 
 - Inertia. Split keyboards were invented before USB-C, and changing connectors is a big deal. You remember what it took the EU to make Apple ditch the lightning connector?
-- Few Good Implementations. There are a few open-source designs using USB-C interconnect, but these [have issues](#the-hacky-approach). Despite the big open-source community pushing custom keyboards forwards, many of the commercial designs using USB-C interconnect are closed source.
-- Difficulty. As the post is titled, this is hard. Hopefully as you read on you'll understand why. It's mostly a firmware thing.
+- Lack of Empirical Data. Because it's rare, fear uncertainty and doubt (FUD) spread easily. I see "I might break something if I plug the wrong USB-C into the wrong port" a lot on the internet, but [USB is very robust](#the-hacky-approach). I've tested it.
+- Difficulty. As the post is titled, this is hard to do in a way that's intuitive to use. Hopefully as you read on you'll understand why. It's mostly a firmware thing.
 
 By the way, if you're curious why I opted for two USB-C ports over the typical combination of USB and TRS/TRRS, you can jump to the [appendix](#appendix-why-did-i-do-this).
 

@@ -1,6 +1,6 @@
 import type manuform from '$assets/manuform.json'
 import { socketSize } from '$lib/geometry/socketsParts'
-import type { CuttleKey, MicrocontrollerName } from '$target/cosmosStructs'
+import type { CuttleKey, CuttleTrackpadCirqueKey, MicrocontrollerName } from '$target/cosmosStructs'
 import {
   CONNECTOR,
   CONNECTOR_SIZE,
@@ -30,7 +30,7 @@ import type { ConnectorMaybeCustom, CosmosCluster } from './config.cosmos'
 import { estimatedBB, estimatedCenter } from './geometry'
 import { DEFAULT_MWT_FACTOR } from './geometry.thickWebs'
 import Trsf from './modeling/transformation'
-import ETrsf, { Constant, keyPosition, mirror } from './modeling/transformation-ext'
+import ETrsf, { Constant, keyPosition, mirror, unibody } from './modeling/transformation-ext'
 import { for2, match, range, reverseMap } from './util'
 
 type DeepRequired<T> = Required<
@@ -71,6 +71,10 @@ interface WristRest {
 export interface SpecificCuttleform<S> {
   wallThickness: number
   wallShrouding: number
+  /** Horizontal offset for wall positioning */
+  wallXYOffset: number
+  /** Vertical offset for wall positioning */
+  wallZOffset: number
   /** Maximum thickness of the web. Set to 0 for dynamic thickness that adjusts to each socket height. */
   webThickness: number
   /** Cosmos will try to ensure a minimum web thickness equal to this fraction of the given max web thickness. */
@@ -171,7 +175,7 @@ export interface CuttleBaseKey {
 }
 
 export interface Keycap {
-  profile: 'dsa' | 'mt3' | 'oem' | 'sa' | 'xda' | 'choc' | 'cherry' | 'des'
+  profile: 'dsa' | 'mt3' | 'oem' | 'sa' | 'xda' | 'choc' | 'cherry' | 'des' | 'ma'
   /** Some keycaps (eg mt3) have different profiles depending on the row the keycap is meant for. */
   row: number
   /** The QWERTY keyboard letter this key is for. */
@@ -215,7 +219,7 @@ export const MAP_MICROCONTROLLER: Record<MICROCONTROLLER, Cuttleform['microcontr
   [MICROCONTROLLER.XIAO_BT]: 'seeed-studio-xiao',
   [MICROCONTROLLER.RP2040_ZERO]: 'waveshare-rp2040-zero',
   [MICROCONTROLLER.WEACT_CH552T]: 'weact-studio-ch552t',
-  [MICROCONTROLLER.ADAFRUIT_RP2040_FEATHER]: 'adafruit-rp2040-feather',
+  [MICROCONTROLLER.ADAFRUIT_RP2040_FEATHER]: 'feather-rp2040-adafruit',
 }
 
 export const MAP_CONNECTOR: Record<CONNECTOR, Cuttleform['connector']> = {
@@ -299,7 +303,7 @@ function cuttleConfShell(c: DeepRequired<CuttleformProto>): AnyShell {
 }
 
 function maybeMirror(c: DeepRequired<CuttleformProto>, keys: CuttleKey[]) {
-  if (c.wall.unibody) return mirror(keys, c.wall.unibodyGap / 10, c.wall.unibodyAngle / 45)
+  if (c.wall.unibody) return unibody(keys, c.wall.unibodyGap / 10, c.wall.unibodyAngle / 45)
   return keys
 }
 
@@ -307,6 +311,8 @@ export function cuttleConf(c: DeepRequired<CuttleformProto>): Cuttleform {
   return {
     wallThickness: c.wall.wallThickness / 10,
     wallShrouding: c.wall.wallShrouding / 10,
+    wallXYOffset: 5,
+    wallZOffset: 15,
     webThickness: c.wall.webThickness / 10,
     webMinThicknessFactor: DEFAULT_MWT_FACTOR,
     keys: maybeMirror(c, [
@@ -359,6 +365,9 @@ export function cuttleConf(c: DeepRequired<CuttleformProto>): Cuttleform {
     verticalClearance: c.wall.verticalClearance / 10,
     clearScrews: c.wall.clearScrews,
     shell: cuttleConfShell(c),
+    plateThickness: 3,
+    microcontrollerAngle: 0,
+    flipConnectors: false,
   }
 }
 
@@ -463,8 +472,9 @@ export function switchType(c: DeepRequired<CuttleformProto>): CuttleKey['type'] 
   if (c.upperKeys.switchType == SWITCH.MX_BETTER) return 'mx-better'
   if (c.upperKeys.switchType == SWITCH.MX_PCB) return 'mx-pcb'
   if (c.upperKeys.switchType == SWITCH.MX_PCB_TWIST) return 'mx-pcb-twist'
-  if (c.upperKeys.switchType == SWITCH.CHOC) return 'choc'
+  if (c.upperKeys.switchType == SWITCH.CHOC) return 'choc-v1'
   if (c.upperKeys.switchType == SWITCH.ALPS) return 'alps'
+  // @ts-ignore
   return 'box'
 }
 
@@ -692,11 +702,12 @@ export function fingers(c: DeepRequired<CuttleformProto>): CuttleKey[] {
         column: -1 - centerCol,
         row: row - centerRow,
       })).translate(dmColumnOffset(0)).transformBy(keyPlane),
-    }))
+    } as CuttleKey))
   }
   if (c.upperKeys.extraColumn == EXTRA_COLUMN.CIRQUE_23) {
     modifierKeys = [{
-      type: 'cirque-23mm',
+      type: 'trackpad-cirque',
+      variant: { size: '23mm' },
       aspect: 1,
       cluster: 'fingers',
       size: { sides: 20 },
@@ -708,7 +719,8 @@ export function fingers(c: DeepRequired<CuttleformProto>): CuttleKey[] {
   }
   if (c.upperKeys.extraColumn == EXTRA_COLUMN.CIRQUE_35) {
     modifierKeys = [{
-      type: 'cirque-35mm',
+      type: 'trackpad-cirque',
+      variant: { size: '35mm' },
       aspect: 1,
       cluster: 'fingers',
       size: { sides: 20 },
@@ -720,7 +732,8 @@ export function fingers(c: DeepRequired<CuttleformProto>): CuttleKey[] {
   }
   if (c.upperKeys.extraColumn == EXTRA_COLUMN.CIRQUE_40) {
     modifierKeys = [{
-      type: 'cirque-40mm',
+      type: 'trackpad-cirque',
+      variant: { size: '40mm' },
       aspect: 1,
       cluster: 'fingers',
       size: { sides: 20 },
@@ -991,12 +1004,15 @@ function thumbCount(m: Manuform): DTKEYS {
   }[m.keys.thumbCount]!
 }
 
+// NOTE: Due to refactors, this code no longer processes the different
+// sizes of cirque trackpads. This is acceptable as this config format
+// is sufficiently old. I try my best to maintain compatibility.
 const ID_TO_TYPE: Record<number, CuttleKey['type']> = {
   1: 'ec11',
   2: 'trackball',
-  3: 'cirque-23mm',
-  4: 'cirque-35mm',
-  5: 'cirque-40mm',
+  3: 'trackpad-cirque',
+  4: 'trackpad-cirque',
+  5: 'trackpad-cirque',
   6: 'evqwgd001',
   7: 'joystick-joycon-adafruit',
 }
@@ -1007,8 +1023,8 @@ const MR_THUMBS = [DTKEYS.SIX, DTKEYS.FIVE, DTKEYS.FOUR]
 const BL_THUMBS = [DTKEYS.SIX, DTKEYS.FIVE]
 const BR_THUMBS = [DTKEYS.SIX, DTKEYS.FIVE]
 
-type KeyType = CuttleKeycapKey['type']
-type CapType = Required<CuttleKeycapKey>['keycap']['profile']
+type KeyType = CuttleKey['type']
+type CapType = Required<Keycap['profile']>
 
 export function decodeCustomKey(k: Cuttleform_CustomThumb_Key, keyType: KeyType, capType: CapType, offset: ETrsf): CuttleKey {
   const customId = decodeTuple(k.position!)[3]
@@ -1031,7 +1047,7 @@ export function decodeCustomKey(k: Cuttleform_CustomThumb_Key, keyType: KeyType,
       ...newKey,
       type: customType,
       size: { sides: k.trackballSides },
-    } as CuttleCirqueKey
+    } as CuttleTrackpadCirqueKey
   }
   if (k.trackballRadius && k.trackballSides) {
     return {
@@ -1063,9 +1079,9 @@ function manuformThumbs(keyType: KeyType, capType: CapType, count: DTKEYS, five:
   if (count == DTKEYS.ZERO) return []
 
   const topAspect = five || count == DTKEYS.THREE ? 1 : 1.5
-  const topTrsf = () => topAspect > 1 ? new ETrsf().rotate(90) : new ETrsf()
+  const topTrsf = () => topAspect > 1 ? new ETrsf().rotate(90, [0, 0, 0], [0, 0, 1]) : new ETrsf()
   const thumbBase = {
-    type: keyType,
+    type: keyType as any,
     keycap: {
       profile: capType,
       row: 5,
@@ -1181,7 +1197,7 @@ function defaultThumbs(keyType: KeyType, capType: CapType, count: DTKEYS, five: 
 
   const topAspect = five || count == DTKEYS.THREE ? 1 : 1 / 1.5
   const thumbBase = {
-    type: keyType,
+    type: keyType as any,
     keycap: {
       profile: capType,
       row: 5,
@@ -1340,7 +1356,7 @@ export function thumbCurvature(t: CuttleformProto['thumbCluster']) {
 
 export function carbonfetThumbs(keyType: KeyType, capType: CapType, opts: Required<Cuttleform_CarbonfetThumb>, offset: ETrsf): CuttleKey[] {
   const thumbBase = {
-    type: keyType,
+    type: keyType as any,
     keycap: { profile: capType, row: 5 },
     cluster: 'thumbs',
   }
@@ -1364,7 +1380,7 @@ export function carbonfetThumbs(keyType: KeyType, capType: CapType, opts: Requir
     ...thumbBase,
     keycap: { profile: capType, row: 5, home: 'thumb' },
     aspect: 1.5,
-    position: new ETrsf().rotate(-90).placeOnMatrix(mergeCurvature(curvature, {
+    position: new ETrsf().rotate(-90, [0, 0, 0], [0, 0, 1]).placeOnMatrix(mergeCurvature(curvature, {
       column: 0,
       row: 0.575,
     }, 'thumbCurvature')).transformBy(offset),
@@ -1378,7 +1394,7 @@ export function carbonfetThumbs(keyType: KeyType, capType: CapType, opts: Requir
   }, {
     ...thumbBase,
     aspect: 1.5,
-    position: new ETrsf().rotate(-90).placeOnMatrix(mergeCurvature(curvature, {
+    position: new ETrsf().rotate(-90, [0, 0, 0], [0, 0, 1]).placeOnMatrix(mergeCurvature(curvature, {
       column: 1,
       row: 0.45,
     }, 'thumbCurvature')).transformBy(offset),
@@ -1394,7 +1410,7 @@ export function carbonfetThumbs(keyType: KeyType, capType: CapType, opts: Requir
 
 export function orbylThumbs(keyType: KeyType, capType: CapType, opts: Cuttleform_OrbylThumb, offset: ETrsf): CuttleKey[] {
   const thumbBase = {
-    type: keyType,
+    type: keyType as any,
     keycap: {
       profile: capType,
       row: 5,
@@ -1452,7 +1468,7 @@ export function orbylThumbs(keyType: KeyType, capType: CapType, opts: Cuttleform
       size: '34mm',
     },
     position: new ETrsf()
-      .rotate(30)
+      .rotate(30, [0, 0, 0], [0, 0, 1])
       .translate(0, 0, 8)
       .transformBy(offset),
   }]
@@ -1473,11 +1489,11 @@ export function matrixToConfig(m: Matrix4, key: CuttleKey | undefined = undefine
   const keyType = key ? TYPE_TO_ID[key.type] : 0
 
   const size = key ? socketSize(key) : undefined
-  const roundSize = size && 'radius' in size ? size : undefined
+  const roundSize = size && 'radiusX' in size ? size : undefined
   return {
     position: encodeTuple([Math.round(translation.x * 10), Math.round(translation.y * 10), Math.round(translation.z * 10), keyType]),
     rotation: encodeTuple([Math.round(rpy[0] * 45), Math.round(rpy[1] * 45), Math.round(rpy[2] * 45), Math.round((aspect < 1 ? -1 / aspect : aspect) * 100)]),
-    trackballRadius: key?.type == 'trackball' ? Math.round(roundSize!.radius * 10) : undefined,
+    trackballRadius: key?.type == 'trackball' ? Math.round(roundSize!.radiusX * 10) : undefined,
     trackballSides: (key as any).size.sides,
   }
 }

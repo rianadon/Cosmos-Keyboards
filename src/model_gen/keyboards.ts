@@ -1,3 +1,5 @@
+// @ts-nocheck Unmaintained file
+
 import cuttleform from '$assets/cuttleform.json' assert { type: 'json' }
 import { cuttleConf, type Cuttleform, type CuttleKey, orbylThumbs } from '$lib/worker/config'
 import { fromCosmosConfig } from '$lib/worker/config.cosmos'
@@ -34,6 +36,8 @@ async function renderURL(hash: string, filename: string, opts?: Opts) {
 const DEFAULTS: Omit<Cuttleform, 'keys'> = {
   wallThickness: 4,
   wallShrouding: 0,
+  wallXYOffset: 5,
+  wallZOffset: 15,
   webThickness: 0,
   screwIndices: [],
   screwType: 'screw insert',

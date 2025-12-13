@@ -20,7 +20,7 @@ interface EstimationConfig {
  * Much of the code remains unchanged.
  */
 class MediaPipeHandsMediaPipeDetector {
-  private readonly handsSolution: Hands
+  private readonly handsSolution: mp.Hands
 
   private hands: { Left?: PoseHand; Right?: PoseHand } = {}
   private selfieMode = false

@@ -5,7 +5,7 @@ import { makeAsyncCacher } from './modeling/cacher'
 import { getOC } from './modeling/index'
 import type Trsf from './modeling/transformation'
 
-let keyUrls: Record<string, { default: string }> = {}
+let keyUrls: Record<string, { default: string }> | undefined = {}
 try {
   keyUrls = import.meta.glob(['$target/*.step', '$assets/*.step'], { query: '?url', eager: true })
 } catch (e) {
@@ -24,7 +24,7 @@ const keyCacher = makeAsyncCacher(async (key: CuttleKey) => {
     ? await fetch(urls[url].default).then(r => r.blob())
       .then(r => importSTEP(r) as Promise<Solid>)
     : (await import(process.env.FS!)).readFile(urls[url].default)
-      .then(r => importSTEP(new Blob([r])) as Promise<Solid>)
+      .then((r: ArrayBuffer) => importSTEP(new Blob([r])) as Promise<Solid>)
 })
 
 const extendedKeyCacher = makeAsyncCacher(async (key: CuttleKey) => {
@@ -36,7 +36,7 @@ const extendedKeyCacher = makeAsyncCacher(async (key: CuttleKey) => {
 function extendPlate(plate: Solid, key: CuttleKey) {
   const size = socketSize(key)
   if (key.aspect == 1) return plate
-  if ('radius' in size) return plate
+  if ('radiusX' in size) return plate
 
   const extension = drawRoundedRectangle(size[0] * Math.max(key.aspect, 1), size[1] * Math.max(1 / key.aspect, 1))
     .cut(drawRoundedRectangle(size[0], size[1]))

@@ -5,9 +5,9 @@
   import { stats, debugImgs } from '../store'
   import Stage from '../lib/Stage.svelte'
   import { onMount } from 'svelte'
-  import { developer } from '$lib/store'
   import { statMedians, type Statistics } from '../lib/stats'
-  import { Zip, ZipPassThrough, type FlateError, strToU8 } from 'fflate'
+  import { Zip, ZipPassThrough, strToU8 } from 'fflate'
+  import { base } from '$app/paths'
 
   export let desiredHand: 'Left' | 'Right'
   export let otherHand: 'Left' | 'Right' | undefined = undefined
@@ -42,7 +42,7 @@
   function downloadZip() {
     const blocks: ArrayBuffer[] = []
     const zip = new Zip((_err, dat, final) => {
-      blocks.push(dat.buffer)
+      blocks.push(dat.buffer as ArrayBuffer)
       if (final) {
         const blob = new Blob(blocks, { type: 'application/x-zip' })
         download(blob, 'images.zip')
@@ -96,6 +96,10 @@
         />
       </div>
     </div>
+    Diagram is not to scale.
+    <a class="underline" target="_blank" href="{base}/docs/hand-scans/#checking-your-scan"
+      >How to verify these results.</a
+    >
     {#if true && $stat.history.length > 0 && medians}
       <button class="underline" on:click={downloadZip}>Download Images</button>
       <details class="overflow-scroll">

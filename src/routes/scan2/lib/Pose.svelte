@@ -2,7 +2,7 @@
   import { FINGERS, SolvedHand, type Hand, type Joints } from './hand'
   import { Canvas } from '@threlte/core'
   import { Vector3, type Vector3Tuple, Matrix4, SphereGeometry, BufferGeometry, Vector4 } from 'three'
-  import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils'
+  import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
   import PoseCanvas from './PoseCanvas.svelte'
   import { recording } from './state'
 

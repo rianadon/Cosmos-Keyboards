@@ -75,10 +75,19 @@
   const rot = new Quaternion()
   const pos = new Vector3()
 
+  function shouldFlipSwitch(key: CuttleKey) {
+    if (key.type.startsWith('mx'))
+      return key.variant && 'led' in key.variant && key.variant.led == 'North LED'
+    if (key.type.startsWith('choc'))
+      return key.variant && 'led' in key.variant && key.variant.led == 'South LED'
+  }
+
   function gatherPartsAndVariants(geo: Geometry) {
     const ids = new DefaultMap<string, PartInfo[]>(() => [])
     geo.c.keys.forEach((key, i) => {
-      geo.keyHolesTrsfs[i].Matrix4().decompose(pos, rot, scale)
+      let position = geo.keyHolesTrsfs[i]
+      if (shouldFlipSwitch(key)) position = position.prerotated(180, [0, 0, 0], [0, 0, 1])
+      position.Matrix4().decompose(pos, rot, scale)
       const id = key.type + variantURL(key)
       ids.get(id).push({ key, pos: pos.toArray(), rot: rot.toArray() as Vector4Tuple, i })
     })
