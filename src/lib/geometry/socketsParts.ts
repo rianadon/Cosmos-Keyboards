@@ -645,7 +645,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     socketSize: [25.000, 22.900, 4.75],
     partBottom: [box(19.00, 17.00, 7.00)],
     numPinsMatrix: 5,
-    numPinsGPIO: 2,
+    numPinsGPIO: 3,
     icon: 'joystick',
     description: 'A small joystick from Nintendo for gaming or moving the mouse.',
   },
