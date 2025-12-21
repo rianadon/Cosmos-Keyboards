@@ -38,18 +38,52 @@ interface BuildNode {
 
 /* ------------ MANUAL OVERRIDES ----------- */
 async function parseVar(name: string, value: string): Promise<string> {
+  if (name in cliVars) return cliVars[name]
   if (name == 'BUN') return shelljs.which('bun') || ''
   return value
 }
 
 /* ------------------ CLI ------------------ */
 
-const args: string[] = process.argv.slice(2)
-const DRY_RUN: boolean = args.includes('--dry-run') || args.includes('-n')
+function parseCliArgs(args: string[]): {
+  cliVars: Record<string, string>
+  targets: string[]
+  dryRun: boolean
+} {
+  const cliVars: Record<string, string> = {}
+  const targets: string[] = []
+  let dryRun = false
 
-const targetArg: string | undefined = args.find(a => !a.startsWith('-'))
+  for (const arg of args) {
+    if (arg === '-n' || arg === '--dry-run') {
+      dryRun = true
+    } else if (arg.includes('=') && targets.length === 0) {
+      const [key, ...rest] = arg.split('=')
+      cliVars[key] = rest.join('=')
+    } else {
+      targets.push(arg)
+    }
+  }
+
+  return { cliVars, targets, dryRun }
+}
+
+const args = process.argv.slice(2)
+const { cliVars, targets: cliTargets, dryRun } = parseCliArgs(args)
+const DRY_RUN = dryRun
 
 const MAKEFILE = 'Makefile'
+
+const makefileText = await readFile(MAKEFILE, 'utf8')
+const ctx = await parseMakefile(makefileText)
+
+// Override Makefile variables with CLI
+for (const [k, v] of Object.entries(cliVars)) {
+  ctx.vars[k] = v
+}
+
+// Default to the first target in the Makefile if none supplied
+const targets = cliTargets.length ? cliTargets : [ctx.rules.keys().next()?.value]
 
 /* ------------------ Utilities ------------------ */
 
@@ -263,18 +297,16 @@ async function executeNode(
   const makefile = await readFile(MAKEFILE, 'utf8')
   const ctx = await parseMakefile(makefile)
 
-  const target = targetArg ?? ctx.rules.keys().next().value
+  const theTargets = targets.length ? targets : [ctx.rules.keys().next().value]
 
-  if (!target) {
-    console.error('No target specified')
-    process.exit(1)
-  }
-
-  try {
-    const graph = buildGraph(target, ctx)
-    await executeNode(graph, ctx)
-  } catch (e) {
-    console.error((e as Error).message)
-    process.exit(1)
+  for (const target of theTargets) {
+    if (!target) continue
+    try {
+      const graph = buildGraph(target, ctx)
+      await executeNode(graph, ctx)
+    } catch (err) {
+      console.error((err as Error).message)
+      process.exit(1)
+    }
   }
 })()
