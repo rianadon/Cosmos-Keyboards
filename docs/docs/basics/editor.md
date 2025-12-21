@@ -1,26 +1,26 @@
-# Editor basics
+# Editor Basics
 
 ## Tools
 
 There are three tools at your disposal. They can be chosen on the right side of the preview.
 
-![Key selection modes](../assets/tools.png)
+![Key selection modes](../../assets/tools.png)
 
-![type:video](../assets/videos/tools.mp4){ autoplay }
+![type:video](../../assets/videos/tools.mp4){ autoplay }
 
 ## Key selection modes
 
 There are three ways to select key. They can be chosen on the right side below the tools.
 
-![Key selection modes](../assets/key-selection-modes.png)
+![Key selection modes](../../assets/key-selection-modes.png)
 
-![type:video](../assets/videos/key-selection-modes.mp4){ autoplay }
+![type:video](../../assets/videos/key-selection-modes.mp4){ autoplay }
 
 ## Views
 
 There are a couple of different views. These can be selected above the preview.
 
-![Key selection modes](../assets/views.png)
+![Key selection modes](../../assets/views.png)
 
 ### 3D view
 
@@ -46,15 +46,15 @@ This view shows you, how thick the shell is in certain places, and where it migh
 
 This slider changes the opacity of the keys and the baseplate. You can check, how your shell and the microcontroller look here.
 
-![type:video](../assets/videos/opacity.mp4){ autoplay }
+![type:video](../../assets/videos/opacity.mp4){ autoplay }
 
 ## Hand scanning
 
-Allows you to [scan your hand](hand-scans.md), to show or hide your hand scan and to [fit the keyboard to your hand](hand-fitting.md).
+Allows you to [scan your hand](../hand-scans.md), to show or hide your hand scan and to [fit the keyboard to your hand](../hand-fitting.md).
 
 ## Settings
 
-![Settings](../assets/settings.png)
+![Settings](../../assets/settings.png)
 
 ### Keyboard visibility
 
@@ -86,7 +86,7 @@ When you select a key, there will be an edit bar in the top middle. In that bar 
 
 ## Edit key
 
-![edit key](../assets/edit-key.png)
+![edit key](../../assets/edit-key.png)
 
 ### Keycap
 
@@ -115,15 +115,15 @@ See [curvature](./configuration.md#curvature) for that.
 
 ## Filament information
 
-![filament info](../assets/filament-info.png)
+![filament info](../../assets/filament-info.png)
 
 Shows you how much filament printing your keyboard would take.
 The cost estimation seems to be based on a price of about 40$ per kilogram.
 
 ## Adding keys
 
-![type:video](../assets/videos/adding-keys.mp4){ autoplay }
+![type:video](../../assets/videos/adding-keys.mp4){ autoplay }
 
 ## Removing keys
 
-![type:video](../assets/videos/removing-keys.mp4){ autoplay }
+![type:video](../../assets/videos/removing-keys.mp4){ autoplay }

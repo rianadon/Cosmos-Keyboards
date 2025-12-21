@@ -6,27 +6,28 @@ There are three modes for the configuration. This documentation is written for t
 
 This documentation tries to cover all of the important settings. Some settings might've been left out, as they are easily understandable and documentation would not add anything of value.
 
-- Basic
-    - Only shows the most used configuration options.
-- Advanced
-    - Shows most things, that you'll need to create your keyboard.
-- Expert
-    - Allows to edit the code directly, to enable even more possibilities. See [expert mode](expert.md) for that.
+- **Basic**: Only shows the most used configuration options.
+- **Advanced**: Shows most things, that you'll need to create your keyboard.
+- **Expert**: Allows to edit the code directly, to enable even more possibilities. See [Expert Mode](../expert.md) for that.
 
 ## General
 
-Some setting groups allow you to edit the vaues for one side of the keyboard. When you edit want to edit them together, the values of the left half will be overridden by the values of the right half.
+By default, all settings control both halves of the split keyboard. When you want to edit them separately, click the "Edit Separately" button.
+
+![Edit Separately Button](../../assets/edit-separately.png){ .center width=500 }
+
+To go back to editing them together, click "Edit Jointly" and the values of the left half will be overridden by the values of the right half.
 
 ## Upper keys
 
 This section steers the general look / layout of the keyboard.
 
-![row selection](../assets/row-selection.png)
+![row selection](../../assets/row-selection.png)
 
 - <p style="color: red">FN</p>
 - <p style="color: blue">Num</p>
-- <p style="color: green">Out</p>
-- <p style="color: yellow">Inner</p>
+- <p style="color: #00EE00">Out</p>
+- <p style="color: #BDBF56">Inner</p>
 
 Ø removes the keys and only leaves the thumb cluster.
 
@@ -34,28 +35,28 @@ The `r`x`c` button allows you to manually specify how many rows and columns you 
 
 The keycap and switch settings work the same as [the ones in the edit key menu](editor-basics.md#switch-and-keycap-size).
 
-The horizontal and vertical spacing do the following:
+The horizontal and vertical spacing control the following:
 
-![horizontal and vertical spacing](../assets/key-spacing.png)
+![horizontal and vertical spacing](../../assets/key-spacing.png)
 
 ## Curvature
 
-![curvature](../assets/curvature.png)
+![curvature](../../assets/curvature.png)
 
-![outwards arc](../assets/outwards-arc.png)
+![outwards arc](../../assets/outwards-arc.png)
 
 !!! info "The tenting angle only changes the angle of the keywell, and not of the thumb cluster."
 
-![tenting angle](../assets/tenting-angle.png)
+![tenting angle](../../assets/tenting-angle.png)
 
 ## Thumb cluster
 
 With the buttons, you can cycle through a few preset thumb clusters. You can also remove the thumb cluster with Ø.
-If you want to make a custom thumb cluster, choose one of the presets and then edit the keys manually. If you need more keys on the thumb cluster, make sure to select a thumb cluster key to [add a new one](editor-basics.md#adding-keys) to keep the clusters.
+If you want to make a custom thumb cluster, choose one of the presets and then edit the keys manually. If you need more keys on the thumb cluster, make sure to select a thumb cluster key to [add a new one](editor.md#adding-keys) to keep the clusters.
 
 The curvature can be adjusted and changes the angle of the keys like with the keywell. This option only changes some thumb clusters, other presets are unaffected.
 
-![thumb cluster curvature](../assets/thumb-cluster-curvature.png)
+![thumb cluster curvature](../../assets/thumb-cluster-curvature.png)
 
 ## Case
 
@@ -67,18 +68,18 @@ The default mode creates the outer walls and a base. This can be subobtimal for 
 
 The add lip options creates a little lip around the base. This hides warping and can create a cleaner look.
 
-![default case with lip](../assets/default-case-with-lip.png)
-![default case without lip](../assets/default-case-without-lip.png)
+![default case with lip](../../assets/default-case-with-lip.png)
+![default case without lip](../../assets/default-case-without-lip.png)
 
-![default case mode](../assets/default-case-mode.png)
+![default case mode](../../assets/default-case-mode.png)
 
 #### Stilts
 
 The stilts case mode creates stilts for the keyboard to sit on. This works better for high tenting angles. This feature is experimental as of now, so not everything might behave as it is expected.
 
-The tuck in bottom plate option seems to push in the bottom plate a bit further.
+The tuck in bottom plate option hides the bottom plate behind the outer walls.
 
-![stilts case mode](../assets/stilts-case-mode.png)
+![stilts case mode](../../assets/stilts-case-mode.png)
 
 #### Tilting base
 
@@ -88,11 +89,11 @@ The case tenting angle setting allows you to controll how much the bottom is ten
 
 The use pillars option allows you to remove the pillars, makin a solid base. You can also adjust how spaced out the pillars are. The first number specifies how thick the pillars are, the second number how much space there is in between the pillars.
 
-![pillar size](../assets/pillar-size.png)
+![pillar size](../../assets/pillar-size.png)
 
 The raise case by option allows you to specify, by how much the upper case should be raised.
 
-![tilting base case mode](../assets/tilting-base-case-mode.png)
+![tilting base case mode](../../assets/tilting-base-case-mode.png)
 
 ### Other case settings
 
@@ -114,10 +115,10 @@ You can set the angle for the microcontroller. Be careful, too high values will 
 
 Here you can see the holders for the microcontrollers.
 
-![Microcontroller with holders](../assets/microcontroller-with-holders.png)
+![Microcontroller with holders](../../assets/microcontroller-with-holders.png)
 vs the microcontroller without holders
 
-![Microcontroller without holders](../assets/microcontroller-without-holders.png)
+![Microcontroller without holders](../../assets/microcontroller-without-holders.png)
 
 #### Base settings
 
@@ -131,21 +132,21 @@ The rounded edge settings rounds off all of the "sharp" edges that were generate
 
 Normal walls
 
-![normal walls](../assets/normal-walls.png)
+![normal walls](../../assets/normal-walls.png)
 
 vs smooth walls
 
-![smooth walls](../assets/smooth-walls.png)
+![smooth walls](../../assets/smooth-walls.png)
 
 With these settings enabled you get another pair of settings to controll the smoothing.
 
 No wall shrouding
 
-![no wall shrouding](../assets/no-wall-shrouding.png)
+![no wall shrouding](../../assets/no-wall-shrouding.png)
 
 vs wall shrouding
 
-![wall-shrouding](../assets/wall-shrouding.png)
+![wall-shrouding](../../assets/wall-shrouding.png)
 
 The wall thickness controlls the tickness of the wall. If you make it thicker the footprint will get larger, as the additional wall is added on the ouside.
 
@@ -181,4 +182,4 @@ Forwar slope adds a slope from the back up (with a positive taper value).
 
 Tenting adds a slope from the outside to the middle (middle goes up with a positive tenting value).
 
-![wrist rest settings](../assets/wristrest.png){ width=550 }
+![wrist rest settings](../../assets/wristrest.png){ width=550 }
