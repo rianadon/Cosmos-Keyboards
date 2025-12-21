@@ -1,4 +1,4 @@
-import type { CuttleBlankKey, TrackballVariant, TrackpadCirqueVariant } from '$target/cosmosStructs'
+import type { CuttleBlankKey, TrackballVariant, TrackpadCirqueVariant, TrackpadProcyonVariant } from '$target/cosmosStructs'
 import type { CuttleKey } from '../worker/config'
 
 const MX_BOTTOM = box(14, 14, 8.5)
@@ -551,6 +551,22 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     icon: 'oled',
     description: DESC_DISPLAY,
   },
+  'oled-128x64-0.96-aliexpress': {
+    partName: 'Generic 128x64 0.96" OLED',
+    bomName: () => 'Generic 128x64 0.96" OLED',
+    category: 'Displays',
+    stepFile: '/target/key-oled-128x64-0.96-aliexpress.step',
+    socketSize: () => [27.4, 27.4, 2.9] as PartSize,
+    partBottom: () => [box(27.3, 27.3, 3.9)],
+    variants: {
+      size: ['27x27'],
+    },
+    encodeVariant: makeEncodeVariant('oled-128x64-0.96-aliexpress', { size: 2 }),
+    decodeVariant: makeDecodeVariant('oled-128x64-0.96-aliexpress', { size: 2 }),
+    numPins: () => ({ i2c: true }),
+    icon: 'oled',
+    description: '0.96" I2C display available in all sorts of variations on Aliexpress. Use the approximate outer dimensions of the PCB to choose the right variant.',
+  },
   'trackball': {
     partName: 'Trackball',
     bomName: (v: Variant) => `${v.size || '25–55mm'} Trackball`,
@@ -671,6 +687,25 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     numPins: () => ({ spi: 'bidirectional' }),
     icon: 'knob',
     description: 'A small circular trackpad. These only support a single touch (no multi-touch gestures), but you can still do a lot with them.',
+  },
+  'trackpad-procyon': {
+    partName: 'Procyon Trackpad',
+    bomName: (v: Variant) => `Procyon ${v.size || '42x50/57x80'} Trackpad`,
+    category: 'Trackballs & Trackpads',
+    stepFile: '/target/key-trackpad-procyon.step',
+    socketSize: (v: Variant) => ({
+      '42x50': [42.1, 50.1, 4] as PartSize,
+      '57x80': [57.1, 80.1, 4] as PartSize,
+    }[v.size as TrackpadProcyonVariant['size'] || '42x50']),
+    partBottom: () => [],
+    variants: {
+      size: ['42x50', '57x80'],
+    },
+    encodeVariant: makeEncodeVariant('trackpad-procyon', { size: 2 }),
+    decodeVariant: makeDecodeVariant('trackpad-procyon', { size: 2 }),
+    numPins: () => ({ i2c: true }),
+    icon: 'knob',
+    description: 'A small rectangular trackpad that connects through I2C. These support multi-touch gestures (e.g. 2-finger scrolling). Designed by George Norton.',
   },
   'joystick-joycon-adafruit': {
     partName: 'Adafruit Mini Thumbstick',

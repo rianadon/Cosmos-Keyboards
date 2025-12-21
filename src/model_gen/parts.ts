@@ -17,6 +17,7 @@ import { setup } from './node-model'
 import { type DisplayProps, displaySocketAndModel } from './parametric/display-gen'
 import { DEFAULT_PROPS, type Holes, type MicrocontrollerProps, ucModel } from './parametric/microcontroller-gen'
 import { trackballPart, trackballSocket } from './parametric/trackball-gen'
+import { type TrackpadProps, trackpadSocketAndModel } from './parametric/trackpad-gen'
 import { ProcessPool } from './processPool'
 
 const assetsDir = fileURLToPath(new URL('../assets', import.meta.url))
@@ -107,6 +108,8 @@ async function main() {
 
   const microcontrollerCode = fileURLToPath(new URL('./parametric/microcontroller-gen.ts', import.meta.url))
   const displayCode = fileURLToPath(new URL('./parametric/display-gen.ts', import.meta.url))
+  const trackpadCode = fileURLToPath(new URL('./parametric/trackpad-gen.ts', import.meta.url))
+
   const partsCode = fileURLToPath(import.meta.url)
 
   const poolUC = (name: Microcontroller, opts: Partial<MicrocontrollerProps>, holes: Holes[]) => {
@@ -115,10 +118,18 @@ async function main() {
       await writeMesh(glbName, await ucModel(name, { ...DEFAULT_PROPS, ...opts }, holes))
     })
   }
-  const poolDisplay = (name: CuttleKey['type'], opts: DisplayProps) => {
-    const stepName = join(targetDir, 'key-' + name + '.step')
-    pool.addIfModified(name, stepName, [displayCode, partsCode], async () => {
-      await writeAssembly(stepName, displaySocketAndModel(name, opts, 0))
+  const poolDisplay = (name: CuttleKey['type'], opts: DisplayProps, variant?: Record<string, any>) => {
+    const vURL = variantURL({ type: name, variant: variant } as any)
+    const stepName = join(targetDir, 'key-' + name + vURL + '.step')
+    pool.addIfModified(name + vURL, stepName, [displayCode, partsCode], async () => {
+      await writeAssembly(stepName, displaySocketAndModel(name, variant || {}, opts, 0))
+    })
+  }
+  const poolTrackpad = (name: CuttleKey['type'], opts: TrackpadProps, variant?: Record<string, any>) => {
+    const vURL = variantURL({ type: name, variant: variant } as any)
+    const stepName = join(targetDir, 'key-' + name + vURL + '.step')
+    pool.addIfModified(name + vURL, stepName, [trackpadCode, partsCode], async () => {
+      await writeAssembly(stepName, trackpadSocketAndModel(name, variant || {}, opts, 0))
     })
   }
   /** Add task to generate both Choc V1 and Choc V2 variants of a part. It should work given either variant as input. */
@@ -255,6 +266,42 @@ async function main() {
     pcbThickness: 0.8,
     displayRounding: 0.5,
   })
+
+  poolDisplay('oled-128x64-0.96-aliexpress', {
+    pcbLongSideWidth: 27.3,
+    pcbShortSideWidth: 27.3,
+    offsetFromLeftLongSide: 2.5,
+    offsetFromRightLongSide: 2.5,
+    offsetFromTopShortSide: 6.5,
+    offsetFromBottomShortSide: 9.4,
+    displayThickness: 1.4,
+    pcbThickness: 1.5,
+    displayRounding: 0,
+  }, { size: '27x27' })
+
+  poolTrackpad('trackpad-procyon', {
+    trackpadLongSideWidth: 50,
+    trackpadShortSideWidth: 42,
+    offsetFromLeftLongSide: 4,
+    offsetFromRightLongSide: 4,
+    offsetFromBottomShortSide: 5,
+    offsetFromTopShortSide: 5,
+    trackpadThickness: 1,
+    pcbThickness: 3,
+    trackpadRounding: 2,
+  }, { size: '42x50' })
+
+  poolTrackpad('trackpad-procyon', {
+    trackpadLongSideWidth: 80,
+    trackpadShortSideWidth: 57,
+    offsetFromLeftLongSide: 7,
+    offsetFromRightLongSide: 7,
+    offsetFromBottomShortSide: 10,
+    offsetFromTopShortSide: 10,
+    trackpadThickness: 1,
+    pcbThickness: 3,
+    trackpadRounding: 2,
+  }, { size: '57x80' })
 
   // Make all combinations of trackballs
   const trackballCode = fileURLToPath(new URL('./parametric/trackball-gen.ts', import.meta.url))

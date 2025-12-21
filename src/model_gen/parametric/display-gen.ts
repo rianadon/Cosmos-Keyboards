@@ -1,4 +1,4 @@
-import { socketSize } from '$lib/geometry/socketsParts'
+import { socketSize, variantURL } from '$lib/geometry/socketsParts'
 import type { CuttleKey } from '$lib/worker/config'
 import { Assembly } from '$lib/worker/modeling/assembly'
 import { drawRoundedRectangle, makeBaseBox, Solid } from 'replicad'
@@ -36,14 +36,15 @@ function assertSize(name: string, actual: number, expected: number, dimension: s
   }
 }
 
-export function displaySocket(name: CuttleKey['type'], opts: DisplayProps) {
-  const size = socketSize({ type: name } as CuttleKey)
+export function displaySocket(name: CuttleKey['type'], variant: Record<string, any>, opts: DisplayProps) {
+  const size = socketSize({ type: name, variant } as CuttleKey)
+  const vURL = variantURL({ type: name, variant: variant } as any)
   if ('radiusX' in size) throw new Error('Expected rectangular size, not circular')
-  assertSize(name, size[0], opts.pcbShortSideWidth + 2 * DISP_TOL, 'width')
-  assertSize(name, size[1], opts.pcbLongSideWidth + 2 * DISP_TOL, 'height')
-  assertSize(name, size[2], opts.displayThickness + opts.pcbThickness, 'thickness')
+  assertSize(name + vURL, size[0], opts.pcbShortSideWidth + 2 * DISP_TOL, 'width')
+  assertSize(name + vURL, size[1], opts.pcbLongSideWidth + 2 * DISP_TOL, 'height')
+  assertSize(name + vURL, size[2], opts.displayThickness + opts.pcbThickness, 'thickness')
   let base = makeBaseBox(size[0], size[1], size[2]).translateZ(-size[2])
-  base = base.cut(displayModel(name, { ...opts, displayRounding: 0 }, DISP_TOL))
+  base = base.cut(displayModel(name, variant, { ...opts, displayRounding: 0 }, DISP_TOL))
 
   for (const rectangle of opts.alignmentRectangles || []) {
     const x0 = rectangle[0][0] + (Math.abs(rectangle[0][0]) == opts.pcbShortSideWidth / 2 ? -DISP_TOL : DISP_TOL)
@@ -61,7 +62,7 @@ export function displaySocket(name: CuttleKey['type'], opts: DisplayProps) {
   return base
 }
 
-export function displayModel(_name: CuttleKey['type'], opts: DisplayProps, tol: number) {
+export function displayModel(_name: CuttleKey['type'], variant: Record<string, any>, opts: DisplayProps, tol: number) {
   const pcb = drawRoundedRectangle(opts.pcbShortSideWidth + 2 * tol, opts.pcbLongSideWidth + 2 * tol, opts.displayRounding).sketchOnPlane('XY').extrude(opts.pcbThickness + tol)
   let display = makeBaseBox(
     opts.pcbShortSideWidth + 2 * tol - opts.offsetFromLeftLongSide - opts.offsetFromRightLongSide,
@@ -76,9 +77,9 @@ export function displayModel(_name: CuttleKey['type'], opts: DisplayProps, tol: 
     .fuse(display.translateZ(-opts.displayThickness))
 }
 
-export function displaySocketAndModel(name: CuttleKey['type'], opts: DisplayProps, partTol: number) {
+export function displaySocketAndModel(name: CuttleKey['type'], variant: Record<string, any>, opts: DisplayProps, partTol: number) {
   const assembly = new Assembly()
-  assembly.add('Socket', displaySocket(name, opts))
-  assembly.add('Part', displayModel(name, opts, partTol))
+  assembly.add('Socket', displaySocket(name, variant, opts))
+  assembly.add('Part', displayModel(name, variant, opts, partTol))
   return assembly
 }

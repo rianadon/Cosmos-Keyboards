@@ -48,7 +48,9 @@ enumeration('PART', {
   30: 'thqwgd001',
   32: 'meh01',
   34: 'oled-168x144-1.26in-keydio-vista508',
-  35: 'joystick-joycon-nintendo',
+  35: 'oled-128x64-0.96-aliexpress',
+  36: 'trackpad-procyon',
+  37: 'joystick-joycon-nintendo',
 
   // Old stuff no one should be using.
   110: 'old-mx',
