@@ -61,7 +61,10 @@
   $: height = 'radiusX' in size ? size.height : size[2]
   $: bottom = partBottom(key)
 
-  $: Promise.all([partPromise, socketPromise]).then(() => (loading = false))
+  $: Promise.all([partPromise, socketPromise]).then(
+    () => (loading = false),
+    (e) => console.error('Error loading ' + part, e)
+  )
 
   $: trimmedDesc = trim(info.description || '', 200) || ''
   $: trimmed = true

@@ -1,8 +1,9 @@
 import qmkVik from '$assets/qmk-vik.zip?url'
 import { download } from '$lib/browser'
+import { PART_INFO } from '$lib/geometry/socketsParts'
 import { hasKeyGeometry, hasPinsInMatrix } from '$lib/loaders/keycaps'
 import type { CuttleKey, Geometry } from '$lib/worker/config'
-import { mapObjNotNull, sum } from '$lib/worker/util'
+import { mapObjNotNull, objKeys, sum } from '$lib/worker/util'
 import { strToU8, zip } from 'fflate'
 import type { FullGeometry } from '../viewers/viewer3dHelpers'
 import { encoderKeys, fullLayout, jsonFile, logicalKeys, type Matrix, unzipURL, yamlFile, zipPromise } from './firmwareHelpers'
@@ -52,7 +53,10 @@ function generateInfoJSON(config: FullGeometry, matrix: Matrix, options: QMKOpti
       console: options.enableConsole,
       encoder: hasEncoders,
       encoder_map: hasEncoders,
-      extrakey: hasEncoders || EXTRAKEY_REQUIRED.intersection(new Set(generateKeycodes(config))).size,
+      extrakey: hasEncoders || !!EXTRAKEY_REQUIRED.intersection(new Set(generateKeycodes(config))).size,
+      // Not needed since VIK sets it up?
+      // pointing_device: Object.values(config).some(c => pointingDevices(c).length > 0),
+      oled: Object.values(config).some(c => displays(c).length > 0),
     },
     matrix_pins: {
       cols: ['GP25', 'GP24', 'GP23', 'GP22', 'GP21', 'GP20', 'GP10'],
@@ -109,7 +113,9 @@ function generateInfoJSON(config: FullGeometry, matrix: Matrix, options: QMKOpti
   })
 }
 
-function generateConfigH(options: QMKOptions) {
+function generateConfigH(config: FullGeometry, options: QMKOptions) {
+  const driver = Object.values(config).flatMap(c => pointingDevices(c))[0]
+  const display = Object.values(config).flatMap(c => displays(c))[0]
   return [
     "// You shouldn't need to edit any of this.",
     '',
@@ -138,17 +144,84 @@ function generateConfigH(options: QMKOptions) {
     '#define SERIAL_USART_PIN_SWAP',
     '#define SERIAL_USART_TX_PIN GP0',
     '#define SERIAL_USART_RX_PIN GP1',
+    ...(needsSPI(config)
+      ? [
+        '',
+        '#define SPI_DRIVER SPID1',
+        '#define SPI_SCK_PIN GP14',
+        '#define SPI_MISO_PIN GP12',
+        '#define SPI_MOSI_PIN GP15',
+      ]
+      : []),
+    ...(Object.values(config).some(c => pointingDevices(c).length > 0)
+      ? [
+        '',
+        '#define POINTING_DEVICE_CS_PIN GP13',
+        '// #define ROTATIONAL_TRANSFORM_ANGLE 0 // Optional: Rotates the trackball',
+        '// #define POINTING_DEVICE_INVERT_X // Optional: Inverts trackball X',
+      ]
+      : []),
+    ...(driver?.type == 'trackpad-azoteq'
+      ? ['#define AZOTEQ_IQS5XX_TPS65']
+      : []),
+    ...(driver?.type == 'trackpad-procyon'
+      ? [`#define PROCYON_${driver.variant.size.replace('x', '_')}`]
+      : []),
+    ...(Object.values(config).some(c => displays(c).length > 0)
+      ? ['#define OLED_DISPLAY_128X32']
+      : []),
+    ...(displayProtocol(display) == 'spi'
+      ? ['#define OLED_CS_PIN ' + (Object.values(config).some(c => pointingDevices(c).length > 0) ? 'GP26' : 'GP13')]
+      : []),
     '',
     `#include "keyboards/cosmos/${options.folderName}/vik/config.vik.post.h"`,
   ].join('\n') + '\n'
 }
 
-function generateRulesMK() {
+function generateMCUConfH(options: QMKOptions) {
+  return [
+    '#pragma once',
+    '#include_next <mcuconf.h>',
+    '',
+    '// Set up SPI',
+    '#undef RP_SPI_USE_SPI1',
+    '#define RP_SPI_USE_SPI1 TRUE',
+  ].join('\n') + '\n'
+}
+
+function generateRulesMK(config: FullGeometry) {
+  const driver = Object.values(config).flatMap(c => pointingDevices(c))[0]
+  const driverSide = objKeys(config).filter(c => pointingDevices(config[c]!).length)[0]
+  const driverSuffix = { right: '_RIGHT', left: '', unibody: '' }[driverSide] || ''
+
+  const display = Object.values(config).flatMap(c => displays(c))[0]
+
   return [
     '# Add VIK configuration here (e.g. VIK_PMW3360_RIGHT=yes to use a trackball)',
     '',
     'VIK_ENABLE = yes',
     '',
+    ...(driver
+      ? [
+        'POINTING_DEVICE_DRIVER = ' + pointingDeviceDriver(driver),
+      ]
+      : []),
+    ...(driver?.type == 'trackpad-cirque'
+      ? [
+        `VIK_CIRQUE${driverSuffix} = yes`,
+        'CIRQUE_PINNACLE_DIAMETER_MM = ' + driver.variant.size.replace('mm', ''),
+      ]
+      : []),
+    ...(driver?.type == 'trackpad-procyon'
+      ? [
+        `VIK_PROCYON${driverSuffix} = yes`,
+      ]
+      : []),
+    ...(display
+      ? [
+        'OLED_TRANSPORT = ' + displayProtocol(display),
+      ]
+      : []),
     'include $(KEYBOARD_PATH_1)/vik/rules.mk',
   ].join('\n') + '\n'
 }
@@ -318,6 +391,7 @@ function generateEncoderMap(encodersPerSide: Record<keyof FullGeometry, number>)
 function generateKeymap(config: FullGeometry, matrix: Matrix, options: QMKOptions) {
   const encodersPerSide = mapObjNotNull(config, c => encoderKeys(c.c).length)
   const hasEncoders = Object.values(encodersPerSide).some(e => e > 0)
+  const display = Object.values(config).flatMap(displays)[0]
   return [
     '#include QMK_KEYBOARD_H\n',
     'const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {',
@@ -345,6 +419,28 @@ function generateKeymap(config: FullGeometry, matrix: Matrix, options: QMKOption
         ]
         : []
     ),
+    ...(
+      display
+        ? [
+          '',
+          'oled_rotation_t oled_init_user(oled_rotation_t rotation) {',
+          '    return OLED_ROTATION_90;',
+          '}',
+          '',
+          'bool oled_task_user(void) {',
+          '    static const char PROGMEM raw_logo[] = {',
+          '        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,128,0,128,224,248,200,220,252,246,222,254,254,246,238,254,252,252,248,240,224,128,0,0,0,0,0,0,0,0,0,0,255,127,254,241,103,159,63,63,127,255,255,255,255,127,63,223,15,135,243,251,225,17,252,254,0,0,0,0,',
+          '        0,0,0,0,7,15,11,15,16,63,59,32,63,56,7,7,7,48,62,63,48,15,59,62,27,30,15,15,0,0,0,0,192,224,16,16,16,0,128,192,64,64,128,0,128,64,64,0,192,64,64,192,64,64,128,0,128,64,64,128,0,128,64,64,0,1,2,2,2,0,1,3,2,2,1,0,2,3,3,0,3,0,0,3,0,0,3,0,3,2,2,1,0,2,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,16,16,124,16,16,0,0,0,0,0,0,0,0,0,0,0,0,0,0,',
+          '        0,0,0,0,0,0,0,0,0,0,128,0,128,0,0,128,0,0,128,0,128,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,160,160,160,248,252,252,255,28,255,252,252,31,252,252,255,28,255,252,252,248,160,160,160,0,0,0,0,0,0,0,0,0,164,164,164,255,255,255,255,240,239,223,223,0,223,223,239,240,255,255,255,255,164,164,164,0,0,0,0,0,0,0,0,0,0,0,0,3,7,7,63,7,63,7,7,63,7,7,63,7,63,7,7,3,0,0,0,0,0,0,0,0,',
+          '        0,0,0,128,192,96,96,96,192,128,0,224,224,192,0,0,0,192,224,224,0,224,224,0,128,192,224,96,0,0,0,0,0,0,0,15,31,48,48,112,223,143,0,63,63,3,15,28,15,3,63,63,0,63,63,7,15,29,56,48,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,',
+          '    };',
+          '',
+          '    oled_write_raw_P(raw_logo, sizeof(raw_logo)); // Show Cosmos + QMK logo',
+          '    return false;',
+          '}',
+        ]
+        : []
+    ),
   ].join('\n') + '\n'
 }
 
@@ -353,15 +449,16 @@ function generateQMKJSON(options: QMKOptions) {
   return jsonFile({
     userspace_version: '1.1',
     build_targets: [
-      [`cosmos/${folderName}`, 'default', { 'MAKECMDGOALS': 'uf2-split-left', 'TARGET': `${folderName}_default_left` }],
-      [`cosmos/${folderName}`, 'default', { 'MAKECMDGOALS': 'uf2-split-right', 'TARGET': `${folderName}_default_right` }],
-      [`cosmos/${folderName}`, 'via', { 'MAKECMDGOALS': 'uf2-split-left', 'TARGET': `${folderName}_via_left` }],
-      [`cosmos/${folderName}`, 'via', { 'MAKECMDGOALS': 'uf2-split-right', 'TARGET': `${folderName}_via_right` }],
+      [`cosmos/${folderName}`, 'default', { 'MAKECMDGOALS': 'uf2-split-left', 'VIK_BUILD_LEFT': 'yes', 'TARGET': `${folderName}_default_left` }],
+      [`cosmos/${folderName}`, 'default', { 'MAKECMDGOALS': 'uf2-split-right', 'VIK_BUILD_RIGHT': 'yes', 'TARGET': `${folderName}_default_right` }],
+      [`cosmos/${folderName}`, 'via', { 'MAKECMDGOALS': 'uf2-split-left', 'VIK_BUILD_LEFT': 'yes', 'TARGET': `${folderName}_via_left` }],
+      [`cosmos/${folderName}`, 'via', { 'MAKECMDGOALS': 'uf2-split-right', 'VIK_BUILD_RIGHT': 'yes', 'TARGET': `${folderName}_via_right` }],
     ],
   })
 }
 
-function generateGitHubWorkflow() {
+function generateGitHubWorkflow(config: FullGeometry) {
+  const hasProcyon = Object.values(config).some(c => c.c.keys.some(k => k.type == 'trackpad-procyon'))
   return yamlFile({
     name: 'Build QMK firmware',
     on: ['push', 'pull_request', 'workflow_dispatch'],
@@ -371,8 +468,8 @@ function generateGitHubWorkflow() {
         name: 'QMK Userspace Build',
         uses: 'qmk/.github/.github/workflows/qmk_userspace_build.yml@main',
         with: {
-          qmk_repo: 'qmk/qmk_firmware',
-          qmk_ref: 'master',
+          qmk_repo: hasProcyon ? 'george-norton/qmk_firmware' : 'qmk/qmk_firmware',
+          qmk_ref: hasProcyon ? 'multitouch_experiment' : 'master',
           preparation_command: 'mkdir qmk_firmware/keyboards/cosmos && cp -r keyboards/* qmk_firmware/keyboards/cosmos/ && qmk userspace-doctor',
         },
       },
@@ -393,13 +490,18 @@ export function downloadQMKCode(config: FullGeometry, matrix: Matrix, options: Q
         '.github/workflows/build.yml': strToU8(generateGitHubWorkflow()),
         'qmk.json': strToU8(generateQMKJSON(options)),
         [`keyboards/${options.folderName}`]: {
-          'config.h': strToU8(generateConfigH(options)),
-          'rules.mk': strToU8(generateRulesMK()),
+          'config.h': strToU8(generateConfigH(config, options)),
+          'rules.mk': strToU8(generateRulesMK(config)),
           'keyboard.json': strToU8(generateInfoJSON(config, matrix, options)),
           'keymaps/default/keymap.c': strToU8(generateKeymap(config, matrix, options)),
           'keymaps/via/keymap.c': strToU8(generateKeymap(config, matrix, options)),
           'keymaps/via/rules.mk': strToU8('VIA_ENABLE = yes\n'),
           'vik': await unzipURL(qmkVik),
+          ...(needsSPI(config)
+            ? {
+              'mcuconf.h': strToU8(generateMCUConfH(options)),
+            }
+            : {}),
         },
       },
     }))().then((data) => {
@@ -409,10 +511,48 @@ export function downloadQMKCode(config: FullGeometry, matrix: Matrix, options: Q
     .catch(err => console.error(err))
 }
 
+function pointingDevices(config: Geometry) {
+  return config.c.keys.filter(k => !!pointingDeviceDriver(k))
+}
+
+function displays(config: Geometry) {
+  return config.c.keys.filter(k => k.type.startsWith('oled'))
+}
+
+function displayProtocol(k: CuttleKey) {
+  if (!k) return undefined
+  const info = PART_INFO[k.type]
+  const numpin = typeof info.numPins == 'function' ? info.numPins(k.variant as any) : info.numPins
+  if (numpin?.i2c) return 'i2c'
+  return 'spi'
+}
+
+function pointingDeviceDriver(key: CuttleKey) {
+  if (!key) return undefined
+  if (key.type == 'trackball') {
+    return 'pmw3389'
+  } else if (key.type == 'trackpad-cirque') {
+    return 'cirque_pinnacle_spi'
+  } else if (key.type == 'trackpad-azoteq') {
+    return 'azoteq_iqs5xx'
+  } else if (key.type == 'trackpad-procyon') {
+    return 'digitizer'
+  }
+}
+
+function needsSPI(config: FullGeometry) {
+  return Object.values(config).some(c =>
+    pointingDevices(c).length > 0
+    || displays(c).filter(d => displayProtocol(d) == 'spi').length > 0
+  )
+}
+
 export function* qmkInfo(config: Geometry) {
   if (encoderKeys(config.c).length > 0) yield 'Encoder detected. Make sure it is wired to GPIO28 and GPIO29'
 }
 
 export function* qmkErrors(config: Geometry) {
   if (encoderKeys(config.c).length > 1) yield 'Multiple encoders detected on this side. Only the first will be configured in the firmware.'
+  if (displays(config).length > 1) yield 'Multiple displays detected on this side. Only the first will be configured in the firmware.'
+  if (pointingDevices(config).length > 1) yield 'Multiple pointing devices (trackballs/trackpads) detected on this side. Only the first will be configured in the firmware.'
 }

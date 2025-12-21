@@ -55,10 +55,13 @@ extra_javascript:
   - javascripts/katex.js
   - https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js
   - https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js
+  - https://raw.githubusercontent.com/midzer/tobii/refs/heads/production/dist/tobii.min.js
+  - javascripts/lightgallery.js
 
 extra_css:
   - stylesheets/extra.css
   - https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css
+  - https://github.com/midzer/tobii/raw/refs/heads/production/dist/tobii.min.css
 
 markdown_extensions:
   - attr_list
