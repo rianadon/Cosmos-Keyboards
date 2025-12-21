@@ -487,7 +487,7 @@ export function downloadQMKCode(config: FullGeometry, matrix: Matrix, options: Q
   ;(async () =>
     zipPromise({
       [options.folderName]: {
-        '.github/workflows/build.yml': strToU8(generateGitHubWorkflow()),
+        '.github/workflows/build.yml': strToU8(generateGitHubWorkflow(config)),
         'qmk.json': strToU8(generateQMKJSON(options)),
         [`keyboards/${options.folderName}`]: {
           'config.h': strToU8(generateConfigH(config, options)),
