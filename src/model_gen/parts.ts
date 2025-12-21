@@ -277,7 +277,7 @@ async function main() {
     displayThickness: 1.4,
     pcbThickness: 1.5,
     displayRounding: 0,
-  })
+  }, { size: '27x27' })
 
   poolTrackpad('trackpad-procyon', {
     trackpadLongSideWidth: 50,
