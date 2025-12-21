@@ -356,6 +356,47 @@ If you wish to only preview documentation instead of the entire site, you can fo
 
 4. Edit the documentation in the `docs/docs` folder.
 
+### Local with Docker
+
+If you have any problems with the local installation, you can try using docker. This should mitigate dependency conflicts.
+
+1. Install Docker
+2. Create a file with the name "Dockerfile" in the root directory of the project
+3. Put the following content in there
+
+```Dockerfile
+FROM squidfunk/mkdocs-material:9.5
+
+RUN pip install mkdocs-awesome-pages-plugin==2.9.2 \
+  mkdocs-rss-plugin==1.9.0 \
+  lxml==4.9.3
+
+ENTRYPOINT ["/sbin/tini", "--", "mkdocs"]
+CMD ["serve", "--dev-addr=0.0.0.0:8000"]
+```
+
+4. Run `docker build . -t your-name/mkdocs` in the root directory
+5. Rename/delete the existing docker-compose.yml and create a new docker-compose.yml. Make sure to exclude the new compose and the renaming of the old one from your commits.
+6. Add the following content
+
+```yaml
+version: '3'
+services:
+  mkdocs:
+    image: your-name/mkdocs
+    ports:
+      - "8005:8000"
+    volumes:
+      - ./:/docs
+    stdin_open: true
+    tty: true
+```
+
+7. Execute `docker compose up -d` in the root directory
+8. Go to [localhost:8005](localhost:8005)
+
+!!! tip "The port can be changed in the docker docker compose."
+
 ### Adding Images
 
 All images for the documentation are placed in the `docs/assets` folder. To embed an image in Markdown, use the format

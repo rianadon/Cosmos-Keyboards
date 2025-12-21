@@ -1,8 +1,11 @@
 nav:
-  - ...
-  - recovery.md
-  - qmk-rp2040.md
-  - contributing.md
-  - credits.md
+  - index.md
+  - basics
+  - Docs:
+    - ...
+    - recovery.md
+    - qmk-rp2040.md
+    - contributing.md
+    - credits.md
   - switches
   - Cosmos PCBs: pcbs
