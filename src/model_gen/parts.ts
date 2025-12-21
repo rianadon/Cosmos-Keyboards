@@ -267,7 +267,19 @@ async function main() {
     displayRounding: 0.5,
   })
 
-  poolTrackpad('trackpad-procyon', { // It's a trackpad, but the display generator works great
+  poolDisplay('oled-128x64-0.96-aliexpress', {
+    pcbLongSideWidth: 27.3,
+    pcbShortSideWidth: 27.3,
+    offsetFromLeftLongSide: 2.5,
+    offsetFromRightLongSide: 2.5,
+    offsetFromTopShortSide: 6.5,
+    offsetFromBottomShortSide: 9.4,
+    displayThickness: 1.4,
+    pcbThickness: 1.5,
+    displayRounding: 0,
+  }, { size: '27x27' })
+
+  poolTrackpad('trackpad-procyon', {
     trackpadLongSideWidth: 50,
     trackpadShortSideWidth: 42,
     offsetFromLeftLongSide: 4,
