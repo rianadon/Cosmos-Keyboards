@@ -290,7 +290,7 @@ If you'd like to follow an example, [@semickolon's pull request](https://github.
 
     Follow the following conventions: the board's short edge is the X axis, the long edge is the Y axis, and the top of the board faces +Z. The board should be centered on the X axis and the side with the connector should be touching the X axis (Y=0), so that most of the board is below the X axis (Y < 0). The bottom of the microcontroller should touching the XY plane. This is illustrated in the screenshot below.
 
-    ![A microcontroller in blender demonstrating the blow conventions](../assets/microcontroller.png){ width=400 .center }
+    ![A microcontroller in Blender demonstrating the below conventions](../assets/microcontroller.png){ width=400 .center }
 
     In Blender, make sure to export with "Y axis up" unchecked. GLB files use the convention that the Y axis points up, but in Cosmos the convention is Z points up.
 

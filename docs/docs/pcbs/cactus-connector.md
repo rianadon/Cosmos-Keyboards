@@ -16,11 +16,11 @@ There are three outputs on the Cactus Connector: VIK, VIK PTR (VIK Pointer), and
 
 ![Pinout Information](../../assets/cactus_connector.png)
 
-The Cirque connector leaves the 3 hardware input button pins on the trackpad disconnected. These aren't useful for most keyboard applications. The SDA and SCL lines are also disconnected by default to minimize reflections, but you can solder the two solder jumpers near the branching of the cactus to connect them.
+The `Cirque` connector leaves the 3 hardware input button pins on the trackpad disconnected. These aren't useful for most keyboard applications. The SDA and SCL lines are also disconnected by default to minimize reflections, but you can solder the two solder jumpers near the branching of the cactus to connect them.
 
-The VIK Pointer connection has I2C disconnected. This was a mistake; if you are using an I2C-based trackpad like [Procyon](https://github.com/george-norton/procyon), you should instead connect it to the Cirque connector and solder the jumpers. GP2 is given to the pointing device so you can use it as an interrupt, but GP1 is not passed through.
+The `VIK Pointer` connection has I2C disconnected. This was a mistake; if you are using an I2C-based trackpad like [Procyon](https://github.com/george-norton/procyon), you should instead connect it to the `Cirque` connector and solder the jumpers. GP2 is given to the pointing device so you can use it as an interrupt, but GP1 is not passed through.
 
-The remaining VIK connector has all pins but GP1 and GP2 connected. This means you cannot use it with any VIK modules that require I/O pins, but any other module will work. If you use a SPI module, the CS pin is assigned the input VIK's GP1 so that both this VIK device and the pointer VIK device can be separately selected in case they both use SPI.
+The remaining `VIK` connector has all pins but GP1 and GP2 connected. This means you cannot use it with any VIK modules that require I/O pins, but any other module will work. If you use a SPI module, the CS pin is assigned the input VIK's GP1 so that both this VIK device and the pointer VIK device can be separately selected in case they both use SPI.
 
 ### Cutting the Connector
 
@@ -32,9 +32,11 @@ Only if you have a mix of I2C and SPI peripherals. If all 3 use I2C or all use S
 
 What's supported is:
 
-- An I2C device on the Cirque connector (doesn't necessarily have to be a Cirque trackpad)
-- A SPI device on the VIK Pointer connector
-- Either an I2C or SPI device on the VIK connector
+- An I2C device on the `Cirque` connector (doesn't necessarily have to be a Cirque trackpad)
+- A SPI device on the `VIK Pointer` connector
+- Either an I2C or SPI device on the `VIK` connector
+
+Because GP2 is shared between the `Cirque` and `VIK Pointer` connectors, **only one device can be driving GP2**. For instance, if you have an I2C Cirque on the `Cirque` connector then you would _not_ be able to use a PMW3610 sensor with motion interrupt wired to GP2 on `VIK Pointer` because both of these peripherals use GP2.
 
 Keep in mind each connector has limited IO (GP1/GP2) pins coming from VIK, so not all VIK modules will be compatible.
 
@@ -45,6 +47,8 @@ I've included two examples here using the Cactus Connector together with VIK bre
 ### Wired Lemon: Display and Trackball through VIK Breakouts
 
 This is how you connect a display and trackball using the same wiring pinouts in the [Lemon Wired](./lemon-wired.md) docs. This example uses the Ogen Lite PCB with a PMW3360/PMW3389.
+
+If your display uses I2C instead of SPI, connect SDA/SCL instead of MOSI/SCK/CS.
 
 ![Wiring Diagram of VIK and PMW3360](../../assets/cactus_display_trackball_wired.png){width=600 .center}
 
@@ -111,3 +115,7 @@ If your display uses I2C instead of SPI, connect SDA/SCL instead of MOSI/SCK/CS.
 ## PCB Drawing and Dimensions
 
 ![PCB Layout for Cactus Connector](../../assets/cactus-drawing.png)
+
+## Further Documentation
+
+The Cactus Connector is open source! Schematics and layout can be found on the Cactus Connector's [GitHub page](https://github.com/rianadon/Cosmos-Keyboard-PCBs/tree/main/cactus-connector).

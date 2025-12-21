@@ -48,6 +48,7 @@ enumeration('PART', {
   30: 'thqwgd001',
   32: 'meh01',
   34: 'oled-168x144-1.26in-keydio-vista508',
+  36: 'trackpad-procyon',
 
   // Old stuff no one should be using.
   110: 'old-mx',

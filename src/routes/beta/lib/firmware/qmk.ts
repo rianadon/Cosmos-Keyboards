@@ -54,7 +54,8 @@ function generateInfoJSON(config: FullGeometry, matrix: Matrix, options: QMKOpti
       encoder: hasEncoders,
       encoder_map: hasEncoders,
       extrakey: hasEncoders || !!EXTRAKEY_REQUIRED.intersection(new Set(generateKeycodes(config))).size,
-      pointing_device: Object.values(config).some(c => pointingDevices(c).length > 0),
+      // Not needed since VIK sets it up?
+      // pointing_device: Object.values(config).some(c => pointingDevices(c).length > 0),
       oled: Object.values(config).some(c => displays(c).length > 0),
     },
     matrix_pins: {
@@ -163,6 +164,9 @@ function generateConfigH(config: FullGeometry, options: QMKOptions) {
     ...(driver?.type == 'trackpad-azoteq'
       ? ['#define AZOTEQ_IQS5XX_TPS65']
       : []),
+    ...(driver?.type == 'trackpad-procyon'
+      ? [`#define PROCYON_${driver.variant.size.replace('x', '_')}`]
+      : []),
     ...(Object.values(config).some(c => displays(c).length > 0)
       ? ['#define OLED_DISPLAY_128X32']
       : []),
@@ -188,7 +192,7 @@ function generateMCUConfH(options: QMKOptions) {
 function generateRulesMK(config: FullGeometry) {
   const driver = Object.values(config).flatMap(c => pointingDevices(c))[0]
   const driverSide = objKeys(config).filter(c => pointingDevices(config[c]!).length)[0]
-  const driverSuffix = { right: '_RIGHT', left: '_LEFT', unibody: '' }[driverSide] || ''
+  const driverSuffix = { right: '_RIGHT', left: '', unibody: '' }[driverSide] || ''
 
   const display = Object.values(config).flatMap(c => displays(c))[0]
 
@@ -206,6 +210,11 @@ function generateRulesMK(config: FullGeometry) {
       ? [
         `VIK_CIRQUE${driverSuffix} = yes`,
         'CIRQUE_PINNACLE_DIAMETER_MM = ' + driver.variant.size.replace('mm', ''),
+      ]
+      : []),
+    ...(driver?.type == 'trackpad-procyon'
+      ? [
+        `VIK_PROCYON${driverSuffix} = yes`,
       ]
       : []),
     ...(display
@@ -448,7 +457,8 @@ function generateQMKJSON(options: QMKOptions) {
   })
 }
 
-function generateGitHubWorkflow() {
+function generateGitHubWorkflow(config: FullGeometry) {
+  const hasProcyon = Object.values(config).some(c => c.c.keys.some(k => k.type == 'trackpad-procyon'))
   return yamlFile({
     name: 'Build QMK firmware',
     on: ['push', 'pull_request', 'workflow_dispatch'],
@@ -458,8 +468,8 @@ function generateGitHubWorkflow() {
         name: 'QMK Userspace Build',
         uses: 'qmk/.github/.github/workflows/qmk_userspace_build.yml@main',
         with: {
-          qmk_repo: 'qmk/qmk_firmware',
-          qmk_ref: 'master',
+          qmk_repo: hasProcyon ? 'george-norton/qmk_firmware' : 'qmk/qmk_firmware',
+          qmk_ref: hasProcyon ? 'multitouch_experiment' : 'master',
           preparation_command: 'mkdir qmk_firmware/keyboards/cosmos && cp -r keyboards/* qmk_firmware/keyboards/cosmos/ && qmk userspace-doctor',
         },
       },
@@ -502,7 +512,7 @@ export function downloadQMKCode(config: FullGeometry, matrix: Matrix, options: Q
 }
 
 function pointingDevices(config: Geometry) {
-  return config.c.keys.filter(k => k.type == 'trackball' || k.type == 'trackpad-cirque' || k.type == 'trackpad-azoteq')
+  return config.c.keys.filter(k => !!pointingDeviceDriver(k))
 }
 
 function displays(config: Geometry) {
@@ -525,6 +535,8 @@ function pointingDeviceDriver(key: CuttleKey) {
     return 'cirque_pinnacle_spi'
   } else if (key.type == 'trackpad-azoteq') {
     return 'azoteq_iqs5xx'
+  } else if (key.type == 'trackpad-procyon') {
+    return 'digitizer'
   }
 }
 
