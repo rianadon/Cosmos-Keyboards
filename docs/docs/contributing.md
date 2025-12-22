@@ -20,6 +20,10 @@ If you'd like to run the dev servers for the generator and docs simultaneously, 
 
 ### Quickstart, in Detail
 
+!!! tip "Make on Windows"
+
+    If you're using Windows, be sure to use `bun make` or `npm run nodemake` instead of `make`. These commands will use Cosmos's built-in cross platform make runner, which translates *nix commands into things Windows can run.
+
 The `make quickstart` command recommended in the README bundles together several useful commands in the `Makefile`:
 
 ```bash
@@ -255,6 +259,8 @@ poolDisplay('oled-128x32-0.91in-dfrobot', {
 })
 ```
 
+If you have a multiple variants, call `poolDisplay` for each variant and pass the variant configuration as the third argument.
+
 Change `oled-128x32-0.91in-dfrobot` to the name you've given your socket. You'll need to specify just `stepFile` (don't add a `partOverride`) when you configure the pair in `socketsParts.ts`.
 
 The numbers listed within `DisplayProps` are measurements of the display taken with calipers. All measurements are in millimeters.
@@ -270,6 +276,40 @@ The numbers listed within `DisplayProps` are measurements of the display taken w
 - `displayRounding`: How much the corners of the display are rounded.
 
 Don't forget to edit `src/proto/cosmosStructs.ts` and add your socket/part to the `enumeration('PART', {` declaration. You'll need to give your part a unique number used to identify it in the URL. Switches get numbers from 1–15, and everything else uses 16–109.
+
+#### Trackpads
+
+Cosmos also includes a parametric trackpad socket generator, which works extremely similarly to the OLED/LCD one. Call the `poolTrackpad` function to use it.
+
+```typescript
+poolTrackpad('trackpad-procyon', {
+  trackpadLongSideWidth: 50,
+  trackpadShortSideWidth: 42,
+  offsetFromLeftLongSide: 4,
+  offsetFromRightLongSide: 4,
+  offsetFromBottomShortSide: 5,
+  offsetFromTopShortSide: 5,
+  trackpadThickness: 1,
+  pcbThickness: 1.5,
+  supportThickness: 2,
+  trackpadRounding: 2,
+}, { size: '42x50' })
+```
+
+That last argument is the variant you are generating. If your part has no variants, omit it.
+
+The numbers in `TrackpadProps` are measurements of the trackpad taken with calipers (or based on the datasheet). All measurements are in millimeters.
+
+- `trackpadLongSideWidth`: Length of the long side of the trackpad
+- `trackpadShortSideWidth`: Length of the short side of the trackpad
+- `offsetFromLeftLongSide`: How far underneath the bottom (from the left long side of the trackpad) that the support should extend
+- `offsetFromRightLongSide`: How far underneath the bottom (from the right long side of the trackpad) that the support should extend
+- `offsetFromTopShortSide`: How far underneath the bottom (from the top short side of the trackpad) that the support should extend
+- `offsetFromBottomShortSide`: How far underneath the bottom (from the bottom short side of the trackpad) that the support should extend
+- `trackpadThickness`: How thick the trackpad surface is (excluding PCB)
+- `pcbThickness`: How thick the trackpad PCB is
+- `supportThickness`: How thick to make the support underneatht he trackpad that holds it in place
+- `trackpadRounding`: How much the corners of the trackpad are rounded.
 
 ### Contributing Microcontrollers
 
@@ -460,7 +500,7 @@ To embed videos that are meant to behave like animated GIFs (i.e. they autoplay 
 ![type:video](../assets/animated.mp4){ autoplay }
 ```
 
-When the docs are built, all the videos are transcoded to mp4 and webm. All you should worry about is that the dimensions of the video are not excessively large.
+When the docs are built, all the videos are compressed and transcoded to mp4 and webm. All you should worry about is that the dimensions of the video are not excessively large.
 
 ### Adding Pages
 

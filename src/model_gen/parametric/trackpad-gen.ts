@@ -26,6 +26,8 @@ export interface TrackpadProps {
   trackpadThickness: number
   /** How thick the PCB is */
   pcbThickness: number
+  /** How thick to make the supports for the PCB */
+  supportThickness: number
   /** Rectangles for PCB alignment that protrude PCB-thickness from the bottom */
   alignmentRectangles?: [Point, Point][]
   /** Rounding around the trackpad */
@@ -44,7 +46,7 @@ export function trackpadSocket(name: CuttleKey['type'], variant: Record<string, 
   if ('radiusX' in size) throw new Error('Expected rectangular size, not circular')
   assertSize(name + vURL, size[0], opts.trackpadShortSideWidth + 2 * DISP_TOL, 'width')
   assertSize(name + vURL, size[1], opts.trackpadLongSideWidth + 2 * DISP_TOL, 'height')
-  assertSize(name + vURL, size[2], opts.trackpadThickness + opts.pcbThickness, 'thickness')
+  assertSize(name + vURL, size[2], opts.trackpadThickness + opts.pcbThickness + opts.supportThickness, 'thickness')
   let base = makeBaseBox(size[0], size[1], size[2]).translateZ(-size[2])
   base = base.cut(trackpadModel(name, variant, opts, DISP_TOL))
 
@@ -65,20 +67,22 @@ export function trackpadSocket(name: CuttleKey['type'], variant: Record<string, 
 }
 
 export function trackpadModel(_name: CuttleKey['type'], variant: Record<string, any>, opts: TrackpadProps, tol: number) {
-  const trackpad = drawRoundedRectangle(opts.trackpadShortSideWidth + 2 * tol, opts.trackpadLongSideWidth + 2 * tol, opts.trackpadRounding).sketchOnPlane('XY').extrude(opts.trackpadThickness)
+  const trackpad = drawRoundedRectangle(opts.trackpadShortSideWidth + 2 * tol, opts.trackpadLongSideWidth + 2 * tol, opts.trackpadRounding).sketchOnPlane('XY').extrude(
+    opts.trackpadThickness + opts.pcbThickness,
+  )
 
   let componentCutout = drawRoundedRectangle(
     opts.trackpadShortSideWidth + 2 * tol - opts.offsetFromLeftLongSide - opts.offsetFromRightLongSide,
     opts.trackpadLongSideWidth + 2 * tol - opts.offsetFromBottomShortSide - opts.offsetFromTopShortSide,
     COMPONENT_CUT_RADIUS,
-  ).sketchOnPlane('XY').extrude(opts.pcbThickness + tol)
+  ).sketchOnPlane('XY').extrude(opts.supportThickness + tol)
 
   componentCutout = componentCutout
     .translateX(opts.offsetFromLeftLongSide / 2 - opts.offsetFromRightLongSide / 2)
     .translateY(opts.offsetFromBottomShortSide / 2 - opts.offsetFromTopShortSide / 2)
 
-  return (trackpad.translateZ(-opts.trackpadThickness) as Solid)
-    .fuse(componentCutout.translateZ(-opts.pcbThickness - opts.trackpadThickness) as Solid)
+  return (trackpad.translateZ(-opts.trackpadThickness - opts.pcbThickness) as Solid)
+    .fuse(componentCutout.translateZ(-opts.supportThickness - opts.trackpadThickness - opts.pcbThickness) as Solid)
 }
 
 export function trackpadSocketAndModel(name: CuttleKey['type'], variant: Record<string, any>, opts: TrackpadProps, partTol: number) {

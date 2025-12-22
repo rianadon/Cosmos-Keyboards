@@ -694,8 +694,8 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     category: 'Trackballs & Trackpads',
     stepFile: '/target/key-trackpad-procyon.step',
     socketSize: (v: Variant) => ({
-      '42x50': [42.1, 50.1, 4] as PartSize,
-      '57x80': [57.1, 80.1, 4] as PartSize,
+      '42x50': [42.1, 50.1, 4.5] as PartSize,
+      '57x80': [57.1, 80.1, 4.5] as PartSize,
     }[v.size as TrackpadProcyonVariant['size'] || '42x50']),
     partBottom: () => [],
     variants: {

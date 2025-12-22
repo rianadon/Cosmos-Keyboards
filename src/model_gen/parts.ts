@@ -287,7 +287,8 @@ async function main() {
     offsetFromBottomShortSide: 5,
     offsetFromTopShortSide: 5,
     trackpadThickness: 1,
-    pcbThickness: 3,
+    pcbThickness: 1.5,
+    supportThickness: 2,
     trackpadRounding: 2,
   }, { size: '42x50' })
 
@@ -299,7 +300,8 @@ async function main() {
     offsetFromBottomShortSide: 10,
     offsetFromTopShortSide: 10,
     trackpadThickness: 1,
-    pcbThickness: 3,
+    pcbThickness: 1.5,
+    supportThickness: 2,
     trackpadRounding: 2,
   }, { size: '57x80' })
 
