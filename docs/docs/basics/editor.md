@@ -6,7 +6,7 @@ There are three tools at your disposal. They can be chosen on the right side of 
 
 ![Key selection modes](../../assets/tools.png)
 
-![type:video](../../assets/videos/tools.mp4){ autoplay }
+![type:video](../../assets/tools.mp4){ autoplay }
 
 ## Key selection modes
 
@@ -14,7 +14,7 @@ There are three ways to select key. They can be chosen on the right side below t
 
 ![Key selection modes](../../assets/key-selection-modes.png)
 
-![type:video](../../assets/videos/key-selection-modes.mp4){ autoplay }
+![type:video](../../assets/key-selection-modes.mp4){ autoplay }
 
 ## Views
 
@@ -46,7 +46,7 @@ This view shows you, how thick the shell is in certain places, and where it migh
 
 This slider changes the opacity of the keys and the baseplate. You can check, how your shell and the microcontroller look here.
 
-![type:video](../../assets/videos/opacity.mp4){ autoplay }
+![type:video](../../assets/opacity.mp4){ autoplay }
 
 ## Hand scanning
 
@@ -122,8 +122,8 @@ The cost estimation seems to be based on a price of about 40$ per kilogram.
 
 ## Adding keys
 
-![type:video](../../assets/videos/adding-keys.mp4){ autoplay }
+![type:video](../../assets/adding-keys.mp4){ autoplay }
 
 ## Removing keys
 
-![type:video](../../assets/videos/removing-keys.mp4){ autoplay }
+![type:video](../../assets/removing-keys.mp4){ autoplay }

@@ -33,7 +33,7 @@ This section steers the general look / layout of the keyboard.
 
 The `r`x`c` button allows you to manually specify how many rows and columns you want.
 
-The keycap and switch settings work the same as [the ones in the edit key menu](editor-basics.md#switch-and-keycap-size).
+The keycap and switch settings work the same as [the ones in the edit key menu](editor.md#switch-and-keycap-size).
 
 The horizontal and vertical spacing control the following:
 
@@ -105,7 +105,7 @@ The bigger the X value for the custom position, the further away from the middle
 
 If you choose the type custom, you can specify what width and height you want. If you want to create a circle, set the width and height to the diameter and the radius to the radius. You can also set the X and Y position here.
 
-For the connector index (L/R) see [the expert documentation](expert.md#microcontrollers-and-screw-inserts)
+For the connector index (L/R) see [the expert documentation](../expert.md#microcontrollers-and-screw-inserts)
 
 #### Microcontroller holder
 
@@ -122,7 +122,7 @@ vs the microcontroller without holders
 
 #### Base settings
 
-If you want to glue your base on (or fix it in any other way), turn off the fasten the base with screws setting. Below that you can choose how many, what screws and what fasteners you want to use (check [screws and inserts for that](screws.md).
+If you want to glue your base on (or fix it in any other way), turn off the fasten the base with screws setting. Below that you can choose how many, what screws and what fasteners you want to use (check [screws and inserts for that](../screws.md).
 
 You can also choose to not countersink the screws, but you will have screw heads sticking out of the bottom with this setting.
 

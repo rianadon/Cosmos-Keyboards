@@ -6,7 +6,7 @@ You'll get the most help in the [Discord Server](https://discord.gg/nXjqkfgtGy),
 
 ## Basics
 
-The basics of the editor can be found [here](editor-basics.md).
+The basics of the editor can be found [here](basics/editor.md).
 
 ## Contributing
 
