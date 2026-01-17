@@ -1028,7 +1028,10 @@
       <Field name="Add Lip" help="Add a lip to the bottom plate to hide warping defects">
         <Checkbox bind:value={$protoConfig.shell.lip} />
       </Field>
-      <Field name="Embedded Plate" help="The plate is inset into the case walls instead of attached at the bottom">
+      <Field
+        name="Embedded Plate"
+        help="The plate is inset into the case walls instead of attached at the bottom"
+      >
         <Checkbox bind:value={$protoConfig.shell.embedded} />
       </Field>
     {/if}
