@@ -1,11 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import type { BasicShell } from './config'
-import {
-  decodeConfigIdk,
-  encodeCosmosConfig,
-  serializeCosmosConfig,
-} from './config.serialize'
 import { fromCosmosConfig, toCosmosConfig } from './config.cosmos'
+import { decodeConfigIdk, encodeCosmosConfig, serializeCosmosConfig } from './config.serialize'
 
 const DEFAULT_CONFIG_B64 =
   'Cn8KDxIFEIA/ICcSABIAEgA4MQoPEgUQgEsgJxIAEgASADgdChwSBRCAVyAnEgASABIDELAvEgMQsF84CUCE8LwCChcSBRCAYyAnEgASABIDELA7EgMQsGs4CgoVEgUQgG8gJxIAEgASADgeQJCGirAHGABA6IWgrvBVSNzwoqABCpIBChcSExDAwAJAgICYAkjCmaCVkLwBUEM4CAoVEhAQQECAgCBI0JWA3ZD1A1ALUJ4CChYSEhBAQICAzAJIwpmglZC8AVCGAVA6ChQSEBBAQICA+AFI5pn8p5ALUFdQfwoVEhAQQECAgKQDSPCZzLXQMFB0UJUBGAIiCgjIARDIARgAIABAy4uEpNAxSK2R3I3BkwZyAA=='
