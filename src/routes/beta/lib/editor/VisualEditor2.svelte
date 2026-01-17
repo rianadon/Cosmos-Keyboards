@@ -159,6 +159,7 @@
       $protoConfig.shell = {
         type: 'basic',
         lip: false,
+        embedded: false,
       }
     else if (type == 'tilt')
       $protoConfig.shell = {
@@ -1026,6 +1027,9 @@
     {#if !basic}
       <Field name="Add Lip" help="Add a lip to the bottom plate to hide warping defects">
         <Checkbox bind:value={$protoConfig.shell.lip} />
+      </Field>
+      <Field name="Embedded Plate" help="The plate is inset into the case walls instead of attached at the bottom">
+        <Checkbox bind:value={$protoConfig.shell.embedded} />
       </Field>
     {/if}
   {:else if $protoConfig.shell.type == 'stilts'}
