@@ -114,14 +114,14 @@ If you placed the config somewhere other than `keyboards/cosmos` (i.e. you used 
 
 If you installed QMK directly, use
 
-```
+```bash
 qmk flash -c -kb cosmos/cosmotyl -km via -bl uf2-split-left
 qmk flash -c -kb cosmos/cosmotyl -km via -bl uf2-split-right
 ```
 
 to flash the left and right sides. If you used docker then run
 
-```
+```bash
 util/docker_build.sh cosmos/cosmotyl:via:uf2-split-left
 util/docker_build.sh cosmos/cosmotyl:via:uf2-split-right
 ```
@@ -206,14 +206,14 @@ If you're using the local toolchain, copy the contents of `boards/shields` (ther
 
 Here's how I build a keyboard with usb logging enabled:
 
-```console
+```bash
 west build -d build/right -b cosmos_lemon_wireless -S zmk-usb-logging -- \
   -DSHIELD="cosmotyl_right" -DZMK_EXTRA_MODULES="/path/to/zmk-fingerpunch-vik"
 ```
 
 and one with a PMW3610 trackball:
 
-```console
+```bash
 west build -d build/right -b cosmos_lemon_wireless -S zmk-usb-logging -- \
   -DSHIELD="cosmotyl_right vik_pmw3610" \
   -DZMK_EXTRA_MODULES="/path/to/zmk-pmw3610-driver;/path/to/zmk-fingerpunch-vik"
@@ -240,3 +240,80 @@ Some useful options from the [ZMK display docs](https://zmk.dev/docs/config/disp
 - `CONFIG_ZMK_DISPLAY_BLANK_ON_IDLE`: The display turns off on idle to save power and prevent burn-in. This is generally a good thing, but you can disable it.
 - `CONFIG_ZMK_WIDGET_BATTERY_STATUS_SHOW_PERCENTAGE`: set this to show a battery precentage instead of just the icon.
 - Widgest: `CONFIG_ZMK_WIDGET_LAYER_STATUS`, `CONFIG_ZMK_WIDGET_BATTERY_STATUS`, and `CONFIG_ZMK_WIDGET_OUTPUT_STATUS` are on by default. `CONFIG_ZMK_WIDGET_WPM_STATUS` is off by default.
+
+### Upgrading
+
+The easiest way to upgrade is to simply run firmware autogen again. However, if you've made a lot of changes to your firmware, it may take longer to copy over your changes than to upgrade the necessary files in your firmware.
+
+#### ZMK v0.3 → v0.4
+
+!!! warning
+
+    ZMK has not yet merged the bootmagic feature fork, so for now the only way to enter bootloader will be a dedicated key in your keymap or the reset button.
+
+This is a pretty big change as ZMK has changed a lot internally, and I've also made some changes to my firmware modifications to make it easier for you to work off the latest version of ZMK.
+
+First, edit your `config/west.yml` so that you are using the latst and greatest ZMK, not my fork.
+
+```diff
+  manifest:
+    remotes:
+      - name: zmkfirmware
+        url-base: https://github.com/zmkfirmware
+      - name: rianadon
+        url-base: https://github.com/rianadon
+    projects:
+      - name: zmk
+-       remote: rianadon
++       remote: zmkfirmware
+        revision: main
+        import: app/west.yml
+    self:
+      path: config
+      import: deps.yml
+```
+
+!!! tip "Version Pinning"
+
+    You might wish to [pin your ZMK version](https://zmk.dev/blog/2025/06/20/pinned-zmk) for stability instead of working from the development branch.
+
+Then edit your `config/deps.yml` to include the Cosmos ZMK module.
+
+```diff
+  manifest:
+    remotes:
++     - name: rianadon
++       url-base: https://github.com/rianadon
+    projects:
++     - name: cosmos-zmk-module
++       remote: rianadon
++       revision: main
++       import: config/deps.yml
+```
+
+The name of the lemon wireless microcontroller has changed to match the new naming scheme in v0.4. Instead of `cosmos-lemon-wireless`, it's simply `lemon-wireless`.
+
+Edit your `build.yaml` to rename the microcontroller.
+
+```diff
+  ---
+  include:
+-   - board: cosmos_lemon_wireless
++   - board: lemon_wireless
+      shield: lemonwirelesstest_left
+      snippet: zmk-usb-logging
+```
+
+Also rename the `cosmos_lemon_wireless.overlay` file to `lemon_wireless.overlay`. It's inside the folder with your keymap, under the `boards directory.
+
+That is to say, `shields/firmware/boards/cosmos_lemon_wireless.overlay` (assuming your called your firmware `firmware`).
+
+Finally, apply the rest of the fixes required in the ZMK [blog post](https://zmk.dev/blog/2025/12/09/zephyr-4-1#general-boardshield-changes). The only one you'll likely need to pay attention to is the LED Strip KConfig changes. In the files `firmware_left.conf` and `firmware_right.conf`, remove the line `CONFIG_WS2812_STRIP=y`
+
+If you're using GitHub actions, you're ready to commit and let your firmware build. If you're using the local toolchain, clone the [cosmos-zmk-module](http://github.com/rianadon/cosmos-zmk-module) to your computer and compile with
+
+```bash
+west build -d build/right -b lemon_wireless -S zmk-usb-logging -- \
+  -DSHIELD="cosmotyl_right" \
+  -DZMK_EXTRA_MODULES="/path/to/zmk-fingerpunch-vik;/path/to/cosmos-zmk-module"
+```
