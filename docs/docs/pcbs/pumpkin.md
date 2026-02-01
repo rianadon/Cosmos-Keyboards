@@ -116,7 +116,14 @@ If you cut any of these PCBs off, they effectively turn into minature Plum Twist
 
 ## Revision History
 
-**v1.1: Useful Fixes (currently sold)**
+**v1.2: More reliability (currently sold)**
+
+- Thickened the substrate and copper for better conductivity (brighter and more consistent LEDs) and less risk of tearing.
+- Slightly increased all trace widths for more reliable manufacturing.
+- Added tantalum capacitors to reduce flickering at high brightness settings.
+- No more FPC connectors on the Pumpkin Patch, as the new Pumpkin Thumbs PCB includes both vines and pumpkins.
+
+**v1.1: Useful Fixes**
 
 - Rerouted the PCB so only a minimum of 2 rows is required to connect everything (before 3 rows were needed).
 - Fattened power and GND traces so LEDs can be run brighter
