@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { T } from '@threlte/core'
   import { view, noBase, noWall } from '$lib/store'
   import type { Geometry } from '$lib/worker/config'
   import GroupMatrix from './GroupMatrix.svelte'
@@ -57,23 +58,25 @@
 {#if !noWeb}<KMesh kind="case" geometry={meshes.webBuf} color={caseColor} />{/if}
 {#if !$noBase}
   <KMesh kind="case" geometry={meshes.screwBaseBuf} color={caseColor} />
-  <KMesh
-    kind="key"
-    geometry={meshes.plateTopBuf}
-    opacity={plateTopOpacity}
-    renderOrder="10"
-    color={plateColor}
-    cutoff={(keebGeometry?.floorZ ?? Infinity) + 0.1}
-    useColors
-  />
-  <KMesh
-    kind="key"
-    geometry={meshes.plateBotBuf}
-    opacity={Math.pow((cTransparency - 50) / 50, 3)}
-    renderOrder="10"
-    color={plateColor}
-    useColors
-  />
+  <T.Group position.z={-50}>
+    <KMesh
+      kind="key"
+      geometry={meshes.plateTopBuf}
+      opacity={plateTopOpacity}
+      renderOrder="10"
+      color={plateColor}
+      cutoff={(keebGeometry?.floorZ ?? Infinity) + 0.1}
+      useColors
+    />
+    <KMesh
+      kind="key"
+      geometry={meshes.plateBotBuf}
+      opacity={Math.pow((cTransparency - 50) / 50, 3)}
+      renderOrder="10"
+      color={plateColor}
+      useColors
+    />
+  </T.Group>
   <KMesh kind="key" geometry={meshes.screwPlateBuf} opacity={plateScrewOpacity} />
   <KMesh kind="key" geometry={meshes.wristBuf} opacity={cTransparency / 100} useColors />
   <KMesh kind="key" geometry={meshes.secondWristBuf} opacity={cTransparency / 100} useColors />
