@@ -634,8 +634,8 @@
   {:else if $protoConfig.partType.type == 'niz'}
     <InfoBox>
       <p>
-        This variant requires direct pin assignment to the microcontroller and a well-tuned 3D printer.
-        <a class="text-pink-600 underline" href="https://ryanis.cool/cosmos/docs/switches/magnetic"
+        This variant requires a well-tuned 3D printer.
+        <a class="text-pink-600 underline" href="https://ryanis.cool/cosmos/docs/parts/magnetic-switches"
           >NIZ documentation</a
         >
       </p>

@@ -7,5 +7,5 @@ nav:
     - qmk-rp2040.md
     - contributing.md
     - credits.md
-  - switches
+  - Part Guides: parts
   - Cosmos PCBs: pcbs
