@@ -644,17 +644,17 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     bomName: (v: Variant) => `Azoteq ${v.size || 'TPS65'} Trackpad`,
     category: 'Trackballs & Trackpads',
     stepFile: '/src/assets/trackpad-azoteq.step',
-    socketSize: (v: Variant) => [65.2, 49, 4] as PartSize,
+    socketSize: (v: Variant) => (v.size === 'TPS43' ? [43.5, 40.5, 4] : [65.2, 49, 4]) as PartSize,
     partBottom: () => [box(10, 10, 2)],
     variants: {
-      size: ['TPS65'],
+      size: ['TPS65', 'TPS43'],
     },
     encodeVariant: (variant: Variant) => {
-      return ['TPS65'].indexOf(variant.size)
+      return ['TPS65', 'TPS43'].indexOf(variant.size)
     },
     decodeVariant: (variant: number) => {
       return {
-        size: ['TPS65'][variant] || 'TPS65',
+        size: ['TPS65', 'TPS43'][variant] || 'TPS65',
       }
     },
     numPins: () => ({ i2c: true }),

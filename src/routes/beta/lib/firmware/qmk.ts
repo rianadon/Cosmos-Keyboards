@@ -162,7 +162,7 @@ function generateConfigH(config: FullGeometry, options: QMKOptions) {
       ]
       : []),
     ...(driver?.type == 'trackpad-azoteq'
-      ? ['#define AZOTEQ_IQS5XX_TPS65']
+      ? [`#define AZOTEQ_IQS5XX_${driver.variant.size}`]
       : []),
     ...(driver?.type == 'trackpad-procyon'
       ? [`#define PROCYON_${driver.variant.size.replace('x', '_')}`]
