@@ -149,6 +149,8 @@ export type FullCuttleform = {
 export interface BasicShell {
   type: 'basic'
   lip: boolean
+  /** If true, the plate is embedded inside the case walls rather than attached at the bottom */
+  embedded: boolean
 }
 export interface StiltsShell {
   type: 'stilts'
@@ -281,6 +283,7 @@ function cuttleConfShell(c: DeepRequired<CuttleformProto>): AnyShell {
     return {
       type: 'basic',
       lip: c.shell.basicShell.lip,
+      embedded: false, // Not supported in old cuttleform proto format
     }
   }
   if (c.shell.oneofKind == 'tiltShell') {

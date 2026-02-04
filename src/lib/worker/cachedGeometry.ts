@@ -158,7 +158,12 @@ export class BaseGeometry<C extends Cuttleform = SpecificCuttleform<BasicShell>>
     if (!this.c.microcontroller && !this.c.connector) return null
     const wall = this.c.connectorIndex < 0 ? this.autoConnectorIndex : this.c.connectorIndex
     const innerSurfaces = this.allWallCriticalPoints().map(w => wallSurfacesInner(this.c, w))
-    return originForConnector(this.c, this.allWallCriticalPoints(), innerSurfaces, wall)
+    const origin = originForConnector(this.c, this.allWallCriticalPoints(), innerSurfaces, wall)
+    // For embedded plates, raise the connector origin by plate thickness
+    if (this.c.shell.type === 'basic' && this.c.shell.embedded) {
+      return origin.translated(0, 0, this.c.plateThickness)
+    }
+    return origin
   }
 
   @Memoize()
