@@ -587,22 +587,22 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
       return [box(pcbWidth, pcbHeight, bottom), box(16, 11, bottom + 2.5)]
     },
     variants: {
-      size: ['25mm', '34mm', '40mm', '43mm', '44mm', '45mm', '46mm', '55mm'], // add new variants in numerical order
+      size: ['25mm', '34mm', '40mm', '43mm', '44mm', '45mm', '46mm', '50mm', '55mm'], // add new variants in numerical order
       bearings: ['Roller', 'Ball', 'BTU (7.5mm)', 'BTU (9mm)'],
       sensor: ['Joe (QMK)', 'Skree (ZMK)'],
     },
     encodeVariant: (variant: Variant) => { // add new variants to the end
-      const size = ['34mm', '25mm', '55mm', '43mm', '46mm', '45mm', '40mm', '44mm'].indexOf(variant.size)
+      const size = ['34mm', '25mm', '55mm', '43mm', '46mm', '45mm', '40mm', '44mm', '50mm'].indexOf(variant.size)
       const bearings = ['Roller', 'Ball', 'BTU (7.5mm)', 'BTU (9mm)'].indexOf(variant.bearings)
       const sensor = ['Joe (QMK)', 'Skree (ZMK)'].indexOf(variant.sensor)
-      return size + (bearings << 3) + (sensor << 6)
+      return (size & 7) + (bearings << 3) + (sensor << 6) + ((size >> 3) << 8)
     },
     decodeVariant: (variant: number) => {
-      const size = variant & 0x7
+      const size = (variant & 0x7) | (((variant >> 8) & 3) << 3)
       const bearings = (variant >> 3) & 0x7
       const sensor = (variant >> 6) & 0x3
       return {
-        size: ['34mm', '25mm', '55mm', '43mm', '46mm', '45mm', '40mm', '44mm'][size] || '34mm',
+        size: ['34mm', '25mm', '55mm', '43mm', '46mm', '45mm', '40mm', '44mm', '50mm'][size] || '34mm',
         bearings: ['Roller', 'Ball', 'BTU (7.5mm)', 'BTU (9mm)'][bearings] || 'Roller',
         sensor: ['Joe (QMK)', 'Skree (ZMK)'][sensor] || 'Joe (QMK)',
       }
