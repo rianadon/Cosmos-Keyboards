@@ -1825,6 +1825,16 @@ export function wallSurfacesOuter(c: Cuttleform, wall: WallCriticalPoints) {
   const mo = wall.mo
   const bo = wall.bo
 
+  if (c.shell.type === 'basic' && c.shell.embedded) {
+    const boLow = bo.translated(0, 0, -c.plateThickness)
+    return [
+      makeLine(ti, to, wall, wall.nRoundNext, wall.nRoundPrev, false, false),
+      makeLine(to, mo, wall),
+      makeLine(mo, bo, wall),
+      makeLine(bo, boLow, wall),
+    ]
+  }
+
   return [
     makeLine(ti, to, wall, wall.nRoundNext, wall.nRoundPrev, false, false),
     makeLine(to, mo, wall),
@@ -1839,6 +1849,18 @@ export function wallSurfacesInner(c: Cuttleform, wall: WallCriticalPoints) {
   const bi = wall.bi
   const mi = wall.mi
   const ki = wall.ki
+
+  if (c.shell.type === 'basic' && c.shell.embedded) {
+    const boLow = bo.translated(0, 0, -c.plateThickness)
+    const biLow = bi.translated(0, 0, -c.plateThickness)
+    return [
+      makeLine(boLow, biLow, wall),
+      makeLine(biLow, bi, wall),
+      makeLine(bi, mi, wall),
+      makeLine(mi, ki, wall, false, false, wall.nRoundNext, wall.nRoundPrev),
+      makeLine(ki, ti, wall, wall.nRoundNext, wall.nRoundPrev, wall.nRoundNext, wall.nRoundPrev),
+    ]
+  }
 
   return [
     makeLine(bo, bi, wall),

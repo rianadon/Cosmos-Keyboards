@@ -55,29 +55,11 @@ export async function keyHoles(c: Cuttleform, transforms: Trsf[]) {
   return combine(await Promise.all(transforms.map((t, i) => keyHole(c.keys[i], t))))
 }
 
-/** Check if the shell uses an embedded plate (plate sits inside the case walls) */
-function isEmbeddedPlate(c: Cuttleform): boolean {
-  return c.shell.type === 'basic' && c.shell.embedded
-}
-
 export function normalWallSurfaces(c: Cuttleform, geo: Geometry, bottomZ: number, worldZ: Vector, offset: number) {
   const walls = geo.allWallCriticalPoints(offset)
   const EXTRA_HEIGHT = 100
-  const embedded = isEmbeddedPlate(c)
   return walls.map(w => {
     const surf = wallSurfacesOuter(c, w)
-    if (embedded) {
-      // For embedded plate: the plate is inset into the case walls
-      // Note: w.bo is at floorZ (bottomZ - plateThickness), w.bi is at bottomZ
-      const boAtBottomZ = w.bo.translated(0, 0, c.plateThickness) // Raise bo to bottomZ level
-      return [
-        makeLine(w.ti.translated(worldZ, EXTRA_HEIGHT), w.to, w, w.nRoundNext, w.nRoundPrev, false, false),
-        surf[1],
-        makeLine(w.mo, boAtBottomZ, w), // Outer wall goes down to bottomZ
-        makeLine(boAtBottomZ, w.bi, w), // Horizontal surface from outer to inner at bottomZ
-        makeLine(w.bi, w.bo, w), // Inner wall continues down to floorZ
-      ]
-    }
     return [
       makeLine(w.ti.translated(worldZ, EXTRA_HEIGHT), w.to, w, w.nRoundNext, w.nRoundPrev, false, false),
       surf[1],
@@ -102,13 +84,14 @@ export function wallInnerSurfaces(c: Cuttleform, geo: Geometry, offset: number) 
       ti: w.ti.pretranslated(displacement.xyz()),
     }
     const surf = wallSurfacesInner(c, wc)
+    // Skip bottom segments: 1 normally (bo→bi), 2 when embedded (boLow→biLow, biLow→bi)
+    const embedded = c.shell.type === 'basic' && c.shell.embedded
+    const innerWallSegments = surf.slice(embedded ? 2 : 1)
     return [
       ...(c.shell.type == 'tilt'
         ? [makeLine(wc.bi.translated(0, 0, -EXTRA_HEIGHT), wc.bi.pretranslated(0, 0, -c.plateThickness), wc), makeLine(wc.bi.pretranslated(0, 0, -c.plateThickness), wc.bi, wc)]
         : [makeLine(wc.bi.pretranslated(0, 0, -EXTRA_HEIGHT), wc.bi, wc)]),
-      surf[1],
-      surf[2],
-      surf[3],
+      ...innerWallSegments,
       makeLine(wc.ti, wc.ti.translated(0, 0, EXTRA_HEIGHT), wc, w.nRoundNext, w.nRoundPrev, false, false),
     ]
   })
@@ -310,20 +293,25 @@ export function webSolid(c: Cuttleform, geo: Geometry) {
   return surface
 }
 
+const EMBEDDED_PLATE_TOL = 0.2
+
 function plateSketch(c: Cuttleform, geo: PlateParams, offset = 0) {
   let sketch: BezierSketch
   const wall = geo.allWallCriticalPoints(offset)
-  const embedded = isEmbeddedPlate(c)
-  // For embedded plates, use inner wall points (bi) instead of outer (bo)
-  const wallPt = embedded ? 'bi' : 'bo'
+  const wallPt = (w: WallCriticalPoints) => {
+    if (c.shell.type === 'basic' && c.shell.embedded) {
+      return w.bi.pretranslated(-EMBEDDED_PLATE_TOL, 0, 0)
+    }
+    return w.bo
+  }
 
   const planePtV = (v: Vector) => [v.dot(geo.worldX), v.dot(geo.worldY)] as [number, number]
   const planePt = (t: Trsf) => planePtV(t.origin())
   if (c.rounded.side) {
     let { boundary } = geo.solveTriangularization
 
-    const splines = boundarySplines(c, boundary, i => wall[i][wallPt], wallBezier, wall, geo.worldZ, geo.bottomZ)
-    const sketcher = new BezierSketcher().movePointerTo(planePt(wall[0][wallPt]))
+    const splines = boundarySplines(c, boundary, i => wallPt(wall[i]), wallBezier, wall, geo.worldZ, geo.bottomZ)
+    const sketcher = new BezierSketcher().movePointerTo(planePt(wallPt(wall[0])))
     for (let i = 0; i < boundary.length; i++) {
       const b0 = boundary[i]
       const b1 = boundary[(i + 1) % boundary.length]
@@ -332,7 +320,7 @@ function plateSketch(c: Cuttleform, geo: PlateParams, offset = 0) {
     }
     sketch = sketcher.close()
   } else {
-    const points = geo.allWallCriticalPoints(offset).map(w => planePt(w[wallPt]))
+    const points = geo.allWallCriticalPoints(offset).map(w => planePt(wallPt(w)))
     const sketcher = new BezierSketcher().movePointerTo(points[0])
     for (let i = 1; i < points.length; i++) {
       sketcher.lineTo(points[i])
@@ -405,9 +393,7 @@ interface PlateParams {
 async function makeNormalPlate(c: Cuttleform, geo: PlateParams) {
   const sketch = plateSketch(c, geo).sketchOnPlane('XY')
   const plate = sketch.extrude(-c.plateThickness) as Solid
-  // For embedded plates, raise the plate by plateThickness so it sits inside the case
-  const embedOffset = isEmbeddedPlate(c) ? c.plateThickness : 0
-  const trsf = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).pretranslate(0, 0, geo.bottomZ + embedOffset)
+  const trsf = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).pretranslate(0, 0, geo.bottomZ)
   const transformedPlate = trsf.transform(plate)
   if (c.plate && c.shell.type !== 'tilt') return await processPlate(c, geo as Geometry, transformedPlate)
   return transformedPlate
@@ -440,9 +426,7 @@ export function makePlateMesh(c: Cuttleform, geo: Geometry, cut = false, inserts
   const makeThePlate = (geo: PlateParams) => {
     const sketch = plateSketch(c, geo)
     const plate = sketch.extrudeMesh(-c.plateThickness)
-    // For embedded plates, raise the plate by plateThickness so it sits inside the case
-    const embedOffset = isEmbeddedPlate(c) ? c.plateThickness : 0
-    const trsf = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).pretranslate(0, 0, geo.bottomZ + embedOffset)
+    const trsf = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).pretranslate(0, 0, geo.bottomZ)
     const mat = trsf.Matrix4()
     for (let i = 0; i < plate.vertices.length; i += 3) {
       plate.vertices.set(new Vector().fromArray(plate.vertices, i).applyMatrix4(mat).xyz(), i)
@@ -463,10 +447,7 @@ export function makePlateMesh(c: Cuttleform, geo: Geometry, cut = false, inserts
 }
 
 export function makePlate(c: Cuttleform, geo: Geometry, cut = false, inserts = false): Plate {
-  const embedded = isEmbeddedPlate(c)
-  // For embedded plates, raise screw positions by plate thickness to align with inserts
-  const embedOffset = embedded ? c.plateThickness : 0
-  const positions = geo.screwPositions.map(p => p.translated(0, 0, embedOffset))
+  const positions = [...geo.screwPositions]
   if (c.shell.type == 'stilts') {
     return makeStiltsPlate(c, geo, cut)
   }
@@ -770,15 +751,11 @@ function makeScrewInserts(c: Cuttleform, geo: Geometry, types: ScrewInsertTypes)
   const solidWallSurface = wallInnerSolidSurface(c, geo, 0)
 
   const holderThick = holderThickness(boardElements(c, false))
-  const embedded = isEmbeddedPlate(c)
-  // For embedded plates, raise screw inserts and board positions by plate thickness
-  // so they attach inside the case above the embedded plate
-  const embedOffset = embedded ? c.plateThickness : 0
   const inserts: (Solid | undefined)[] = []
   if (types.includes('base')) {
     inserts.push(
-      ...geo.justScrewPositions.map(p => makeScrewInsert(c, solidWallSurface, p.translated(0, 0, embedOffset), false)),
-      ...Object.values(geo.boardPositions).map(p => p.pretranslated(0, 0, holderThick + embedOffset))
+      ...geo.justScrewPositions.map(p => makeScrewInsert(c, solidWallSurface, p, false)),
+      ...Object.values(geo.boardPositions).map(p => p.pretranslated(0, 0, holderThick))
         .map(p => makeScrewInsert(c, solidWallSurface, p, false)),
     )
   }
