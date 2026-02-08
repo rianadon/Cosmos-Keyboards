@@ -235,9 +235,27 @@
 
   function cloneConfig(c: FullCuttleform) {
     return {
-      left: c.left ? { ...c.left, shell: { ...c.left.shell }, plate: c.left.plate ? { ...c.left.plate } : undefined } : undefined,
-      right: c.right ? { ...c.right, shell: { ...c.right.shell }, plate: c.right.plate ? { ...c.right.plate } : undefined } : undefined,
-      unibody: c.unibody ? { ...c.unibody, shell: { ...c.unibody.shell }, plate: c.unibody.plate ? { ...c.unibody.plate } : undefined } : undefined,
+      left: c.left
+        ? {
+            ...c.left,
+            shell: { ...c.left.shell },
+            plate: c.left.plate ? { ...c.left.plate } : undefined,
+          }
+        : undefined,
+      right: c.right
+        ? {
+            ...c.right,
+            shell: { ...c.right.shell },
+            plate: c.right.plate ? { ...c.right.plate } : undefined,
+          }
+        : undefined,
+      unibody: c.unibody
+        ? {
+            ...c.unibody,
+            shell: { ...c.unibody.shell },
+            plate: c.unibody.plate ? { ...c.unibody.plate } : undefined,
+          }
+        : undefined,
     }
   }
 
