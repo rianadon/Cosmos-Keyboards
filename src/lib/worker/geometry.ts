@@ -1830,8 +1830,7 @@ export function wallSurfacesOuter(c: Cuttleform, wall: WallCriticalPoints) {
     return [
       makeLine(ti, to, wall, wall.nRoundNext, wall.nRoundPrev, false, false),
       makeLine(to, mo, wall),
-      makeLine(mo, bo, wall),
-      makeLine(bo, boLow, wall),
+      makeLine(mo, boLow, wall),
     ]
   }
 

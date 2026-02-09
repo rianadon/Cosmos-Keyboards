@@ -49,6 +49,7 @@ const BOARD_TOLERANCE_Z = 0.1
 const BOARD_COMPONENT_TOL = 0.1 // Added to sides of cutouts on board holder
 const TILT_PARTS_SEPARATION = 0.05 // How far apart the two components of tilts plate should be
 
+const EMBEDDED_PLATE_TOL = 0.2
 const SMOOTHAPEX = false
 
 export async function keyHoles(c: Cuttleform, transforms: Trsf[]) {
@@ -292,8 +293,6 @@ export function webSolid(c: Cuttleform, geo: Geometry) {
 
   return surface
 }
-
-const EMBEDDED_PLATE_TOL = 0.2
 
 function plateSketch(c: Cuttleform, geo: PlateParams, offset = 0) {
   let sketch: BezierSketch
