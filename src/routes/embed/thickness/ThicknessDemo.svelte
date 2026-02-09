@@ -39,7 +39,7 @@
     fastenMicrocontroller: true,
     verticalClearance: 0,
     rounded: {},
-    shell: { type: 'basic', lip: false },
+    shell: { type: 'basic', lip: false, embedded: false },
     plateThickness: 3,
     microcontrollerAngle: 0,
     connectors: [],

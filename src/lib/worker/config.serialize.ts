@@ -220,7 +220,7 @@ export const KEYBOARD_DEFAULTS: Keyboard = {
   shell: {
     oneofKind: 'basicShell',
     basicShell: {
-      flags: encodeBasicShellFlags({ lip: false }),
+      flags: encodeBasicShellFlags({ lip: false, embedded: false }),
     },
   },
 }
@@ -285,7 +285,7 @@ export function encodeShell(shell: Cuttleform['shell']): Keyboard['shell'] {
     return {
       oneofKind: 'basicShell',
       basicShell: {
-        flags: encodeBasicShellFlags({ lip: shell.lip }),
+        flags: encodeBasicShellFlags({ lip: shell.lip, embedded: shell.embedded }),
       },
     }
   } else if (shell.type == 'stilts') {
