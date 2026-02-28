@@ -271,6 +271,18 @@ const _keyboards: Record<string, Keyboard> = {
       'The trackball sensor is PMW3360. Tha ball is from Ergo M575. Wirst supports are Powerton Ergoline. Microcontrolers are Tenstar RP2040 Micro. I had to slightly modify the microcontroler holder to fit to the holes.',
     filament: 'Sunlu PLA+ Grass Green and unknown semi-transparent filament',
   },
+  '99b9d254': {
+    author: 'stubbleman',
+    type: 'split',
+    config:
+      '#cm:CrIDCjMSGQgIEIBvICco3AEwFECShvUCSL+PnPyQlAUSAiATEgIgABIAEgQQMCAoOB5AgKaH0AEKRhIaCAgQgGMgJyi0ATAUQJ+qhtgCSM+f9K2Q+gESAiATEgIgABIDELA7EgUQsGsgKBIMEDAgPECAmMQDSKA7OApAgJSG2AEKQhIFEJBZIBMSAiAAEgMQsC8SBRCwXyAoEgwQMCA8QICWpAxIwj0SEwgIIFAwFECBxIeoLEiQ07SvgHk4CUCAjIrYAgopEhkICBCASyAnKMgBMBRAg/LkA0jVm5i/wJ8BEgIgExICIAASADgdQAAKKBIaCAgQgD8gJyi0ATAUQICGhrgDSL2h2K+g2AISAiATEgIgABIAODEKRBISEEAgAECdwpfQAUioh6Cn8fEPEhkICBAwIAAowAIwFECI4IqgAkjpl6S0gJ8JEg8IBhBAQJWgh1hI+oXkyAIwEDhFCkUSFggIICco3AEwHkCAooswSN2n7LfQ1AcSCSATQICGC0iJFRINEKCACiAAQICeC0i1ERIJEDBAgLILSL8XODJAgMKHwAEYAEDQg6Cu8FVI3PCioAEKlAEKKxITEMCAAkCAgJgCSMKZoJWQvAFQQxISEDBAgcikAUjCmaCVkLwBUIQBOAgKFRIQEEBAgIAgSMKVuN3Q+wNQC1CeAgoxEhMIIxBAQKfKkA1IopuUnpDVAVBXEhgICBAwKPoBMBRA0e6MA0jamayf8LQCUHBQfxgCIgoIyAEQyAEYACAAQOON/J/QMUitkdyNwZMGEAMYhiAiAxCuATAeOAOCAQIEAkgFWAtoAHIKkAH/ARCAAniwJ3jKg5z+gFg=',
+    filament: 'Esun PLA',
+    switches: 'Kailh Choc V1 Brown',
+    name: 'ErgoDaDa',
+    keycaps: '<a href="https://www.printables.com/model/1619893-kailh-choc-v1-keycap">Kailh Choc V1 keycaps</a> printed in PLA',
+    details:
+      'This is a split keyboard with Nintendo Joycons. The controllers are RP2040 Micro. It can be printed vertically to minimize/eliminate the support. Because of the small footprint, two hands can be printed in one plate.',
+  },
 }
 
 function findImages(kbd: Keyboard) {
