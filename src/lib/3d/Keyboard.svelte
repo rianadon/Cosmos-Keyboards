@@ -134,7 +134,7 @@
   // - Instancing was cool but a lot of work. Also doesn't play well with per-key textures
 </script>
 
-{#if !$showKeyInts && geometry && !flags.intersection}
+{#if !$showKeyInts && geometry}
   <!-- {#each geometry.keyHolesTrsfs as trsf, i (i + ' ' + geometry.c.keys[i].keycap?.letter + ' ' + (geometry.c.keys[i].type == 'blank'))}
     {@const key = geometry.c.keys[i]}
     <GroupMatrix matrix={trsf.pretranslated(0, 0, switchInfo(key.type).height).Matrix4()}>
