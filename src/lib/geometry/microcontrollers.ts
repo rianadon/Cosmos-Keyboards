@@ -26,6 +26,7 @@ export const MICROCONTROLLER_SIZES = ['Cosmos', 'Small', 'Medium', 'Large'] as c
 
 interface BoardProperties {
   name: string
+  glbFile: string
   extraName?: string
   offset: Vector
   size: Vector
@@ -70,6 +71,7 @@ type Microcontroller = Exclude<Cuttleform['microcontroller'], null>
 export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
   'pi-pico': {
     name: 'Pi Pico',
+    glbFile: '/src/assets/pico.glb',
     offset: new Vector(0, 0, 3.2),
     size: new Vector(21, 51, 1),
     sizeName: 'Large',
@@ -89,6 +91,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
   },
   'rp2040-black-usb-c-aliexpress': {
     name: 'RP2040 Black Board USB-C (Aliexpress)',
+    glbFile: '/target/rp2040-black-usb-c-aliexpress.glb',
     extraName: '(USB-C) ☆',
     size: new Vector(0.9 * IN, 2.1 * IN, 1.57),
     sizeName: 'Large',
@@ -107,6 +110,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
   },
   'promicro-usb-c': {
     name: 'Pro Micro - 34.7mm',
+    glbFile: '/target/promicro-usb-c.glb',
     extraName: '(USB-C, Low Storage)',
     size: new Vector(18.3, 34.7, 1.57),
     sizeName: 'Medium',
@@ -121,6 +125,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
   },
   'promicro-usb-c-long': {
     name: 'Pro Micro - 37mm',
+    glbFile: '/target/promicro-usb-c.glb',
     extraName: '(USB-C, Low Storage)',
     size: new Vector(18.3, 37, 1.57),
     sizeName: 'Medium',
@@ -135,6 +140,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
   },
   'promicro': {
     name: 'Pro Micro - 33mm',
+    glbFile: '/target/promicro.glb',
     extraName: '(Low Storage)',
     size: new Vector(0.7 * IN, 1.3 * IN, 1.57),
     sizeName: 'Medium',
@@ -149,6 +155,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
   },
   'itsybitsy-adafruit': {
     name: 'Adafruit ItsyBitsy RP2040/M0/M4/32u4',
+    glbFile: '/src/assets/itsybitsy-adafruit.glb',
     size: new Vector(0.7 * IN, 1.4 * IN, 1.57),
     sizeName: 'Medium',
     boundingBoxZ: 5,
@@ -163,6 +170,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
   },
   'itsybitsy-adafruit-nrf52840': {
     name: 'Adafruit ItsyBitsy nRF52840',
+    glbFile: '/src/assets/itsybitsy-adafruit.glb',
     extraName: '(Bluetooth)',
     size: new Vector(0.7 * IN, 1.4 * IN, 1.57),
     sizeName: 'Medium',
@@ -177,6 +185,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
   },
   'kb2040-adafruit': {
     name: 'Adafruit KB2040',
+    glbFile: '/src/assets/kb2040-adafruit.glb',
     extraName: '(USB-C) ☆',
     size: new Vector(0.7 * IN, 1.3 * IN, 1.57),
     sizeName: 'Medium',
@@ -193,6 +202,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
   },
   'nrfmicro-or-nicenano': {
     name: 'nRFMicro or Nice!Nano',
+    glbFile: '/src/assets/nrfmicro-or-nicenano.glb',
     extraName: '(USB-C, Bluetooth)',
     size: new Vector(0.71 * IN, 1.31 * IN, 1.57),
     sizeName: 'Medium',
@@ -210,6 +220,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
   },
   'seeed-studio-xiao': {
     name: 'Seeed Studio Xiao RP2040/SAMD21',
+    glbFile: '/src/assets/seeed-studio-xiao.glb',
     size: new Vector(17.5, 21, 1.2),
     sizeName: 'Small',
     boundingBoxZ: 5,
@@ -223,6 +234,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
   },
   'seeed-studio-xiao-nrf52840': {
     name: 'Seeed Studio Xiao nRF52840',
+    glbFile: '/src/assets/seeed-studio-xiao.glb',
     extraName: '(Bluetooth) ☆',
     size: new Vector(17.5, 21, 1.2),
     sizeName: 'Small',
@@ -241,6 +253,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
   },
   'waveshare-rp2040-zero': {
     name: 'WaveShare RP2040-Zero',
+    glbFile: '/target/waveshare-rp2040-zero.glb',
     size: new Vector(18.1, 23.5, 1 + 0.9), // Add extra 0.9mm for the rp2040 chip on underside
     sizeName: 'Small',
     boundingBoxZ: 5,
@@ -257,6 +270,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
   },
   'weact-studio-ch552t': {
     name: 'WeAct Studio CH552T',
+    glbFile: '/target/weact-studio-ch552t.glb',
     extraName: '(Low Storage)',
     size: new Vector(18.288, 25.908, 1.57),
     sizeName: 'Small',
@@ -273,6 +287,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
   },
   'feather-rp2040-adafruit': {
     name: 'Adafruit RP2040 Feather',
+    glbFile: '/src/assets/feather-rp2040-adafruit.glb',
     extraName: '(USB-C)',
     size: new Vector(0.9 * IN, 2 * IN, 1.57),
     sizeName: 'Large',
@@ -289,6 +304,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
   },
   'cyboard-assimilator': {
     name: 'Cyboard Assimilator',
+    glbFile: '/src/assets/cyboard-assimilator.glb',
     extraName: '(USB-C, Flex PCB)',
     size: new Vector(29.9, 41.13, 1.57),
     sizeName: 'Large',
@@ -311,6 +327,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
   },
   'lemon-wired': {
     name: 'Lemon Wired',
+    glbFile: '/src/assets/lemon-wired.glb',
     extraName: '(Dual USB-C, Flex PCB) ☆',
     size: new Vector(31.94, 36, 1.57),
     sizeName: 'Cosmos',
@@ -330,6 +347,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
   },
   'lemon-wireless': {
     name: 'Lemon Wireless',
+    glbFile: '/src/assets/lemon-wireless.glb',
     extraName: '(Bluetooth, Flex PCB) ☆',
     size: new Vector(29.9, 42, 1.57),
     sizeName: 'Cosmos',
@@ -349,6 +367,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
   },
   'elite-c': {
     name: 'Elite-C',
+    glbFile: '/target/elite-c.glb',
     extraName: '(USB-C, Low Storage)',
     size: new Vector(18.71, 33.45, 1.57),
     sizeName: 'Medium',

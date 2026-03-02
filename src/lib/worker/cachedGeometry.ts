@@ -16,10 +16,10 @@ import {
   type LabeledBoardInd,
   originForConnector,
   plateArtOrigin,
-  positionsImpl,
   positionsImplMap,
   reinforceTriangles,
   screwIndices,
+  screwOriginTrsf,
   separateSockets2D,
   solveTriangularization,
   wallCriticalPoints,
@@ -116,7 +116,8 @@ export class BaseGeometry<C extends Cuttleform = SpecificCuttleform<BasicShell>>
   }
   @Memoize()
   get justScrewPositions() {
-    return positionsImpl(this.c, this.allWallCriticalPoints(), this.worldZ, this.justScrewIndices)
+    const walls = this.allWallCriticalPoints()
+    return this.justScrewIndices.map(i => screwOriginTrsf(this.c, i, walls, this.worldZ))
   }
   @Memoize()
   get screwPositions() {
@@ -234,7 +235,8 @@ export class TiltGeometry extends BaseGeometry<SpecificCuttleform<TiltShell>> {
 
   @Memoize()
   get plateScrewPositions() {
-    return positionsImpl(this.c, this.allWallCriticalPoints(), this.worldZ.clone().negate(), this.screwIndices)
+    const walls = this.allWallCriticalPoints()
+    return this.screwIndices.map(i => screwOriginTrsf(this.c, i, walls, this.worldZ.clone().negate()))
   }
   @Memoize()
   get bottomScrewIndices() {
@@ -242,7 +244,10 @@ export class TiltGeometry extends BaseGeometry<SpecificCuttleform<TiltShell>> {
   }
   @Memoize()
   get bottomScrewPositions() {
-    return positionsImpl(this.c, this.allWallCriticalPoints(), new Vector(0, 0, 1), this.bottomScrewIndices).map(t => t.translate(0, 0, -t.origin().z + this.floorZ + this.c.plateThickness))
+    const walls = this.allWallCriticalPoints()
+    return this.bottomScrewIndices
+      .map(i => screwOriginTrsf(this.c, i, walls, new Vector(0, 0, 1)))
+      .map(t => t.translate(0, 0, -t.origin().z + this.floorZ + this.c.plateThickness))
   }
 
   @Memoize()
