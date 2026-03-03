@@ -1326,26 +1326,26 @@ function screwScoreStilts(c: Cuttleform, walls: WallCriticalPoints[], boardWalls
   }
   // Return -Infinity if it intersects the board
   // Disregard this if there is no microcontroller and no connector
-  if (holderBnd) {
-    const miny = boardInd.bottomLeft ? Math.min(screwOrigin(c, boardInd.bottomLeft, boardWalls).y - holderOuterRadius(c), holderBnd.miny) : holderBnd.miny
-    const maxy = boardInd.topLeft
-      ? Math.max(
-        screwOrigin(c, boardInd.topLeft, boardWalls).y + holderOuterRadius(c),
-        screwOrigin(c, boardInd.topRight!, boardWalls).y + holderOuterRadius(c),
-        holderBnd.maxy,
-      )
-      : holderBnd.maxy
-    const pos = screwOriginFn(c, s, walls)
-    if (!pos) return -Infinity
-    if (
-      pos.y + minHolderDisp / 2 > miny
-      && pos.y - minHolderDisp / 2 < maxy
-      && pos.x + minHolderDisp > holderBnd.minx
-      && pos.x - minHolderDisp < holderBnd.maxx
-    ) {
-      return -Infinity
-    }
-  }
+  // if (holderBnd) {
+  //   const miny = boardInd.bottomLeft ? Math.min(screwOrigin(c, boardInd.bottomLeft, boardWalls).y - holderOuterRadius(c), holderBnd.miny) : holderBnd.miny
+  //   const maxy = boardInd.topLeft
+  //     ? Math.max(
+  //       screwOrigin(c, boardInd.topLeft, boardWalls).y + holderOuterRadius(c),
+  //       screwOrigin(c, boardInd.topRight!, boardWalls).y + holderOuterRadius(c),
+  //       holderBnd.maxy,
+  //     )
+  //     : holderBnd.maxy
+  //   const pos = screwOriginFn(c, s, walls)
+  //   if (!pos) return -Infinity
+  //   if (
+  //     pos.y + minHolderDisp / 2 > miny
+  //     && pos.y - minHolderDisp / 2 < maxy
+  //     && pos.x + minHolderDisp > holderBnd.minx
+  //     && pos.x - minHolderDisp < holderBnd.maxx
+  //   ) {
+  //     return -Infinity
+  //   }
+  // }
 
   // Case of 0 other positions: find the hole furthest from the centroid (ie center of model)
   if (params.otherPositions.size == 0) {
@@ -2337,7 +2337,7 @@ export function microcontrollerBottomBox(c: Cuttleform, connOrigin: Trsf, boardP
   const boardElems = boardElements(c, false)
 
   const ucPoints = microControllerRectangles(c, connOrigin, boardPositions).map(([minX, maxX, minY, maxY], i) => {
-    const offsetZ = -BOARD_TOLERANCE_Z // some extra margin between bottom + board holder
+    const offsetZ = 0 // -holderThickness(boardElems)
     const offsetY = 0 // i == 0 ? 20 : 0
     return [
       new Vector(minX, minY, offsetZ),
@@ -2350,13 +2350,13 @@ export function microcontrollerBottomBox(c: Cuttleform, connOrigin: Trsf, boardP
   const screwDims = screwInsertDimensions(c)
   const holderPoints = Object.values(boardPositions).map((pos) => {
     const p = originInv.apply(pos.origin())
-    const offsetZ = -holderThickness(boardElems)
+    const offsetZ = 0 // -holderThickness(boardElems)
     const radius = screwDims.outerTopRadius
     return [
-      new Vector(radius, radius, offsetZ),
-      new Vector(radius, -radius, offsetZ),
-      new Vector(-radius, -radius, offsetZ),
       new Vector(-radius, radius, offsetZ),
+      new Vector(-radius, -radius, offsetZ),
+      new Vector(radius, -radius, offsetZ),
+      new Vector(radius, radius, offsetZ),
     ].map(v => v.add(p))
   })
   return {
