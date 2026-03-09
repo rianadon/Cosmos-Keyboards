@@ -64,7 +64,7 @@ export const webThickness = (c: Cuttleform, key: CuttleKey) => {
   return socketHeight(key)
 }
 
-/** Like offsetAxisLerp(..., 0.5) = offsetAxis. The lerp parameter controsl which normal the given normal is closest to. */
+/** Like offsetAxisLerp(..., 0.5) = offsetAxis. The lerp parameter controls which normal the given normal is closest to. */
 export function offsetAxisLerp(p1: Trsf, p2: Trsf, p3: Trsf, z: Vector, f: number) {
   const p2Vec = p2.origin()
   z.normalize()
@@ -2435,7 +2435,6 @@ export function* extremaCircleZOnBT(origin: Vector, radius: number, points: Trsf
     if (filterNormal == 'down' && normal.z >= 0) continue
 
     for (const intersection of intersectTriCircle(pa, pb, pc, origin, radius)) {
-      if (intersection.z > 10) console.log('INTERSECT', intersection.z, pa)
       yield intersection.z
     }
 
