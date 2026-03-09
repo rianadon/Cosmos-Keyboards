@@ -194,7 +194,7 @@ function generateGitHubWorkflow() {
   return yamlFile({
     on: ['push', 'pull_request', 'workflow_dispatch'],
     jobs: {
-      build: { uses: 'zmkfirmware/zmk/.github/workflows/build-user-config.yml@main' },
+      build: { uses: 'rianadon/zmk/.github/workflows/build-user-config.yml@main' },
     },
   })
 }
