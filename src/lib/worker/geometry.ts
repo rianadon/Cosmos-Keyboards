@@ -726,8 +726,8 @@ function* possibleBestWallsForConnector(c: Cuttleform, walls: WallCriticalPoints
   }
 }
 
-export function connectorIndex(c: Cuttleform, walls: WallCriticalPoints[], innerSurfaces: Line[][], worldZ: Vector, bottomZ: number, selectB: string[], screwDiameter?: number): number {
-  function calcError(wall: number) {
+export function connectorErrorFn(c: Cuttleform, walls: WallCriticalPoints[], innerSurfaces: Line[][], worldZ: Vector, bottomZ: number, selectB: string[]) {
+  return function calcError(wall: number) {
     const origin = originForConnector(c, walls, innerSurfaces, wall)
     const hBnd = localHolderBounds(c, true)
     const hMinX = origin.apply(new Vector(hBnd.minx, hBnd.miny, 0))
@@ -742,25 +742,27 @@ export function connectorIndex(c: Cuttleform, walls: WallCriticalPoints[], inner
       error += 10 * (leftWall.y - hMinX.y) ** 2
       error += 10 * (rightWall.y - hMaxX.y) ** 2
     }
-    if (c.shell.type == 'stilts') {
-      try {
-        const screwIdx = screwIndices(c, walls, origin, boardIndices(c, origin, walls, new Vector(0, 0, 1), -100, selectB), [], new Vector(0, 0, 1), -100, screwDiameter)
-        const tippage = maxTip(c, screwIdx, walls)
-        if (tippage > 20) return 1000000
-        // console.log(wall, 'error', error, 'tippage', tippage, screwIdx, screwDiameter)
-      } catch (e) {
-        // console.log(wall, 'does not work')
-      }
-    }
+    // if (c.shell.type == 'stilts') {
+    //   try {
+    //     const screwIdx = screwIndices(c, walls, origin, boardIndices(c, origin, walls, new Vector(0, 0, 1), -100, selectB), [], new Vector(0, 0, 1), -100, screwDiameter)
+    //     const tippage = maxTip(c, screwIdx, walls)
+    //     if (tippage > 20) return 1000000
+    //     // console.log(wall, 'error', error, 'tippage', tippage, screwIdx, screwDiameter)
+    //   } catch (e) {
+    //     // console.log(wall, 'does not work')
+    //   }
+    // }
     return error
   }
+}
 
+export function connectorIndex(c: Cuttleform, walls: WallCriticalPoints[], errorFn: (wall: number) => number): number {
   // First find the wall with the highest score.
   let bestError = Infinity
   let bestWall = 0
 
   for (const i of possibleBestWallsForConnector(c, walls)) {
-    const error = calcError(i)
+    const error = errorFn(i)
     if (error < bestError) {
       bestWall = i
       bestError = error
@@ -774,7 +776,7 @@ export function connectorIndex(c: Cuttleform, walls: WallCriticalPoints[], inner
   for (let i = -9; i < 10; i++) {
     if (i == 0) continue
     const wall = (bestWall + (i / 10) + walls.length) % walls.length
-    const error = calcError(wall)
+    const error = errorFn(wall)
     if (error < refinedError) {
       refinedWall = wall
       refinedError = error
@@ -1228,7 +1230,7 @@ function findClosestWall(
   return [bestWall, bestError]
 }
 
-function findBoardWalls(c: Cuttleform, walls: WallCriticalPoints[], origin: Trsf, select: string[], worldZ: Vector, bottomZ: number, optimize = false) {
+export function findBoardWalls(c: Cuttleform, walls: WallCriticalPoints[], origin: Trsf, select: string[], worldZ: Vector, bottomZ: number, optimize = false) {
   const hBnd = localHolderBounds(c, false) // was true before, but really needs to be false so board walls don't block the connector
   const bottomRadius = screwInsertDimensions(c).outerBottomRadius
 
@@ -1296,7 +1298,7 @@ interface ScoreParams {
   worldZ: Vector
   bottomZ: number
   holderBnd?: ReturnType<typeof holderBoundsOrigin>
-  screwOriginFn?: (c: Cuttleform, i: number, walls: WallCriticalPoints[], z?: Vector) => Vector | undefined
+  screwOriginFn?: (c: Cuttleform, i: number, walls: WallCriticalPoints[], z?: Vector) => Vector
   useCorners?: boolean
 }
 
@@ -1306,16 +1308,13 @@ function screwScoreStilts(c: Cuttleform, walls: WallCriticalPoints[], boardWalls
   // The score is based on how high the key is and displacement from the nearest
   // neighboring screw insert
   const idx = Math.floor(s)
-  const avgKi = walls[idx].ki.origin().lerp(walls[(idx + 1) % walls.length].ki.origin(), s - idx)
-  const avgHeight = avgKi.dot(worldZ) - bottomZ
-  if (avgHeight < insertHeight) return -Infinity
+  // const avgKi = walls[idx].ki.origin().lerp(walls[(idx + 1) % walls.length].ki.origin(), s - idx)
+  // const avgHeight = avgKi.dot(worldZ) - bottomZ
+  // if (avgHeight < insertHeight) return -Infinity
   const thisOrigin = screwOriginFn(c, s, walls)
-  if (!thisOrigin) return -Infinity
   for (const i of params.otherPositions) {
     // Return -Infinity if it intersects any screws
-    const o1 = screwOriginFn(c, i, walls)
-    if (!o1) continue
-    const displMM = o1.sub(thisOrigin).lengthOnPlane(worldZ)
+    const displMM = screwOriginFn(c, i, walls).sub(thisOrigin).lengthOnPlane(worldZ)
     if (displMM < minDisplacement) return -Infinity
   }
   const minBoardDisplacement = minDisplacement / 2 + holderOuterRadius(c)
@@ -1402,7 +1401,7 @@ function* tippingLines(possibilities: Iterable<number>, origins: Record<number, 
   }
 }
 
-function maxTip(c: Cuttleform, screwIndices: number[], walls: WallCriticalPoints[]) {
+export function maxTip(c: Cuttleform, screwIndices: number[], walls: WallCriticalPoints[]) {
   const origins = walls.map((_, i) => screwOrigin(c, i, walls))
   for (const idx of screwIndices) {
     origins[idx] = screwOrigin(c, idx, walls)
@@ -1473,6 +1472,7 @@ export function* possibleScrewIndices(c: Cuttleform, walls: WallCriticalPoints[]
 export function* allScrewIndices(
   c: Cuttleform,
   walls: WallCriticalPoints[],
+  boardWalls: WallCriticalPoints[],
   indexCandidates: number[],
   connOrigin: Trsf | null,
   boardInd: LabeledBoardInd,
@@ -1500,7 +1500,7 @@ export function* allScrewIndices(
     for (const iCenter of indexCandidates) {
       if (positions.has(iCenter)) continue
       const fn = c.shell.type == 'stilts' ? screwScoreStilts : screwScore
-      const sc = fn(c, walls, walls, iCenter, {
+      const sc = fn(c, walls, boardWalls, iCenter, {
         heightMax: kiMax - bottomZ,
         insertHeight,
         minDisplacement,
@@ -1531,6 +1531,7 @@ export function* allScrewIndices(
 export function screwIndices(
   c: Cuttleform,
   walls: WallCriticalPoints[],
+  boardWalls: WallCriticalPoints[],
   indexCandidates: number[],
   connOrigin: Trsf | null,
   boardIdx: LabeledBoardInd,
@@ -1544,7 +1545,7 @@ export function screwIndices(
   const positiveInd = screwPositions.filter(i => i != -1)
 
   // if (true || positiveInd.length) {
-  for (const pos of allScrewIndices(c, walls, indexCandidates, connOrigin, boardIdx, positiveInd, worldZ, bottomZ, minDisplacement)) {
+  for (const pos of allScrewIndices(c, walls, boardWalls, indexCandidates, connOrigin, boardIdx, positiveInd, worldZ, bottomZ, minDisplacement)) {
     // Find next position with index -1. It will be replaced.
     const nextIndex = screwPositions.indexOf(-1)
     if (nextIndex == -1) break
@@ -2317,7 +2318,7 @@ export function microcontrollerBottomBox(c: Cuttleform, connOrigin: Trsf, boardP
 
   const ucPoints = microControllerRectangles(c, connOrigin, boardPositions).map(([minX, maxX, minY, maxY], i) => {
     const offsetZ = 0 // -holderThickness(boardElems)
-    const offsetY = 0 // i == 0 ? 20 : 0
+    const offsetY = i == 0 ? 10 : 0
     return [
       new Vector(minX, minY, offsetZ),
       new Vector(maxX, minY, offsetZ),
@@ -2434,11 +2435,15 @@ export function* extremaCircleZOnBT(origin: Vector, radius: number, points: Trsf
 
 export function stiltsScrewWalls(c: Cuttleform, walls: WallCriticalPoints[], radius: number) {
   const clipper = new ClipperOffset(2, 0.5)
-  clipper.AddPath(walls.map(w => w.bo.origin()), JoinType.jtRound, EndType.etClosedPolygon)
+  clipper.AddPath(walls.map(w => w.bi.origin()), JoinType.jtRound, EndType.etClosedPolygon)
 
   const offsetPaths = new Paths()
   clipper.Execute(offsetPaths, -radius)
   const wallTrsfs = offsetPaths[0].map(({ x, y }) => new Trsf().translate(x, y, 0))
+  // const wallTrsfs = wt.map((t, i) => {
+  //   const axis = offsetAxis(wt[(i + wt.length - 1) % wt.length], t, wt[(i + 1) % wt.length], Zv)
+  //   return new Trsf().coordSystemChange(t.origin(), new Vector(1, 0, 0), Zv)
+  // })
   const newWalls: WallCriticalPoints[] = wallTrsfs.map(t => ({ bi: t, bo: t, mi: t, mo: t, ti: t, to: t, ki: t, nRoundNext: false, nRoundPrev: false }))
   return newWalls
 }
@@ -2545,22 +2550,6 @@ export function plateArtOrigin(c: Cuttleform, trsfs: Trsf[]) {
   center.z = 0
   return center
 }
-
-// export function footOrigin(c: Cuttleform, i: number, walls: WallCriticalPoints[]) {
-//   const whole = Math.floor(i)
-//   const fraction = i - whole
-//   const thisWall = walls[whole].bo.origin()
-//   const nextWall = walls[(whole + 1) % walls.length].bo.origin()
-
-//   // Compute the center in the middle of the wall
-//   const center = new Vector(thisWall).lerp(nextWall, fraction)
-
-//   // Add the normal vector to the screw sits inside the wall
-//   const normal = new Vector(thisWall).sub(nextWall).normalize().cross(Zv).negate()
-
-//   const bottomRadius = (c.plate?.footDiameter || DEFAULT_FOOT_DIAM) / 2
-//   return center.addScaledVector(normal, bottomRadius + FOOT_INSET)
-// }
 
 export function footWalls(c: Cuttleform, walls: WallCriticalPoints[], floorZ: number) {
   const clipper = new ClipperOffset(2, 0.5)
