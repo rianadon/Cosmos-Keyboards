@@ -1086,6 +1086,17 @@ export function solveTriangularization(c: Cuttleform, pts2D: CriticalPoints[], p
 
   let allTris: number[][] = cdt2d(allPts, edges)
   const bnd = findBoundary(allTris)
+  if (opts.noKeyTriangles) {
+    allTris = allTris.filter(([a, b, c]) => {
+      for (const poly of allPolys) {
+        if (poly.includes(allPts[a]) && poly.includes(allPts[b]) && poly.includes(allPts[c])) {
+          removedTriangles.push([a, b, c])
+          return false
+        }
+      }
+      return true
+    })
+  }
 
   const lengthThresh = c.rounded.side ? 40 : undefined
   const concavity = c.rounded.side?.concavity ?? 1.5
@@ -1115,16 +1126,6 @@ export function solveTriangularization(c: Cuttleform, pts2D: CriticalPoints[], p
   }
   let { boundary, triangles } = concaveman(c, allTrsfs, allPts, allTris, bnd, bottomZ, worldZ, opts.noBadWalls, concavity, lengthThresh, opts.noCut, opts.bottomPts2D)
   const originalTriangles = triangles
-  if (opts.noKeyTriangles) {
-    triangles = triangles.filter(([a, b, c]) => {
-      for (const poly of allPolys) {
-        if (poly.includes(allPts[a]) && poly.includes(allPts[b]) && poly.includes(allPts[c])) {
-          return false
-        }
-      }
-      return true
-    })
-  }
 
   const innerBoundary: number[] = [...boundary]
   triangles = triangles.filter(([a, b, c]) => {
