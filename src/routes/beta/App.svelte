@@ -915,41 +915,6 @@
               >
             </p>
           </div>
-        {:else if (config?.right ?? config?.unibody)?.shell?.type == 'stilts'}
-          {#if $stiltsMsg}
-            <div class="absolute text-white m-4 left-0 right-0 rounded p-4 top-[5%] bg-yellow-700 flex">
-              <div>
-                <p>
-                  Stilts mode is <b>very</b> tempermental. Not every model will work with it. Try to keep
-                  very smooth curves between keys, and
-                  <button class="underline" on:click={() => (hideWall = !hideWall)}
-                    >{hideWall ? 'show' : 'hide'} the walls</button
-                  > to check for bad geometry.
-                </p>
-                <p class="text-sm mt-2">
-                  While I like hearing what kind of bugs you find, please don't tell be about bugs in
-                  stilts mode. There are too many to keep track of and countless weeks to be spent trying
-                  to fix them.
-                </p>
-              </div>
-              <div class="flex-0 pl-2">
-                <button on:click={() => ($stiltsMsg = !$stiltsMsg)}
-                  ><Icon path={mdi.mdiArrowCollapseUp} /></button
-                >
-              </div>
-            </div>
-          {:else}
-            <div class="absolute text-white m-4 right-[80px] rounded p-4 top-[10%] bg-yellow-700 flex">
-              <div>
-                <p>Stilts mode is <b>very</b> tempermental.</p>
-              </div>
-              <div class="flex-0 pl-2">
-                <button on:click={() => ($stiltsMsg = !$stiltsMsg)}
-                  ><Icon path={mdi.mdiArrowExpandDown} /></button
-                >
-              </div>
-            </div>
-          {/if}
         {/if}
       </div>
     </div>
