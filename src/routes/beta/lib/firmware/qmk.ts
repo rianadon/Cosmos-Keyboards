@@ -484,6 +484,10 @@ function generateGitHubWorkflow(config: FullGeometry) {
 }
 
 export function downloadQMKCode(config: FullGeometry, matrix: Matrix, options: QMKOptions) {
+  if (!options.folderName || options.folderName == '.') {
+    alert('Invalid folder name')
+    return
+  }
   ;(async () =>
     zipPromise({
       [options.folderName]: {

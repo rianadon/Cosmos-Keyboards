@@ -578,6 +578,10 @@ vik_spi: &spi1 {};
 
 export function downloadZMKCode(config: FullGeometry, matrix: Matrix, options: ZMKOptions) {
   const { folderName } = options
+  if (!folderName || folderName == '.') {
+    alert('Invalid folder name')
+    return
+  }
   zip({
     [folderName]: {
       '.github/workflows/build.yml': strToU8(generateGitHubWorkflow()),
