@@ -28,6 +28,8 @@ As for the other sizes (in numerical order this time):
 - **45mm**: The size used in the Ploopy classic.
 - **46mm**: Used in the Microsoft Trackball Explorer.
 - **50mm**: Pretty niche but used in some stuff.
+- **52.5mm**: Standard size of snooker balls
+- **57.15mm**: Standard size of American billiard balls
 
 If you're buying a new trackball in these dimensions, search `<product> replacement trackball` instead of searching for the size. You'll get better results that way.
 
