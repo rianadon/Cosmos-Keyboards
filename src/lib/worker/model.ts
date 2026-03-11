@@ -49,6 +49,7 @@ const BOARD_TOLERANCE_Z = 0.1
 const BOARD_COMPONENT_TOL = 0.1 // Added to sides of cutouts on board holder
 const TILT_PARTS_SEPARATION = 0.05 // How far apart the two components of tilts plate should be
 
+const EMBEDDED_PLATE_TOL = 0.2
 const SMOOTHAPEX = false
 
 export async function keyHoles(c: Cuttleform, transforms: Trsf[]) {
@@ -84,13 +85,14 @@ export function wallInnerSurfaces(c: Cuttleform, geo: Geometry, offset: number) 
       ti: w.ti.pretranslated(displacement.xyz()),
     }
     const surf = wallSurfacesInner(c, wc)
+    // Skip bottom segments: 1 normally (bo→bi), 2 when embedded (boLow→biLow, biLow→bi)
+    const embedded = c.shell.type === 'basic' && c.shell.embedded
+    const innerWallSegments = surf.slice(embedded ? 2 : 1)
     return [
       ...(c.shell.type == 'tilt'
         ? [makeLine(wc.bi.translated(0, 0, -EXTRA_HEIGHT), wc.bi.pretranslated(0, 0, -c.plateThickness), wc), makeLine(wc.bi.pretranslated(0, 0, -c.plateThickness), wc.bi, wc)]
         : [makeLine(wc.bi.pretranslated(0, 0, -EXTRA_HEIGHT), wc.bi, wc)]),
-      surf[1],
-      surf[2],
-      surf[3],
+      ...innerWallSegments,
       makeLine(wc.ti, wc.ti.translated(0, 0, EXTRA_HEIGHT), wc, w.nRoundNext, w.nRoundPrev, false, false),
     ]
   })
@@ -295,14 +297,20 @@ export function webSolid(c: Cuttleform, geo: Geometry) {
 function plateSketch(c: Cuttleform, geo: PlateParams, offset = 0) {
   let sketch: BezierSketch
   const wall = geo.allWallCriticalPoints(offset)
+  const wallPt = (w: WallCriticalPoints) => {
+    if (c.shell.type === 'basic' && c.shell.embedded) {
+      return w.bi.pretranslated(-EMBEDDED_PLATE_TOL, 0, 0)
+    }
+    return w.bo
+  }
 
   const planePtV = (v: Vector) => [v.dot(geo.worldX), v.dot(geo.worldY)] as [number, number]
   const planePt = (t: Trsf) => planePtV(t.origin())
   if (c.rounded.side) {
     let { boundary } = geo.solveTriangularization
 
-    const splines = boundarySplines(c, boundary, i => wall[i].bo, wallBezier, wall, geo.worldZ, geo.bottomZ)
-    const sketcher = new BezierSketcher().movePointerTo(planePt(wall[0].bo))
+    const splines = boundarySplines(c, boundary, i => wallPt(wall[i]), wallBezier, wall, geo.worldZ, geo.bottomZ)
+    const sketcher = new BezierSketcher().movePointerTo(planePt(wallPt(wall[0])))
     for (let i = 0; i < boundary.length; i++) {
       const b0 = boundary[i]
       const b1 = boundary[(i + 1) % boundary.length]
@@ -311,7 +319,7 @@ function plateSketch(c: Cuttleform, geo: PlateParams, offset = 0) {
     }
     sketch = sketcher.close()
   } else {
-    const points = geo.allWallCriticalPoints(offset).map(w => planePt(w.bo))
+    const points = geo.allWallCriticalPoints(offset).map(w => planePt(wallPt(w)))
     const sketcher = new BezierSketcher().movePointerTo(points[0])
     for (let i = 1; i < points.length; i++) {
       sketcher.lineTo(points[i])

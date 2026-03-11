@@ -49,7 +49,7 @@ const DEFAULTS: Omit<Cuttleform, 'keys'> = {
   microcontroller: null,
   verticalClearance: 0.1,
   clearScrews: true,
-  shell: { type: 'basic', lip: false },
+  shell: { type: 'basic', lip: false, embedded: false },
   wristRestOrigin: null as any,
 }
 
