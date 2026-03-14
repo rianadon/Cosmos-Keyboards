@@ -68,11 +68,8 @@ export function* intersectLineCircle(pa: Vector, pb: Vector, porigin: Vector, ra
   }
 }
 
-/** Intersection of a 3D line and sphere. */
-export function* intersectLineSphereTs(pt: Vector, direction: Vector, sphereOrigin: Vector, radius: number) {
-  const d = direction.clone()
-  const o = pt.clone().sub(sphereOrigin)
-
+/** Intersection of a 3D line and sphere centered at the origin. */
+export function* intersectLineSphereTs(o: Vector, d: Vector, radius: number) {
   const a = d.dot(d)
   const b = 2 * o.dot(d)
   const c = o.dot(o) - radius * radius
@@ -86,6 +83,21 @@ export function* intersectLineSphereTs(pt: Vector, direction: Vector, sphereOrig
 
   yield t1
   yield t2
+}
+
+/** Intersection of a 3d line and cylinder (curved surface only) */
+export function* intersectLineCylinderTs(pt: Vector, direction: Vector, cylinderA: Vector, cylinderB: Vector, radius: number) {
+  const n = new Vector().subVectors(cylinderB, cylinderA)
+  const length = n.length()
+  n.divideScalar(length)
+  const origin = new Vector().subVectors(pt, cylinderA)
+  const ptNoAxis = origin.addScaledVector(n, -n.dot(origin))
+  const directionNoAxis = direction.clone().addScaledVector(n, -n.dot(direction))
+  for (const t of intersectLineSphereTs(ptNoAxis, directionNoAxis, radius)) {
+    const intersection = new Vector().subVectors(pt, cylinderA).addScaledVector(direction, t)
+    const interN = intersection.dot(n)
+    if (interN >= 0 && interN <= length) yield t
+  }
 }
 
 export function* intersectTriCircle(a: Vector, b: Vector, c: Vector, origin: Vector, radius: number) {

@@ -165,7 +165,7 @@
   const pool = new WorkerPool<typeof import('$lib/worker/api')>(4, () => {
     return new Worker(new URL('$lib/worker?worker', import.meta.url), { type: 'module' })
   })
-  const tempPool = new WorkerPool<typeof import('$lib/worker/api')>(1, () => {
+  const tempPool = new WorkerPool<typeof import('$lib/worker/api')>(2, () => {
     return new Worker(new URL('$lib/worker?worker', import.meta.url), { type: 'module' })
   })
   onDestroy(() => {
@@ -390,7 +390,7 @@
     const renderNumber = ++lastRenderNumber
     console.log('PROCESSING', renderNumber)
     try {
-      setBottomZ(conf)
+      setBottomZ(conf, !full)
     } catch (e) {
       console.error(e)
       confError.set([
@@ -422,7 +422,9 @@
     const pl = full ? pool : tempPool
     if (full) pool.reset()
     try {
-      const quickPromises = kbdNames.map((k) => pl.execute((w) => w.generateQuick(conf[k]!), 'Preview'))
+      const quickPromises = kbdNames.map((k) =>
+        pl.execute((w) => w.generateQuick(conf[k]!, full), 'Preview')
+      )
       const otherPromises =
         !flags.fast && full ? kbdNames.map((k) => calcOtherPromises(conf[k]!, k)) : []
 
@@ -649,12 +651,12 @@
             selected={viewer == 'programming'}>Program</Preset
           >
           <div class="preset-overflow <xl:hidden">
-            <Preset
+            <!-- <Preset
               purple
               class="relative z-10 !px-2"
               on:click={() => (viewer = 'board')}
               selected={viewer == 'board'}>Base</Preset
-            >
+            > -->
             <Preset
               purple
               class="relative z-10 !px-2"
@@ -766,12 +768,12 @@
             bind:open={toolsOpen}
           >
             <div class="bg-white/50 dark:bg-gray-800/50 px-2 py-1 mr-[-.5rem] rounded">
-              <Preset
+              <!-- <Preset
                 purple
                 class="!px-2"
                 on:click={() => (viewer = 'board')}
                 selected={viewer == 'board'}>Base</Preset
-              >
+              > -->
               <Preset
                 purple
                 class="!px-2"
@@ -860,8 +862,8 @@
           {:else}
             <ViewerMatrix {geometry} {darkMode} confError={$confError} />
           {/if}
-        {:else if viewer == 'board'}
-          <ViewerBottom {geometry} {darkMode} confError={$confError} />
+          <!-- {:else if viewer == 'board'}
+          <ViewerBottom {geometry} {darkMode} confError={$confError} /> -->
         {:else if viewer == 'timing'}
           <ViewerTiming {pool} {darkMode} />
         {:else if viewer == 'dev'}

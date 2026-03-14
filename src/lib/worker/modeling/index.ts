@@ -167,7 +167,7 @@ export function blobSTL(shape: AnyShape | Assembly, opts?: {
 }
 
 export interface ShapeMesh {
-  triangles: Uint16Array
+  triangles: Uint16Array | Uint32Array
   vertices: Float32Array
   normals: Float32Array
   faceGroups: {

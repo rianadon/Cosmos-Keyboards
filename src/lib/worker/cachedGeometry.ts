@@ -193,6 +193,9 @@ export class BaseGeometry<C extends Cuttleform = SpecificCuttleform<BasicShell>>
   get bottomZ() {
     return this.c.bottomZ ?? -additionalHeight(this.c, new Trsf())
   }
+  get bottomZFast() {
+    return this.bottomZ
+  }
   get floorZ() {
     return this.bottomZ - this.c.plateThickness
   }

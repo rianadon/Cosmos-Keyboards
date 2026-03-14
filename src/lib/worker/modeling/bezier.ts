@@ -49,15 +49,16 @@ export class CompBezierSurface {
     }))
   }
 
-  toMeshManifold(): ShapeMesh {
+  toMeshManifold(calculateNormals = true, quick: boolean): ShapeMesh {
     const vertices: number[] = []
     const triangles: number[] = []
     const normals: number[] = []
     const faceGroups: ShapeMesh['faceGroups'] = []
 
     const blocks: number[] = []
-    for (let i = 0; i <= 7; i++) {
-      blocks.push(i / 7)
+    const nblock = quick ? 3 : 9
+    for (let i = 0; i <= nblock; i++) {
+      blocks.push(i / nblock)
     }
 
     const edgeMap = new DefaultMap<Vector, Map<Vector, number[]>>(() => new Map())
@@ -80,7 +81,7 @@ export class CompBezierSurface {
           if (typeof patchVertices[i][j] !== 'undefined') continue
           patchVertices[i][j] = vertices.length / 3
           vertices.push(...evalPatchV(patch, blocks[i], blocks[j]).xyz())
-          normals.push(...patchNormal(patch, blocks[i], blocks[j]).xyz())
+          if (calculateNormals) normals.push(...patchNormal(patch, blocks[i], blocks[j]).xyz())
         }
       }
 

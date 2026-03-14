@@ -10,7 +10,7 @@ export async function generateScene(pool: WorkerPool<typeof import('$lib/worker/
     .filter((k) => !!conf[k])
     .sort((a, b) => b.localeCompare(a)) // Make sure right keyboard comes first
 
-  const quickPromises = kbdNames.map((k) => pool.execute((w) => w.generateQuick(conf[k]!), 'Preview'))
+  const quickPromises = kbdNames.map((k) => pool.execute((w) => w.generateQuick(conf[k]!, false), 'Preview'))
 
   const quickResults = await Promise.all(quickPromises)
   const results: FullKeyboardMeshes = {}
