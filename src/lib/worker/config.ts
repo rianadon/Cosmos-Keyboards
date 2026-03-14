@@ -1528,10 +1528,11 @@ export function newFullGeometry(c: FullCuttleform): FullGeometry {
   return geo
 }
 
-export function setBottomZ(conf: FullCuttleform) {
+export function setBottomZ(conf: FullCuttleform, fast: boolean = false) {
+  const prop = fast ? 'bottomZFast' : 'bottomZ'
   if (conf.left && conf.right) {
-    const botLeft = newGeometry(conf.left).bottomZ
-    const botRight = newGeometry(conf.right).bottomZ
+    const botLeft = newGeometry(conf.left)[prop]
+    const botRight = newGeometry(conf.right)[prop]
     conf.left.bottomZ = conf.right.bottomZ = Math.min(botLeft, botRight)
   }
 }

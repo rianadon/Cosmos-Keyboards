@@ -74,7 +74,6 @@
     opacity={plateTopOpacity}
     renderOrder="10"
     color={plateColor}
-    cutoff={(keebGeometry?.floorZ ?? Infinity) + 0.1}
     useColors
   />
   <KMesh
