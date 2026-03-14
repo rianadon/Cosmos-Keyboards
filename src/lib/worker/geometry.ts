@@ -809,8 +809,9 @@ export function wallXToY(walls: WallCriticalPoints[], x: number, start: number, 
   return null
 }
 
-export function originForConnector(c: Cuttleform, initwalls: WallCriticalPoints[], surfaces: Line[][], wall: number) {
+export function originForConnector(c: Cuttleform, initwalls: WallCriticalPoints[], surfaces: Line[][], wall: number, applyAdjustment = true) {
   const idx = Math.floor(wall)
+  const fraction = wall - idx
   // const surf = surfaces[idx]
   // const next = surfaces[(idx + 1) % surfaces.length]
   // const nextnext = surfaces[(idx + 2) % surfaces.length]
@@ -827,27 +828,32 @@ export function originForConnector(c: Cuttleform, initwalls: WallCriticalPoints[
   const transformation = new Trsf()
     .coordSystemChange(new Vector(), horizTangent, vertTangent)
     .rotate(c.microcontrollerAngle || 0, [0, 0, 0], vertTangent.xyz())
-  const walls = initwalls.map(p => transformCriticalPoint(p, transformation.inverted()))
-
-  // if (vertTangent.z < 0) vertTangent.negate()
-  vertTangent.normalize().add(new Vector(0, 0, 1))
-  vertTangent.addScaledVector(horizTangent, -vertTangent.dot(horizTangent)).normalize()
-
-  const fraction = wall - idx
-  const pos = walls[idx].bi.origin().lerp(walls[(idx + 1) % walls.length].bi.origin(), fraction)
 
   // Gather the set of all important boundary y coordinates the board will be placed under
-  const bounds = holderBoundsOrigin(c, pos, true)
-  const yLeft = wallXToY(walls, bounds.minx, idx + 1, -1, -1)
-  const yRight = wallXToY(walls, bounds.maxx, idx, 1, 1)
-  if (yLeft && yRight) {
-    const ys = [yLeft.y, yRight.y]
-    for (let i = yLeft.wall!; i != yRight.wall!; i = (i + 1) % walls.length) {
-      ys.push(minWallY(c, walls, i))
+  if (applyAdjustment) {
+    const walls = initwalls.map(p => transformCriticalPoint(p, transformation.inverted()))
+
+    // if (vertTangent.z < 0) vertTangent.negate()
+    vertTangent.normalize().add(new Vector(0, 0, 1))
+    vertTangent.addScaledVector(horizTangent, -vertTangent.dot(horizTangent)).normalize()
+
+    const pos = walls[idx].bi.origin().lerp(walls[(idx + 1) % walls.length].bi.origin(), fraction)
+
+    const bounds = holderBoundsOrigin(c, pos, true)
+    const yLeft = wallXToY(walls, bounds.minx, idx + 1, -1, -1)
+    const yRight = wallXToY(walls, bounds.maxx, idx, 1, 1)
+    if (yLeft && yRight) {
+      const ys = [yLeft.y, yRight.y]
+      for (let i = yLeft.wall!; i != yRight.wall!; i = (i + 1) % walls.length) {
+        ys.push(minWallY(c, walls, i))
+      }
+      pos.add(new Vector(0, Math.min(...ys) - pos.y + BOARD_HOLDER_OFFSET, 0))
     }
-    pos.add(new Vector(0, Math.min(...ys) - pos.y + BOARD_HOLDER_OFFSET, 0))
+    return new Trsf().translate(pos.xyz()).premultiply(transformation)
+  } else {
+    const pos = initwalls[idx].bi.origin().lerp(initwalls[(idx + 1) % initwalls.length].bi.origin(), fraction)
+    return new Trsf().translate(pos.xyz()).premultiply(transformation)
   }
-  return new Trsf().translate(pos.xyz()).premultiply(transformation)
 }
 
 function cubicBezier(t: number, a: number, b: number, c: number, d: number) {
@@ -984,17 +990,18 @@ export function additionalHeight(c: Cuttleform, t?: Trsf) {
   const keyholes = c.keys.map(k => keyHoleTrsf(c, k, new Trsf()))
   const pts3D = allKeyCriticalPoints(c, keyholes)
   const pts3Df = flattenKeyCriticalPoints(c, pts3D, [])
-  const { boundary } = solveTriangularization(c, pts2D, pts3D, keyholes, 0, new Vector(0, 0, 1), {
-    noBadWalls: false,
-    constrainKeys: false,
-    noKeyTriangles: false,
-  })
 
   // If clear screws is turned off, then z adjustment = negate what's below the ground!
   let adjustment = -z
   if (!c.clearScrews || c.screwIndices.length == 0) {
     return c.verticalClearance + adjustment
   }
+
+  const { boundary } = solveTriangularization(c, pts2D, pts3D, keyholes, 0, new Vector(0, 0, 1), {
+    noBadWalls: false,
+    constrainKeys: false,
+    noKeyTriangles: false,
+  })
 
   // Find approximate positions of screw inserts.
   // Do this by taking the convex hull. Don't bother with following up with a concave hull.
@@ -2401,14 +2408,32 @@ export function triangleMap(triangles: [number, number, number][]) {
 
 /** Yield all points that may have minimum or maximum Z coordinates
     when intersecting a circle with the given triangles on the XY plane */
-export function* extremaCircleZOnBT(origin: Vector, radius: number, points: Trsf[], triangles: number[][], filterNormal?: 'up' | 'down') {
-  for (const [a, b, c] of triangles) {
-    const pa = points[a].origin()
-    const pb = points[b].origin()
-    const pc = points[c].origin()
+export function* extremaCircleZOnBT(origin: Vector, radius: number, points: Float32Array, triangles: Uint32Array, filterNormal?: 'up' | 'down') {
+  const pa = new Vector()
+  const pb = new Vector()
+  const pc = new Vector()
 
-    const u = points[b].origin().sub(pa)
-    const v = points[c].origin().sub(pa)
+  const u = new Vector()
+  const v = new Vector()
+
+  const oMinX = origin.x - radius
+  const oMaxX = origin.x + radius
+  const oMinY = origin.y - radius
+  const oMaxY = origin.y + radius
+
+  for (let i = 0; i < triangles.length; i += 3) {
+    pa.fromArray(points, triangles[i] * 3)
+    pb.fromArray(points, triangles[i + 1] * 3)
+    pc.fromArray(points, triangles[i + 2] * 3)
+
+    // If the AABB of circle and triangle do not intersect, skip it
+    if (
+      ((pa.x < oMinX && pb.x < oMinX && pc.x < oMinX) || (pa.x > oMaxX && pb.x > oMaxX && pc.x > oMaxX))
+      && ((pa.y < oMinY && pb.y < oMinY && pc.y < oMinY) || (pa.y > oMaxY && pb.y > oMaxY && pc.y > oMaxY))
+    ) continue
+
+    u.subVectors(pb, pa)
+    v.subVectors(pc, pa)
     const normal = u.cross(v).normalize()
 
     if (filterNormal == 'up' && normal.z <= 0) continue

@@ -8,14 +8,15 @@ import wasmUrl from '$assets/replicad_single.wasm?url'
 // import wasmUrl from 'replicad-opencascadejs/src/replicad_single.wasm?url';
 // import loadOC from 'opencascade/dist/opencascade.full';
 // import wasmUrl from 'opencascade/dist/opencascade.full.wasm?url';
+import loadManifold, { type ManifoldToplevel } from '$assets/manifold'
+import manifoldUrl from '$assets/manifold.wasm?url'
 import { combinedKeyHoleMesh, keyHoleMeshes } from '$lib/loaders/sockets'
 import { setManifold } from '@pro/fourdutil'
 import type { InitOutput } from '@pro/rust_offset'
 import __wbg_init from '@pro/rust_offset'
 import { makeStiltsWalls, makeStiltsWallsQuick } from '@pro/stiltsModel'
 import { wristRest } from '@pro/wristRest'
-import loadManifold, { type ManifoldToplevel } from 'manifold-3d'
-import manifoldUrl from 'manifold-3d/manifold.wasm?url'
+// import manifoldUrl from 'manifold-3d/manifold.wasm?url'
 import type { BufferAttribute, BufferGeometry, Mesh } from 'three'
 import { getUser } from '../../routes/beta/lib/login'
 import { ITriangle } from '../loaders/simplekeys'
@@ -35,6 +36,7 @@ let model: Solid
 let ocTime = 0
 
 const NULL: { mesh: ShapeMesh | null; mass: number } = { mesh: null, mass: 0 }
+const NULLVOLUME: ShapeMesh & { volume: number } = { vertices: new Float32Array(), normals: new Float32Array(), volume: 0 }
 
 async function ensureOC() {
   if (!oc) {
@@ -71,7 +73,7 @@ const arrconcat = (a: Float32Array, b: Float32Array) => {
   c.set(b, a.length)
   return c
 }
-async function generateKeysQuick(config: Cuttleform, geo: Geometry) {
+async function generateKeysQuick(config: Cuttleform, geo: Geometry, withSupports: boolean) {
   const keys = await keyHoleMeshes(config, geo.keyHolesTrsfs.flat())
 
   const supports = {
@@ -81,10 +83,12 @@ async function generateKeysQuick(config: Cuttleform, geo: Geometry) {
   }
   for (const key of keys.keys) {
     const mesh = key.mesh.clone().applyMatrix4(key.matrix)
-    const sups = supportMesh(toMesh(mesh), geo.bottomZ)
-    supports.vertices = arrconcat(supports.vertices, sups.vertices)
-    supports.normals = arrconcat(supports.normals, sups.normals)
-    supports.volume += sups.volume
+    if (withSupports) {
+      const sups = supportMesh(toMesh(mesh), geo.bottomZ)
+      supports.vertices = arrconcat(supports.vertices, sups.vertices)
+      supports.normals = arrconcat(supports.normals, sups.normals)
+      supports.volume += sups.volume
+    }
   }
   const mass = keys.mass
   return { keys: keys.keys.map(k => ({ ...k, mesh: toMesh(k.mesh) })), mass, supports }
@@ -96,9 +100,9 @@ export async function generateKeysMesh(config: Cuttleform, flip = false) {
   return toMesh(mesh)
 }
 
-async function generateWebQuick(config: Cuttleform, geo: Geometry) {
+async function generateWebQuick(config: Cuttleform, geo: Geometry, withSupports: boolean) {
   const mesh = webSolid(config, geo).toMesh()
-  const supports = supportMesh(mesh, geo.bottomZ)
+  const supports = withSupports ? supportMesh(mesh, geo.bottomZ) : NULLVOLUME
   const mass = meshVolume(mesh)
   return { mesh, supports, mass }
 }
@@ -110,16 +114,15 @@ export async function generateWeb(config: Cuttleform) {
   return meshWithVolumeAndSupport(web, geo.bottomZ)
 }
 
-async function generateWallsQuick(config: Cuttleform, geo: Geometry) {
-  const shape = config.shell.type == 'stilts' ? makeStiltsWallsQuick(geo) : makeWalls(config, geo.allWallCriticalPoints(), geo.worldZ, geo.bottomZ)
-  const mesh = shape.toMesh()
-  const supports = supportMesh(mesh, geo.bottomZ)
+async function generateWallsQuick(config: Cuttleform, geo: Geometry, withSupports: boolean) {
+  const mesh = config.shell.type == 'stilts' ? makeStiltsWallsQuick(geo) : makeWalls(config, geo.allWallCriticalPoints(), geo.worldZ, geo.bottomZ).toMesh()
+  const supports = withSupports ? supportMesh(mesh, geo.bottomZ) : NULLVOLUME
   return { mesh, supports }
 }
 
-export async function generatePlateQuick(config: Cuttleform, geo: Geometry) {
+export async function generatePlateQuick(config: Cuttleform, geo: Geometry, withSupports: boolean) {
   const { top, bottom } = makePlateMesh(config, geo)
-  const supports = supportMesh(top, geo.bottomZ)
+  const supports = withSupports ? supportMesh(top, geo.bottomZ) : NULLVOLUME
   return {
     top: { mesh: top, supports },
     bottom: { mesh: bottom, mass: 0 },
@@ -139,13 +142,13 @@ export async function generatePlate(config: Cuttleform, cut = false) {
   }
 }
 
-export async function generateQuick(config: Cuttleform) {
+export async function generateQuick(config: Cuttleform, withSupports: boolean) {
   await ensureRust()
   const geo = newGeometry(config)
-  const platePromise = generatePlateQuick(config, geo)
-  const webPromise = generateWebQuick(config, geo)
-  const wallPromise = generateWallsQuick(config, geo)
-  const keysPromise = generateKeysQuick(config, geo)
+  const platePromise = generatePlateQuick(config, geo, withSupports)
+  const webPromise = generateWebQuick(config, geo, withSupports)
+  const wallPromise = generateWallsQuick(config, geo, withSupports)
+  const keysPromise = generateKeysQuick(config, geo, withSupports)
   return {
     keys: await keysPromise,
     web: await webPromise,
