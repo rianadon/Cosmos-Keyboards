@@ -1,3 +1,4 @@
+import cdt2d from 'cdt2d'
 import { draw, Face, getOC, type PlaneName } from 'replicad'
 import { BufferAttribute, ExtrudeGeometry, Shape } from 'three'
 import { bezierPatch, type Curve, evalPatch, lineToCurve, loftCurves, type Patch, patchGradient, triangleNormTrsf } from '../geometry'
@@ -49,80 +50,296 @@ export class CompBezierSurface {
     }))
   }
 
-  toMeshManifold(calculateNormals = true, quick: boolean): ShapeMesh {
-    const vertices: number[] = []
-    const triangles: number[] = []
-    const normals: number[] = []
-    const faceGroups: ShapeMesh['faceGroups'] = []
-
-    const blocks: number[] = []
-    const nblock = quick ? 3 : 9
-    for (let i = 0; i <= nblock; i++) {
-      blocks.push(i / nblock)
+  patchAdjacencyMap() {
+    const edgeMap = new DefaultMap<string, Patch[]>(() => [])
+    const edgeKey = (a: Vector, b: Vector) => [a.xyz().join(','), b.xyz().join(',')].sort().join('-')
+    const adjacencyMap = new Map<Patch, Patch[]>()
+    for (const face of this.faces) {
+      const patch = face as Patch
+      edgeMap.get(edgeKey(patch[0][0], patch[3][0])).push(patch)
+      edgeMap.get(edgeKey(patch[3][0], patch[3][3])).push(patch)
+      edgeMap.get(edgeKey(patch[3][3], patch[0][3])).push(patch)
+      edgeMap.get(edgeKey(patch[0][3], patch[0][0])).push(patch)
     }
 
-    const edgeMap = new DefaultMap<Vector, Map<Vector, number[]>>(() => new Map())
-    ;(this.faces as Patch[]).forEach((patch, faceIndex) => {
-      const patchVertices = blocks.map(() => new Array(blocks.length))
-      const n = blocks.length - 1
-
-      // Look up preexisting vertices for edges
-      const e00_03 = edgeMap.get(patch[0][0]).get(patch[0][3])
-      const e03_33 = edgeMap.get(patch[0][3]).get(patch[3][3])
-      const e33_30 = edgeMap.get(patch[3][3]).get(patch[3][0])
-      const e30_00 = edgeMap.get(patch[3][0]).get(patch[0][0])
-      if (e00_03) patchVertices.forEach((r, i) => r[0] = e00_03[i])
-      if (e03_33) patchVertices[n] = e03_33
-      if (e33_30) patchVertices.forEach((r, i) => r[n] = e33_30[n - i])
-      if (e30_00) patchVertices[0] = e30_00.toReversed()
-
-      for (let i = 0; i < blocks.length; i++) {
-        for (let j = 0; j < blocks.length; j++) {
-          if (typeof patchVertices[i][j] !== 'undefined') continue
-          patchVertices[i][j] = vertices.length / 3
-          vertices.push(...evalPatchV(patch, blocks[i], blocks[j]).xyz())
-          if (calculateNormals) normals.push(...patchNormal(patch, blocks[i], blocks[j]).xyz())
-        }
+    for (const [k, v] of edgeMap.entries()) {
+      // Validate edgeMap
+      if (v.length != 2) throw new Error('BezierSurface edges not manifold')
+      const edgeA = [v[0][0], v[0][3], v[0].map(q => q[0]), v[0].map(q => q[3])].find(e => edgeKey(e[0], e[3]) == k || edgeKey(e[3], e[0]) == k)!
+      const edgeB = [v[1][0], v[1][3], v[1].map(q => q[0]), v[1].map(q => q[3])].find(e => edgeKey(e[0], e[3]) == k || edgeKey(e[3], e[0]) == k)!
+      if (!edgeA.every((a, i) => a.approxEq(edgeB[i])) && !edgeA.every((a, i) => a.approxEq(edgeB[3 - i]))) {
+        console.log(edgeA.map(a => a.xyz()), edgeB.map(b => b.xyz()))
+        throw new Error('Edges do not match exactly')
       }
-
-      // Set edgemap for opposite edges
-      edgeMap.get(patch[0][3]).set(patch[0][0], patchVertices.map(r => r[0]).toReversed())
-      edgeMap.get(patch[3][3]).set(patch[0][3], patchVertices[n].toReversed())
-      edgeMap.get(patch[3][0]).set(patch[3][3], patchVertices.map(r => r[n]))
-      edgeMap.get(patch[0][0]).set(patch[3][0], patchVertices[0])
-
-      // Add triangles
-      const trianglesStart = triangles.length
-      for (let i = 0; i < blocks.length - 1; i++) {
-        for (let j = 0; j < blocks.length - 1; j++) {
-          triangles.push(
-            patchVertices[i][j],
-            patchVertices[i][j + 1],
-            patchVertices[i + 1][j],
-          )
-          triangles.push(
-            patchVertices[i][j + 1],
-            patchVertices[i + 1][j + 1],
-            patchVertices[i + 1][j],
-          )
-        }
-      }
-
-      // Add facegroup
-      faceGroups.push({
-        start: trianglesStart / 3,
-        count: (triangles.length - trianglesStart) / 3,
-        faceId: faceIndex,
-      })
-    })
-    return {
-      vertices: new Float32Array(vertices),
-      normals: new Float32Array(normals),
-      triangles: new Uint16Array(triangles),
-      faceGroups,
     }
+
+    const findOpposite = ([a, b]: Patch[], p: Patch) => {
+      if (a != p) return a
+      if (b != p) return b
+      throw new Error('BezierSurface faces not manifold')
+    }
+
+    for (const face of this.faces) {
+      const patch = face as Patch
+      adjacencyMap.set(patch, [
+        findOpposite(edgeMap.get(edgeKey(patch[0][0], patch[3][0])), patch),
+        findOpposite(edgeMap.get(edgeKey(patch[3][0], patch[3][3])), patch),
+        findOpposite(edgeMap.get(edgeKey(patch[3][3], patch[0][3])), patch),
+        findOpposite(edgeMap.get(edgeKey(patch[0][3], patch[0][0])), patch),
+      ])
+    }
+    return adjacencyMap
   }
 
+  // toMeshManifold(calculateNormals = true, quick: boolean): ShapeMesh {
+  //   const vertices: number[] = []
+  //   const triangles: number[] = []
+  //   const normals: number[] = []
+  //   const faceGroups: ShapeMesh['faceGroups'] = []
+
+  //   const blocks: number[] = []
+  //   const nblock = quick ? 3 : 9
+  //   for (let i = 0; i <= nblock; i++) {
+  //     blocks.push(i / nblock)
+  //   }
+
+  //   const edgeMap = new DefaultMap<Vector, Map<Vector, number[]>>(() => new Map())
+  //   ;(this.faces as Patch[]).forEach((patch, faceIndex) => {
+  //     const patchVertices = blocks.map(() => new Array(blocks.length))
+  //     const n = blocks.length - 1
+
+  //     // Look up preexisting vertices for edges
+  //     const e00_03 = edgeMap.get(patch[0][0]).get(patch[0][3])
+  //     const e03_33 = edgeMap.get(patch[0][3]).get(patch[3][3])
+  //     const e33_30 = edgeMap.get(patch[3][3]).get(patch[3][0])
+  //     const e30_00 = edgeMap.get(patch[3][0]).get(patch[0][0])
+  //     if (e00_03) patchVertices.forEach((r, i) => r[0] = e00_03[i])
+  //     if (e03_33) patchVertices[n] = e03_33
+  //     if (e33_30) patchVertices.forEach((r, i) => r[n] = e33_30[n - i])
+  //     if (e30_00) patchVertices[0] = e30_00.toReversed()
+
+  //     for (let i = 0; i < blocks.length; i++) {
+  //       for (let j = 0; j < blocks.length; j++) {
+  //         if (typeof patchVertices[i][j] !== 'undefined') continue
+  //         patchVertices[i][j] = vertices.length / 3
+  //         vertices.push(...evalPatchV(patch, blocks[i], blocks[j]).xyz())
+  //         if (calculateNormals) normals.push(...patchNormal(patch, blocks[i], blocks[j]).xyz())
+  //       }
+  //     }
+
+  //     // Set edgemap for opposite edges
+  //     edgeMap.get(patch[0][3]).set(patch[0][0], patchVertices.map(r => r[0]).toReversed())
+  //     edgeMap.get(patch[3][3]).set(patch[0][3], patchVertices[n].toReversed())
+  //     edgeMap.get(patch[3][0]).set(patch[3][3], patchVertices.map(r => r[n]))
+  //     edgeMap.get(patch[0][0]).set(patch[3][0], patchVertices[0])
+
+  //     // Add triangles
+  //     const trianglesStart = triangles.length
+  //     for (let i = 0; i < blocks.length - 1; i++) {
+  //       for (let j = 0; j < blocks.length - 1; j++) {
+  //         triangles.push(
+  //           patchVertices[i][j],
+  //           patchVertices[i][j + 1],
+  //           patchVertices[i + 1][j],
+  //         )
+  //         triangles.push(
+  //           patchVertices[i][j + 1],
+  //           patchVertices[i + 1][j + 1],
+  //           patchVertices[i + 1][j],
+  //         )
+  //       }
+  //     }
+
+  //     // Add facegroup
+  //     faceGroups.push({
+  //       start: trianglesStart / 3,
+  //       count: (triangles.length - trianglesStart) / 3,
+  //       faceId: faceIndex,
+  //     })
+  //   })
+  //   return {
+  //     vertices: new Float32Array(vertices),
+  //     normals: new Float32Array(normals),
+  //     triangles: new Uint16Array(triangles),
+  //     faceGroups,
+  //   }
+  // }
+  static tMMConfig(quick: boolean) {
+    if (quick) return { maxDepth: 4, maxError: 0.3 }
+    else return { maxDepth: 8, maxError: 0.2 }
+  }
+
+  toMeshManifold(calculateNormals = true, options: { maxDepth: number; maxError: number }): ShapeMesh {
+    type KDTree = { depth: number; patch: Patch; u0: number; u2: number; v0: number; v2: number; children?: [KDTree, KDTree]; cache: UVCache }
+    const { maxDepth, maxError } = options
+    const divisor = 2 << maxDepth
+    const divP1 = divisor + 1
+
+    const adjacency = this.patchAdjacencyMap()
+    const centroid = new Vector()
+    const normal = new Vector()
+    const dist = new Vector()
+    const points = new Map<Patch, Set<number>>()
+    const outPoints = new Map<Patch, Map<number, number>>()
+    const caches = new Map<Patch, UVCache>()
+    for (const face of this.faces) {
+      const patch = face as Patch
+      const tree: KDTree = { patch, depth: 0, u0: 0, u2: divisor, v0: 0, v2: divisor, cache: new UVCache(patch, divisor) }
+      const work: KDTree[] = [tree]
+      const pointSet = new Set<number>()
+      points.set(patch, pointSet)
+      caches.set(patch, tree.cache)
+      while (work.length) {
+        const item = work.pop()!
+        const { u0, u2, v0, v2 } = item
+        pointSet.add(u0 * divP1 + v0)
+        pointSet.add(u2 * divP1 + v0)
+        pointSet.add(u0 * divP1 + v2)
+        pointSet.add(u2 * divP1 + v2)
+        const v00 = item.cache.getUV(u0, v0)
+        const v02 = item.cache.getUV(u0, v2)
+        const v20 = item.cache.getUV(u2, v0)
+        const v22 = item.cache.getUV(u2, v2)
+        if (item.depth >= maxDepth) continue
+        centroid.addVectors(v00, v02).add(v20).add(v22).divideScalar(4)
+        normalFromFourPoints(normal, v00, v02, v20, v22)
+        const u1 = (u0 + u2) / 2
+        const v1 = (v0 + v2) / 2
+        const v10 = item.cache.getUV(u1, v0)
+        const v01 = item.cache.getUV(u0, v1)
+        const v12 = item.cache.getUV(u1, v2)
+        const v21 = item.cache.getUV(u2, v1)
+        const uError = Math.abs(dist.subVectors(v10, centroid).dot(normal)) + Math.abs(dist.subVectors(v12, centroid).dot(normal))
+        const vError = Math.abs(dist.subVectors(v01, centroid).dot(normal)) + Math.abs(dist.subVectors(v21, centroid).dot(normal))
+        // console.log('error (u,v)', uError, vError  )
+        if (uError < maxError && vError < maxError) continue
+        if (uError > vError) {
+          item.children = [
+            { patch: item.patch, depth: item.depth + 1, u0, u2: u1, v0, v2, cache: item.cache },
+            { patch: item.patch, depth: item.depth + 1, u0: u1, u2, v0, v2, cache: item.cache },
+          ]
+          work.push(item.children[0], item.children[1])
+        } else {
+          item.children = [
+            { patch: item.patch, depth: item.depth + 1, u0, u2, v0, v2: v1, cache: item.cache },
+            { patch: item.patch, depth: item.depth + 1, u0, u2, v0: v1, v2, cache: item.cache },
+          ]
+          work.push(item.children[0], item.children[1])
+        }
+      }
+    }
+    for (const face of this.faces) {
+      const patch = face as Patch
+      const outMap = new Map<number, number>()
+      outPoints.set(patch, outMap)
+      for (const pt of points.get(patch)!) {
+        outMap.set(pt, -1)
+      }
+    }
+
+    let vertices = 0
+    const outVert: number[] = []
+    const outTri: number[] = []
+    for (const face of this.faces) {
+      const patch = face as Patch
+      const pt = new Set(points.get(patch))
+      const cache = caches.get(patch)!
+      const [a0003, a0333, a3330, a3000] = adjacency.get(patch)!
+      const e0003 = adjacency.get(a0003)!.indexOf(patch)
+      const e0333 = adjacency.get(a0333)!.indexOf(patch)
+      const e3330 = adjacency.get(a3330)!.indexOf(patch)
+      const e3000 = adjacency.get(a3000)!.indexOf(patch)
+      const outMap = outPoints.get(patch)!
+      // console.log(pt.size, 'points')
+      // for (const newP of pt) {
+      //   console.log('pt', cache.getUVAssertExists(Math.floor(newP / divP1), newP % divP1).xyz())
+      // }
+      for (const p of outMap.keys()) {
+        if (outMap.get(p) == -1) {
+          outVert.push(...cache.getUVAssertExists(Math.floor(p / divP1), p % divP1).xyz())
+          outMap.set(p, vertices++)
+        }
+      }
+      for (const apt of points.get(a0003)!) {
+        const newP = calcNewP(apt, e0003, 0, divisor)
+        if (newP === null) continue
+        // console.log(cache.getUVAssertExists(Math.floor(newP / divP1), newP % divP1).xyz(), newP, apt, this.faces.indexOf(a0003), e0003, 0)
+        if (pt.has(newP)) outPoints.get(a0003)!.set(apt, outMap.get(newP)!)
+        else {
+          if (outPoints.get(a0003)!.get(apt) == -1) {
+            outVert.push(...caches.get(a0003)!.getUVAssertExists(Math.floor(apt / divP1), apt % divP1).xyz())
+            outPoints.get(a0003)!.set(apt, vertices++)
+          }
+          pt.add(newP)
+          outMap.set(newP, outPoints.get(a0003)!.get(apt)!)
+        }
+      }
+      for (const apt of points.get(a0333)!) {
+        const newP = calcNewP(apt, e0333, 1, divisor)
+        if (newP === null) continue
+        // console.log(cache.getUVAssertExists(Math.floor(newP / divP1), newP % divP1).xyz(), newP, apt, this.faces.indexOf(a0333))
+        if (pt.has(newP)) outPoints.get(a0333)!.set(apt, outMap.get(newP)!)
+        else {
+          if (outPoints.get(a0333)!.get(apt) == -1) {
+            outVert.push(...caches.get(a0333)!.getUVAssertExists(Math.floor(apt / divP1), apt % divP1).xyz())
+            outPoints.get(a0333)!.set(apt, vertices++)
+          }
+          pt.add(newP)
+          outMap.set(newP, outPoints.get(a0333)!.get(apt)!)
+        }
+      }
+      for (const apt of points.get(a3330)!) {
+        const newP = calcNewP(apt, e3330, 2, divisor)
+        if (newP === null) continue
+        // console.log(cache.getUVAssertExists(Math.floor(newP / divP1), newP % divP1).xyz(), newP, apt, this.faces.indexOf(a3330), e3330, 2)
+        if (pt.has(newP)) outPoints.get(a3330)!.set(apt, outMap.get(newP)!)
+        else {
+          if (outPoints.get(a3330)!.get(apt) == -1) {
+            outVert.push(...caches.get(a3330)!.getUVAssertExists(Math.floor(apt / divP1), apt % divP1).xyz())
+            outPoints.get(a3330)!.set(apt, vertices++)
+          }
+          pt.add(newP)
+          outMap.set(newP, outPoints.get(a3330)!.get(apt)!)
+        }
+      }
+      for (const apt of points.get(a3000)!) {
+        const newP = calcNewP(apt, e3000, 3, divisor)
+        if (newP === null) continue
+        // console.log(cache.getUVAssertExists(Math.floor(newP / divP1), newP % divP1).xyz(), newP, apt, this.faces.indexOf(a3000), e3000, 3)
+        if (pt.has(newP)) outPoints.get(a3000)!.set(apt, outMap.get(newP)!)
+        else {
+          if (outPoints.get(a3000)!.get(apt) == -1) {
+            outVert.push(...caches.get(a3000)!.getUVAssertExists(Math.floor(apt / divP1), apt % divP1).xyz())
+            outPoints.get(a3000)!.set(apt, vertices++)
+          }
+          pt.add(newP)
+          outMap.set(newP, outPoints.get(a3000)!.get(apt)!)
+        }
+      }
+      // console.log(this.faces.map(f => outPoints.get(f)))
+      const allInd = Array.from(pt)
+      const allPoints = allInd.map(p => [Math.floor(p / divP1), p % divP1])
+      // console.log(allPoints.map(p => p.join(',')).join('\n') + '\n')
+      const triangulation = cdt2d(allPoints, [])
+      for (const triangle of triangulation) {
+        outTri.push(outMap.get(allInd[triangle[2]])!)
+        outTri.push(outMap.get(allInd[triangle[1]])!)
+        outTri.push(outMap.get(allInd[triangle[0]])!)
+      }
+      // console.log(triangulation, outMap)
+      // console.log()
+      // for (const [newP, vert] of outMap) {
+      //   console.log('end', cache.getUVAssertExists(Math.floor(newP / divP1), newP % divP1).xyz(), newP, vert)
+      // }
+      // console.log()
+    }
+    return {
+      vertices: new Float32Array(outVert),
+      normals: new Float32Array(),
+      triangles: new Uint16Array(outTri),
+      faceGroups: [],
+    }
+  }
   /** Create a Solid that can be used in opencascade from this surface. */
   toSolid(sew: boolean, nonManifold: boolean) {
     const faces: Face[] = []
@@ -467,5 +684,212 @@ export class BezierSketcher {
 
   close() {
     return new BezierSketch(this.shape, this.ops)
+  }
+}
+
+class UVCache extends Map<number, Vector> {
+  private divP1: number
+
+  constructor(private patch: Patch, private divisor: number) {
+    super()
+    this.setUV(0, 0, patch[0][0])
+    this.setUV(0, divisor, patch[3][0])
+    this.setUV(divisor, 0, patch[0][3])
+    this.setUV(divisor, divisor, patch[3][3])
+    this.divP1 = divisor + 1
+  }
+
+  private _key(u: number, v: number) {
+    return u * this.divP1 + v
+  }
+
+  setUV(u: number, v: number, vec: Vector) {
+    this.set(this._key(u, v), vec)
+  }
+
+  getUV(u: number, v: number) {
+    const key = this._key(u, v)
+    const existing = this.get(key)
+    if (existing) return existing
+    const value = evalPatchV(this.patch, u / this.divisor, v / this.divisor)
+    this.set(key, value)
+    return value
+  }
+
+  getUVAssertExists(u: number, v: number) {
+    const key = this._key(u, v)
+    const existing = this.get(key)
+    if (!existing) throw new Error('UV not in cache')
+    return existing
+  }
+}
+
+function normalFromFourPoints(out: Vector, p1: Vector, p2: Vector, p3: Vector, p4: Vector) {
+  // p2 - p1
+  const a1x = p2.x - p1.x
+  const a1y = p2.y - p1.y
+  const a1z = p2.z - p1.z
+
+  // p3 - p1
+  const b1x = p3.x - p1.x
+  const b1y = p3.y - p1.y
+  const b1z = p3.z - p1.z
+
+  // p3 - p1
+  const a2x = p3.x - p1.x
+  const a2y = p3.y - p1.y
+  const a2z = p3.z - p1.z
+
+  // p4 - p1
+  const b2x = p4.x - p1.x
+  const b2y = p4.y - p1.y
+  const b2z = p4.z - p1.z
+
+  // p4 - p1
+  const a3x = p4.x - p1.x
+  const a3y = p4.y - p1.y
+  const a3z = p4.z - p1.z
+
+  // p2 - p1
+  const b3x = p2.x - p1.x
+  const b3y = p2.y - p1.y
+  const b3z = p2.z - p1.z
+
+  // p3 - p2
+  const a4x = p3.x - p2.x
+  const a4y = p3.y - p2.y
+  const a4z = p3.z - p2.z
+
+  // p4 - p2
+  const b4x = p4.x - p2.x
+  const b4y = p4.y - p2.y
+  const b4z = p4.z - p2.z
+
+  out.x = a1y * b1z - a1z * b1y + a2y * b2z - a2z * b2y + a3y * b3z - a3z * b3y + a4y * b4z - a4z * b4y
+  out.y = a1z * b1x - a1x * b1z + a2z * b2x - a2x * b2z + a3z * b3x - a3x * b3z + a4z * b4x - a4x * b4z
+  out.z = a1x * b1y - a1y * b1x + a2x * b2y - a2y * b2x + a3x * b3y - a3y * b3x + a4x * b4y - a4y * b4x
+  return out.normalize()
+}
+
+// export function calcNewPExact(aPt: number, aEdge: number, bEdge: number, div: number) {
+//   const divP1 = div + 1
+
+//   const aU = Math.floor(aPt / divP1)
+//   const aV = aPt % divP1
+
+//   let interp
+//   if (aEdge == 0) {
+//     if (aU != 0) return null
+//     interp = aV
+//   } else if (aEdge == 1) {
+//     if (aV != div) return null
+//     interp = aU
+//   } else if (aEdge == 2) {
+//     if (aU != div) return null
+//     interp = aV
+//   } else if (aEdge == 3) {
+//     if (aV != 0) return null
+//     interp = aU
+//   } else {
+//     return null
+//   }
+
+//   const v00 = [-1, -1]
+//   const v01 = [-1, 1]
+//   const v10 = [1, -1]
+//   const v11 = [1, 1]
+//   const vertices = [v00, v10, v11, v01]
+//   const rotation = (aEdge - bEdge + 6) % 4
+//   const angle = rotation * Math.PI / 2
+//   let newV = vertices.map(([a, b]) => [Math.round(a * Math.cos(angle) - b * Math.sin(angle)), Math.round(a * Math.sin(angle) + b * Math.cos(angle))])
+//   let edge: [number, number][]
+//   if (bEdge == 0) {
+//     newV = newV.map(([a, b]) => [a - 2, b])
+//     edge = [vertices[3], vertices[0]]
+//   }
+//   if (bEdge == 1) {
+//     newV = newV.map(([a, b]) => [a, b + 2])
+//     edge = [vertices[2], vertices[3]]
+//   }
+//   if (bEdge == 3) {
+//     newV = newV.map(([a, b]) => [a, b - 2])
+//     edge = [vertices[0], vertices[1]]
+//   }
+//   if (bEdge == 2) {
+//     newV = newV.map(([a, b]) => [a + 2, b])
+//     edge = [vertices[1], vertices[2]]
+//   }
+//   // console.log('vnv', edge, newV)
+//   // const adj = newV.findIndex((_, i) => edge[0][0] == newV[i][0] && edge[0][1] == newV[i][1] && edge[1][0] == newV[(i + 1) % 4][0] && edge[1][1] == newV[(i + 1) % 4][1])
+//   const opp = newV.findIndex((_, i) => edge[1][0] == newV[i][0] && edge[1][1] == newV[i][1] && edge[0][0] == newV[(i + 1) % 4][0] && edge[0][1] == newV[(i + 1) % 4][1])
+//   // console.log('try', opp)
+//   // console.log(edge[1], edge[0], newV[opp], newV[(opp + 1) % 4])
+//   const VS = ['00', '10', '11', '01']
+//   // console.log(
+//   //   aEdge,
+//   //   bEdge,
+//   //   VS[vertices.indexOf(edge[0])],
+//   //   VS[vertices.indexOf(edge[1])],
+//   //   '<-',
+//   //   VS[(opp + 1) % 4],
+//   //   VS[opp],
+//   // )
+//   const [mya, myb, yua, yub] = [VS[vertices.indexOf(edge[0])], VS[vertices.indexOf(edge[1])], VS[(opp + 1) % 4], VS[opp]]
+//   const uExtract = yua[0] == yub[0] ? 1 : 0
+//   const mExtract = mya[0] == myb[0] ? 1 : 0
+//   const reversed = mya[mExtract] != yua[uExtract]
+//   // console.log(mExtract, reversed)
+
+//   const myU = mya[0] == '0' ? 0 : div
+//   const myV = mya[1] == '0' ? 0 : div
+//   // console.log('myuv', myU, myV)
+
+//   if (reversed) interp = div - interp
+//   if (mExtract == 0) {
+//     return interp * divP1 + myV
+//   } else {
+//     return myU * divP1 + interp
+//   }
+// }
+
+export function calcNewP(aPt: number, aEdge: number, bEdge: number, div: number) {
+  const divP1 = div + 1
+
+  const aU = Math.floor(aPt / divP1)
+  const aV = aPt % divP1
+
+  const bUV = (u: number, v: number) => u * divP1 + v
+
+  let interp: number
+  if (aEdge == 0) {
+    if (aU != 0) return null
+    interp = aV
+  } else if (aEdge == 1) {
+    if (aV != div) return null
+    interp = aU
+  } else if (aEdge == 2) {
+    if (aU != div) return null
+    interp = aV
+  } else if (aEdge == 3) {
+    if (aV != 0) return null
+    interp = aU
+  } else {
+    return null
+  }
+
+  // True if a,b in {0,1} or a,b in {2,3}
+  const reversed = (aEdge ^ bEdge) < 2
+  if (reversed) interp = div - interp
+
+  if (bEdge == 0) {
+    return bUV(0, interp)
+  } else if (bEdge == 1) {
+    return bUV(interp, div)
+  } else if (bEdge == 2) {
+    return bUV(div, interp)
+  } else if (bEdge == 3) {
+    return bUV(interp, 0)
+  } else {
+    return null
   }
 }
