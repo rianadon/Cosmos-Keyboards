@@ -51,42 +51,24 @@ export class CompBezierSurface {
   }
 
   patchAdjacencyMap() {
-    const edgeMap = new DefaultMap<string, Patch[]>(() => [])
-    const edgeKey = (a: Vector, b: Vector) => [a.xyz().join(','), b.xyz().join(',')].sort().join('-')
-    const adjacencyMap = new Map<Patch, Patch[]>()
-    for (const face of this.faces) {
-      const patch = face as Patch
-      edgeMap.get(edgeKey(patch[0][0], patch[3][0])).push(patch)
-      edgeMap.get(edgeKey(patch[3][0], patch[3][3])).push(patch)
-      edgeMap.get(edgeKey(patch[3][3], patch[0][3])).push(patch)
-      edgeMap.get(edgeKey(patch[0][3], patch[0][0])).push(patch)
+    const edgeMap = new DefaultMap<Vector, Map<Vector, number>>(() => new Map())
+    const adjacencyMap: [number, number, number, number][] = new Array(this.faces.length)
+    for (let i = 0; i < this.faces.length; i++) {
+      const patch = this.faces[i] as Patch
+      edgeMap.get(patch[3][0]).set(patch[0][0], i)
+      edgeMap.get(patch[3][3]).set(patch[3][0], i)
+      edgeMap.get(patch[0][3]).set(patch[3][3], i)
+      edgeMap.get(patch[0][0]).set(patch[0][3], i)
     }
 
-    for (const [k, v] of edgeMap.entries()) {
-      // Validate edgeMap
-      if (v.length != 2) throw new Error('BezierSurface edges not manifold')
-      const edgeA = [v[0][0], v[0][3], v[0].map(q => q[0]), v[0].map(q => q[3])].find(e => edgeKey(e[0], e[3]) == k || edgeKey(e[3], e[0]) == k)!
-      const edgeB = [v[1][0], v[1][3], v[1].map(q => q[0]), v[1].map(q => q[3])].find(e => edgeKey(e[0], e[3]) == k || edgeKey(e[3], e[0]) == k)!
-      if (!edgeA.every((a, i) => a.approxEq(edgeB[i])) && !edgeA.every((a, i) => a.approxEq(edgeB[3 - i]))) {
-        console.log(edgeA.map(a => a.xyz()), edgeB.map(b => b.xyz()))
-        throw new Error('Edges do not match exactly')
-      }
-    }
-
-    const findOpposite = ([a, b]: Patch[], p: Patch) => {
-      if (a != p) return a
-      if (b != p) return b
-      throw new Error('BezierSurface faces not manifold')
-    }
-
-    for (const face of this.faces) {
-      const patch = face as Patch
-      adjacencyMap.set(patch, [
-        findOpposite(edgeMap.get(edgeKey(patch[0][0], patch[3][0])), patch),
-        findOpposite(edgeMap.get(edgeKey(patch[3][0], patch[3][3])), patch),
-        findOpposite(edgeMap.get(edgeKey(patch[3][3], patch[0][3])), patch),
-        findOpposite(edgeMap.get(edgeKey(patch[0][3], patch[0][0])), patch),
-      ])
+    for (let i = 0; i < this.faces.length; i++) {
+      const patch = this.faces[i] as Patch
+      adjacencyMap[i] = [
+        edgeMap.get(patch[0][0]).get(patch[3][0])!,
+        edgeMap.get(patch[3][0]).get(patch[3][3])!,
+        edgeMap.get(patch[3][3]).get(patch[0][3])!,
+        edgeMap.get(patch[0][3]).get(patch[0][0])!,
+      ]
     }
     return adjacencyMap
   }
@@ -170,7 +152,7 @@ export class CompBezierSurface {
   }
 
   toMeshManifold(calculateNormals = true, options: { maxDepth: number; maxError: number }): ShapeMesh {
-    type KDTree = { depth: number; patch: Patch; u0: number; u2: number; v0: number; v2: number; children?: [KDTree, KDTree]; cache: UVCache }
+    type KDTree = { depth: number; u0: number; u2: number; v0: number; v2: number }
     const { maxDepth, maxError } = options
     const divisor = 2 << maxDepth
     const divP1 = divisor + 1
@@ -179,159 +161,80 @@ export class CompBezierSurface {
     const centroid = new Vector()
     const normal = new Vector()
     const dist = new Vector()
-    const points = new Map<Patch, Set<number>>()
-    const outPoints = new Map<Patch, Map<number, number>>()
-    const caches = new Map<Patch, UVCache>()
-    for (const face of this.faces) {
-      const patch = face as Patch
-      const tree: KDTree = { patch, depth: 0, u0: 0, u2: divisor, v0: 0, v2: divisor, cache: new UVCache(patch, divisor) }
+    const outPoints: Map<number, number>[] = new Array(this.faces.length)
+    const caches: UVCache[] = new Array(this.faces.length)
+    for (let i = 0; i < this.faces.length; i++) {
+      const patch = this.faces[i] as Patch
+      const tree: KDTree = { depth: 0, u0: 0, u2: divisor, v0: 0, v2: divisor }
+      const cache = new UVCache(patch, divisor)
       const work: KDTree[] = [tree]
-      const pointSet = new Set<number>()
-      points.set(patch, pointSet)
-      caches.set(patch, tree.cache)
+      const pointSet = new Map<number, number>()
+      outPoints[i] = pointSet
+      caches[i] = cache
       while (work.length) {
         const item = work.pop()!
         const { u0, u2, v0, v2 } = item
-        pointSet.add(u0 * divP1 + v0)
-        pointSet.add(u2 * divP1 + v0)
-        pointSet.add(u0 * divP1 + v2)
-        pointSet.add(u2 * divP1 + v2)
-        const v00 = item.cache.getUV(u0, v0)
-        const v02 = item.cache.getUV(u0, v2)
-        const v20 = item.cache.getUV(u2, v0)
-        const v22 = item.cache.getUV(u2, v2)
+        pointSet.set(u0 * divP1 + v0, -1)
+        pointSet.set(u2 * divP1 + v0, -1)
+        pointSet.set(u0 * divP1 + v2, -1)
+        pointSet.set(u2 * divP1 + v2, -1)
+        const v00 = cache.getUV(u0, v0)
+        const v02 = cache.getUV(u0, v2)
+        const v20 = cache.getUV(u2, v0)
+        const v22 = cache.getUV(u2, v2)
         if (item.depth >= maxDepth) continue
         centroid.addVectors(v00, v02).add(v20).add(v22).divideScalar(4)
         normalFromFourPoints(normal, v00, v02, v20, v22)
         const u1 = (u0 + u2) / 2
         const v1 = (v0 + v2) / 2
-        const v10 = item.cache.getUV(u1, v0)
-        const v01 = item.cache.getUV(u0, v1)
-        const v12 = item.cache.getUV(u1, v2)
-        const v21 = item.cache.getUV(u2, v1)
+        const v10 = cache.getUV(u1, v0)
+        const v01 = cache.getUV(u0, v1)
+        const v12 = cache.getUV(u1, v2)
+        const v21 = cache.getUV(u2, v1)
         const uError = Math.abs(dist.subVectors(v10, centroid).dot(normal)) + Math.abs(dist.subVectors(v12, centroid).dot(normal))
         const vError = Math.abs(dist.subVectors(v01, centroid).dot(normal)) + Math.abs(dist.subVectors(v21, centroid).dot(normal))
         // console.log('error (u,v)', uError, vError  )
         if (uError < maxError && vError < maxError) continue
-        if (uError > vError) {
-          item.children = [
-            { patch: item.patch, depth: item.depth + 1, u0, u2: u1, v0, v2, cache: item.cache },
-            { patch: item.patch, depth: item.depth + 1, u0: u1, u2, v0, v2, cache: item.cache },
-          ]
-          work.push(item.children[0], item.children[1])
-        } else {
-          item.children = [
-            { patch: item.patch, depth: item.depth + 1, u0, u2, v0, v2: v1, cache: item.cache },
-            { patch: item.patch, depth: item.depth + 1, u0, u2, v0: v1, v2, cache: item.cache },
-          ]
-          work.push(item.children[0], item.children[1])
-        }
-      }
-    }
-    for (const face of this.faces) {
-      const patch = face as Patch
-      const outMap = new Map<number, number>()
-      outPoints.set(patch, outMap)
-      for (const pt of points.get(patch)!) {
-        outMap.set(pt, -1)
+
+        const depth = item.depth + 1
+        if (uError > vError) work.push({ depth, u0, u2: u1, v0, v2 }, { depth, u0: u1, u2, v0, v2 })
+        else work.push({ depth, u0, u2, v0, v2: v1 }, { depth, u0, u2, v0: v1, v2 })
       }
     }
 
-    let vertices = 0
     const outVert: number[] = []
     const outTri: number[] = []
-    for (const face of this.faces) {
-      const patch = face as Patch
-      const pt = new Set(points.get(patch))
-      const cache = caches.get(patch)!
-      const [a0003, a0333, a3330, a3000] = adjacency.get(patch)!
-      const e0003 = adjacency.get(a0003)!.indexOf(patch)
-      const e0333 = adjacency.get(a0333)!.indexOf(patch)
-      const e3330 = adjacency.get(a3330)!.indexOf(patch)
-      const e3000 = adjacency.get(a3000)!.indexOf(patch)
-      const outMap = outPoints.get(patch)!
-      // console.log(pt.size, 'points')
-      // for (const newP of pt) {
-      //   console.log('pt', cache.getUVAssertExists(Math.floor(newP / divP1), newP % divP1).xyz())
-      // }
+    for (let i = 0; i < this.faces.length; i++) {
+      const outMap = outPoints[i]
       for (const p of outMap.keys()) {
         if (outMap.get(p) == -1) {
-          outVert.push(...cache.getUVAssertExists(Math.floor(p / divP1), p % divP1).xyz())
-          outMap.set(p, vertices++)
+          outMap.set(p, outVert.length / 3)
+          outVert.push(...caches[i].getUVAssertExists(Math.floor(p / divP1), p % divP1).xyz())
         }
       }
-      for (const apt of points.get(a0003)!) {
-        const newP = calcNewP(apt, e0003, 0, divisor)
-        if (newP === null) continue
-        // console.log(cache.getUVAssertExists(Math.floor(newP / divP1), newP % divP1).xyz(), newP, apt, this.faces.indexOf(a0003), e0003, 0)
-        if (pt.has(newP)) outPoints.get(a0003)!.set(apt, outMap.get(newP)!)
-        else {
-          if (outPoints.get(a0003)!.get(apt) == -1) {
-            outVert.push(...caches.get(a0003)!.getUVAssertExists(Math.floor(apt / divP1), apt % divP1).xyz())
-            outPoints.get(a0003)!.set(apt, vertices++)
+      for (let j = 0; j < 4; j++) {
+        const adjacent = adjacency[i][j]
+        for (const apt of outPoints[adjacent].keys()) {
+          const newP = calcNewP(apt, adjacency[adjacent].indexOf(i), j, divisor)
+          if (newP === null) continue
+          if (outMap.has(newP)) outPoints[adjacent].set(apt, outMap.get(newP)!)
+          else {
+            if (outPoints[adjacent].get(apt) == -1) {
+              outPoints[adjacent].set(apt, outVert.length / 3)
+              outVert.push(...caches[adjacent].getUVAssertExists(Math.floor(apt / divP1), apt % divP1).xyz())
+            }
+            outMap.set(newP, outPoints[adjacent].get(apt)!)
           }
-          pt.add(newP)
-          outMap.set(newP, outPoints.get(a0003)!.get(apt)!)
         }
       }
-      for (const apt of points.get(a0333)!) {
-        const newP = calcNewP(apt, e0333, 1, divisor)
-        if (newP === null) continue
-        // console.log(cache.getUVAssertExists(Math.floor(newP / divP1), newP % divP1).xyz(), newP, apt, this.faces.indexOf(a0333))
-        if (pt.has(newP)) outPoints.get(a0333)!.set(apt, outMap.get(newP)!)
-        else {
-          if (outPoints.get(a0333)!.get(apt) == -1) {
-            outVert.push(...caches.get(a0333)!.getUVAssertExists(Math.floor(apt / divP1), apt % divP1).xyz())
-            outPoints.get(a0333)!.set(apt, vertices++)
-          }
-          pt.add(newP)
-          outMap.set(newP, outPoints.get(a0333)!.get(apt)!)
-        }
-      }
-      for (const apt of points.get(a3330)!) {
-        const newP = calcNewP(apt, e3330, 2, divisor)
-        if (newP === null) continue
-        // console.log(cache.getUVAssertExists(Math.floor(newP / divP1), newP % divP1).xyz(), newP, apt, this.faces.indexOf(a3330), e3330, 2)
-        if (pt.has(newP)) outPoints.get(a3330)!.set(apt, outMap.get(newP)!)
-        else {
-          if (outPoints.get(a3330)!.get(apt) == -1) {
-            outVert.push(...caches.get(a3330)!.getUVAssertExists(Math.floor(apt / divP1), apt % divP1).xyz())
-            outPoints.get(a3330)!.set(apt, vertices++)
-          }
-          pt.add(newP)
-          outMap.set(newP, outPoints.get(a3330)!.get(apt)!)
-        }
-      }
-      for (const apt of points.get(a3000)!) {
-        const newP = calcNewP(apt, e3000, 3, divisor)
-        if (newP === null) continue
-        // console.log(cache.getUVAssertExists(Math.floor(newP / divP1), newP % divP1).xyz(), newP, apt, this.faces.indexOf(a3000), e3000, 3)
-        if (pt.has(newP)) outPoints.get(a3000)!.set(apt, outMap.get(newP)!)
-        else {
-          if (outPoints.get(a3000)!.get(apt) == -1) {
-            outVert.push(...caches.get(a3000)!.getUVAssertExists(Math.floor(apt / divP1), apt % divP1).xyz())
-            outPoints.get(a3000)!.set(apt, vertices++)
-          }
-          pt.add(newP)
-          outMap.set(newP, outPoints.get(a3000)!.get(apt)!)
-        }
-      }
-      // console.log(this.faces.map(f => outPoints.get(f)))
-      const allInd = Array.from(pt)
+      const allInd = Array.from(outMap.keys())
       const allPoints = allInd.map(p => [Math.floor(p / divP1), p % divP1])
-      // console.log(allPoints.map(p => p.join(',')).join('\n') + '\n')
       const triangulation = cdt2d(allPoints, [])
       for (const triangle of triangulation) {
         outTri.push(outMap.get(allInd[triangle[2]])!)
         outTri.push(outMap.get(allInd[triangle[1]])!)
         outTri.push(outMap.get(allInd[triangle[0]])!)
       }
-      // console.log(triangulation, outMap)
-      // console.log()
-      // for (const [newP, vert] of outMap) {
-      //   console.log('end', cache.getUVAssertExists(Math.floor(newP / divP1), newP % divP1).xyz(), newP, vert)
-      // }
-      // console.log()
     }
     return {
       vertices: new Float32Array(outVert),
@@ -340,6 +243,7 @@ export class CompBezierSurface {
       faceGroups: [],
     }
   }
+
   /** Create a Solid that can be used in opencascade from this surface. */
   toSolid(sew: boolean, nonManifold: boolean) {
     const faces: Face[] = []
@@ -771,124 +675,34 @@ function normalFromFourPoints(out: Vector, p1: Vector, p2: Vector, p3: Vector, p
   return out.normalize()
 }
 
-// export function calcNewPExact(aPt: number, aEdge: number, bEdge: number, div: number) {
-//   const divP1 = div + 1
-
-//   const aU = Math.floor(aPt / divP1)
-//   const aV = aPt % divP1
-
-//   let interp
-//   if (aEdge == 0) {
-//     if (aU != 0) return null
-//     interp = aV
-//   } else if (aEdge == 1) {
-//     if (aV != div) return null
-//     interp = aU
-//   } else if (aEdge == 2) {
-//     if (aU != div) return null
-//     interp = aV
-//   } else if (aEdge == 3) {
-//     if (aV != 0) return null
-//     interp = aU
-//   } else {
-//     return null
-//   }
-
-//   const v00 = [-1, -1]
-//   const v01 = [-1, 1]
-//   const v10 = [1, -1]
-//   const v11 = [1, 1]
-//   const vertices = [v00, v10, v11, v01]
-//   const rotation = (aEdge - bEdge + 6) % 4
-//   const angle = rotation * Math.PI / 2
-//   let newV = vertices.map(([a, b]) => [Math.round(a * Math.cos(angle) - b * Math.sin(angle)), Math.round(a * Math.sin(angle) + b * Math.cos(angle))])
-//   let edge: [number, number][]
-//   if (bEdge == 0) {
-//     newV = newV.map(([a, b]) => [a - 2, b])
-//     edge = [vertices[3], vertices[0]]
-//   }
-//   if (bEdge == 1) {
-//     newV = newV.map(([a, b]) => [a, b + 2])
-//     edge = [vertices[2], vertices[3]]
-//   }
-//   if (bEdge == 3) {
-//     newV = newV.map(([a, b]) => [a, b - 2])
-//     edge = [vertices[0], vertices[1]]
-//   }
-//   if (bEdge == 2) {
-//     newV = newV.map(([a, b]) => [a + 2, b])
-//     edge = [vertices[1], vertices[2]]
-//   }
-//   // console.log('vnv', edge, newV)
-//   // const adj = newV.findIndex((_, i) => edge[0][0] == newV[i][0] && edge[0][1] == newV[i][1] && edge[1][0] == newV[(i + 1) % 4][0] && edge[1][1] == newV[(i + 1) % 4][1])
-//   const opp = newV.findIndex((_, i) => edge[1][0] == newV[i][0] && edge[1][1] == newV[i][1] && edge[0][0] == newV[(i + 1) % 4][0] && edge[0][1] == newV[(i + 1) % 4][1])
-//   // console.log('try', opp)
-//   // console.log(edge[1], edge[0], newV[opp], newV[(opp + 1) % 4])
-//   const VS = ['00', '10', '11', '01']
-//   // console.log(
-//   //   aEdge,
-//   //   bEdge,
-//   //   VS[vertices.indexOf(edge[0])],
-//   //   VS[vertices.indexOf(edge[1])],
-//   //   '<-',
-//   //   VS[(opp + 1) % 4],
-//   //   VS[opp],
-//   // )
-//   const [mya, myb, yua, yub] = [VS[vertices.indexOf(edge[0])], VS[vertices.indexOf(edge[1])], VS[(opp + 1) % 4], VS[opp]]
-//   const uExtract = yua[0] == yub[0] ? 1 : 0
-//   const mExtract = mya[0] == myb[0] ? 1 : 0
-//   const reversed = mya[mExtract] != yua[uExtract]
-//   // console.log(mExtract, reversed)
-
-//   const myU = mya[0] == '0' ? 0 : div
-//   const myV = mya[1] == '0' ? 0 : div
-//   // console.log('myuv', myU, myV)
-
-//   if (reversed) interp = div - interp
-//   if (mExtract == 0) {
-//     return interp * divP1 + myV
-//   } else {
-//     return myU * divP1 + interp
-//   }
-// }
-
 export function calcNewP(aPt: number, aEdge: number, bEdge: number, div: number) {
   const divP1 = div + 1
 
   const aU = Math.floor(aPt / divP1)
   const aV = aPt % divP1
 
-  const bUV = (u: number, v: number) => u * divP1 + v
-
-  let interp: number
   if (aEdge == 0) {
     if (aU != 0) return null
-    interp = aV
   } else if (aEdge == 1) {
     if (aV != div) return null
-    interp = aU
   } else if (aEdge == 2) {
     if (aU != div) return null
-    interp = aV
   } else if (aEdge == 3) {
     if (aV != 0) return null
-    interp = aU
-  } else {
-    return null
   }
 
-  // True if a,b in {0,1} or a,b in {2,3}
-  const reversed = (aEdge ^ bEdge) < 2
-  if (reversed) interp = div - interp
+  // Reverse if a,b in {0,1} or a,b in {2,3}
+  let interp = aEdge & 1 ? aU : aV // aV if even, aU if odd
+  if ((aEdge ^ bEdge) < 2) interp = div - interp
 
   if (bEdge == 0) {
-    return bUV(0, interp)
+    return interp
   } else if (bEdge == 1) {
-    return bUV(interp, div)
+    return interp * divP1 + div
   } else if (bEdge == 2) {
-    return bUV(div, interp)
+    return div * divP1 + interp
   } else if (bEdge == 3) {
-    return bUV(interp, 0)
+    return interp * divP1
   } else {
     return null
   }
