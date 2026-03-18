@@ -6,7 +6,7 @@
   import ViewerLayout from './lib/viewers/ViewerLayout.svelte'
   import ViewerMatrix from './lib/viewers/ViewerMatrix.svelte'
   import ViewerPea from './lib/viewers/ViewerPea.svelte'
-  import ViewerBottom from './lib/viewers/ViewerBottom.svelte'
+  // import ViewerBottom from './lib/viewers/ViewerBottom.svelte'
   import ViewerTiming from './lib/viewers/ViewerTiming.svelte'
   import PeaConfig from './lib/editor/PeaConfig.svelte'
   import Popover from 'svelte-easy-popover'
@@ -919,22 +919,25 @@
             <h3 class="font-bold">There is an error with your code.</h3>
             <p class="mb-2">{$codeError.message}</p>
           </div>
-        {:else if $confError.length && viewer == '3d'}
-          <ConfError {config} {mode} />
-        {:else if ocError && viewer == '3d'}
-          <div class="absolute text-white m-4 left-0 right-0 rounded p-4 top-[10%] bg-red-700">
-            <p>There are some rough edges in this tool, and you've found one of them.</p>
-            <p class="mb-2">The set of options you've chosen cannot be previewed.</p>
-            <p class="mb-2">Here's some technical information:</p>
-            <p class="text-sm"><code>During processing of <b>{ocError.task}</b></code></p>
-            <p class="text-sm">
-              <code
-                >{ocError}<br />{ocError.stack
-                  ? ocError.stack.split('\n').slice(0, 5).join('\n')
-                  : ''}</code
-              >
-            </p>
-          </div>
+        {:else}
+          {#if $confError.length && viewer == '3d'}
+            <ConfError {config} {mode} />
+          {/if}
+          {#if ocError && viewer == '3d'}
+            <div class="absolute text-white m-4 left-0 right-0 rounded p-4 top-[10%] bg-red-700">
+              <p>There are some rough edges in this tool, and you've found one of them.</p>
+              <p class="mb-2">The set of options you've chosen cannot be previewed.</p>
+              <p class="mb-2">Here's some technical information:</p>
+              <p class="text-sm"><code>During processing of <b>{ocError.task}</b></code></p>
+              <p class="text-sm">
+                <code
+                  >{ocError}<br />{ocError.stack
+                    ? ocError.stack.split('\n').slice(0, 5).join('\n')
+                    : ''}</code
+                >
+              </p>
+            </div>
+          {/if}
         {/if}
       </div>
     </div>

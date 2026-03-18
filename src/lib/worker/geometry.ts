@@ -1052,6 +1052,7 @@ interface TriangularizationOptions {
   boundary?: number[]
   bottomPts2D?: Trsf[]
   noCut?: boolean
+  wallFn?: typeof wallCriticalPoints
 }
 
 export function solveTriangularization(c: Cuttleform, pts2D: CriticalPoints[], pts: CriticalPoints[], trsfs: Trsf[], bottomZ: number, worldZ: Vector, opts: TriangularizationOptions) {
@@ -1131,7 +1132,7 @@ export function solveTriangularization(c: Cuttleform, pts2D: CriticalPoints[], p
       originalTriangles: [],
     }
   }
-  let { boundary, triangles } = concaveman(c, allTrsfs, allPts, allTris, bnd, bottomZ, worldZ, opts.noBadWalls, concavity, lengthThresh, opts.noCut, opts.bottomPts2D)
+  let { boundary, triangles } = concaveman(c, allTrsfs, allPts, allTris, bnd, bottomZ, worldZ, opts.noBadWalls, concavity, lengthThresh, opts.noCut, opts.bottomPts2D, opts.wallFn)
   const originalTriangles = triangles
 
   const innerBoundary: number[] = [...boundary]

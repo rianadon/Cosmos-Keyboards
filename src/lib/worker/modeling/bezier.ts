@@ -147,7 +147,7 @@ export class CompBezierSurface {
   //   }
   // }
   static tMMConfig(quick: boolean) {
-    if (quick) return { maxDepth: 4, maxError: 0.3 }
+    if (quick) return { maxDepth: 6, maxError: 0.3 }
     else return { maxDepth: 8, maxError: 0.2 }
   }
 
