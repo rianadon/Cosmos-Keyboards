@@ -1109,7 +1109,7 @@
             bind:initialContent={initialEditorContent}
             bind:hashContent={editorContent}
             {darkMode}
-            cosmosConf={state.options}
+            cosmosConf={$protoConfig}
             bind:conf={config}
           />
         {/if}
