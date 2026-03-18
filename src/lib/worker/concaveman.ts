@@ -53,6 +53,7 @@ export default function concaveman(
   lengthThreshold?: number,
   noCut?: boolean,
   bottomPts2D?: Trsf[],
+  wallFn = wallCriticalPoints,
 ) {
   // a relative measure of concavity; higher value means simpler hull
   concavity = Math.max(0, concavity === undefined ? 2 : concavity)
@@ -93,8 +94,8 @@ export default function concaveman(
     const [ok, k, tri] = canSplitEdge(conf, node, triangleMap, trsfs, points, sqConcavity, sqLenThreshold, bottomPts2D)
     if (!ok) continue
 
-    const wallsOk = checkWallGeometryWithSplit(conf, trsfs, node, k, node.next, bottomZ, worldZ)
-    if (!filter2d || wallsOk || canFixBadWalls(conf, k, node, triangleMap, trsfs, points, sqConcavity, sqLenThreshold, bottomPts2D, bottomZ, worldZ)) {
+    const wallsOk = checkWallGeometryWithSplit(conf, trsfs, node, k, node.next, bottomZ, worldZ, wallFn)
+    if (!filter2d || wallsOk || canFixBadWalls(conf, k, node, triangleMap, trsfs, points, sqConcavity, sqLenThreshold, bottomPts2D, bottomZ, worldZ, wallFn)) {
       // connect the edge endpoints through this point and add 2 new edges to the queue
       queue.push(node)
       queue.push(insertNode(k, node))
@@ -128,8 +129,9 @@ function canFixBadWalls(
   bottomPts2D: Trsf[] | undefined,
   bottomZ: number,
   worldZ: Vector,
+  wallFn = wallCriticalPoints,
 ): boolean {
-  if (checkWallGeometryWithSplit(conf, trsfs, node, inserted, node.next, bottomZ, worldZ)) return true
+  if (checkWallGeometryWithSplit(conf, trsfs, node, inserted, node.next, bottomZ, worldZ, wallFn)) return true
 
   // Assume we've added the node
   const choice1 = node
@@ -137,11 +139,11 @@ function canFixBadWalls(
 
   const result = (() => {
     const [ok1, k1] = canSplitEdge(conf, choice1, triangleMap, trsfs, points, sqConcavity, sqLenThreshold, bottomPts2D)
-    if (ok1 && canFixBadWalls(conf, k1, choice1, triangleMap, trsfs, points, sqConcavity, sqLenThreshold, bottomPts2D, bottomZ, worldZ)) {
+    if (ok1 && canFixBadWalls(conf, k1, choice1, triangleMap, trsfs, points, sqConcavity, sqLenThreshold, bottomPts2D, bottomZ, worldZ, wallFn)) {
       return true
     }
     const [ok2, k2] = canSplitEdge(conf, choice2, triangleMap, trsfs, points, sqConcavity, sqLenThreshold, bottomPts2D)
-    if (ok2 && canFixBadWalls(conf, k2, choice2, triangleMap, trsfs, points, sqConcavity, sqLenThreshold, bottomPts2D, bottomZ, worldZ)) {
+    if (ok2 && canFixBadWalls(conf, k2, choice2, triangleMap, trsfs, points, sqConcavity, sqLenThreshold, bottomPts2D, bottomZ, worldZ, wallFn)) {
       return true
     }
     return false
@@ -217,7 +219,7 @@ function canSplitEdge(
  * This function checks that the wall are well-formed. A wall depends on 5 adjacent points,
  * so 5 checks need to be run. Every check includes the new middle point.
  */
-function checkWallGeometryWithSplit(conf: Cuttleform, trsfs: KeyTrsf[], prev: Node, middle: number, next: Node, bottomZ: number, worldZ: Vector) {
+function checkWallGeometryWithSplit(conf: Cuttleform, trsfs: KeyTrsf[], prev: Node, middle: number, next: Node, bottomZ: number, worldZ: Vector, wallFn = wallCriticalPoints) {
   const e = prev.prev.prev.prev.p
   const f = prev.prev.prev.p
   const g = prev.prev.p
@@ -227,11 +229,11 @@ function checkWallGeometryWithSplit(conf: Cuttleform, trsfs: KeyTrsf[], prev: No
   const l = next.next.p
   const m = next.next.next.p
   const n = next.next.next.next.p
-  return isOk2D(conf, trsfs[g], trsfs[i], trsfs[k], trsfs[j], trsfs[l], bottomZ, worldZ)
-    && isOk2D(conf, trsfs[i], trsfs[k], trsfs[j], trsfs[l], trsfs[m], bottomZ, worldZ)
-    && isOk2D(conf, trsfs[f], trsfs[g], trsfs[i], trsfs[k], trsfs[j], bottomZ, worldZ)
-    && isOk2D(conf, trsfs[k], trsfs[j], trsfs[l], trsfs[m], trsfs[n], bottomZ, worldZ)
-    && isOk2D(conf, trsfs[e], trsfs[f], trsfs[g], trsfs[i], trsfs[k], bottomZ, worldZ)
+  return isOk2D(conf, trsfs[g], trsfs[i], trsfs[k], trsfs[j], trsfs[l], bottomZ, worldZ, wallFn)
+    && isOk2D(conf, trsfs[i], trsfs[k], trsfs[j], trsfs[l], trsfs[m], bottomZ, worldZ, wallFn)
+    && isOk2D(conf, trsfs[f], trsfs[g], trsfs[i], trsfs[k], trsfs[j], bottomZ, worldZ, wallFn)
+    && isOk2D(conf, trsfs[k], trsfs[j], trsfs[l], trsfs[m], trsfs[n], bottomZ, worldZ, wallFn)
+    && isOk2D(conf, trsfs[e], trsfs[f], trsfs[g], trsfs[i], trsfs[k], bottomZ, worldZ, wallFn)
 }
 
 // create a new node in a doubly linked list
@@ -292,10 +294,10 @@ function sqSegDist(p: number[], p1: number[], p2: number[]) {
   return dx * dx + dy * dy
 }
 
-function isOk2D(c: Cuttleform, t0: KeyTrsf, t1: KeyTrsf, t2: KeyTrsf, t3: KeyTrsf, t4: KeyTrsf, bottomZ: number, worldZ: Vector) {
-  const pts0 = wallCriticalPoints(c, t4, t3, t2, undefined, 0, bottomZ, worldZ)
-  const pts1 = wallCriticalPoints(c, t3, t2, t1, undefined, 0, bottomZ, worldZ)
-  const pts2 = wallCriticalPoints(c, t2, t1, t0, undefined, 0, bottomZ, worldZ)
+function isOk2D(c: Cuttleform, t0: KeyTrsf, t1: KeyTrsf, t2: KeyTrsf, t3: KeyTrsf, t4: KeyTrsf, bottomZ: number, worldZ: Vector, wallFn = wallCriticalPoints) {
+  const pts0 = wallFn(c, t4, t3, t2, undefined, 0, bottomZ, worldZ)
+  const pts1 = wallFn(c, t3, t2, t1, undefined, 0, bottomZ, worldZ)
+  const pts2 = wallFn(c, t2, t1, t0, undefined, 0, bottomZ, worldZ)
 
   return !doWallsIntersect(c, pts0, pts1, pts2)
 }

@@ -380,8 +380,14 @@ export function isPro(conf: Cuttleform): boolean {
   return !!conf.rounded.side || !!conf.rounded.top || conf.shell?.type == 'stilts' || !!conf.plate
 }
 
+interface TriangleI {
+  a: Vector3
+  b: Vector3
+  c: Vector3
+}
+
 // https://stackoverflow.com/questions/7113344/find-whether-two-triangles-intersect-or-not
-export function doTrianglesIntersect(t1: Triangle, t2: Triangle, ignoreTouching = false) {
+export function doTrianglesIntersect(t1: TriangleI, t2: TriangleI, ignoreTouching = false) {
   if (ignoreTouching) {
     // Return false if any triangles share a vertex
     if (
