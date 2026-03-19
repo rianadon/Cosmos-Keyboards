@@ -157,7 +157,8 @@ export async function generateQuick(config: Cuttleform, withSupports: boolean) {
   }
 }
 
-export async function generate(config: Cuttleform, geo: Geometry, stitchWalls: boolean, flip: boolean) {
+export async function* generate(config: Cuttleform, geo: Geometry, stitchWalls: boolean, flip: boolean): ProgressGenerator<{ assembly: Assembly }> {
+  const STEPS = 6
   if (isPro(config) && !(await getUser('?download')).sponsor) {
     throw new Error('No pro account')
   }
@@ -166,6 +167,7 @@ export async function generate(config: Cuttleform, geo: Geometry, stitchWalls: b
   const assembly = new Assembly()
 
   console.time('Calculating geometry')
+  yield { progress: 1 / STEPS, task: 'Calculating Geometry' }
   const transforms = geo.keyHolesTrsfs
   const pts = geo.allKeyCriticalPoints
   const wallPts = geo.allWallCriticalPoints()
@@ -173,6 +175,7 @@ export async function generate(config: Cuttleform, geo: Geometry, stitchWalls: b
   console.timeEnd('Calculating geometry')
 
   console.time('Creating walls')
+  yield { progress: 2 / STEPS, task: 'Creating Walls' }
   let walls: Solid
   try {
     if (config.shell.type == 'stilts') walls = makeStiltsWalls(geo)
@@ -184,6 +187,7 @@ export async function generate(config: Cuttleform, geo: Geometry, stitchWalls: b
   console.timeEnd('Creating walls')
 
   console.time('Making web')
+  yield { progress: 3 / STEPS, task: 'Making Web' }
   let web: Solid
   try {
     web = webSolid(config, geo).toSolid(true, true)
@@ -192,10 +196,12 @@ export async function generate(config: Cuttleform, geo: Geometry, stitchWalls: b
   }
   console.timeEnd('Making web')
   console.time('Creating holes')
+  yield { progress: 4 / STEPS, task: 'Creating Holes' }
   const flipper = (key: CuttleKey) => flip ? new Trsf().scaleIsDangerous(-1, 1, 1) : new Trsf()
   const holes = await keyHoles(config, transforms.map((t, i) => t.multiply(flipper(config.keys[i]))))
   console.timeEnd('Creating holes')
   console.time('Creating connector')
+  yield { progress: 5 / STEPS, task: 'Creating Connector' }
   // let connector = null
   if (connOrigin) {
     // connector = makeConnector(config, config.connector, connOrigin)
@@ -203,6 +209,7 @@ export async function generate(config: Cuttleform, geo: Geometry, stitchWalls: b
   }
   console.timeEnd('Creating connector')
   console.time('Creating screw inserts')
+  yield { progress: 6 / STEPS, task: 'Creating Screw Inserts' }
   const screwPos = geo.screwPositions
   let inserts: Compound | null = null
   if (screwPos.length) {
@@ -314,7 +321,12 @@ async function getModel(conf: Cuttleform, name: string, stitchWalls: boolean, fl
   const geometry = newGeometry(conf)
   if (name == 'model') {
     const geo = newGeometry(conf)
-    let { assembly } = await generate(conf, geo, stitchWalls, flip)
+    let assembly: Assembly | undefined = undefined
+    const generator = generate(conf, geo, stitchWalls, flip)
+    while (!assembly) {
+      const next = await generator.next()
+      if (next.done) assembly = next.value.assembly
+    }
     if (conf.shell.type == 'tilt') {
       // Invert the tilt cases's tilting to the model lies flat
       assembly = assembly.transform(new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).invert())
@@ -347,19 +359,32 @@ export async function getSTL(conf: Cuttleform, name: string, side: 'left' | 'rig
   return blobSTL(model, { tolerance: 1e-2, angularTolerance: 1 })
 }
 
-export async function getSTEP(conf: Cuttleform, flip: boolean, stitchWalls: boolean) {
+type Progress = { progress: number; task: string }
+type ProgressGenerator<R> = AsyncGenerator<Progress, R, unknown>
+
+export async function* getSTEP(conf: Cuttleform, flip: boolean, stitchWalls: boolean): ProgressGenerator<Blob> {
   const geometry = newGeometry(conf)
-  let { assembly } = await generate(conf, geometry, stitchWalls, flip)
-  const { top, bottom } = makePlate(conf, geometry, true, true)
+  let assembly: Assembly | undefined = undefined
+  const generator = generate(conf, geometry, stitchWalls, flip)
+  while (!assembly) {
+    const next = await generator.next()
+    if (next.done) assembly = next.value.assembly
+    else yield { progress: next.value.progress * 0.6, task: next.value.task }
+  }
+  yield { progress: 0.7, task: 'Generating Plate' }
+  const { top, bottom } = makePlate(conf, newGeometry(conf), true, true)
   assembly.add('Bottom Plate', combine([await top(), bottom ? await bottom() : undefined]))
   if (conf.microcontroller) {
+    yield { progress: 0.8, task: 'Generating Microcontroller Holder' }
     assembly.add('Microcontroller Holder', boardHolder(conf, geometry))
   }
 
   if (conf.wristRestRight && (await getUser()).sponsor) {
+    yield { progress: 0.9, task: 'Generating Wrist Rest' }
     assembly.add('Wrist Rest', wristRest(conf, geometry, flip ? 'wristRestLeft' : 'wristRestRight'))
   }
 
+  yield { progress: 1, task: 'Finishing Up' }
   assembly = assembly.transform(new Trsf().translate(0, 0, -geometry.floorZ))
   if (flip) assembly = assembly.mirror('YZ', [0, 0, 0])
   return assembly.blobSTEP()

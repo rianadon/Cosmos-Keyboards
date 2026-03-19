@@ -34,6 +34,7 @@
   let generatingSTL = false
   let generatingGLB = false
   let generatingError: Error | undefined
+  let stepProgress: { progress: number; task: string } | undefined = undefined
 
   let numDownloaded = 0
   $: if (numDownloaded >= 2) $showScheduleEmail = true
@@ -42,7 +43,6 @@
 
   const lastUser = get(user)
   const defaultEmail = lastUser.success && lastUser.method == 'Email' ? lastUser.user.login : ''
-  console.log('defaultEmail', defaultEmail, lastUser)
 
   function downloadSTEP(side: 'left' | 'right' | 'unibody') {
     numDownloaded += 1
@@ -55,8 +55,18 @@
     }
     const begin = window.performance.now()
     generatingSTEP = true
+    stepProgress = { progress: 0, task: 'Initializing...' }
     pool
-      .executeNow((w) => w.getSTEP(config[side]!, side == 'left', !$noStitch) as Promise<Blob>)
+      .executeNow(async (w) => {
+        const generator = await w.getSTEP(config[side]!, side == 'left', !$noStitch)
+        while (true) {
+          const next = await generator.next()
+          if (next.done) {
+            return next.value
+          }
+          stepProgress = next.value
+        }
+      })
       .then(addMetadataToSTEP)
       .then(
         (blob) => {
@@ -410,6 +420,7 @@
       {/if}
       {#if generatingSTEP || generatingSTL || generatingGLB}
         <p class="mt-4">Generating... Please be patient.</p>
+        {#if stepProgress} [{Math.round(stepProgress.progress * 100)}%] {stepProgress.task}{/if}
       {:else if generatingError}
         <div
           class="bg-red-200 m-4 mb-2 rounded p-4 dark:bg-red-700 font-mono text-sm whitespace-pre-wrap"

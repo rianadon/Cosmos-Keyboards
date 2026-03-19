@@ -1,7 +1,10 @@
 /** Manage multiple web workers in parallel */
 import { browser } from '$app/environment'
-import { type Remote, wrap } from 'comlink'
+import { asyncGeneratorTransferHandler } from '$lib/worker/comlink-async-generator'
+import { type Remote, transferHandlers, wrap } from 'comlink'
 import { type Writable, writable } from 'svelte/store'
+
+transferHandlers.set('asyncGenerator', asyncGeneratorTransferHandler)
 
 export interface PoolWorker<T> {
   index: number
