@@ -2307,10 +2307,11 @@ export function microControllerRectangles(c: Cuttleform, connOrigin: Trsf, board
   const boardPos = mapObj(boardPosWorld, t => t.premultiplied(connOriginInv))
 
   const hBounds = localHolderBounds(c, false)
-  const rects: [number, number, number, number][] = [
-    [hBounds.minx, hBounds.maxx, Math.min(hBounds.miny, boardPos.bottomLeft.origin().y), hBounds.maxy],
-  ]
   const outerRadius = holderOuterRadius(c)
+  const extraY = c.shell.type == 'stilts' ? outerRadius : 0
+  const rects: [number, number, number, number][] = [
+    [hBounds.minx, hBounds.maxx, Math.min(hBounds.miny, boardPos.bottomLeft.origin().y - extraY), hBounds.maxy],
+  ]
 
   if (boardPos.topLeft) {
     rects.push([
@@ -2330,7 +2331,7 @@ export function microControllerRectangles(c: Cuttleform, connOrigin: Trsf, board
     ])
   }
 
-  if (boardPos.bottomLeft) {
+  if (boardPos.bottomLeft && c.shell.type != 'stilts') {
     rects.push([
       boardPos.bottomLeft.origin().x - outerRadius,
       hBounds.maxx,

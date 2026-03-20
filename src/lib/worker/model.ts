@@ -1,5 +1,5 @@
 import type { TopoDS_Shell } from '$assets/replicad_single'
-import { BOARD_PROPERTIES, type BoardElement, boardElements, convertToCustomConnectors, holderOuterRadius, holderThickness, STOPPER_WIDTH } from '$lib/geometry/microcontrollers'
+import { BOARD_PROPERTIES, type BoardElement, boardElements, convertToCustomConnectors, holderOuterRadius, holderThickness, localHolderBounds, STOPPER_WIDTH } from '$lib/geometry/microcontrollers'
 import { SCREWS } from '$lib/geometry/screws'
 import { processPlate } from '@pro/art'
 import { wallBezier } from '@pro/rounded'
@@ -1095,6 +1095,24 @@ export function boardHolder(c: Cuttleform, geo: Geometry): Solid {
   let solid = rect.sketchOnPlane('XY').extrude(offset - BOARD_TOLERANCE_Z)
     .translateZ(BOARD_TOLERANCE_Z) as Solid
   const solidWallSurface = wallInnerSolidSurface(c, geo, BOARD_TOLERANCE_XY)
+
+  if (c.shell.type == 'stilts') {
+    // Add back the bottom left as a sloped holder
+    const height = boardPos.bottomLeft.origin().z
+    const hbnd = localHolderBounds(c, false)
+    const start = hbnd.minx
+    const end = boardPos.bottomLeft.origin().x
+    const y = boardPos.bottomLeft.origin().y
+
+    const outerRadius = holderOuterRadius(c)
+    const thickness = offset - BOARD_TOLERANCE_Z
+    const sideProfile = draw()
+      .movePointerTo([start, thickness])
+      .hLine(2).vLine(-thickness).hLine(-2).lineTo([end + outerRadius, height])
+      .hLine(-outerRadius * 2).vLine(thickness).hLine(outerRadius * 2).close()
+      .sketchOnPlane('XZ', [0, y + outerRadius, BOARD_TOLERANCE_Z]).extrude(outerRadius * 2) as Solid
+    solid = solid.fuse(sideProfile)
+  }
 
   // Countersink the holes
   if (boardProps.countersinkHoles) {
