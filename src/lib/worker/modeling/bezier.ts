@@ -73,14 +73,14 @@ export class CompBezierSurface {
     return adjacencyMap
   }
 
-  // toMeshManifold(calculateNormals = true, quick: boolean): ShapeMesh {
+  // toMeshManifold(calculateNormals = true, options: { maxDepth: number; maxError: number }): ShapeMesh {
   //   const vertices: number[] = []
   //   const triangles: number[] = []
   //   const normals: number[] = []
   //   const faceGroups: ShapeMesh['faceGroups'] = []
 
   //   const blocks: number[] = []
-  //   const nblock = quick ? 3 : 9
+  //   const nblock = 3
   //   for (let i = 0; i <= nblock; i++) {
   //     blocks.push(i / nblock)
   //   }

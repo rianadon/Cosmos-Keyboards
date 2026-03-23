@@ -7,7 +7,7 @@
   import { mapObjNotNull } from '$lib/worker/util'
   import { downloadQMKCode, type QMKOptions } from '../firmware/qmk'
   import type { FullGeometry } from '../viewers/viewer3dHelpers'
-  import { downloadZMKCode, type ZMKOptions } from '../firmware/zmk'
+  import { downloadZMKCode, type ZMKOptions, ZMK_NAME_MAX_LEN } from '../firmware/zmk'
   import { downloadVia } from '../firmware/via'
   import Checkbox from '$lib/presentation/Checkbox.svelte'
   import { encoderKeys, type Matrix } from '../firmware/firmwareHelpers'
@@ -40,7 +40,7 @@
   } satisfies Partial<QMKOptions | ZMKOptions>
 
   $: anyConfig = config.right || config.unibody || { microcontroller: undefined }
-  $: truncated = anyConfig.microcontroller == 'lemon-wireless' && $modelName.length > 16
+  $: truncated = anyConfig.microcontroller == 'lemon-wireless' && $modelName.length > ZMK_NAME_MAX_LEN
 </script>
 
 <p class="mt-4 mb-2">Successfully made the matrix!</p>

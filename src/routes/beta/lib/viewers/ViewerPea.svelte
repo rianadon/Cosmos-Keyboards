@@ -92,7 +92,7 @@
 
   function isBootmagic(kbd: string, pos: [number, number] | undefined) {
     if (!pos) return false
-    if (kbd == 'right') return (pos[0] == 7 && pos[1] == 0) || (pos[0] == 0 && pos[1] == 0) // First is QMK, second is ZMK
+    if (kbd == 'right') return (pos[0] == 7 && pos[1] == 0) || (pos[0] == 0 && pos[1] == 7) // First is QMK, second is ZMK
     return pos[0] == 0 && pos[1] == 0
   }
 </script>
