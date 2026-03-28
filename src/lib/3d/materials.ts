@@ -87,7 +87,7 @@ void main() {
     vec3 letter = texture2D( tLetter, vUv ).rgb;
 
     #ifdef USE_CUTOFF
-    if (vCutoff > 0.0) value *= 0.8;
+    if (vCutoff > 0.0) { value *= 0.9; cnorm *= 0.9; }
     #endif
 
     #ifdef USE_INSTANCING

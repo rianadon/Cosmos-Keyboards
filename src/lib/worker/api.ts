@@ -134,7 +134,7 @@ export async function generatePlate(config: Cuttleform, cut = false) {
   await ensureRust()
   const geo = newGeometry(config)
   const { top, bottom } = makePlate(config, geo, cut)
-  const topMesh = colorPlate(geo, meshWithVolume(await top()))
+  const topMesh = colorPlate(geo, meshWithVolume(await top()), true)
   return {
     top: topMesh,
     bottom: bottom ? colorPlate(geo, meshWithVolume(await bottom())) : { mesh: null, mass: 0 },
@@ -411,7 +411,8 @@ function meshWithVolume(solid: Solid): MeshWithVolume {
   }
 }
 
-function colorPlate(geo: Geometry, meshv: MeshWithVolume): MeshWithVolume {
+function colorPlate(geo: Geometry, meshv: MeshWithVolume, isPlate = false): MeshWithVolume {
+  if (isPlate && geo.c.shell.type == 'stilts') return meshv
   const { mesh, mass, ocTime } = meshv
 
   const color = new Float32Array(mesh.vertices.length / 3)
