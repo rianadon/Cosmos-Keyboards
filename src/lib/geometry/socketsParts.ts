@@ -83,7 +83,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     partOverride: MX_PART,
     singlePartForVariants: true,
     socketSize: () => [18, 18, 6.1] as PartSize,
-    partBottom: () => [box(18, 18, 6.1)],
+    partBottom: () => [MX_BOTTOM, box(18, 18, 7.1)],
     keycap: 'mx',
     extraBomItems: () => ({ 'pcb': { item: 'Pumpkin Flex PCB', icon: 'pcb', count: 1 / 42 } }),
     variants: {

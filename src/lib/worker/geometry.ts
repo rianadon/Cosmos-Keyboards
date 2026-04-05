@@ -34,10 +34,11 @@ export const wallZOffset = (c: Cuttleform) => {
 }
 
 export const BOARD_HOLDER_OFFSET = 0.02
-const BOARD_TOLERANCE_Z = 0.1
 
 export const DEFAULT_FOOT_DIAM = 10
 export const FOOT_INSET = 6 // How far feet are placed from outer wall
+
+const MICROCONTROLLER_BOX_MARGIN = 0.1 // How much space to give around microcontroller
 
 export type CriticalPoints = Trsf[]
 
@@ -2385,7 +2386,7 @@ export function microcontrollerTopBox(c: Cuttleform, connOrigin: Trsf, boardPosi
   const ucPoints = boardElems.map(e => {
     const offset = e.offset.clone()
     if (top) offset.negate()
-    if (top) offset.z -= e.boundingBoxZ
+    if (top) offset.z -= e.boundingBoxZ + MICROCONTROLLER_BOX_MARGIN
     else offset.z -= holderThickness(boardElems)
     const connMargin = 0 // top ? 0 : 50
     return [

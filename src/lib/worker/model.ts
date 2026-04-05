@@ -30,6 +30,7 @@ import {
   wallSurfacesOuter,
   webThickness,
 } from './geometry'
+import { solveForThicknessOffset } from './geometry.thickWebs'
 import { bezierFace, BezierSketch, BezierSketcher, CompBezierSurface } from './modeling/bezier'
 import { makeCacher } from './modeling/cacher'
 import { buildFixedSolid, buildSewnSolid, buildSolid, combine, getOC, makeQuad, makeTriangle } from './modeling/index'
@@ -1106,10 +1107,12 @@ export function boardHolder(c: Cuttleform, geo: Geometry): Solid {
 
     const outerRadius = holderOuterRadius(c)
     const thickness = offset - BOARD_TOLERANCE_Z
+    const thicknessX = solveForThicknessOffset(thickness, thickness, start - end, height, thickness)
+
     const sideProfile = draw()
       .movePointerTo([start, thickness])
-      .hLine(2).vLine(-thickness).hLine(-2).lineTo([end + outerRadius, height])
-      .hLine(-outerRadius * 2).vLine(thickness).hLine(outerRadius * 2).close()
+      .hLine(2).vLine(-thickness).hLine(-2 - thicknessX).lineTo([end + outerRadius, height])
+      .hLine(-outerRadius * 2).vLine(thickness).hLine(outerRadius * 2 + thicknessX).close()
       .sketchOnPlane('XZ', [0, y + outerRadius, BOARD_TOLERANCE_Z]).extrude(outerRadius * 2) as Solid
     solid = solid.fuse(sideProfile)
   }

@@ -194,16 +194,19 @@ function reinforcementOffset(thisTop: Trsf, thisThick: number, nextTop: Trsf, ne
 
   // Top faces: use keyoffset.
   const maxOffset = top ? keyOffset : projOffset
+  return solveForThicknessOffset(thickness, pab.y, pbt.x, pbt.y, maxOffset)
+}
 
+export function solveForThicknessOffset(thickness: number, paby: number, pbtx: number, pbty: number, maxOffset: number) {
   // This equation is derived from the distance between two parallel lines, but solving for x offset given the distance.
   // This results in a quadratic equation.
   // Note: I don't care about the bottom offset, so s0 and s1 are the two solutions for the quadratic equation of top offset.
   // Solve t^2 = b^2/(m^2 + 1) for s
   // Unfortunately, I cannot simplify more than this.
   const thickSq = thickness * thickness
-  const pabypbtSq = (pab.y - pbt.y) ** 2
-  const pmTerm = pbt.y * thickness * Math.sqrt(pbt.x ** 2 - thickSq + pabypbtSq)
-  const firstTerm = pbt.x * (pab.y * pbt.y + thickSq - pab.y ** 2)
+  const pabypbtSq = (paby - pbty) ** 2
+  const pmTerm = pbty * thickness * Math.sqrt(pbtx ** 2 - thickSq + pabypbtSq)
+  const firstTerm = pbtx * (paby * pbty + thickSq - paby ** 2)
   const denom = thickSq - pabypbtSq
   const s0 = (firstTerm + pmTerm) / denom
   const s1 = (firstTerm - pmTerm) / denom
