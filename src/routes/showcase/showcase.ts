@@ -283,6 +283,22 @@ const _keyboards: Record<string, Keyboard> = {
     details:
       'This is a split keyboard with Nintendo Joycons. The controllers are RP2040 Micro. It can be printed vertically to minimize/eliminate the support. Because of the small footprint, two hands can be printed in one plate.',
   },
+  '305a4e7b': {
+    author: 'animositee707',
+    type: 'split',
+    config:
+      '#cm:Cv0CCiQSDRDwPSA7QABIAGICRjYSBRCAPyAnEgIgExICIAASADgxQAAKJBINEPBJIDtAAEgAYgJGNxIFEIBLICcSAiATEgIgABIAOB1AAAoxEg0Q8FUgO0AASABiAkY4EgUQgFcgJxICIBMSAiAAEgMQsC8SBRCwXyAoOAlAgPC8AgouEg0Q8GEgO0AASABiAkY5EgUQgGMgJxICIBMSAiAAEgMQsDsSBRCwayAoOApAAAovEg4Q8G0gO0AASABiA0YxMBIFEIBvICcSAiATEgIgABIAEgQQMCAoOB5AgIaKwAcKLBIIEHAgO0AASAASBBAAICcSAiATEgYQoIAKIAASAhAwEgIgKDgyQICGisAHCh4SCBBwIDtAAEgAEgQQACAnEgIgExICIAASADhFQAAKGhIEEHAgOxIEEAAgJxICIBMSAiAAEgA4WUAACiISBBBwIDsSAiAnEgQQACATEgIgABIAEgIgKDhGQICGisAHGABA6IWgrvBVSNzwoqABCqEBCisSExDAgAJAgICYAkjCmaCVkLwBUEMSEkCAgMwCSMKZoJWQvAFQhgFYOjgIChUSEBBAQICAIEjQlYDdkPUDUAtQngIKJxIQEEBAgID4AUjmmfynkAtQVxIRQICApANI8JnEtdAwUHRYlQFQfwoVEhBAkrbtDEj6mejs8PwCUIYBUIICGAIiCgjIARDIARgAIABAy4v8n9AxSK2R3I3BkwYiBhjoAiD2BIIBAgQCWEFoAA==',
+    filament: 'PLA',
+    switches: 'Gateron Milky Yellow Pro v3',
+    keycaps: 'YDMK PBT XDA v2 blank keycaps',
+    name: 'Dactyl Max 112',
+    details:
+      `<p>I wanted to create a dactyl keyboard that not only replaced my current keyboard, but also my macropad. The result is the Dactyl Max 112. With enough keys and layers to never run out.</p>
+<p>The foam and three plus layers of electrical tape under the keys does a great job of removing the hollow, clacky sound of the  keyboard given its very large interior. This creates a far more thocky sounding  keyboard. Although a little pop still remains.</p>
+<p>I had a pi pico 2 already so that is why I chose to use one. Since this is my first custom keyboard I kept it simple and didn't make a true split keyboard. Instead the wires go through that very large black cord connecting the two halves so the controller thinks it is a single keyboard. There is no reason to do this unless you already have the parts. On my next keyboard I will use the lemon board with usbc instead of trrs most likely and get rid of the massive cord.</p>
+<p>I originally used POG to code my keyboard. It uses the python kmk firmware and circuit python instead of qmk. I did this because the pi pico 2 is not supported by qmk yet. I will likely either switch out my board or wait until it is supported. That is why I used a breakout board for this keyboard. I didn't want to solder the wires if I was just going to replace it. That being said kmk is very easy to use and POG makes custom keyboards even easier. I highly recommend it to anyone that is nervous to use qmk or can't use it.</p>
+<p>I also recommend the silicone feet I put on for additional tenting, adding some weight, and prevent sliding.</p>`,
+  },
 }
 
 function findImages(kbd: Keyboard) {
