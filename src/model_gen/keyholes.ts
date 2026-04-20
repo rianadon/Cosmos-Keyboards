@@ -58,9 +58,16 @@ async function generateHotswapKey(name: string, ...options: any[]) {
   const c2Bottom = drawCircle(0.75).translate(6.55, 6.75).sketchOnPlane('XY', -6.15) as Sketch
   const c2 = c2Bottom.loftWith(c2Top)
 
-  const model = top.fuse(extrude).fuse(bottom).cut(c1).cut(c2).rotate(180, [0, 0, 1])
-  const file = modeling.serialize(name, model)
-  await writeFile(`target/key-${name}.step`, file)
+  const lastDash = name.lastIndexOf('-')
+  const [baseName, variantName] = [name.substring(0, lastDash), name.substring(lastDash + 1)]
+
+  const modelNorth = top.fuse(extrude).fuse(bottom).cut(c1).cut(c2)
+  const fileNorth = modeling.serialize(name, modelNorth)
+  await writeFile(`target/key-${baseName}-north-led-${variantName}.step`, fileNorth)
+
+  const modelSouth = modelNorth.rotate(180, [0, 0, 1])
+  const fileSouth = modeling.serialize(name, modelSouth)
+  await writeFile(`target/key-${baseName}-south-led-${variantName}.step`, fileSouth)
 }
 
 async function main() {

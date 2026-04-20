@@ -190,6 +190,7 @@ async function main() {
   poolVariants('mx-pcb-plum', ledWork())
   poolVariants('mx-skree', ledWork())
   poolVariants('mx-pumpkin', plumMXWork, ledWork())
+  poolVariants('mx-klavgen', ledWork(true))
   poolVariants('choc-pumpkin', ledWork(true))
 
   const defaults = { spacing: 2.54, diameter: 0.9 }

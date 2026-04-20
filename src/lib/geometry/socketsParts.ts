@@ -156,16 +156,11 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     keycap: 'mx',
     extraBomItems: () => ({ ...BOM_MX_HOTSWAP, ...BOM_DIODE }),
     variants: {
+      led: ['North LED', 'South LED'],
       hotswap: ['Kailh', 'Gateron', 'Outemu'],
     },
-    encodeVariant: (variant: Variant) => {
-      return ['Kailh', 'Gateron', 'Outemu'].indexOf(variant.hotswap)
-    },
-    decodeVariant: (variant: number) => {
-      return {
-        hotswap: ['Kailh', 'Gateron', 'Outemu'][variant] || 'Kailh',
-      }
-    },
+    encodeVariant: makeEncodeVariant('mx-hotswap', { hotswap: 2, led: 2 }),
+    decodeVariant: makeDecodeVariant('mx-hotswap', { hotswap: 2, led: 2 }),
     numPins: () => ({ matrix: 1 }),
     description: 'This socket integrates a 3D-printed diode and hotswap socket holder. Useful if you have a great 3D printer, want hotswap, but cannot buy PCBs.' + DESC_MX,
     icon: 'mx',
@@ -173,15 +168,21 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
   },
   'mx-klavgen': {
     partName: 'MX + 3DP Klavgen Hotswap',
-    bomName: 'MX-Compatible Switch',
+    bomName: () => 'MX-Compatible Switch',
     category: 'Sockets',
-    stepFile: '/src/assets/key-mx-klavgen.step',
+    stepFile: '/target/key-mx-klavgen.step',
     partOverride: MX_PART,
-    socketSize: [18.75, 18.75, 2.2],
-    partBottom: [MX_BOTTOM, box(18.55, 18.55, 8)],
+    singlePartForVariants: true,
+    socketSize: () => [18.75, 18.75, 2.2] as [number, number, number],
+    partBottom: () => [MX_BOTTOM, box(18.55, 18.55, 8)],
     keycap: 'mx',
-    extraBomItems: { ...BOM_MX_HOTSWAP, ...BOM_DIODE },
-    numPins: { matrix: 1 },
+    extraBomItems: () => ({ ...BOM_MX_HOTSWAP, ...BOM_DIODE }),
+    variants: {
+      led: ['North LED', 'South LED'],
+    },
+    encodeVariant: makeEncodeVariant('mx-klavgen', { led: 2 }),
+    decodeVariant: makeDecodeVariant('mx-klavgen', { led: 2 }),
+    numPins: () => ({ matrix: 1 }),
     description:
       'This socket integrates a 3D-printed diode and hotswap socket holder, but you print the <a href="https://github.com/klavgen/klavgen/blob/main/example_stls/switch_holder.stl">holders</a> separately! This prints more reliably, but your keyboard is going to come in 20 different pieces. Great if you want hotswap but cannot buy PCBs.'
       + DESC_MX,
