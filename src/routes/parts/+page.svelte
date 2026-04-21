@@ -70,7 +70,7 @@
       {#each sortedCategories as cat}
         <h2>{cat}</h2>
         <section class="parts">
-          {#each notNull(objKeys(PART_INFO)).filter((v) => PART_INFO[v].category == cat && (flags.draftuc || !PART_INFO[v].draft) && v != 'blank') as p}
+          {#each notNull(objKeys(PART_INFO)).filter((v) => PART_INFO[v].category == cat && (flags.draftuc || !PART_INFO[v].draft) && !PART_INFO[v].deprecated && v != 'blank') as p}
             <Part
               name={PART_INFO[p].partName}
               part={p}

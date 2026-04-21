@@ -775,20 +775,20 @@
               />
             </div>
             <!-- <select
-              class="appearance-none bg-[#EFE8FF] dark:bg-gray-900 w-88 pl-20 h-8 pl-11!"
-              class:w-64!={PART_INFO[nthPartType($protoConfig, $clickedKey, $selectMode)].partName
-                .length < 20}
-              on:change={changeKey}
-              value={nthPartType($protoConfig, $clickedKey, $selectMode)}
-            >
-              {#each sortedCategories as cat}
-                <optgroup label={cat}>
-                  {#each notNull(objKeys(PART_INFO)).filter((v) => PART_INFO[v].category == cat) as part}
-                    <option value={part}>{PART_INFO[part].partName}</option>
-                  {/each}
-                </optgroup>
-              {/each}
-            </select> -->
+                 class="appearance-none bg-[#EFE8FF] dark:bg-gray-900 w-88 pl-20 h-8 pl-11!"
+                 class:w-64!={PART_INFO[nthPartType($protoConfig, $clickedKey, $selectMode)].partName
+                 .length < 20}
+                 on:change={changeKey}
+                 value={nthPartType($protoConfig, $clickedKey, $selectMode)}
+                 >
+                 {#each sortedCategories as cat}
+                 <optgroup label={cat}>
+                 {#each notNull(objKeys(PART_INFO)).filter((v) => PART_INFO[v].category == cat) as part}
+                 <option value={part}>{PART_INFO[part].partName}</option>
+                 {/each}
+                 </optgroup>
+                 {/each}
+                 </select> -->
             <SelectThingy
               pink
               class="appearance-none bg-[#EFE8FF] dark:bg-gray-900 w-88 pl-20 h-8 pl-11! text-start {PART_INFO[
@@ -801,7 +801,9 @@
                   cat,
                   notNull(objKeys(PART_INFO))
                     .filter(
-                      (v) => PART_INFO[v].category == cat && (flags.draftuc || !PART_INFO[v].draft)
+                      (v) =>
+                        PART_INFO[v].category == cat &&
+                        (flags.draftuc || (!PART_INFO[v].draft && !PART_INFO[v].deprecated))
                     )
                     .map((p) => ({ key: p, label: PART_INFO[p].partName, ...PART_INFO[p] })),
                 ])

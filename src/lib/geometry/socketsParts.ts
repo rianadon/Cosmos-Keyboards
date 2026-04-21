@@ -49,9 +49,10 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     description: "Don't use this. Or do if you know what you're doing." + DESC_MX,
     icon: 'plum-twist',
     bomIcon: 'switch',
+    deprecated: true,
   },
   'mx-pcb-plum': {
-    partName: 'MX + Plum Twist PCBs (1.2mm)',
+    partName: 'MX + Plum Twist PCBs',
     bomName: () => 'MX-Compatible Switch',
     category: 'Sockets',
     stepFile: '/target/key-mx-pcb-plum.step',
@@ -60,7 +61,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     socketSize: () => [18.7, 18.7, 7.6] as PartSize,
     partBottom: () => [box(18.7, 18.7, 9.1)],
     keycap: 'mx',
-    extraBomItems: () => ({ 'pcb': { item: 'Plum Twist PCB, 1.2mm Thick (Standard Size)', icon: 'pcb', count: 1 } }),
+    extraBomItems: () => ({ 'pcb': { item: 'Plum Twist PCB', icon: 'pcb', count: 1 } }),
     variants: {
       led: ['North LED', 'South LED'],
     },
@@ -819,7 +820,10 @@ export type PartInfo = (PartInfoNonVariant | PartInfoVariant) & {
   /** Override icon used in BOM */
   bomIcon?: string
   soldByCosmos?: boolean
+  /** Work-in progress sockets hidden behind a feature flag */
   draft?: boolean
+  /** Old sockets that should not be shown in the interface anymore */
+  deprecated?: boolean
 }
 
 // ------------------------------------------------------------------------------------------------------

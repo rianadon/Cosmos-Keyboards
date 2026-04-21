@@ -541,7 +541,10 @@
       value={$protoConfig.partType.type}
       on:change={updateSwitch}
       options={objEntries(PART_INFO)
-        .filter(([p, e]) => e.category == 'Sockets' && p != 'blank' && (flags.draftuc || !e.draft))
+        .filter(
+          ([p, e]) =>
+            e.category == 'Sockets' && p != 'blank' && (flags.draftuc || !e.draft) && !e.deprecated
+        )
         .map(([p, e]) => ({ ...e, key: p + '', label: e.partName }))}
       component={SelectPartInner}
       labelComponent={SelectPartLabel}
