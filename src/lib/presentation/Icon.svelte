@@ -71,6 +71,7 @@
       case 'person': return mdi.mdiAccountHardHatOutline
       case 'debug': return mdi.mdiBugOutline
       case 'studio': return mdi.mdiPaletteAdvanced
+      case 'version': return 'M18.5 18.8V16h-1v3.2l2.15 2.15.7-.7L18.5 18.8ZM12 4 6.075 7.425 12 10.85l5.925-3.425L12 4ZM3 15.975v-7.95q0-.55.263-1t.738-.725l7-4.025q.25-.125.488-.2t.513-.075.525.075.475.2l7 4.025q.475.275.738.725t.263 1V12h-2V9.1l-7.028 4.05L5 9.1v6.85l6 3.475v2.3L4 17.7q-.475-.275-.738-.725t-.262-1Zm11.463 6.562Q13 21.075 13 19t1.463-3.538Q15.925 14 18 14t3.538 1.463Q23 16.925 23 19t-1.462 3.537Q20.075 24 18 24t-3.537-1.463ZM12 11.725Z'
     }
   }
 </script>

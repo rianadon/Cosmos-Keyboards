@@ -30,6 +30,7 @@ export interface ZMKOptions {
   underGlowAtStart: boolean
   enableConsole: boolean
   enableStudio: boolean
+  wirelessVersion: 'v0.3' | 'v0.4'
 }
 
 export function validateConfig(options: ZMKOptions) {
@@ -150,6 +151,12 @@ function generateKeycodes(config: FullGeometry, matrix: Matrix, options: ZMKOpti
   return keycodes
 }
 
+/** Returns the board name used for the given config */
+function boardName(options: ZMKOptions) {
+  if (options.wirelessVersion == 'v0.4') return 'cosmos_lemon_wireless_v4'
+  return 'cosmos_lemon_wireless'
+}
+
 function generateEncoderMap(encodersPerSide: Record<keyof FullGeometry, number>) {
   const numEncoders = sum(Object.values(encodersPerSide).map(s => Math.min(s, 1)))
   return new Array(numEncoders).fill('&inc_dec_kp C_VOL_UP C_VOL_DN').join(' ')
@@ -214,7 +221,7 @@ function generateBuildYaml(config: FullGeometry, options: ZMKOptions): string {
     include: config.unibody
       ? [
         {
-          board: 'cosmos_lemon_wireless',
+          board: boardName(options),
           shield: shieldList(`${options.folderName}`, options.peripherals.unibody),
           snippet: snippets.join(';'),
           'cmake-args': options.enableStudio ? '-DCONFIG_ZMK_STUDIO=y' : undefined,
@@ -222,13 +229,13 @@ function generateBuildYaml(config: FullGeometry, options: ZMKOptions): string {
       ]
       : [
         {
-          board: 'cosmos_lemon_wireless',
+          board: boardName(options),
           shield: shieldList(`${options.folderName}_left`, options.peripherals.left),
           snippet: options.centralSide == 'left' ? snippets.join(';') : undefined,
           'cmake-args': options.centralSide == 'left' && options.enableStudio ? '-DCONFIG_ZMK_STUDIO=y' : undefined,
         },
         {
-          board: 'cosmos_lemon_wireless',
+          board: boardName(options),
           shield: shieldList(`${options.folderName}_right`, options.peripherals.right),
           snippet: options.centralSide == 'right' ? snippets.join(';') : undefined,
           'cmake-args': options.centralSide == 'right' && options.enableStudio ? '-DCONFIG_ZMK_STUDIO=y' : undefined,
@@ -590,7 +597,7 @@ export function downloadZMKCode(config: FullGeometry, matrix: Matrix, options: Z
       'config/deps.yml': strToU8(generateDepsYaml()),
       'config/west.yml': strToU8(generateWestYaml()),
       [`boards/shields/${folderName}`]: {
-        'boards/cosmos_lemon_wireless.overlay': strToU8(BOARD_OVERLAY),
+        [`boards/${boardName(options)}.overlay`]: strToU8(BOARD_OVERLAY),
         'Kconfig.defconfig': strToU8(generateDefconfig(config, options)),
         'Kconfig.shield': strToU8(generateShield(config, options)),
         [folderName + '.dtsi']: strToU8(generateDTSI(config, matrix, options)),

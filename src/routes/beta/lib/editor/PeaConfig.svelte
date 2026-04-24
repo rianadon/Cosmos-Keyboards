@@ -27,6 +27,8 @@
     underGlowAtStart: true,
     enableConsole: true,
     enableStudio: true,
+    wiredVersion: 'v0.4',
+    wirelessVersion: 'v0.3',
   })
   $: fullOptions = {
     ...$options,
@@ -65,6 +67,12 @@
   <Field name="Manufacturer Name (for USB)" icon="person">
     <input class="input px-2" bind:value={$options.yourName} />
   </Field>
+  <Field name="Microcontroller Version" icon="version">
+    <Select bind:value={$options.wiredVersion}>
+      <option value="v0.4">v0.4</option>
+      <option value="v0.5">v0.5</option>
+    </Select>
+  </Field>
   <Field
     name="Enable Console Debugging"
     icon="debug"
@@ -95,6 +103,12 @@
     <Select bind:value={$options.diodeDirection}>
       <option value="ROW2COL">ROW2COL (Pumpkin and Plum Twists)</option>
       <option value="COL2ROW">COL2ROW (Skree Flex PCBs)</option>
+    </Select>
+  </Field>
+  <Field name="Microcontroller Version" icon="version">
+    <Select bind:value={$options.wirelessVersion}>
+      <option value="v0.3">v0.3</option>
+      <option value="v0.4">v0.4</option>
     </Select>
   </Field>
   <Field name="Central (Plug into PC) Side" icon="pc">
