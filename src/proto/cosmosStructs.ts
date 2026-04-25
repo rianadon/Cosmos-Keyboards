@@ -97,6 +97,7 @@ enumeration('MICROCONTROLLER_NAME', [
   'lemon-wired',
   'lemon-wireless',
   'elite-c',
+  'rp2040-lite-black-usb-c-aliexpress',
 ])
 
 struct('PartVariant', {

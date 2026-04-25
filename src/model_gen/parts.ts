@@ -198,6 +198,12 @@ async function main() {
     { start: 2.54, align: { side: 'left', offset: 2.54 }, ...defaults },
     { start: 2.54, align: { side: 'right', offset: 2.54 }, ...defaults },
   ])
+  poolUC('rp2040-lite-black-usb-c-aliexpress', {}, [
+    { start: 4, align: { side: 'left', offset: 1.54 }, ...defaults },
+    { start: 4, align: { side: 'right', offset: 1.54 }, ...defaults },
+    // Bottom holes
+    { start: 6.64, end: 6.64, align: { side: 'bottom', offset: 1.54 }, ...defaults },
+  ])
   poolUC('promicro', { connector: 'micro-usb' }, [
     { start: 3.81, align: { side: 'left', offset: 1.27 }, ...defaults },
     { start: 3.81, align: { side: 'right', offset: 1.27 }, ...defaults },

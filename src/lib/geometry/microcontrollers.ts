@@ -88,7 +88,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     description: 'Why. Are. They. Still. Using. Micro-USB??',
   },
   'rp2040-black-usb-c-aliexpress': {
-    name: 'RP2040 Black Board USB-C (Aliexpress)',
+    name: 'RP2040 Black USB-C (Aliexpress)',
     extraName: '(USB-C) ☆',
     size: new Vector(0.9 * IN, 2.1 * IN, 1.57),
     sizeName: 'Large',
@@ -104,6 +104,24 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     rearPins: ['3V3', 'SWDIO', 'SWDCLK', 'GND'],
     isGPIO: /\d+/,
     description: 'My personal favorite. You can get these dirt cheap on AliExpress.',
+  },
+  'rp2040-lite-black-usb-c-aliexpress': {
+    name: 'RP2040 Lite Black USB-C (Aliexpress)',
+    extraName: '(USB-C) ☆',
+    size: new Vector(20.9, 53.8, 1.57),
+    sizeName: 'Large',
+    boundingBoxZ: 5,
+    offset: new Vector(0, 0, 1.835),
+    holes: [],
+    cutouts: [
+      { origin: new Vector(0, -2.1 * IN / 2, 0), size: new Vector(6, 23, 0) },
+    ],
+    sidecutout: 4,
+    leftSidePins: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', 'GND', '13', '14', '15', '16', '17'],
+    rightSidePins: ['VBUS', 'VIN', 'GND', '3V3_EN', '3V3', 'GND', 'RUN', '29', '28', '27', '26', 'AGND', '25', '24', '23', '22', '21', '20', '19', '18'],
+    rearPins: ['3V3', 'GND', 'SWDCLK', 'SWDIO'],
+    isGPIO: /\d+/,
+    description: "RP2040 board with USB-C on AliExpress. These do not have reset buttons on the board, so you will need to wire your own or use bootmagic keys. For this reason I don't recommend it.",
   },
   'promicro-usb-c': {
     name: 'Pro Micro - 34.7mm',
