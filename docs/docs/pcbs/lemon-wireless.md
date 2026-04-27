@@ -2,7 +2,9 @@
 
 !!! info "What's with the Resistors?"
 
-    On recent shipments of Lemon Wireless v0.3 I've begun including 5.1kΩ resistors. They're required if you're planning on using RGB LEDs with the microcontroller. See the [LEDs section of the troubleshooting guide](#leds-not-working-fix-for-v03-or-earlier) for more details.
+    On recent shipments of Lemon Wireless v0.3 I included 5.1kΩ resistors. They're required if you're planning on using RGB LEDs with the microcontroller. See the [LEDs section of the troubleshooting guide](#leds-not-working-fix-for-v03-or-earlier) for more details.
+
+    On Lemon Wireless v0.4 I fixed the root problem, so resistors are no longer needed.
 
 The Lemon Wireless is an nRF52840-based microcontroller for split keyboards with a USB-C port, power switch, JST battery connector, a VIK connector, and two FPC connectors for connecting column-flex PCBs. If you use column-flex PCBs and VIK-compatible peripherals, it's possible to build a wireless split keyboard without soldering any wires!
 
@@ -132,7 +134,7 @@ The best example of using ZMK on the Lemon microcontroller will for now probably
   ```yaml
   ---
   include:
-    - board: cosmos_lemon_wireless
+    - board: cosmos_lemon_wireless # or cosmos_lemon_wireless_v4
       shield: <YOUR_KEYBOARD> vik_cirque_spi
   ```
 
@@ -161,7 +163,7 @@ These are all taken care of if you autogenerate your firmware with Cosmos, but t
 
    Once I upstream the changes you can change `#!yaml remote: rianadon` to `#!yaml remote: zmkfirmware`.
 
-2. Your `build.yaml` should specify `#!yaml board: cosmos_lemon_wireless`. If you are building from the command line, use `west build -b cosmos_lemon_wireless`...
+2. Your `build.yaml` should specify `#!yaml board: cosmos_lemon_wireless` for v0.3 and earlier or `#!yaml board: cosmos_lemon_wireless_v4` for v0.4. If you are building from the command line, use `west build -b cosmos_lemon_wireless`...
 
 3. You MUST use `diode-direction = "col2row"` when configuring `kscan`, even if your diodes are connected in ROW2COL fashion. This is because `diode-direction` secretly configures whether the columns are the outputs or inputs when scanning. Because the Lemon Wireless uses a shift register to drive the columns, they can only be outputs. To use ROW2COL, use `diode-direction = "col2row"` together with row GPIOs configured as `GPIO_ACTIVE_LOW | GPIO_PULL_UP` and column GPIOS configured as `GPIO_ACTIVE_LOW`. See [this example for ROW2COL](https://github.com/rianadon/peaMK/blob/main/zmk/boards/shields/peamk/peamk_r2c.dtsi) and [this example for COL2ROW](https://github.com/rianadon/peaMK/blob/main/zmk/boards/shields/peamk/peamk_c2r.dtsi)
 
@@ -449,6 +451,27 @@ If you get flashing LEDs with this method, the more foolproof fix is to remove t
 ![PCB Layout for Wireless Lemon](../../assets/lemon-wireless-layout.png){ width=500 .center }
 
 Fun fact: The Wireless Lemon is the first, and hopefully last, 4-layer PCB I've made for Cosmos! These things aren't cheap to make.
+
+## Revision History
+
+**v0.4: LED Fix**
+
+- Replaced the LED level shifting with new design and parts
+- The LED power enable pin (P0.02) switched from active-low to active-high logic
+- Replaced VDDH on VIK connector with VRGB
+- Switched a lot of parts to different manufacturers, but footprints are all the same
+
+**v0.3: Refactor**
+
+- The first one I mass manufactured
+- Changed pin assignments so that there is some order to the matrix mapping
+- Added extra pins for VRGB and RGB data
+- Switched to ENIG in production
+
+**v0.2: Public Release!**
+
+- The first Wireless Lemon I started distributing
+- Most likely a depreciating asset, but it might be worth millions one day
 
 ## Further Documentation
 
