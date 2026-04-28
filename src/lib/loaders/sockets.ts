@@ -74,7 +74,7 @@ const keyCacher = makeAsyncCacher(async (key: CuttleKey) => {
   }
   return {
     mesh: await loadGLTF('/target/socket-' + key.type + variantURL(key) + '.glb'),
-    mass: masses[key.type] || 0,
+    mass: masses[key.type as keyof typeof masses] || 0,
   }
 })
 

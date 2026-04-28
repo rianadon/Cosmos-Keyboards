@@ -1,20 +1,19 @@
-import type { CuttleKey, Geometry } from '$lib/worker/config'
-import type { Cuttleform } from 'target/proto/cuttleform'
-import { type BufferAttribute, BufferGeometry, Group, Matrix4, Triangle, Vector3 } from 'three'
-import { STLLoader } from 'three/examples/jsm/loaders/STLLoader'
+import type { CuttleKey } from '$lib/worker/config'
+import { type BufferAttribute, BufferGeometry, Matrix4, Triangle, Vector3 } from 'three'
+import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
 import sockets from '../../../target/sockets-simple.json'
 import { ITriangle } from './simplekeys'
 
 function socket(name: keyof typeof sockets) {
   const loader = new STLLoader()
   const data = Uint8Array.from(atob((sockets as any)[name]), c => c.charCodeAt(0))
-  return loader.parse(data.buffer)
+  return loader.parse(data.buffer as ArrayBuffer)
 }
 
 export function simpleSocketGeos(type: CuttleKey['type']): BufferGeometry[] {
   if (type == 'mx-pcb') return [socket('mx'), socket('amoeba-king')]
   if (type.startsWith('mx') || type.startsWith('old-mx')) return [socket('mx')]
-  if (type == 'choc' || type == 'choc-hotswap') return [socket('choc')]
+  if (type.startsWith('choc')) return [socket('choc')]
   return []
 }
 

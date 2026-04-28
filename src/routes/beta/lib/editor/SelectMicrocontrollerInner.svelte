@@ -35,17 +35,18 @@
 </div>
 
 {#if $tooltipOpen && option.key !== null}
+  {@const boardProps = BOARD_PROPERTIES[option.key]}
   <div
     use:melt={$content}
     transition:fade={{ duration: 50 }}
     class="z-100 rounded-md bg-pink-200 dark:text-pink-950 shadow"
-    class:cosmos={BOARD_PROPERTIES[option.key].soldByCosmos}
+    class:cosmos={boardProps.soldByCosmos}
   >
     <div use:melt={$arrow} />
     <div class="px-6 py-4 max-w-80 cosmosprofileinfo">
       <img src={ucURL(option.key)} class="w-72 h-36 mx-auto" />
 
-      {#if BOARD_PROPERTIES[option.key].soldByCosmos}
+      {#if boardProps.soldByCosmos}
         <p
           class="bg-purple-900 text-white flex items-center px-4 py-0.5 gap-2 justify-end rounded mt-1 mb-6"
         >
@@ -69,13 +70,13 @@
           </div>
         </div>
       {/if}
-      {#if BOARD_PROPERTIES[option.key].description}
-        {@html '<p>' + BOARD_PROPERTIES[option.key].description.replaceAll('\n', '</p><p>') + '</p>'}
+      {#if boardProps.description}
+        {@html '<p>' + boardProps.description.replaceAll('\n', '</p><p>') + '</p>'}
       {/if}
       <p>{numGPIO(option.key)} I/O pins</p>
       <p>
-        {BOARD_PROPERTIES[option.key].size.x.toFixed(1)} mm &times;
-        {BOARD_PROPERTIES[option.key].size.y.toFixed(1)} mm
+        {boardProps.size.x.toFixed(1)} mm &times;
+        {boardProps.size.y.toFixed(1)} mm
       </p>
     </div>
   </div>

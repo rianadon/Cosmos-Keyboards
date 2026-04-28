@@ -16,6 +16,7 @@ export const transformMode = writable<'translate' | 'rotate' | 'select'>('select
 export const selectMode = writable<'key' | 'column' | 'cluster'>('key')
 export const user = writable<User>({ success: false, sponsor: undefined })
 export const codeError = writable<Error | null>(null)
+export const openSelect = writable<symbol | null>(null)
 
 export const hoveredKey = writable<number | null>(null)
 export const clickedKey = writable<number | null>(null)

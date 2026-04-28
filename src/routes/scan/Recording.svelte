@@ -2,7 +2,7 @@
   import Stage from './lib/Stage.svelte'
   import Pose from './lib/Pose.svelte'
   import { type Hand, calculateJoints, type Joints } from './lib/hand'
-  import { onMount } from 'svelte'
+  import { onDestroy, onMount } from 'svelte'
   import createDetector, { type Detector } from './lib/detector'
   import Display from './lib/Display.svelte'
   import calcStat, { INITIAL_STAT } from './lib/stats'
@@ -20,6 +20,7 @@
   let columnWidth = 0
   let recordingStarted = false
   let error: Error
+  let rid: number
 
   let videoWidth: number, videoHeight: number
 
@@ -65,7 +66,7 @@
 
   onMount(async () => {
     detector = await createDetector()
-    let rid = requestAnimationFrame(function update() {
+    rid = requestAnimationFrame(function update() {
       if (video.readyState == 4) {
         detector
           .estimateHands(video, { flipHorizontal: true })
@@ -74,10 +75,11 @@
       }
       rid = requestAnimationFrame(update)
     })
-    return () => {
-      cancelAnimationFrame(rid)
-      stream.getTracks().forEach((t) => t.stop())
-    }
+  })
+
+  onDestroy(() => {
+    cancelAnimationFrame(rid)
+    stream.getTracks().forEach((t) => t.stop())
   })
 
   function download(blob: Blob, filename: string) {

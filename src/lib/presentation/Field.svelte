@@ -38,7 +38,7 @@
             in:fade={{ duration: 100 }}
             out:fade={{ duration: 250 }}
           >
-            {help}
+            {@html help}
           </div>
         </Popover>
       {/if}

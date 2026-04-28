@@ -1,4 +1,6 @@
 <script lang="ts">
+  // @ts-nocheck Unused file
+
   import AngleInput from './AngleInput.svelte'
   import FloatInput from './FloatInput.svelte'
 

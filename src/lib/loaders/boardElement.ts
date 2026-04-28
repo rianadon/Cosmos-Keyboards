@@ -7,6 +7,7 @@ type Microcontroller = Exclude<Cuttleform['microcontroller'], null>
 const MICROCONTROLLER_URLS: Record<Microcontroller, string> = {
   'pi-pico': '/src/assets/pico.glb',
   'rp2040-black-usb-c-aliexpress': '/target/rp2040-black-usb-c-aliexpress.glb',
+  'rp2040-lite-black-usb-c-aliexpress': '/target/rp2040-lite-black-usb-c-aliexpress.glb',
   'promicro-usb-c': '/target/promicro-usb-c.glb',
   'promicro-usb-c-long': '/target/promicro-usb-c.glb',
   'promicro': '/target/promicro.glb',

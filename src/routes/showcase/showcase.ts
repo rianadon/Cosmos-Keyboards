@@ -202,6 +202,103 @@ const _keyboards: Record<string, Keyboard> = {
     switches: 'Kailh clears',
     keycaps: 'Purple from https://www.aliexpress.us/item/3256805819590269.html',
   },
+  '0eb58ef6': {
+    author: 'Cuttlerat',
+    name: 'Krysopyos',
+    type: 'split',
+    modifiedInCAD: true,
+    config:
+      '#cm:CnMKExIFEJBxIBMSABIAOBRAgKaLkAYKFBIFEJBlIBMSABIDELA7EgIQMDgAChkSBRCQWSATEgASAxCwLxICEDA4E0CA8LwCCg0SBRCQTSATEgASADgnCg0SBRCQQSATEgASADg7GABAuomgrvBVSNzwoqABCj4KIBIaCICAlAEQQCAAMMgBQL6H0LAdSPCbnI6QvQkwFjgAGAoiCgjIARDIARgAIABA25GknPA3SISPlNageAptChMSBRCQBSATEgASADgTQICGisAHChESBRCQESATEgASABICEDA4AAoWEgUQkB0gExIAEgASAhAwOBRAgPC8AgoNEgUQkCkgExIAEgA4KAoNEgUQkDUgExIAEgA4PBgBQLmJoK7wVUjc7qKYAQqiAQqCARIWCIAwEMCAAiAAQIyF2JYQSI2FxOiJDhIWCICwBBBAIABAn8SW2AFIm4X05/CfGxIRIABAiIWcjOADSPaPtJawsRISEwiAgAQgAEDng+goSIeJtJfw1RMSECAAQOiykqACSJqJlJbQvRQSFAiAgAQgAEDthbSXkAFI5YuQu+8JOAAYAyIKCMgBEMgBGAAgAECejcys8DNIpqncxoC0CBADGIugAjAyOAOCAQgAAKwCQyYAAkgFWEhoAHINGCMYSxi5ARi7AhjZAniMg6yUwXHyAQIIAQ==',
+    projectLink: 'https://github.com/Cuttlerat/zmk-config-krysopyos',
+    filament: 'Bambu lab PETG-CF Black and Unknown Tranclusent PETG Red',
+    switches: 'Kailh Ambient Silent Twilight',
+    keycaps: 'Black - PBT from Aliexpress; Red - 3d printed KEA',
+  },
+  '4276ec9a': {
+    author: 'Ferrben',
+    type: 'split',
+    config:
+      '#cm:CnEKDxIFEJBBIBMSABIAODFAAAoPEgUQkE0gExIAEgA4HUAAChUSBRCQWSATEgASAxCwLzgJQIDwvAIKEhIFEJBlIBMSABIDELA7OApAAAoTEgUQkHEgExIAEgA4HkCAhorABxgAQOiFoK7wVUjc8KKgAQpoChcSExDAgAJAgICYAkjCmaCVkLwBUEM4CAoVEhAQQECAgCBI0JWA3ZD1A1ALUJ4CChQSEBBAQICA+AFI5pn8p5ALUFdQfwoDUIICGAIiCgjIARDIARgAIABAy4v8n9AxSK2R3I3BkwaCAQIEAlhHYANoAHIDeOgC',
+    filament: 'Elegoo PLA+ Sky Blue & PolyTerra PLA Peach',
+    switches: 'Gateron Brown',
+    keycaps: 'Blank XDA from Aliexpress',
+  },
+  'b70c1bcb': {
+    author: 'Kai.凱',
+    type: 'split',
+    config:
+      '#cm:CtIBChwSCQiAgAIQkEEgExIECICABBIECICABDgxQIAGChMSCQiAgAIQkE0gExIAEgA4HUAACjMSCQiAgAIQkFkgExIAEgMQsC8SBQgMELBfEhAICBAwMAFAgKCtAUikpewkOAlAgIiHmAIKIRIJCICAAhCQZSATEgASAxCwOxIHCAwQsGtAADgKQIDkNAoXEgkIgIACEJBxIBMSABIAOB5AgOaKwAIKHBIYCJaAkgEQMDCCBEDHg+C7B0ibibTG4bAIOEUYAEDohaCu8FVIuIPgxeAECnQKGxIXCICABBDAgAJAgICYAkjCmaCVkLwBUEM4CAoZEhQIgIAEEEBAgIAgSNCVgN2Q9QNQC1CeAgoYEhQIgIAEEEBAgID4AUjmmfynkAtQV1B/CgNQggIYAiIKCL4BEMgBGAAgAEDLi/yf0DFIrZHcjcGTBgquAQocEgkIgIACEJA1IBMSBAiAgAQSBAiAgAQ4MkCABgoTEgkIgIACEJApIBMSABIAOB5AAAowEgkIgIACEJAdIBMSABIAEgUIDBCwXxIQCAgQMDABQICgrQFIpKXwJDgKQICIh5gCCh4SCQiAgAIQkBEgExIAEgASBwgMELBrQAA4CUCA5DQKFxIJCICAAhCQBSATEgASADgdQIDmisACGAFA54WgrvBVSLiD3MXQBBACGIygBCIDCM0BOAKCAQIEA0gGUAJYSGACaAByE5ABhQIYChgqGFwYjAEYrAEY0QE=',
+    filament: '蘭博 from Taobao',
+    switches: 'Kailh Choc V2 Silent Low-Profile Switches (MX Stem)',
+    keycaps: "Nuphy's low profile keycaps",
+    name: 'Kai Cosmos',
+    modifiedInCAD: true,
+    projectLink: 'https://github.com/kaihchang/Kai_Cosmos_pmw3610_trackball_split_keybaord',
+    details:
+      'Wrist Rest from Printables and printed in TPU: <a href="https://www.printables.com/model/1199607-sliding-wrist-rest-v2-flat-with-no-feet-carpio-del">https://www.printables.com/model/1199607-sliding-wrist-rest-v2-flat-with-no-feet-carpio-del</a>',
+  },
+  'c3e94372': {
+    author: 'Seb',
+    type: 'split',
+    config:
+      '#cm:CpEBChUSBRCQcSATEgIgABIAOB5AgIaKwAcKEhIFEJBlIBMSAiAAEgMQsDs4CgoXEgUQkFkgExICIAASAxCwLzgJQIDwvAIKDxIFEJBNIBMSAiAAEgA4HQoPEgUQkEEgExICIAASADgxChoSBBAQIBMSBhCggAogABICEDA4MkCAhorABxgAQOiFoK7wVUjejKvAAQpjChYSEhDAgAJAjLQ0SMSZnJ2Q+QFQQzgIChYSERBAQJCM1ANItI+8nvDQA1ALUJ4CChQSEBBAQJKQOUi+m+SV0JMCUFdQfxgCIgoIyAEQyAEYACAAQNGHlJ2QOkitkdyNwZMGEAMYhqACIgkIvwEQvwEgiA4wHjgDggEBAkgEYAJoAHIZOBRAHpgBFKABAKABAKABAKABAKgBULABAg==',
+    filament: 'eSUN ePLA-Magic – Dark Twinkling Purple for the shell, e-Sun PLA+ Orange for the base and e-Sun PLA+ Gray for the keycaps. (might change out for the same orange as the base)',
+    switches: "Choc V1 Red Pro's",
+    keycaps: 'ScottoKeebs blank choc keycaps. Can be downloaded for free on his <a href="https://github.com/joe-scotto/scottokeebs/tree/main/Extras/ScottoCaps">github</a>',
+    name: 'CorneCave',
+    modifiedInCAD: true,
+    details: 'Wanted a concave corne-style keyboard with ZMK that is slightly tented but keeps a fairly good "low-profile" relative to the benefits you get from the slight tent and concavity.',
+  },
+  '82052649': {
+    author: 'johan.y',
+    type: 'split',
+    config:
+      '#cm:CrECCiESBRCAbyAnEgIgExICIAASADgeQJSmjogBSLeDsIzwtwEKMBIFEIBjICcSAiATEgIgABIDELA7Eg8QMCAoQIKQzQNI/ouoiAQ4CkCSyl1IgID0FwoxEgUQgFcgJxICIBMSAiAAEgMQsC8SDxAwIChAgOCUA0j8i8C4BzgJQICExQJIgICEAwodEgUQgEsgJxICIBMSAiAAEgA4HUCDlo0BSICA8AIKLRITCBIQICAAQILEhqgGSOyNzPewMhIPCBBAkIyUFEjCp8T98J4COEVAgIC4AgooEgUQgD8gJxICIBMSCBCwRSAUQIAGEgUQoEMgADgxQIKqjQFIgIDADQofEgQQECATEgIgABIEQICAXDgyQJqKjyBIq4PclNC8ARgAQOiFoK7wVUjthdjF0AgKbwomEhcIgDAQwIACGAhA7IrAAUirpLfY/ghQQzgIQKXqKEiLh6DE8AsKA1CCAgoeEhcIgDAQMEDEsqANSIejmObw1RBQQ1inATgLQJEmGAIiDwi+ARDIARiIDiCDByjKEUDNifyd0ApIjY+Ur+DZBBAFIgkIwwEQwQEg1AwoDzAjOAWCAQIEA0gEUAJYBmgAcgIgAA==',
+    filament: 'PLA (printed at local 3d printing service)',
+    switches: 'Gateron Silver Smoothie linear switches, spring-swapped with lighter 35g springs (it feels equivalent to 20g choc switches which I usually use in other boards)',
+    keycaps: 'White on Black MT3 keycaps, 1.5u XDA PBT keycaps for the thumb keys',
+    projectLink: 'https://www.reddit.com/r/ErgoMechKeyboards/s/FJrlwhkmcG',
+  },
+  '35b52671': {
+    author: 'dealero',
+    type: 'split',
+    config:
+      '#cm:CrMBChMSBRCQQSATEgIgABIEQICAFDgxCg8SBRCQTSATEgIgABIAOB0KHxIFEJBZIBMSAiAAEgMQsC8SBRCwXyAoOAlAgPCHyAIKHRIFEJBlIBMSAiAAEgMQsDsSBRCwayAoOApAgMBNChUSBRCQcSATEgIgABIAOB5AgP6HgAIKGhIEEBAgExIGEKCACiAAEgIQMDgyQICGisAHCgoSBBAgIAASADhFGABA7JCX+CpI3PCioAEKfwoYEhQQwIACQJ78jrAESMKZoJWQvAFQQzgIChcSEBBAQNOGmQxI0JWAyPoBUAswFlCeAgoVEhEQQEC0yI7wA0jmmfynkAtQV1B/ChYSERBAQPLEjvgFSPCZxLXQMFB0UJUBGAIiCgjIARDIARgAIABArY3kp9AxSK2R3I3BkwYKsgEKDxIFEJBBIBMSAiAAEgA4MgoPEgUQkE0gExICIAASADgeCh8SBRCQWSATEgIgABIDELAvEgUQsF8gKDgKQICIh4gCCh0SBRCQZSATEgIgABIDELA7EgUQsGsgKDgJQICMVQoVEgUQkHEgExICIAASADgdQIDai/ACChwSBRCQZSATEgYQoOcKIAASAxCwOzgxQICGisAHCgsSBRCgTyAAEgA4RhgBQOuQl/gqSNzuopgBCpUBChcSExDAgAJAgICYAkjCmZyVoLwBUEM4BwoYEhQQwIACQICAzAJIwpmclaC8AVCGAVA5ChUSEBBAQICAIEjQlfzcoPUDUAtQnQIKFRIQEEBAgID4AUjmmYCsoAtQV1CAAQoVEhAQQECAgKQDSPCZyLXgMFB0UJYBGAMiCgi9ARDIARgAIABAro38n9AxSK2R4I2xkwYQAxiGICIGCMMBELUBOAOCAQIEAkgEaAByB5ABvAIQ5AJ4yIPkh+FQ',
+    switches: 'Kailh Choc Red v1',
+    keycaps: '<a href="https://github.com/klouderone/KEA-choc-keycaps/tree/main">KEA-choc-keycaps</a> Choc spaced printed in PLA ',
+    modifiedInCAD: true,
+    details:
+      'The trackball sensor is PMW3360. Tha ball is from Ergo M575. Wirst supports are Powerton Ergoline. Microcontrolers are Tenstar RP2040 Micro. I had to slightly modify the microcontroler holder to fit to the holes.',
+    filament: 'Sunlu PLA+ Grass Green and unknown semi-transparent filament',
+  },
+  '99b9d254': {
+    author: 'stubbleman',
+    type: 'split',
+    config:
+      '#cm:CrIDCjMSGQgIEIBvICco3AEwFECShvUCSL+PnPyQlAUSAiATEgIgABIAEgQQMCAoOB5AgKaH0AEKRhIaCAgQgGMgJyi0ATAUQJ+qhtgCSM+f9K2Q+gESAiATEgIgABIDELA7EgUQsGsgKBIMEDAgPECAmMQDSKA7OApAgJSG2AEKQhIFEJBZIBMSAiAAEgMQsC8SBRCwXyAoEgwQMCA8QICWpAxIwj0SEwgIIFAwFECBxIeoLEiQ07SvgHk4CUCAjIrYAgopEhkICBCASyAnKMgBMBRAg/LkA0jVm5i/wJ8BEgIgExICIAASADgdQAAKKBIaCAgQgD8gJyi0ATAUQICGhrgDSL2h2K+g2AISAiATEgIgABIAODEKRBISEEAgAECdwpfQAUioh6Cn8fEPEhkICBAwIAAowAIwFECI4IqgAkjpl6S0gJ8JEg8IBhBAQJWgh1hI+oXkyAIwEDhFCkUSFggIICco3AEwHkCAooswSN2n7LfQ1AcSCSATQICGC0iJFRINEKCACiAAQICeC0i1ERIJEDBAgLILSL8XODJAgMKHwAEYAEDQg6Cu8FVI3PCioAEKlAEKKxITEMCAAkCAgJgCSMKZoJWQvAFQQxISEDBAgcikAUjCmaCVkLwBUIQBOAgKFRIQEEBAgIAgSMKVuN3Q+wNQC1CeAgoxEhMIJRBAQKfKkA1IopuUnpDVAVBXEhgICBAwKPoBMBRA0/qUA0jamayf8LQCUHBQfxgCIgoIyAEQyAEYACAAQOON/J/QMUitkdyNwZMGEAMYhiAiAxCuATAeOAOCAQIEAkgFWAtgAmgAchyQAf8BEIACeLAnoAEAoAEAoAEAoAEAqAFSsAEBeMqDnP6AWA==',
+    filament: 'Esun PLA',
+    switches: 'Kailh Choc V1 Brown',
+    name: 'ErgoDaDa',
+    keycaps: '<a href="https://www.printables.com/model/1619893-kailh-choc-v1-keycap">Kailh Choc V1 keycaps</a> printed in PLA',
+    details:
+      'This is a split keyboard with Nintendo Joycons. The controllers are RP2040 Micro. It can be printed vertically to minimize/eliminate the support. Because of the small footprint, two hands can be printed in one plate.',
+  },
+  '305a4e7b': {
+    author: 'animositee707',
+    type: 'split',
+    config:
+      '#cm:Cv0CCiQSDRDwPSA7QABIAGICRjYSBRCAPyAnEgIgExICIAASADgxQAAKJBINEPBJIDtAAEgAYgJGNxIFEIBLICcSAiATEgIgABIAOB1AAAoxEg0Q8FUgO0AASABiAkY4EgUQgFcgJxICIBMSAiAAEgMQsC8SBRCwXyAoOAlAgPC8AgouEg0Q8GEgO0AASABiAkY5EgUQgGMgJxICIBMSAiAAEgMQsDsSBRCwayAoOApAAAovEg4Q8G0gO0AASABiA0YxMBIFEIBvICcSAiATEgIgABIAEgQQMCAoOB5AgIaKwAcKLBIIEHAgO0AASAASBBAAICcSAiATEgYQoIAKIAASAhAwEgIgKDgyQICGisAHCh4SCBBwIDtAAEgAEgQQACAnEgIgExICIAASADhFQAAKGhIEEHAgOxIEEAAgJxICIBMSAiAAEgA4WUAACiISBBBwIDsSAiAnEgQQACATEgIgABIAEgIgKDhGQICGisAHGABA6IWgrvBVSNzwoqABCqEBCisSExDAgAJAgICYAkjCmaCVkLwBUEMSEkCAgMwCSMKZoJWQvAFQhgFYOjgIChUSEBBAQICAIEjQlYDdkPUDUAtQngIKJxIQEEBAgID4AUjmmfynkAtQVxIRQICApANI8JnEtdAwUHRYlQFQfwoVEhBAkrbtDEj6mejs8PwCUIYBUIICGAIiCgjIARDIARgAIABAy4v8n9AxSK2R3I3BkwYiBhjoAiD2BIIBAgQCWEFoAA==',
+    filament: 'PLA',
+    switches: 'Gateron Milky Yellow Pro v3',
+    keycaps: 'YDMK PBT XDA v2 blank keycaps',
+    name: 'Dactyl Max 112',
+    details:
+      `<p>I wanted to create a dactyl keyboard that not only replaced my current keyboard, but also my macropad. The result is the Dactyl Max 112. With enough keys and layers to never run out.</p>
+<p>The foam and three plus layers of electrical tape under the keys does a great job of removing the hollow, clacky sound of the  keyboard given its very large interior. This creates a far more thocky sounding  keyboard. Although a little pop still remains.</p>
+<p>I had a pi pico 2 already so that is why I chose to use one. Since this is my first custom keyboard I kept it simple and didn't make a true split keyboard. Instead the wires go through that very large black cord connecting the two halves so the controller thinks it is a single keyboard. There is no reason to do this unless you already have the parts. On my next keyboard I will use the lemon board with usbc instead of trrs most likely and get rid of the massive cord.</p>
+<p>I originally used POG to code my keyboard. It uses the python kmk firmware and circuit python instead of qmk. I did this because the pi pico 2 is not supported by qmk yet. I will likely either switch out my board or wait until it is supported. That is why I used a breakout board for this keyboard. I didn't want to solder the wires if I was just going to replace it. That being said kmk is very easy to use and POG makes custom keyboards even easier. I highly recommend it to anyone that is nervous to use qmk or can't use it.</p>
+<p>I also recommend the silicone feet I put on for additional tenting, adding some weight, and prevent sliding.</p>`,
+  },
 }
 
 function findImages(kbd: Keyboard) {

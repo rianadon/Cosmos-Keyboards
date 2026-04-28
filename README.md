@@ -24,7 +24,7 @@ Most generator code lives at [`src/lib`] and[`src/routes/beta`]. Some files used
 
 To run the generator locally, you have two options:
 
-1. **Manual Setup**:
+1. **Recommended Setup**:
 
    - [Clone] the repository and [install Bun][bun].
      > The rationale is that Bun has built-in TypeScript and path mapping support. Alternatively, you can use [Node.js][nodejs] v21 or later ([nvm][nvm-sh] recommended for Linux users). When using Node.js, Cosmos uses a custom ESM loader, which is more difficult to debug when things ultimately go wrong. Nevertheless, the WASM build scripts are more reliable in Node.js than Bun.
@@ -32,12 +32,14 @@ To run the generator locally, you have two options:
    - Read the [dev documentation](https://ryanis.cool/cosmos/docs/contributing/#building-the-project) if you wish to compile the docs or create a production build.
    - Finally, run `make dev` to start a dev server and visit [`http://localhost:5173/beta`](http://localhost:5173/beta).
 
-2. **Docker Setup** (Recommended for Windows†):
+     If you are on Windows, use `bun make` (or `npm run nodemake` if you don't have Bun) instead of `make`. Cosmos includes a [simplistic cross-platform Make runner](https://github.com/rianadon/Cosmos-Keyboards/tree/main/src/scripts/mini-make.ts). You can also use [Cygwin](https://www.cygwin.com/) if you have it.
+
+2. **Docker Setup**:
    - [Clone] the repository and install [Docker and Docker compose](https://docs.docker.com/get-docker/).
    - Run `docker compose up` in the project root directory.
      - To avoid running the make scripts when rebuilding, set `SKIP_MAKE_FILES=true` in your .env file. This reduces build time if all target files and docs have already been created.
 
-† Docker is recommended on Windows since you'll need `make` and a ideally Linux shell. You can alternatively [use make in Cygwin](https://www.cygwin.com/), [install make](https://stackoverflow.com/a/73862277), or piece together what you need to run from the `Makefile` :)
+     I don't recommend using Docker unless you absolutely need to, for it adds a lot of complexity. Cosmos is designed to run anywhere with just a single installation of Bun (and Python if you need local docs).
 
 [bun]: https://bun.sh/docs/installation
 [lfs]: https://git-lfs.com/

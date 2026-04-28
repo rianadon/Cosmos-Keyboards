@@ -10,6 +10,8 @@ message Keyboard {
 
   optional int32 wall_shrouding = 5;
   optional int32 wall_thickness = 6;
+  optional int32 wall_x_y_offset = 17;
+  optional int32 wall_z_offset = 18;
   optional uint32 key_basis = 7;
   optional uint32 connector = 8; //DEPRECATED: Bitmask for the connector size + type
   optional bytes connectors = 16; // Custom connector encoding
@@ -106,4 +108,7 @@ message Key {
   optional sint32 row2 = 10;
   optional sint32 column2 = 11;
   optional string letter = 12;
+  // 13-15 reserved
+  optional uint32 margin_x = 16;
+  optional uint32 margin_y = 17;
 }

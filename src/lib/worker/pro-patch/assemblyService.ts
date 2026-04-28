@@ -1,1 +1,1 @@
-export const SORTED_VENDORS = []
+export const SORTED_VENDORS: any[] = []

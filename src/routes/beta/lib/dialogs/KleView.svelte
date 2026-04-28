@@ -1,9 +1,7 @@
 <script lang="ts">
   import type { Cuttleform, FullCuttleform } from '$lib/worker/config'
   import { download } from '$lib/browser'
-  import { toKLE } from '../kle'
-  import { bomMultiplier as multiplier } from '$lib/store'
-  import MultiplierDropdown from './MultiplierDropdown.svelte'
+  import { toKLE } from '../firmware/kle'
   import type { FullGeometry } from '../viewers/viewer3dHelpers'
 
   export let conf: FullCuttleform

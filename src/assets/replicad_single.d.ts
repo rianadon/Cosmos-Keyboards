@@ -106,6 +106,54 @@ export declare class TDF_Label {
   delete(): void;
 }
 
+export declare class TDF_LabelSequence extends NCollection_BaseSequence {
+  begin(): any;
+  end(): any;
+  cbegin(): any;
+  cend(): any;
+  Size(): Standard_Integer;
+  Length(): Standard_Integer;
+  Lower(): Standard_Integer;
+  Upper(): Standard_Integer;
+  IsEmpty(): Standard_Boolean;
+  Reverse(): void;
+  Exchange(I: Standard_Integer, J: Standard_Integer): void;
+  static delNode(theNode: NCollection_SeqNode, theAl: Handle_NCollection_BaseAllocator): void;
+  Clear(theAllocator: Handle_NCollection_BaseAllocator): void;
+  Assign(theOther: TDF_LabelSequence): TDF_LabelSequence;
+  Remove_2(theIndex: Standard_Integer): void;
+  Remove_3(theFromIndex: Standard_Integer, theToIndex: Standard_Integer): void;
+  Append_1(theItem: TDF_Label): void;
+  Append_2(theSeq: TDF_LabelSequence): void;
+  Prepend_1(theItem: TDF_Label): void;
+  Prepend_2(theSeq: TDF_LabelSequence): void;
+  InsertBefore_1(theIndex: Standard_Integer, theItem: TDF_Label): void;
+  InsertBefore_2(theIndex: Standard_Integer, theSeq: TDF_LabelSequence): void;
+  InsertAfter_2(theIndex: Standard_Integer, theSeq: TDF_LabelSequence): void;
+  InsertAfter_3(theIndex: Standard_Integer, theItem: TDF_Label): void;
+  Split(theIndex: Standard_Integer, theSeq: TDF_LabelSequence): void;
+  First(): TDF_Label;
+  ChangeFirst(): TDF_Label;
+  Last(): TDF_Label;
+  ChangeLast(): TDF_Label;
+  Value(theIndex: Standard_Integer): TDF_Label;
+  ChangeValue(theIndex: Standard_Integer): TDF_Label;
+  SetValue(theIndex: Standard_Integer, theItem: TDF_Label): void;
+  delete(): void;
+}
+
+  export declare class TDF_LabelSequence_1 extends TDF_LabelSequence {
+    constructor();
+  }
+
+  export declare class TDF_LabelSequence_2 extends TDF_LabelSequence {
+    constructor(theAllocator: Handle_NCollection_BaseAllocator);
+  }
+
+  export declare class TDF_LabelSequence_3 extends TDF_LabelSequence {
+    constructor(theOther: TDF_LabelSequence);
+  }
+
 export declare class Precision {
   constructor();
   static Angular(): Standard_Real;
@@ -1565,6 +1613,13 @@ export declare class MoniTool_TypedValue extends Standard_Transient {
     constructor(other: Handle_MoniTool_TypedValue);
   }
 
+export declare class NCollection_BaseSequence {
+  IsEmpty(): Standard_Boolean;
+  Length(): Graphic3d_ZLayerId;
+  Allocator(): Handle_NCollection_BaseAllocator;
+  delete(): void;
+}
+
 export declare class NCollection_BaseList {
   Extent(): Graphic3d_ZLayerId;
   IsEmpty(): Standard_Boolean;
@@ -2189,6 +2244,93 @@ export declare class GProp_GProps {
     constructor(SystemLocation: gp_Pnt);
   }
 
+export declare class BOPDS_DS {
+  Clear(): void;
+  Allocator(): Handle_NCollection_BaseAllocator;
+  SetArguments(theLS: TopTools_ListOfShape): void;
+  Arguments(): TopTools_ListOfShape;
+  Init(theFuzz: Standard_Real): void;
+  NbShapes(): Graphic3d_ZLayerId;
+  NbSourceShapes(): Graphic3d_ZLayerId;
+  NbRanges(): Graphic3d_ZLayerId;
+  Range(theIndex: Graphic3d_ZLayerId): BOPDS_IndexRange;
+  Rank(theIndex: Graphic3d_ZLayerId): Graphic3d_ZLayerId;
+  IsNewShape(theIndex: Graphic3d_ZLayerId): Standard_Boolean;
+  Append_1(theSI: BOPDS_ShapeInfo): Graphic3d_ZLayerId;
+  Append_2(theS: TopoDS_Shape): Graphic3d_ZLayerId;
+  ShapeInfo(theIndex: Graphic3d_ZLayerId): BOPDS_ShapeInfo;
+  ChangeShapeInfo(theIndex: Graphic3d_ZLayerId): BOPDS_ShapeInfo;
+  Shape(theIndex: Graphic3d_ZLayerId): TopoDS_Shape;
+  Index(theS: TopoDS_Shape): Graphic3d_ZLayerId;
+  PaveBlocksPool(): BOPDS_VectorOfListOfPaveBlock;
+  ChangePaveBlocksPool(): BOPDS_VectorOfListOfPaveBlock;
+  HasPaveBlocks(theIndex: Graphic3d_ZLayerId): Standard_Boolean;
+  PaveBlocks(theIndex: Graphic3d_ZLayerId): BOPDS_ListOfPaveBlock;
+  ChangePaveBlocks(theIndex: Graphic3d_ZLayerId): BOPDS_ListOfPaveBlock;
+  UpdatePaveBlocks(): void;
+  UpdatePaveBlock(thePB: Handle_BOPDS_PaveBlock): void;
+  UpdateCommonBlock(theCB: Handle_BOPDS_CommonBlock, theFuzz: Standard_Real): void;
+  IsCommonBlock(thePB: Handle_BOPDS_PaveBlock): Standard_Boolean;
+  CommonBlock(thePB: Handle_BOPDS_PaveBlock): Handle_BOPDS_CommonBlock;
+  SetCommonBlock(thePB: Handle_BOPDS_PaveBlock, theCB: Handle_BOPDS_CommonBlock): void;
+  RealPaveBlock(thePB: Handle_BOPDS_PaveBlock): Handle_BOPDS_PaveBlock;
+  IsCommonBlockOnEdge(thePB: Handle_BOPDS_PaveBlock): Standard_Boolean;
+  FaceInfoPool(): BOPDS_VectorOfFaceInfo;
+  HasFaceInfo(theIndex: Graphic3d_ZLayerId): Standard_Boolean;
+  FaceInfo(theIndex: Graphic3d_ZLayerId): BOPDS_FaceInfo;
+  ChangeFaceInfo(theIndex: Graphic3d_ZLayerId): BOPDS_FaceInfo;
+  UpdateFaceInfoIn_1(theIndex: Graphic3d_ZLayerId): void;
+  UpdateFaceInfoIn_2(theFaces: TColStd_MapOfInteger): void;
+  UpdateFaceInfoOn_1(theIndex: Graphic3d_ZLayerId): void;
+  UpdateFaceInfoOn_2(theFaces: TColStd_MapOfInteger): void;
+  FaceInfoOn(theIndex: Graphic3d_ZLayerId, theMPB: BOPDS_IndexedMapOfPaveBlock, theMVP: TColStd_MapOfInteger): void;
+  FaceInfoIn(theIndex: Graphic3d_ZLayerId, theMPB: BOPDS_IndexedMapOfPaveBlock, theMVP: TColStd_MapOfInteger): void;
+  AloneVertices(theF: Graphic3d_ZLayerId, theLI: TColStd_ListOfInteger): void;
+  RefineFaceInfoOn(): void;
+  RefineFaceInfoIn(): void;
+  SubShapesOnIn(theNF1: Graphic3d_ZLayerId, theNF2: Graphic3d_ZLayerId, theMVOnIn: TColStd_MapOfInteger, theMVCommon: TColStd_MapOfInteger, thePBOnIn: BOPDS_IndexedMapOfPaveBlock, theCommonPB: BOPDS_MapOfPaveBlock): void;
+  SharedEdges(theF1: Graphic3d_ZLayerId, theF2: Graphic3d_ZLayerId, theLI: TColStd_ListOfInteger, theAllocator: Handle_NCollection_BaseAllocator): void;
+  ShapesSD(): TColStd_DataMapOfIntegerInteger;
+  AddShapeSD(theIndex: Graphic3d_ZLayerId, theIndexSD: Graphic3d_ZLayerId): void;
+  HasShapeSD(theIndex: Graphic3d_ZLayerId, theIndexSD: Graphic3d_ZLayerId): Standard_Boolean;
+  InterfVV(): BOPDS_VectorOfInterfVV;
+  InterfVE(): BOPDS_VectorOfInterfVE;
+  InterfVF(): BOPDS_VectorOfInterfVF;
+  InterfEE(): BOPDS_VectorOfInterfEE;
+  InterfEF(): BOPDS_VectorOfInterfEF;
+  InterfFF(): BOPDS_VectorOfInterfFF;
+  InterfVZ(): BOPDS_VectorOfInterfVZ;
+  InterfEZ(): BOPDS_VectorOfInterfEZ;
+  InterfFZ(): BOPDS_VectorOfInterfFZ;
+  InterfZZ(): BOPDS_VectorOfInterfZZ;
+  static NbInterfTypes(): Graphic3d_ZLayerId;
+  AddInterf(theI1: Graphic3d_ZLayerId, theI2: Graphic3d_ZLayerId): Standard_Boolean;
+  HasInterf_1(theI: Graphic3d_ZLayerId): Standard_Boolean;
+  HasInterf_2(theI1: Graphic3d_ZLayerId, theI2: Graphic3d_ZLayerId): Standard_Boolean;
+  HasInterfShapeSubShapes(theI1: Graphic3d_ZLayerId, theI2: Graphic3d_ZLayerId, theFlag: Standard_Boolean): Standard_Boolean;
+  HasInterfSubShapes(theI1: Graphic3d_ZLayerId, theI2: Graphic3d_ZLayerId): Standard_Boolean;
+  Interferences(): BOPDS_MapOfPair;
+  Dump(): void;
+  IsSubShape(theI1: Graphic3d_ZLayerId, theI2: Graphic3d_ZLayerId): Standard_Boolean;
+  Paves(theIndex: Graphic3d_ZLayerId, theLP: BOPDS_ListOfPave): void;
+  UpdatePaveBlocksWithSDVertices(): void;
+  UpdatePaveBlockWithSDVertices(thePB: Handle_BOPDS_PaveBlock): void;
+  UpdateCommonBlockWithSDVertices(theCB: Handle_BOPDS_CommonBlock): void;
+  InitPaveBlocksForVertex(theNV: Graphic3d_ZLayerId): void;
+  ReleasePaveBlocks(): void;
+  IsValidShrunkData(thePB: Handle_BOPDS_PaveBlock): Standard_Boolean;
+  BuildBndBoxSolid(theIndex: Graphic3d_ZLayerId, theBox: Bnd_Box, theCheckInverted: Standard_Boolean): void;
+  delete(): void;
+}
+
+  export declare class BOPDS_DS_1 extends BOPDS_DS {
+    constructor();
+  }
+
+  export declare class BOPDS_DS_2 extends BOPDS_DS {
+    constructor(theAllocator: Handle_NCollection_BaseAllocator);
+  }
+
 export declare class GeomAdaptor_Curve extends Adaptor3d_Curve {
   static get_type_name(): Standard_Character;
   static get_type_descriptor(): Handle_Standard_Type;
@@ -2651,6 +2793,46 @@ export declare class TDocStd_Document extends CDM_Document {
   DynamicType(): Handle_Standard_Type;
   delete(): void;
 }
+
+export declare class Standard_GUID {
+  ToUUID(): Standard_UUID;
+  ToCString(aStrGuid: Standard_PCharacter): void;
+  ToExtString(aStrGuid: Standard_PExtCharacter): void;
+  IsSame(uid: Standard_GUID): Standard_Boolean;
+  IsNotSame(uid: Standard_GUID): Standard_Boolean;
+  Assign_1(uid: Standard_GUID): void;
+  Assign_2(uid: Standard_UUID): void;
+  ShallowDump(aStream: Standard_OStream): void;
+  static CheckGUIDFormat(aGuid: Standard_CString): Standard_Boolean;
+  Hash(Upper: Graphic3d_ZLayerId): Graphic3d_ZLayerId;
+  static HashCode(theGUID: Standard_GUID, theUpperBound: Graphic3d_ZLayerId): Graphic3d_ZLayerId;
+  static IsEqual(string1: Standard_GUID, string2: Standard_GUID): Standard_Boolean;
+  delete(): void;
+}
+
+  export declare class Standard_GUID_1 extends Standard_GUID {
+    constructor();
+  }
+
+  export declare class Standard_GUID_2 extends Standard_GUID {
+    constructor(aGuid: Standard_CString);
+  }
+
+  export declare class Standard_GUID_3 extends Standard_GUID {
+    constructor(aGuid: Standard_ExtString);
+  }
+
+  export declare class Standard_GUID_4 extends Standard_GUID {
+    constructor(a32b: Graphic3d_ZLayerId, a16b1: Standard_ExtCharacter, a16b2: Standard_ExtCharacter, a16b3: Standard_ExtCharacter, a8b1: Standard_Byte, a8b2: Standard_Byte, a8b3: Standard_Byte, a8b4: Standard_Byte, a8b5: Standard_Byte, a8b6: Standard_Byte);
+  }
+
+  export declare class Standard_GUID_5 extends Standard_GUID {
+    constructor(aGuid: Standard_UUID);
+  }
+
+  export declare class Standard_GUID_6 extends Standard_GUID {
+    constructor(aGuid: Standard_GUID);
+  }
 
 export declare class Handle_Standard_Transient {
   Nullify(): void;
@@ -5366,6 +5548,47 @@ export declare class STEPCAFControl_Writer {
     constructor(WS: Handle_XSControl_WorkSession, scratch: Standard_Boolean);
   }
 
+export declare class STEPCAFControl_Reader {
+  Init(WS: Handle_XSControl_WorkSession, scratch: Standard_Boolean): void;
+  ReadFile(filename: Standard_CString): IFSelect_ReturnStatus;
+  NbRootsForTransfer(): Graphic3d_ZLayerId;
+  TransferOneRoot(num: Graphic3d_ZLayerId, doc: Handle_TDocStd_Document, theProgress: Message_ProgressRange): Standard_Boolean;
+  Transfer_1(doc: Handle_TDocStd_Document, theProgress: Message_ProgressRange): Standard_Boolean;
+  Perform_1(filename: XCAFDoc_PartId, doc: Handle_TDocStd_Document, theProgress: Message_ProgressRange): Standard_Boolean;
+  Perform_2(filename: Standard_CString, doc: Handle_TDocStd_Document, theProgress: Message_ProgressRange): Standard_Boolean;
+  ExternFiles(): any;
+  ExternFile(name: Standard_CString, ef: Handle_STEPCAFControl_ExternFile): Standard_Boolean;
+  ChangeReader(): STEPControl_Reader;
+  Reader(): STEPControl_Reader;
+  static FindInstance(NAUO: Handle_StepRepr_NextAssemblyUsageOccurrence, STool: Handle_XCAFDoc_ShapeTool, Tool: STEPConstruct_Tool, ShapeLabelMap: XCAFDoc_DataMapOfShapeLabel): TDF_Label;
+  SetColorMode(colormode: Standard_Boolean): void;
+  GetColorMode(): Standard_Boolean;
+  SetNameMode(namemode: Standard_Boolean): void;
+  GetNameMode(): Standard_Boolean;
+  SetLayerMode(layermode: Standard_Boolean): void;
+  GetLayerMode(): Standard_Boolean;
+  SetPropsMode(propsmode: Standard_Boolean): void;
+  GetPropsMode(): Standard_Boolean;
+  SetSHUOMode(shuomode: Standard_Boolean): void;
+  GetSHUOMode(): Standard_Boolean;
+  SetGDTMode(gdtmode: Standard_Boolean): void;
+  GetGDTMode(): Standard_Boolean;
+  SetMatMode(matmode: Standard_Boolean): void;
+  GetMatMode(): Standard_Boolean;
+  SetViewMode(viewmode: Standard_Boolean): void;
+  GetViewMode(): Standard_Boolean;
+  GetShapeLabelMap(): XCAFDoc_DataMapOfShapeLabel;
+  delete(): void;
+}
+
+  export declare class STEPCAFControl_Reader_1 extends STEPCAFControl_Reader {
+    constructor();
+  }
+
+  export declare class STEPCAFControl_Reader_2 extends STEPCAFControl_Reader {
+    constructor(WS: Handle_XSControl_WorkSession, scratch: Standard_Boolean);
+  }
+
 export declare type Convert_ParameterisationType = {
   Convert_TgtThetaOver2: {};
   Convert_TgtThetaOver2_1: {};
@@ -5388,6 +5611,17 @@ export declare class BOPAlgo_BuilderShape extends BOPAlgo_Algo {
   History(): Handle_BRepTools_History;
   SetToFillHistory(theHistFlag: Standard_Boolean): void;
   HasHistory(): Standard_Boolean;
+  delete(): void;
+}
+
+export declare class BOPAlgo_BuilderArea extends BOPAlgo_Algo {
+  SetContext(theContext: Handle_IntTools_Context): void;
+  Shapes(): TopTools_ListOfShape;
+  SetShapes(theLS: TopTools_ListOfShape): void;
+  Loops(): TopTools_ListOfShape;
+  Areas(): TopTools_ListOfShape;
+  SetAvoidInternalShapes(theAvoidInternal: Standard_Boolean): void;
+  IsAvoidInternalShapes(): Standard_Boolean;
   delete(): void;
 }
 
@@ -5473,6 +5707,20 @@ export declare class BOPAlgo_Builder extends BOPAlgo_BuilderShape {
   }
 
   export declare class BOPAlgo_Builder_2 extends BOPAlgo_Builder {
+    constructor(theAllocator: Handle_NCollection_BaseAllocator);
+  }
+
+export declare class BOPAlgo_BuilderSolid extends BOPAlgo_BuilderArea {
+  Perform(theRange: Message_ProgressRange): void;
+  GetBoxesMap(): TopTools_DataMapOfShapeBox;
+  delete(): void;
+}
+
+  export declare class BOPAlgo_BuilderSolid_1 extends BOPAlgo_BuilderSolid {
+    constructor();
+  }
+
+  export declare class BOPAlgo_BuilderSolid_2 extends BOPAlgo_BuilderSolid {
     constructor(theAllocator: Handle_NCollection_BaseAllocator);
   }
 
@@ -7960,6 +8208,139 @@ export declare type ChFi3d_FilletShape = {
   ChFi3d_Polynomial: {};
 }
 
+export declare class TCollection_AsciiString {
+  AssignCat_1(other: Standard_Character): void;
+  AssignCat_2(other: Graphic3d_ZLayerId): void;
+  AssignCat_3(other: Standard_Real): void;
+  AssignCat_4(other: Standard_CString): void;
+  AssignCat_5(other: XCAFDoc_PartId): void;
+  Capitalize(): void;
+  Cat_1(other: Standard_Character): XCAFDoc_PartId;
+  Cat_2(other: Graphic3d_ZLayerId): XCAFDoc_PartId;
+  Cat_3(other: Standard_Real): XCAFDoc_PartId;
+  Cat_4(other: Standard_CString): XCAFDoc_PartId;
+  Cat_5(other: XCAFDoc_PartId): XCAFDoc_PartId;
+  Center(Width: Graphic3d_ZLayerId, Filler: Standard_Character): void;
+  ChangeAll(aChar: Standard_Character, NewChar: Standard_Character, CaseSensitive: Standard_Boolean): void;
+  Clear(): void;
+  Copy_1(fromwhere: Standard_CString): void;
+  Copy_2(fromwhere: XCAFDoc_PartId): void;
+  Swap(theOther: XCAFDoc_PartId): void;
+  FirstLocationInSet(Set: XCAFDoc_PartId, FromIndex: Graphic3d_ZLayerId, ToIndex: Graphic3d_ZLayerId): Graphic3d_ZLayerId;
+  FirstLocationNotInSet(Set: XCAFDoc_PartId, FromIndex: Graphic3d_ZLayerId, ToIndex: Graphic3d_ZLayerId): Graphic3d_ZLayerId;
+  Insert_1(where: Graphic3d_ZLayerId, what: Standard_Character): void;
+  Insert_2(where: Graphic3d_ZLayerId, what: Standard_CString): void;
+  Insert_3(where: Graphic3d_ZLayerId, what: XCAFDoc_PartId): void;
+  InsertAfter(Index: Graphic3d_ZLayerId, other: XCAFDoc_PartId): void;
+  InsertBefore(Index: Graphic3d_ZLayerId, other: XCAFDoc_PartId): void;
+  IsEmpty(): Standard_Boolean;
+  IsEqual_1(other: Standard_CString): Standard_Boolean;
+  IsEqual_2(other: XCAFDoc_PartId): Standard_Boolean;
+  IsDifferent_1(other: Standard_CString): Standard_Boolean;
+  IsDifferent_2(other: XCAFDoc_PartId): Standard_Boolean;
+  IsLess_1(other: Standard_CString): Standard_Boolean;
+  IsLess_2(other: XCAFDoc_PartId): Standard_Boolean;
+  IsGreater_1(other: Standard_CString): Standard_Boolean;
+  IsGreater_2(other: XCAFDoc_PartId): Standard_Boolean;
+  StartsWith(theStartString: XCAFDoc_PartId): Standard_Boolean;
+  EndsWith(theEndString: XCAFDoc_PartId): Standard_Boolean;
+  IntegerValue(): Graphic3d_ZLayerId;
+  IsIntegerValue(): Standard_Boolean;
+  IsRealValue(theToCheckFull: Standard_Boolean): Standard_Boolean;
+  IsAscii(): Standard_Boolean;
+  LeftAdjust(): void;
+  LeftJustify(Width: Graphic3d_ZLayerId, Filler: Standard_Character): void;
+  Length(): Graphic3d_ZLayerId;
+  Location_1(other: XCAFDoc_PartId, FromIndex: Graphic3d_ZLayerId, ToIndex: Graphic3d_ZLayerId): Graphic3d_ZLayerId;
+  Location_2(N: Graphic3d_ZLayerId, C: Standard_Character, FromIndex: Graphic3d_ZLayerId, ToIndex: Graphic3d_ZLayerId): Graphic3d_ZLayerId;
+  LowerCase(): void;
+  Prepend(other: XCAFDoc_PartId): void;
+  Print(astream: Standard_OStream): void;
+  Read(astream: Standard_IStream): void;
+  RealValue(): Standard_Real;
+  RemoveAll_1(C: Standard_Character, CaseSensitive: Standard_Boolean): void;
+  RemoveAll_2(what: Standard_Character): void;
+  Remove(where: Graphic3d_ZLayerId, ahowmany: Graphic3d_ZLayerId): void;
+  RightAdjust(): void;
+  RightJustify(Width: Graphic3d_ZLayerId, Filler: Standard_Character): void;
+  Search_1(what: Standard_CString): Graphic3d_ZLayerId;
+  Search_2(what: XCAFDoc_PartId): Graphic3d_ZLayerId;
+  SearchFromEnd_1(what: Standard_CString): Graphic3d_ZLayerId;
+  SearchFromEnd_2(what: XCAFDoc_PartId): Graphic3d_ZLayerId;
+  SetValue_1(where: Graphic3d_ZLayerId, what: Standard_Character): void;
+  SetValue_2(where: Graphic3d_ZLayerId, what: Standard_CString): void;
+  SetValue_3(where: Graphic3d_ZLayerId, what: XCAFDoc_PartId): void;
+  Split_1(where: Graphic3d_ZLayerId): XCAFDoc_PartId;
+  SubString_1(FromIndex: Graphic3d_ZLayerId, ToIndex: Graphic3d_ZLayerId): XCAFDoc_PartId;
+  ToCString(): Standard_CString;
+  Token_1(separators: Standard_CString, whichone: Graphic3d_ZLayerId): XCAFDoc_PartId;
+  Trunc(ahowmany: Graphic3d_ZLayerId): void;
+  UpperCase(): void;
+  UsefullLength(): Graphic3d_ZLayerId;
+  Value(where: Graphic3d_ZLayerId): Standard_Character;
+  static HashCode(theAsciiString: XCAFDoc_PartId, theUpperBound: Graphic3d_ZLayerId): Graphic3d_ZLayerId;
+  static IsEqual_3(string1: XCAFDoc_PartId, string2: XCAFDoc_PartId): Standard_Boolean;
+  static IsEqual_4(string1: XCAFDoc_PartId, string2: Standard_CString): Standard_Boolean;
+  static IsSameString(theString1: XCAFDoc_PartId, theString2: XCAFDoc_PartId, theIsCaseSensitive: Standard_Boolean): Standard_Boolean;
+  delete(): void;
+}
+
+  export declare class TCollection_AsciiString_1 extends TCollection_AsciiString {
+    constructor();
+  }
+
+  export declare class TCollection_AsciiString_2 extends TCollection_AsciiString {
+    constructor(message: Standard_CString);
+  }
+
+  export declare class TCollection_AsciiString_3 extends TCollection_AsciiString {
+    constructor(message: Standard_CString, aLen: Graphic3d_ZLayerId);
+  }
+
+  export declare class TCollection_AsciiString_4 extends TCollection_AsciiString {
+    constructor(aChar: Standard_Character);
+  }
+
+  export declare class TCollection_AsciiString_5 extends TCollection_AsciiString {
+    constructor(length: Graphic3d_ZLayerId, filler: Standard_Character);
+  }
+
+  export declare class TCollection_AsciiString_6 extends TCollection_AsciiString {
+    constructor(value: Graphic3d_ZLayerId);
+  }
+
+  export declare class TCollection_AsciiString_7 extends TCollection_AsciiString {
+    constructor(value: Standard_Real);
+  }
+
+  export declare class TCollection_AsciiString_8 extends TCollection_AsciiString {
+    constructor(astring: XCAFDoc_PartId);
+  }
+
+  export declare class TCollection_AsciiString_9 extends TCollection_AsciiString {
+    constructor(theOther: XCAFDoc_PartId);
+  }
+
+  export declare class TCollection_AsciiString_10 extends TCollection_AsciiString {
+    constructor(astring: XCAFDoc_PartId, message: Standard_Character);
+  }
+
+  export declare class TCollection_AsciiString_11 extends TCollection_AsciiString {
+    constructor(astring: XCAFDoc_PartId, message: Standard_CString);
+  }
+
+  export declare class TCollection_AsciiString_12 extends TCollection_AsciiString {
+    constructor(astring: XCAFDoc_PartId, message: XCAFDoc_PartId);
+  }
+
+  export declare class TCollection_AsciiString_13 extends TCollection_AsciiString {
+    constructor(astring: TCollection_ExtendedString, replaceNonAscii: Standard_Character);
+  }
+
+  export declare class TCollection_AsciiString_14 extends TCollection_AsciiString {
+    constructor(theStringUtf: Standard_WideChar);
+  }
+
 export declare class TCollection_ExtendedString {
   AssignCat_1(other: TCollection_ExtendedString): void;
   AssignCat_2(theChar: Standard_Utf16Char): void;
@@ -8213,6 +8594,10 @@ export type OpenCascadeInstance = {FS: typeof FS} & {
   Handle_TDF_Attribute_3: typeof Handle_TDF_Attribute_3;
   Handle_TDF_Attribute_4: typeof Handle_TDF_Attribute_4;
   TDF_Label: typeof TDF_Label;
+  TDF_LabelSequence: typeof TDF_LabelSequence;
+  TDF_LabelSequence_1: typeof TDF_LabelSequence_1;
+  TDF_LabelSequence_2: typeof TDF_LabelSequence_2;
+  TDF_LabelSequence_3: typeof TDF_LabelSequence_3;
   Precision: typeof Precision;
   BRepOffsetAPI_MakeThickSolid: typeof BRepOffsetAPI_MakeThickSolid;
   BRepOffsetAPI_ThruSections: typeof BRepOffsetAPI_ThruSections;
@@ -8325,6 +8710,7 @@ export type OpenCascadeInstance = {FS: typeof FS} & {
   MoniTool_TypedValue: typeof MoniTool_TypedValue;
   MoniTool_TypedValue_1: typeof MoniTool_TypedValue_1;
   MoniTool_TypedValue_2: typeof MoniTool_TypedValue_2;
+  NCollection_BaseSequence: typeof NCollection_BaseSequence;
   NCollection_BaseList: typeof NCollection_BaseList;
   BRep_Tool: typeof BRep_Tool;
   BRep_Builder: typeof BRep_Builder;
@@ -8424,6 +8810,9 @@ export type OpenCascadeInstance = {FS: typeof FS} & {
   GProp_GProps: typeof GProp_GProps;
   GProp_GProps_1: typeof GProp_GProps_1;
   GProp_GProps_2: typeof GProp_GProps_2;
+  BOPDS_DS: typeof BOPDS_DS;
+  BOPDS_DS_1: typeof BOPDS_DS_1;
+  BOPDS_DS_2: typeof BOPDS_DS_2;
   GeomAdaptor_Curve: typeof GeomAdaptor_Curve;
   GeomAdaptor_Curve_1: typeof GeomAdaptor_Curve_1;
   GeomAdaptor_Curve_2: typeof GeomAdaptor_Curve_2;
@@ -8468,6 +8857,13 @@ export type OpenCascadeInstance = {FS: typeof FS} & {
   Handle_TDocStd_Document_3: typeof Handle_TDocStd_Document_3;
   Handle_TDocStd_Document_4: typeof Handle_TDocStd_Document_4;
   TDocStd_Document: typeof TDocStd_Document;
+  Standard_GUID: typeof Standard_GUID;
+  Standard_GUID_1: typeof Standard_GUID_1;
+  Standard_GUID_2: typeof Standard_GUID_2;
+  Standard_GUID_3: typeof Standard_GUID_3;
+  Standard_GUID_4: typeof Standard_GUID_4;
+  Standard_GUID_5: typeof Standard_GUID_5;
+  Standard_GUID_6: typeof Standard_GUID_6;
   Handle_Standard_Transient: typeof Handle_Standard_Transient;
   Handle_Standard_Transient_1: typeof Handle_Standard_Transient_1;
   Handle_Standard_Transient_2: typeof Handle_Standard_Transient_2;
@@ -8768,8 +9164,12 @@ export type OpenCascadeInstance = {FS: typeof FS} & {
   STEPCAFControl_Writer: typeof STEPCAFControl_Writer;
   STEPCAFControl_Writer_1: typeof STEPCAFControl_Writer_1;
   STEPCAFControl_Writer_2: typeof STEPCAFControl_Writer_2;
+  STEPCAFControl_Reader: typeof STEPCAFControl_Reader;
+  STEPCAFControl_Reader_1: typeof STEPCAFControl_Reader_1;
+  STEPCAFControl_Reader_2: typeof STEPCAFControl_Reader_2;
   Convert_ParameterisationType: Convert_ParameterisationType;
   BOPAlgo_BuilderShape: typeof BOPAlgo_BuilderShape;
+  BOPAlgo_BuilderArea: typeof BOPAlgo_BuilderArea;
   BOPAlgo_ToolsProvider: typeof BOPAlgo_ToolsProvider;
   BOPAlgo_ToolsProvider_1: typeof BOPAlgo_ToolsProvider_1;
   BOPAlgo_ToolsProvider_2: typeof BOPAlgo_ToolsProvider_2;
@@ -8780,6 +9180,9 @@ export type OpenCascadeInstance = {FS: typeof FS} & {
   BOPAlgo_Builder: typeof BOPAlgo_Builder;
   BOPAlgo_Builder_1: typeof BOPAlgo_Builder_1;
   BOPAlgo_Builder_2: typeof BOPAlgo_Builder_2;
+  BOPAlgo_BuilderSolid: typeof BOPAlgo_BuilderSolid;
+  BOPAlgo_BuilderSolid_1: typeof BOPAlgo_BuilderSolid_1;
+  BOPAlgo_BuilderSolid_2: typeof BOPAlgo_BuilderSolid_2;
   BOPAlgo_Splitter: typeof BOPAlgo_Splitter;
   BOPAlgo_Splitter_1: typeof BOPAlgo_Splitter_1;
   BOPAlgo_Splitter_2: typeof BOPAlgo_Splitter_2;
@@ -9054,6 +9457,21 @@ export type OpenCascadeInstance = {FS: typeof FS} & {
   GC_MakeArcOfCircle_4: typeof GC_MakeArcOfCircle_4;
   GC_MakeArcOfCircle_5: typeof GC_MakeArcOfCircle_5;
   ChFi3d_FilletShape: ChFi3d_FilletShape;
+  TCollection_AsciiString: typeof TCollection_AsciiString;
+  TCollection_AsciiString_1: typeof TCollection_AsciiString_1;
+  TCollection_AsciiString_2: typeof TCollection_AsciiString_2;
+  TCollection_AsciiString_3: typeof TCollection_AsciiString_3;
+  TCollection_AsciiString_4: typeof TCollection_AsciiString_4;
+  TCollection_AsciiString_5: typeof TCollection_AsciiString_5;
+  TCollection_AsciiString_6: typeof TCollection_AsciiString_6;
+  TCollection_AsciiString_7: typeof TCollection_AsciiString_7;
+  TCollection_AsciiString_8: typeof TCollection_AsciiString_8;
+  TCollection_AsciiString_9: typeof TCollection_AsciiString_9;
+  TCollection_AsciiString_10: typeof TCollection_AsciiString_10;
+  TCollection_AsciiString_11: typeof TCollection_AsciiString_11;
+  TCollection_AsciiString_12: typeof TCollection_AsciiString_12;
+  TCollection_AsciiString_13: typeof TCollection_AsciiString_13;
+  TCollection_AsciiString_14: typeof TCollection_AsciiString_14;
   TCollection_ExtendedString: typeof TCollection_ExtendedString;
   TCollection_ExtendedString_1: typeof TCollection_ExtendedString_1;
   TCollection_ExtendedString_2: typeof TCollection_ExtendedString_2;

@@ -21,6 +21,8 @@
   $: keyboard = {
     wallThickness: 5,
     wallShrouding: 0,
+    wallXYOffset: 5,
+    wallZOffset: 15,
     webThickness: 0,
     webMinThicknessFactor: thicknessFactor,
     keyBasis: 'xda',
@@ -37,7 +39,11 @@
     fastenMicrocontroller: true,
     verticalClearance: 0,
     rounded: {},
-    shell: { type: 'basic', lip: false },
+    shell: { type: 'basic', lip: false, embedded: false },
+    plateThickness: 3,
+    microcontrollerAngle: 0,
+    connectors: [],
+    flipConnectors: false,
     keys: [
       {
         type: 'mx-better',

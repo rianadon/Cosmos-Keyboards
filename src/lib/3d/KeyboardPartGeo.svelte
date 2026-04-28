@@ -3,7 +3,6 @@
   import type { CuttleKey } from '$lib/worker/config'
   import { T, useTask } from '@threlte/core'
   import { BoxGeometry, InstancedBufferAttribute, DynamicDrawUsage, type BufferGeometry } from 'three'
-  import type { useApi } from 'node_modules/@threlte/extras/dist/components/Instancing/api'
   import { getContext } from 'svelte'
 
   export let part: CuttleKey['type']
@@ -19,7 +18,7 @@
     brightness[0] = 0.5
     brightness[1] = 0
 
-    const { instances } = context as ReturnType<typeof useApi>
+    const { instances } = context
 
     useTask(() => {
       if (brightnessAttribute) brightnessAttribute.needsUpdate = true

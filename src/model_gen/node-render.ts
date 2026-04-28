@@ -1,4 +1,6 @@
-import { CaseMaterial, COLORCONFIG, type ColorScheme, drawLetter, FRAGMENT_SHADER, KeyMaterial, VERTEX_SHADER } from '$lib/3d/materials'
+// @ts-nocheck Unmaintained file
+
+import { COLORCONFIG, type ColorScheme, drawLetter, FRAGMENT_SHADER, VERTEX_SHADER } from '$lib/3d/materials'
 import { boundingSize, fromGeometry } from '$lib/loaders/geometry'
 import { keyGeometries } from '$lib/loaders/keycaps'
 import { partGeometries } from '$lib/loaders/parts'

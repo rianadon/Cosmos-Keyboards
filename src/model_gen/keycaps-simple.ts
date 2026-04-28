@@ -42,7 +42,7 @@ module x() {
 }
 `
 
-const blobs = {}
+const blobs: Record<string, string> = {}
 
 const US = [1, 1.25, 1.5, 2]
 const ROWS = [0, 1, 2, 3, 4, 5]

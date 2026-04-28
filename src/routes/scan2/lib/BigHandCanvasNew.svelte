@@ -1,4 +1,6 @@
 <script lang="ts">
+  // @ts-nocheck Not used.
+
   import {
     Vector3,
     type Mesh,

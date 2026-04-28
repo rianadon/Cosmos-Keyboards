@@ -5,6 +5,7 @@
   import { browser } from '$app/environment'
   import { afterNavigate } from '$app/navigation'
   import { trackPageView } from '$lib/telemetry'
+  import { page } from '$app/stores'
 
   afterNavigate(({ to, from }) => {
     if (from && from.url) {
@@ -12,7 +13,7 @@
     }
   })
 
-  if (browser) trackPageView()
+  if (browser && !$page.url.searchParams.has('embed')) trackPageView()
 </script>
 
 <slot />

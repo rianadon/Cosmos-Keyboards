@@ -1,3 +1,5 @@
+// @ts-nocheck Unmaintained file
+
 import cuttleform from '$assets/cuttleform.json' assert { type: 'json' }
 import { cuttleConf, type Cuttleform, type CuttleformProto, type CuttleKey } from '$lib/worker/config'
 import { spawn } from 'child_process'

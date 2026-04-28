@@ -128,7 +128,7 @@ async function main() {
   console.log(`Downloading to ${destination}`)
   const res = await fetch(url)
   const fileStream = createWriteStream(destination, { flags: 'wx', mode: 0o777 })
-  await finished(Readable.fromWeb(res.body).pipe(fileStream))
+  await finished(Readable.fromWeb(res.body as any).pipe(fileStream))
 
   if (process.platform == 'linux' && process.env['CI']) {
     // Some CI systems (like Vercel) don't have FUSE, so extract the appimage.

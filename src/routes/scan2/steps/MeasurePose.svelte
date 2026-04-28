@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte/internal'
+  import { onDestroy, onMount } from 'svelte'
   import Step from '../lib/Step.svelte'
   import Pose from '../lib/Pose.svelte'
   import { remoteStream, step, stats, poseStats, mmToPx } from '../store'
@@ -35,6 +35,8 @@
   let phase = 0
   let curlPhase = false
 
+  let camera: Camera
+
   onMount(async () => {
     console.log('Remote stream', $remoteStream)
 
@@ -51,14 +53,17 @@
       })
       hdetector = await createDetector()
 
-      const camera = new Camera(video, canvas)
+      camera = new Camera(video, canvas)
       camera.ondetect = ondetect
       camera.ontick = ontick
       camera.onsize = (s) => (size = s)
       camera.onfps = (f) => (fps = f)
       camera.start()
-      return () => camera.stop()
     }
+  })
+
+  onDestroy(() => {
+    if (camera) camera.stop()
   })
 
   async function ondetect(imageData: ImageData) {
@@ -229,7 +234,9 @@
       </p>
     {/if}
     {#if !(nLeft == 0 && nRight == 0 && phase == 0)}
-      <button on:click={skip} class="opacity-70 mt-0.5 ml-4">Skip this step</button>
+      <button on:click={skip} class="opacity-70 mt-0.5 ml-4"
+        >Skip this step (these results only affect the 3D Hand visualization, not hand fitting)</button
+      >
     {/if}
   </div>
   <div slot="content">

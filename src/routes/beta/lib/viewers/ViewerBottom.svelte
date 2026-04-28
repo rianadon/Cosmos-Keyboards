@@ -14,7 +14,7 @@
   import { rectangle, drawWall, drawLinedWall, drawBezierWall, fullSizes } from './viewerHelpers'
   import { localHolderBounds } from '$lib/geometry/microcontrollers'
 
-  import { isRenderable, type ConfError } from '$lib/worker/check'
+  import { isRenderable, type ConfErrors } from '$lib/worker/check'
   import Trsf from '$lib/worker/modeling/transformation'
   import { fullEstimatedCenter, type Cuttleform, type Geometry } from '$lib/worker/config'
   import { Vector } from '$lib/worker/modeling/transformation'
@@ -25,7 +25,7 @@
   import { T } from '@threlte/core'
 
   export let geometry: FullGeometry | null
-  export let confError: ConfError | undefined
+  export let confError: ConfErrors
   export let style: string = ''
   export let darkMode: boolean
 
@@ -40,7 +40,7 @@
   $: hasError = confError && !isRenderable(confError)
   $: allGeometries =
     isRenderable(confError) && geometry ? drawStates(geometry) : ({} as ReturnType<typeof drawStates>)
-  $: sizes = fullSizes(allGeometries)
+  $: sizes = fullSizes(mapObj(allGeometries, (l) => l.map((g) => g.geometry)))
   $: size = sizes[$view]
 
   function drawStates(geometry: FullGeometry) {
@@ -163,7 +163,7 @@
 
     const boardInd = geo.boardIndices
     const initialPos = [
-      ...geo.boardIndicesThatAreScrewsToo.map((b) => boardInd[b]),
+      ...geo.boardIndicesThatAreScrewsToo.map((b) => boardInd[b]!),
       ...config.screwIndices,
     ].filter((i) => i != -1)
     const allScrewInd = [
@@ -220,16 +220,16 @@
       }
     }
 
-    geos.push({
-      geometry: new THREE.CircleGeometry(2, 32).translate(...geo.plateArtOrigin.xy(), 0),
-      material: new THREE.MeshBasicMaterial({ color: 0xff99cc }),
-    })
+    // geos.push({
+    //   geometry: new THREE.CircleGeometry(2, 32).translate(...geo.plateArtOrigin.xy(), 0),
+    //   material: new THREE.MeshBasicMaterial({ color: 0xff99cc }),
+    // })
 
     // const existingFootInd = config.plate?.footIndices?.filter((f) => f != -1) || []
     // const allFootInd = [
     //   ...allFootIndices(config, geo.footWalls, walls2, existingFootInd, geo.screwIndices, geo.worldZ),
     // ]
-    // const footInd = new Set(possibleFootIndices(geo.c, walls2))
+    // const footInd = new Set(possibleFootIndices(geo.c, geo.footWalls))
     // geo.footIndices.forEach((i) => footInd.add(i))
     // allFootInd.forEach((i) => footInd.add(i))
     // for (const i of footInd) {

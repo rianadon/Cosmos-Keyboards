@@ -273,7 +273,7 @@ const sin = (x: number) => Math.sin(x * Math.PI / 180)
 
 /** The origin of the key (key.position) is positioned this far from the top */
 export function keyBase(c: Cuttleform) {
-  const sw: CuttleKey['type'] = c.keyBasis == 'choc' ? 'choc' : 'mx-better'
+  const sw: CuttleKey['type'] = c.keyBasis == 'choc' ? 'choc-v1' : 'mx-better'
   const switchHeight = switchInfo(sw).height
   const keyHeight = c.keyBasis
     ? keyInfo({
@@ -376,7 +376,7 @@ export function keyPositionTop(c: Cuttleform, key: CuttleKey, flat: boolean) {
 function rotate(keys: CuttleKey[], angle: number, position: [number, number, number]) {
   return keys.map(k => ({
     ...k,
-    position: k.position.rotated(angle, position),
+    position: k.position.rotated(angle, position, [0, 0, 1]),
   }))
 }
 

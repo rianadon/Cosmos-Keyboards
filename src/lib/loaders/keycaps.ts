@@ -1,4 +1,5 @@
 import { closestAspect, UNIFORM } from '$lib/geometry/keycaps'
+import { PART_INFO } from '$lib/geometry/socketsParts'
 import { switchInfo } from '$lib/geometry/switches'
 import type { CuttleKey } from '$lib/worker/config'
 import type Trsf from '$lib/worker/modeling/transformation'
@@ -30,12 +31,13 @@ async function fetchKeyBy(profile: string, aspect: number, row: number, rotate: 
 }
 
 export function hasKeyGeometry(k: CuttleKey) {
-  if (k.type == 'trackball') {
-    return false
-  } else if (k.type == 'ec11' || k.type == 'blank' || k.type === 'joystick-joycon-adafruit') {
-    return false
-  }
-  return ('keycap' in k && !!k.keycap)
+  return !!PART_INFO[k.type].keycap && k.type != 'blank'
+}
+
+export function hasPinsInMatrix(k: CuttleKey) {
+  const maybePins = PART_INFO[k.type].numPins
+  const pins = typeof maybePins == 'function' ? maybePins(k.variant || {}) : maybePins
+  return pins && pins.matrix && pins.matrix > 0
 }
 
 export async function keyGeometry(k: CuttleKey) {

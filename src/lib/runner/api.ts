@@ -13,7 +13,7 @@ export function run(content: string): { newConf?: FullCuttleform; err?: Error } 
 
     if (newConf.left) newConf.left.keys = mirror(newConf.left.keys, false)
     return { newConf }
-  } catch (err) {
+  } catch (err: any) {
     return { err }
   }
 }

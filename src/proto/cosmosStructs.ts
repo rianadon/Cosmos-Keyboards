@@ -25,10 +25,11 @@ enumeration('PART', {
   11: 'choc-v1-hotswap',
   12: 'choc-v2-hotswap',
   13: 'mx-pcb-plum',
-  // 14 reserved for mx-pumpkin
+  14: 'mx-pumpkin',
   15: 'mx-skree',
   26: 'niz',
   31: 'choc-pumpkin',
+  33: 'choc-v1-amoeba-hillside',
 
   // You wouldn't put many of these on a keyboard.
   16: 'ec11',
@@ -45,6 +46,11 @@ enumeration('PART', {
   28: 'joystick-skqu-alps',
   29: 'oled-160x68-1.08in-niceview',
   30: 'thqwgd001',
+  32: 'meh01',
+  34: 'oled-168x144-1.26in-keydio-vista508',
+  35: 'oled-128x64-0.96-aliexpress',
+  36: 'trackpad-procyon',
+  37: 'joystick-joycon-nintendo',
 
   // Old stuff no one should be using.
   110: 'old-mx',
@@ -91,6 +97,7 @@ enumeration('MICROCONTROLLER_NAME', [
   'lemon-wired',
   'lemon-wireless',
   'elite-c',
+  'rp2040-lite-black-usb-c-aliexpress',
 ])
 
 struct('PartVariant', {
@@ -131,7 +138,7 @@ struct('Microcontroller', {
 
 struct('RoundedFlags', { side: 'bool,1', top: 'bool,1' })
 struct('KeyboardFlags', { wrEnable: 'bool,1', unibody: 'bool,1', noMirrorConnectors: 'bool,1' })
-struct('BasicShellFlags', { lip: 'bool,1' })
+struct('BasicShellFlags', { lip: 'bool,1', embedded: 'bool,1' })
 struct('StiltsShellFlags', { inside: 'bool,1' })
 struct('TiltShellFlags', { usePattern: 'bool,1' })
 
@@ -228,10 +235,10 @@ for (const [part, info] of objEntries(PART_INFO)) {
     const body = Object.entries(info.variants).map(([k, v]) => k + ':' + v.map(i => JSON.stringify(i)).join('|')).join(',')
     code += `export type ${safeCaps(part)}Variant = {${body}}\n`
   }
-  code += `export interface Cuttle${safeCaps(part)}Key extends CuttleBaseKey { type: '${part}',`
+  code += `export interface Cuttle${safeCaps(part)}Key extends CuttleBaseKey { type: '${part}', marginX?: number, marginY?: number,`
   if ('variants' in info) code += `variant: ${safeCaps(part)}Variant,`
   if (PART_INFO[part].keycap) code += 'keycap: IKeycap,'
-  if ('radius' in socketSize({ type: part, variant: {} } as any)) code += 'size?: { sides: number },'
+  if ('radiusX' in socketSize({ type: part, variant: {} } as any)) code += 'size?: { sides: number },'
   code += '}\n'
 }
 code += 'export type CuttleKey = ' + objKeys(PART_INFO).map(p => `Cuttle${safeCaps(p)}Key`).join('|') + '\n'

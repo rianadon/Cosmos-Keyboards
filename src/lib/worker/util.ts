@@ -62,14 +62,57 @@ export function mapObj<K extends string, V, R>(obj: Record<K, V>, f: (a: V, k: K
   return newObj
 }
 
+export async function mapObjAsync<K extends string, V, R>(obj: Record<K, V>, f: (a: V, k: K) => Promise<R>): Promise<Record<K, R>> {
+  const newObj: any = {}
+  const keys = Object.keys(obj) as K[]
+  const results = await Promise.all(keys.map((key) => f(obj[key], key)))
+  for (let i = 0; i < keys.length; i++) {
+    newObj[keys[i]] = results[i]
+  }
+  return newObj
+}
+
+export function mapObjToObj<K extends string, L extends string, V, R>(obj: Record<K, V>, f: (a: V, k: K) => Record<L, R>): Record<L, R> {
+  const newObj: any = {}
+  for (const key of Object.keys(obj) as K[]) {
+    for (const [newKey, newValue] of Object.entries(f(obj[key], key))) {
+      newObj[newKey] = newValue
+    }
+  }
+  return newObj
+}
+
+export function mapObjNotNull<K extends string, V, R>(obj: Partial<Record<K, V>>, f: (a: Exclude<V, undefined>, k: K) => R): Record<K, R> {
+  const newObj: any = {}
+  for (const key of Object.keys(obj) as K[]) {
+    const value = obj[key]
+    if (typeof value === 'undefined' || value === null) continue
+    newObj[key] = f(value as Exclude<V, undefined>, key)
+  }
+  return newObj
+}
+
+export function mapObjNotNullToObj<K extends string, L extends string, V, R>(obj: Partial<Record<K, V>>, f: (a: Exclude<V, undefined>, k: K) => Record<L, R>): Record<L, R> {
+  const newObj: any = {}
+  for (const key of Object.keys(obj) as K[]) {
+    const value = obj[key]
+    if (typeof value === 'undefined' || value === null) continue
+    const result = f(value as Exclude<V, undefined>, key)
+    for (const [newKey, newValue] of Object.entries(result)) {
+      newObj[newKey] = newValue
+    }
+  }
+  return newObj
+}
+
 export function mapMap<K extends string, V, R>(map: Map<K, V>, f: (a: V, k: K) => R): Map<K, R> {
   const newEntries: [K, R][] = Array.from(map, ([key, value]) => [key, f(value, key)])
   return new Map(newEntries)
 }
 
-export function filterObj<V>(obj: Record<string, V>, f: (k: string, v: V) => boolean): Record<string, V> {
+export function filterObj<K extends string, V>(obj: Record<K, V>, f: (k: K, v: V) => boolean): Record<K, V> {
   const newObj: Record<string, V> = {}
-  for (const key of Object.keys(obj)) {
+  for (const key of Object.keys(obj) as K[]) {
     if (f(key, obj[key])) newObj[key] = obj[key]
   }
   return newObj
@@ -84,7 +127,7 @@ export function reverseMap<A extends string | number, B extends string | number>
 }
 
 export function notNull<E>(a: readonly E[]): Exclude<E, undefined | null | false>[] {
-  return a.filter(e => !!e) as Exclude<E, undefined | null>[]
+  return a.filter(e => !!e) as Exclude<E, undefined | null | false>[]
 }
 
 export class DefaultMap<K, V> extends Map<K, V> {
@@ -122,6 +165,12 @@ export class TallyMap<K> extends DefaultMap<K, number> {
   }
 }
 
+export function groupBy<K, T>(items: T[], keyFn: (item: T) => K): Map<K, T[]> {
+  const map = new DefaultMap<K, T[]>(() => [])
+  items.forEach(item => map.get(keyFn(item)).push(item))
+  return map
+}
+
 export function diff<T>(n: T, parent: T) {
   if (n == parent) return undefined
   return n
@@ -140,6 +189,10 @@ export function objEntriesNotNull<T extends object>(obj: T) {
   return entries.filter(([k, v]) => v != null && typeof v != 'undefined') as [keyof T, Exclude<T[keyof T], null | undefined>][]
 }
 
+export function objKeysOfNotNull<T extends object>(obj: T) {
+  return objEntriesNotNull(obj).map(([k, v]) => k)
+}
+
 export function capitalize(str: string) {
   return str[0].toUpperCase() + str.substring(1)
 }
@@ -155,4 +208,66 @@ export function count<T>(items: T[]): TallyMap<T> {
   const map = new TallyMap<T>()
   items.forEach(i => map.incr(i))
   return map
+}
+
+export function findIndexIter<T>(iterator: Iterable<T>, fn: (v: T) => boolean): number {
+  let i = 0
+  for (const val of iterator) {
+    if (fn(val)) return i
+    i++
+  }
+  return -1
+}
+
+export type TypedArray = Int8Array | Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array
+export function typedConcat<T extends TypedArray>(a: T, b: ArrayLike<number>) {
+  const cons = Object.getPrototypeOf(a).constructor
+  const result: T = new cons(a.length + b.length)
+  result.set(a)
+  result.set(b, a.length)
+
+  return result
+}
+
+export function repeated<T>(arr: T[]) {
+  const tally = new TallyMap()
+  arr.forEach(e => tally.incr(e))
+  return Array.from(tally.entries()).filter((e) => e[1] > 1).map(e => e[0])
+}
+
+/** Very simplistic function to trim text with non-nested HTML tags to length. */
+export function trim(text: string, length: number): string {
+  const tag = text.match(/(<(\w+).*?>)(.*?)(<\/\2>)/)
+  if (tag && tag.index! < length) {
+    return (
+      text.substring(0, tag.index!)
+      + tag[1]
+      + trim(tag[3], length - tag.index!)
+      + tag[4]
+      + trim(text.substring(tag.index! + tag[0].length), length - tag.index! - tag[3].length)
+    )
+  } else {
+    const nextSpace = text.substring(length).search(/\s/)
+    return nextSpace == -1 ? text : text.substring(0, nextSpace + length)
+  }
+}
+
+function endsWithAny(str: string, endings: string[]) {
+  return endings.some(e => str.endsWith(e))
+}
+
+/** Simplistic pluralizer to take care of common cases. */
+export function pluralize(word: string) {
+  if (endsWithAny(word.toLowerCase(), ['s', 'ss', 'x', 'z', 'ch', 'sh'])) {
+    return word + 'es'
+  }
+  return word + 's'
+}
+
+export function pluralizeLastWord(str: string) {
+  const lastParen = str.lastIndexOf(' (')
+  const lastComma = str.lastIndexOf(',')
+  let lastThing = lastParen == -1 ? lastComma : lastParen
+  if (lastThing == -1) return pluralize(str)
+  return pluralize(str.substring(0, lastThing)) + str.substring(lastThing)
 }

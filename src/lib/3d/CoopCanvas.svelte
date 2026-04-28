@@ -1,7 +1,6 @@
 <script lang="ts">
   import { browser } from '$app/environment'
   import { SceneGraphObject, createThrelteContext, watch, type Size } from '@threlte/core'
-  import type { ThrelteInternalContext } from 'node_modules/@threlte/core/dist/lib/contexts'
   import { getContext, onDestroy, onMount } from 'svelte'
   import { writable } from 'svelte/store'
   import { ACESFilmicToneMapping, OrthographicCamera, PCFSoftShadowMap, WebGLRenderer } from 'three'
@@ -34,7 +33,7 @@
     useLegacyLights: false,
     userSize,
   })
-  const internalCtx = getContext<ThrelteInternalContext>('threlte-internal-context')
+  const internalCtx = getContext<any>('threlte-internal-context')
   const renderer = getContext<WebGLRenderer>('renderer')
 
   watch([initialized, ctx.autoRender], ([initialized, autoRender]) => {

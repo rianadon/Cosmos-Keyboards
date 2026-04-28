@@ -13,6 +13,7 @@ import {
   bezierPatch,
   type CriticalPoints,
   joinWalls,
+  keyCriticalPoints,
   lineToCurve,
   loftCurves,
   makeLine,
@@ -27,6 +28,7 @@ import {
   wallSurfaces,
   wallSurfacesInner,
   wallSurfacesOuter,
+  webThickness,
 } from './geometry'
 import { bezierFace, BezierSketch, BezierSketcher, CompBezierSurface } from './modeling/bezier'
 import { makeCacher } from './modeling/cacher'
@@ -47,6 +49,7 @@ const BOARD_TOLERANCE_Z = 0.1
 const BOARD_COMPONENT_TOL = 0.1 // Added to sides of cutouts on board holder
 const TILT_PARTS_SEPARATION = 0.05 // How far apart the two components of tilts plate should be
 
+const EMBEDDED_PLATE_TOL = 0.2
 const SMOOTHAPEX = false
 
 export async function keyHoles(c: Cuttleform, transforms: Trsf[]) {
@@ -82,13 +85,14 @@ export function wallInnerSurfaces(c: Cuttleform, geo: Geometry, offset: number) 
       ti: w.ti.pretranslated(displacement.xyz()),
     }
     const surf = wallSurfacesInner(c, wc)
+    // Skip bottom segments: 1 normally (bo→bi), 2 when embedded (boLow→biLow, biLow→bi)
+    const embedded = c.shell.type === 'basic' && c.shell.embedded
+    const innerWallSegments = surf.slice(embedded ? 2 : 1)
     return [
       ...(c.shell.type == 'tilt'
         ? [makeLine(wc.bi.translated(0, 0, -EXTRA_HEIGHT), wc.bi.pretranslated(0, 0, -c.plateThickness), wc), makeLine(wc.bi.pretranslated(0, 0, -c.plateThickness), wc.bi, wc)]
         : [makeLine(wc.bi.pretranslated(0, 0, -EXTRA_HEIGHT), wc.bi, wc)]),
-      surf[1],
-      surf[2],
-      surf[3],
+      ...innerWallSegments,
       makeLine(wc.ti, wc.ti.translated(0, 0, EXTRA_HEIGHT), wc, w.nRoundNext, w.nRoundPrev, false, false),
     ]
   })
@@ -257,18 +261,35 @@ export function webSolid(c: Cuttleform, geo: Geometry) {
   }
 
   // Make walls for key well
+  // Also filler for keys with margin
   let i = 0
-  for (const poly of topCPts) {
-    // Iterate through each side of the wall in pairs
-    for (let j = 0; j < poly.length; j++) {
-      const a = i + j
-      const b = i + ((j + 1) % poly.length)
-      if (triangleMap[a] && triangleMap[a][b]) {
-        surface.addQuad(botPts[a], botPts[b], topPts[b], topPts[a])
+  topCPts.forEach((poly, k) => {
+    const key = geo.c.keys[k]
+    if (key.type !== 'blank' && (key.marginX || key.marginY)) {
+      const topPtsWithoutMargin = keyCriticalPoints(geo.c, key, geo.keyHolesTrsfs[k], 0, false)
+      const botPtsWithoutMargin = topPtsWithoutMargin.map(t => t.pretranslated(0, 0, -webThickness(geo.c, key)))
+
+      for (let j = 0; j < poly.length; j++) {
+        const n = (j + 1) % poly.length
+        surface.addQuad(topPts[i + n], topPts[i + j], topPtsWithoutMargin[j], topPtsWithoutMargin[n])
+        surface.addQuad(botPts[i + j], botPts[i + n], botPtsWithoutMargin[n], botPtsWithoutMargin[j])
+        surface.addQuad(topPtsWithoutMargin[n], topPtsWithoutMargin[j], botPtsWithoutMargin[j], botPtsWithoutMargin[n])
+        if (topSplines[i + j] && topSplines[i + j][i + n]) { // Add outer walls if margin lies on a wall
+          surface.addPatch(loftCurves(topSplines[i + j][i + n]!, bottomSplines[i + j][i + n]!))
+        }
+      }
+    } else {
+      // Iterate through each side of the wall in pairs
+      for (let j = 0; j < poly.length; j++) {
+        const a = i + j
+        const b = i + ((j + 1) % poly.length)
+        if (triangleMap[a] && triangleMap[a][b]) {
+          surface.addQuad(botPts[a], botPts[b], topPts[b], topPts[a])
+        }
       }
     }
     i += poly.length
-  }
+  })
 
   return surface
 }
@@ -276,14 +297,20 @@ export function webSolid(c: Cuttleform, geo: Geometry) {
 function plateSketch(c: Cuttleform, geo: PlateParams, offset = 0) {
   let sketch: BezierSketch
   const wall = geo.allWallCriticalPoints(offset)
+  const wallPt = (w: WallCriticalPoints) => {
+    if (c.shell.type === 'basic' && c.shell.embedded) {
+      return w.bi.pretranslated(-EMBEDDED_PLATE_TOL, 0, 0)
+    }
+    return w.bo
+  }
 
   const planePtV = (v: Vector) => [v.dot(geo.worldX), v.dot(geo.worldY)] as [number, number]
   const planePt = (t: Trsf) => planePtV(t.origin())
   if (c.rounded.side) {
     let { boundary } = geo.solveTriangularization
 
-    const splines = boundarySplines(c, boundary, i => wall[i].bo, wallBezier, wall, geo.worldZ, geo.bottomZ)
-    const sketcher = new BezierSketcher().movePointerTo(planePt(wall[0].bo))
+    const splines = boundarySplines(c, boundary, i => wallPt(wall[i]), wallBezier, wall, geo.worldZ, geo.bottomZ)
+    const sketcher = new BezierSketcher().movePointerTo(planePt(wallPt(wall[0])))
     for (let i = 0; i < boundary.length; i++) {
       const b0 = boundary[i]
       const b1 = boundary[(i + 1) % boundary.length]
@@ -292,7 +319,7 @@ function plateSketch(c: Cuttleform, geo: PlateParams, offset = 0) {
     }
     sketch = sketcher.close()
   } else {
-    const points = geo.allWallCriticalPoints(offset).map(w => planePt(w.bo))
+    const points = geo.allWallCriticalPoints(offset).map(w => planePt(wallPt(w)))
     const sketcher = new BezierSketcher().movePointerTo(points[0])
     for (let i = 1; i < points.length; i++) {
       sketcher.lineTo(points[i])
@@ -376,8 +403,8 @@ async function makeAccentPlate(c: Cuttleform, geo: Geometry) {
 
   const sketch = plateSketch(c, geo, ACCENT_WIDTH).sketchOnPlane('XY')
   const trsf = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).pretranslate(0, 0, geo.bottomZ)
-  const plateUpper = trsf.transform(sketch.clone().extrude(ACCENT_HEIGHT))
-  const plateLower = trsf.transform(sketch.extrude(-height))
+  const plateUpper = trsf.transform((sketch as Sketch).clone().extrude(ACCENT_HEIGHT))
+  const plateLower = trsf.transform(sketch.extrude(-height) as Solid)
 
   const solidWallSurface = wallSolidSurface(c, geo, geo.allKeyCriticalPoints, geo.keyHolesTrsfs, geo.bottomZ, geo.worldZ, ACCENT_TOLERANCE)
   const splitter = new Splitter()
@@ -386,6 +413,7 @@ async function makeAccentPlate(c: Cuttleform, geo: Geometry) {
   splitter.perform()
   const plate = splitter.takeBiggest()!.fuse(plateLower)
   if (c.plate && c.shell.type !== 'tilt') return await processPlate(c, geo as Geometry, plate)
+  return plate
 }
 
 interface Plate {
@@ -406,7 +434,7 @@ export function makePlateMesh(c: Cuttleform, geo: Geometry, cut = false, inserts
   }
 
   if (c.shell.type == 'stilts') {
-    return { top: makeStiltsPlateSimpleMesh(c, geo, cut), bottom: null }
+    return { top: makeStiltsPlateSimpleMesh(c, geo), bottom: null }
   } else if (c.shell.type == 'tilt') {
     return {
       top: makeThePlate(geo),
@@ -546,11 +574,11 @@ function tiltBotGeo(c: Cuttleform, geo: TiltGeometry): PlateParams {
 
 function joinTiltPlatesLoft(c: Cuttleform, geo: TiltGeometry) {
   const topTrsf = new Trsf().coordSystemChange(new Vector(), geo.worldX, geo.worldZ).pretranslate(0, 0, geo.bottomZ)
-  const topSketch = plateSketch(c, geo).sketchOnPlane('XY').wire
+  const topSketch = (plateSketch(c, geo).sketchOnPlane('XY') as Sketch).wire
   const topSurface = topTrsf.transform(topSketch)
 
   const bottomTrsf = new Trsf().pretranslate(0, 0, geo.floorZ)
-  const bottomSketch = plateSketch(c, {
+  const bottomSketch = (plateSketch(c, {
     worldX: new Vector(1, 0, 0),
     worldY: new Vector(0, 1, 0),
     worldZ: new Vector(0, 0, 1),
@@ -559,7 +587,7 @@ function joinTiltPlatesLoft(c: Cuttleform, geo: TiltGeometry) {
     allWallCriticalPoints: geo.allWallCriticalPoints.bind(geo),
     plateArtOrigin: geo.plateArtOrigin,
     footPositions: geo.footPositions,
-  }).sketchOnPlane('XY').wire
+  }).sketchOnPlane('XY') as Sketch).wire
   const bottomSurface = bottomTrsf.transform(bottomSketch)
   return loft([topSurface, bottomSurface])
 }
@@ -778,64 +806,64 @@ function rectangleForUSB(c: Cuttleform) {
   }
 }
 
-export const connectors: Record<string, { positive: (c: Cuttleform) => Solid | null; negative: (c: Cuttleform) => Solid }> = {
-  rj9: {
-    positive(c: Cuttleform) {
-      return drawRoundedRectangle(14.78, 22.38).translate(0, 22.38 / 2)
-        .fuse(drawRoundedRectangle(10.5, 17.6).translate(12.64, 17.6 / 2))
-        .sketchOnPlane('XZ')
-        .extrude(13)
-        .translate(0, 6.5, 0) as Solid
-    },
-    negative(c: Cuttleform) {
-      const throughHole = drawRoundedRectangle(10.78, 5).sketchOnPlane('XZ')
-        .extrude(13)
-        .translate(0, 6.5, 16) as Solid
-      const shallowHole = drawRoundedRectangle(10.78, 18.38).sketchOnPlane('XZ')
-        .extrude(9)
-        .translate(0, 6.5, 11.19) as Solid
-      const usbHole = drawRoundedRectangle(6.5, 13.6).sketchOnPlane('XZ')
-        .extrude(13)
-        .translate(12.64, 6.5, 17.6 / 2) as Solid
-      return throughHole.fuse(shallowHole).fuse(usbHole)
-    },
-  },
-  trrs: {
-    positive(c: Cuttleform) {
-      return null
-    },
-    negative(c: Cuttleform) {
-      const lg = BOARD_PROPERTIES[c.microcontroller].sizeName == 'Large'
-      return drawCircle(3.2).translate(lg ? -16.5 : -14.5, 0) // trrs hole
-        .fuse(rectangleForUSB(c)) // usb hole
-        .sketchOnPlane('XZ')
-        .extrude(c.wallThickness * 10)
-        .translate(0, c.wallThickness * 10, 5) as Solid
-    },
-  },
-  usb: {
-    positive(c: Cuttleform) {
-      return null
-    },
-    negative(c: Cuttleform) {
-      return rectangleForUSB(c) // usb hole
-        .sketchOnPlane('XZ')
-        .extrude(c.wallThickness * 10)
-        .translate(0, c.wallThickness * 10, 5) as Solid
-    },
-  },
-  external: {
-    positive(c: Cuttleform) {
-      return null
-    },
-    negative(c: Cuttleform) {
-      return drawRoundedRectangle(29.1661, 12.6)
-        .sketchOnPlane('XZ')
-        .extrude(c.wallThickness * 10)
-        .translate(10, c.wallThickness * 10, 12.6 / 2) as Solid
-    },
-  },
-}
+// export const connectors: Record<string, { positive: (c: Cuttleform) => Solid | null; negative: (c: Cuttleform) => Solid }> = {
+//   rj9: {
+//     positive(c: Cuttleform) {
+//       return drawRoundedRectangle(14.78, 22.38).translate(0, 22.38 / 2)
+//         .fuse(drawRoundedRectangle(10.5, 17.6).translate(12.64, 17.6 / 2))
+//         .sketchOnPlane('XZ')
+//         .extrude(13)
+//         .translate(0, 6.5, 0) as Solid
+//     },
+//     negative(c: Cuttleform) {
+//       const throughHole = drawRoundedRectangle(10.78, 5).sketchOnPlane('XZ')
+//         .extrude(13)
+//         .translate(0, 6.5, 16) as Solid
+//       const shallowHole = drawRoundedRectangle(10.78, 18.38).sketchOnPlane('XZ')
+//         .extrude(9)
+//         .translate(0, 6.5, 11.19) as Solid
+//       const usbHole = drawRoundedRectangle(6.5, 13.6).sketchOnPlane('XZ')
+//         .extrude(13)
+//         .translate(12.64, 6.5, 17.6 / 2) as Solid
+//       return throughHole.fuse(shallowHole).fuse(usbHole)
+//     },
+//   },
+//   trrs: {
+//     positive(c: Cuttleform) {
+//       return null
+//     },
+//     negative(c: Cuttleform) {
+//       const lg = BOARD_PROPERTIES[c.microcontroller].sizeName == 'Large'
+//       return drawCircle(3.2).translate(lg ? -16.5 : -14.5, 0) // trrs hole
+//         .fuse(rectangleForUSB(c)) // usb hole
+//         .sketchOnPlane('XZ')
+//         .extrude(c.wallThickness * 10)
+//         .translate(0, c.wallThickness * 10, 5) as Solid
+//     },
+//   },
+//   usb: {
+//     positive(c: Cuttleform) {
+//       return null
+//     },
+//     negative(c: Cuttleform) {
+//       return rectangleForUSB(c) // usb hole
+//         .sketchOnPlane('XZ')
+//         .extrude(c.wallThickness * 10)
+//         .translate(0, c.wallThickness * 10, 5) as Solid
+//     },
+//   },
+//   external: {
+//     positive(c: Cuttleform) {
+//       return null
+//     },
+//     negative(c: Cuttleform) {
+//       return drawRoundedRectangle(29.1661, 12.6)
+//         .sketchOnPlane('XZ')
+//         .extrude(c.wallThickness * 10)
+//         .translate(10, c.wallThickness * 10, 12.6 / 2) as Solid
+//     },
+//   },
+// }
 
 export function cutWithConnector(c: Cuttleform, wall: Solid, origin: Trsf) {
   // if (!conn) return wall
@@ -856,12 +884,12 @@ export function cutWithConnector(c: Cuttleform, wall: Solid, origin: Trsf) {
   ))
 }
 
-export function makeConnector(c: Cuttleform, conn: keyof typeof connectors, origin: Point) {
-  if (!conn) return null
-  const pos = connectors[conn].positive(c)
-  if (pos) return pos.cut(connectors[conn].negative(c)).translate(origin)
-  return null
-}
+// export function makeConnector(c: Cuttleform, conn: keyof typeof connectors, origin: Point) {
+//   if (!conn) return null
+//   const pos = connectors[conn].positive(c)
+//   if (pos) return pos.cut(connectors[conn].negative(c)).translate(origin)
+//   return null
+// }
 
 export function makeWalls(c: Cuttleform, wallPts: WallCriticalPoints[], worldZ: Vector, bottomZ: number) {
   const surface = new CompBezierSurface()

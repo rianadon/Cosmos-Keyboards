@@ -1,4 +1,6 @@
 <script lang="ts">
+  // @ts-nocheck old file that's unused.
+
   import { onDestroy, onMount } from 'svelte/internal'
   import Step from '../lib/Step.svelte'
   import { pc, remoteStream, mmToPx, step } from '../store'

@@ -1,8 +1,8 @@
-import { curvature, cuttleConf, type Cuttleform, type CuttleformProto, fingers, newFullGeometry, newGeometry, thumbCurvature, thumbOrigin, thumbs, upperKeysPlane } from '$lib/worker/config'
-import { calcClusterTrsf, type CosmosKey, type CosmosKeyboard, fromCosmosConfig, mirrorCluster, rotationPositionETrsf, sortClusters, toCosmosConfig } from '$lib/worker/config.cosmos'
-import ETrsf, { stringifyObj } from '$lib/worker/modeling/transformation-ext'
+import { type Cuttleform, type CuttleformProto, newFullGeometry } from '$lib/worker/config'
+import { calcClusterTrsf, type CosmosKeyboard, fromCosmosConfig, mirrorCluster, sortClusters } from '$lib/worker/config.cosmos'
+import ETrsf from '$lib/worker/modeling/transformation-ext'
 import { capitalize, notNull, objEntries } from '$lib/worker/util'
-import type { ClusterName, ClusterSide } from 'target/cosmosStructs'
+import type { ClusterName } from '$target/cosmosStructs'
 
 const INDENT = 2
 

@@ -6,6 +6,8 @@
  * in terms of that plane...
  */
 
+// @ts-nocheck Unmaintained file
+
 import cuttleform from '$assets/cuttleform.json' assert { type: 'json' }
 import type { CuttleformProto, CuttleKey } from '$lib/worker/config'
 import Trsf from '$lib/worker/modeling/transformation'

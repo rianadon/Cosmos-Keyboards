@@ -88,7 +88,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     description: 'Why. Are. They. Still. Using. Micro-USB??',
   },
   'rp2040-black-usb-c-aliexpress': {
-    name: 'RP2040 Black Board USB-C (Aliexpress)',
+    name: 'RP2040 Black USB-C (Aliexpress)',
     extraName: '(USB-C) ☆',
     size: new Vector(0.9 * IN, 2.1 * IN, 1.57),
     sizeName: 'Large',
@@ -104,6 +104,24 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     rearPins: ['3V3', 'SWDIO', 'SWDCLK', 'GND'],
     isGPIO: /\d+/,
     description: 'My personal favorite. You can get these dirt cheap on AliExpress.',
+  },
+  'rp2040-lite-black-usb-c-aliexpress': {
+    name: 'RP2040 Lite Black USB-C (Aliexpress)',
+    extraName: '(USB-C) ☆',
+    size: new Vector(20.9, 53.8, 1.57),
+    sizeName: 'Large',
+    boundingBoxZ: 5,
+    offset: new Vector(0, 0, 1.835),
+    holes: [],
+    cutouts: [
+      { origin: new Vector(0, -2.1 * IN / 2, 0), size: new Vector(6, 23, 0) },
+    ],
+    sidecutout: 4,
+    leftSidePins: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', 'GND', '13', '14', '15', '16', '17'],
+    rightSidePins: ['VBUS', 'VIN', 'GND', '3V3_EN', '3V3', 'GND', 'RUN', '29', '28', '27', '26', 'AGND', '25', '24', '23', '22', '21', '20', '19', '18'],
+    rearPins: ['3V3', 'GND', 'SWDCLK', 'SWDIO'],
+    isGPIO: /\d+/,
+    description: "RP2040 board with USB-C on AliExpress. These do not have reset buttons on the board, so you will need to wire your own or use bootmagic keys. For this reason I don't recommend it.",
   },
   'promicro-usb-c': {
     name: 'Pro Micro - 34.7mm',
@@ -324,10 +342,9 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     rearConnectorPins: ['GP18', 'GP19', 'GP15', 'GP13', 'GP12', 'GP14'],
     isGPIO: /GP\d+/,
     backstopHeight: 0,
-    draft: true,
     soldByCosmos: true,
     description:
-      'A fast & feature-packed microcontroller with two USB-C ports to link together your keyboard halves (avoids TRRS hotplug issues). Based on the RP2040.\n<a href="https://ryanis.cool/cosmos/lemon">Lemon Microcontrollers</a> are sold from the <a href="https://cosmos-store.ryanis.cool">Cosmos Store</a> and shipped from the US. They are <a href="https://github.com/rianadon/Cosmos-Keyboard-PCBs">open source</a> too.',
+      'A fast & feature-packed microcontroller with two USB-C ports to link together your keyboard halves (avoids TRRS hotplug issues). Based on the RP2040.\nLemon Microcontrollers also support firmware auto-generation!\n<a href="https://ryanis.cool/cosmos/lemon">Lemon Microcontrollers</a> are sold from the <a href="https://cosmos-store.ryanis.cool">Cosmos Store</a> and shipped from the US. They are <a href="https://github.com/rianadon/Cosmos-Keyboard-PCBs">open source</a> too.',
   },
   'lemon-wireless': {
     name: 'Lemon Wireless',
@@ -344,10 +361,9 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     rearConnectorPins: ['SDA', 'SCL', 'RGB', 'MOSI', 'CS', 'MISO', 'SCK'],
     isGPIO: /R\d+|C\d+|GP\d+|SDA|SCL|MOSI|MISO|CS|SCK/,
     backstopHeight: 0,
-    draft: true,
     soldByCosmos: true,
     description:
-      'Lots of I/Os, Bluetooth, and affordable! You can have all three.\n<a href="https://ryanis.cool/cosmos/lemon">Lemon Microcontrollers</a> are sold from the <a href="https://cosmos-store.ryanis.cool">Cosmos Store</a> and shipped from the US. They are <a href="https://github.com/rianadon/Cosmos-Keyboard-PCBs">open source</a> too.',
+      'Lots of I/Os, Bluetooth, and affordable! You can have all three.\nLemon Microcontrollers also support firmware auto-generation!\n<a href="https://ryanis.cool/cosmos/lemon">Lemon Microcontrollers</a> are sold from the <a href="https://cosmos-store.ryanis.cool">Cosmos Store</a> and shipped from the US. They are <a href="https://github.com/rianadon/Cosmos-Keyboard-PCBs">open source</a> too.',
   },
   'elite-c': {
     name: 'Elite-C',
@@ -575,7 +591,7 @@ export function numGPIO(mcu: Microcontroller) {
   return pins.filter(p => isGPIO.test(p)).length
 }
 
-export function microcontrollerConnectors(mcu: Microcontroller, connectors: ConnectorMaybeCustom[]) {
+export function microcontrollerConnectors(mcu: Microcontroller | null, connectors: ConnectorMaybeCustom[]) {
   const isBluetooth = mcu != null && BOARD_PROPERTIES[mcu].extraName?.toLowerCase().includes('bluetooth')
 
   if (mcu == null) connectors = []
@@ -592,8 +608,8 @@ export function microcontrollerConnectors(mcu: Microcontroller, connectors: Conn
     ]
   } else if (mcu == 'lemon-wireless') {
     connectors = [
-      { width: 7, height: 3, x: -9.3, y: 4, radius: 1 },
-      { preset: 'usb', size: 'average', x: 5.4 },
+      { width: 7, height: 3, x: -8.8, y: 4, radius: 1 },
+      { preset: 'usb', size: 'average', x: 6 },
     ]
   } else if (isBluetooth) connectors = [{ preset: 'usb', size: 'average' }]
   else connectors = [{ preset: 'trrs' }, { preset: 'usb', size: 'average' }]

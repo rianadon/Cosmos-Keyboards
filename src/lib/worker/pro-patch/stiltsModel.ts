@@ -1,5 +1,6 @@
-import type { Compound, ShapeMesh, Solid } from 'replicad'
+import type { Compound, Solid } from 'replicad'
 import type { Cuttleform, Geometry, SpecificCuttleform, StiltsShell } from '../config'
+import type { ShapeMesh } from '../modeling/index'
 import { errorMsg } from './index'
 import type { StiltsGeometry } from './stiltsGeo'
 

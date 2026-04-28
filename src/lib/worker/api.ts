@@ -15,7 +15,7 @@ import { getUser } from '../../routes/beta/lib/login'
 import { ITriangle } from '../loaders/simplekeys'
 import { type ConfError, type ConfErrors, isPro, keycapIntersections, partIntersections, socketIntersections } from './check'
 import { type Cuttleform, type CuttleKey, type Geometry, newGeometry } from './config'
-import { boardHolder, cutWithConnector, keyHoles, makeConnector, makePlate, makePlateMesh, makerScrewInserts, makeWalls, type ScrewInsertTypes, webSolid } from './model'
+import { boardHolder, cutWithConnector, keyHoles, makePlate, makePlateMesh, makerScrewInserts, makeWalls, type ScrewInsertTypes, webSolid } from './model'
 import { Assembly } from './modeling/assembly'
 import { blobSTL, combine, type ShapeMesh } from './modeling/index'
 import { meshVolume, supportMesh } from './modeling/supports'
@@ -306,7 +306,7 @@ async function getModel(conf: Cuttleform, name: string, stitchWalls: boolean, fl
   }
 }
 
-export async function getSTL(conf: Cuttleform, name: string, side: 'left' | 'right' | 'unibody', stitchWalls: boolean) {
+export async function getSTL(conf: Cuttleform, name: string, side: 'left' | 'right' | 'unibody' | 'test', stitchWalls: boolean) {
   const flip = side == 'left'
   let model = await getModel(conf, name, stitchWalls, flip)
   if (name == 'wristrest' && side == 'unibody' && conf.wristRestRight && model) {
@@ -339,7 +339,6 @@ export async function getSTEP(conf: Cuttleform, flip: boolean, stitchWalls: bool
 type MeshWithVolume = { mesh: ShapeMesh; mass: number; ocTime: number }
 function meshWithVolume(solid: Solid): MeshWithVolume {
   const mesh = solid.mesh({ tolerance: 0.1, angularTolerance: 10 })
-  console.log('got mesh', mesh)
   const props = new oc.GProp_GProps_1()
   oc.BRepGProp.VolumeProperties_2(solid.wrapped, props, 0.01, false, true)
   const mass = props.Mass()
@@ -347,13 +346,12 @@ function meshWithVolume(solid: Solid): MeshWithVolume {
   const originalTime = ocTime
   ocTime = 0 // Only report once
   return {
-    // mesh: {
-    //   vertices: new Float32Array(mesh.vertices),
-    //   normals: new Float32Array(mesh.normals),
-    //   triangles: new Uint16Array(mesh.triangles),
-    //   faceGroups: mesh.faceGroups,
-    // },
-    mesh,
+    mesh: {
+      vertices: new Float32Array(mesh.vertices),
+      normals: new Float32Array(mesh.normals),
+      triangles: new Uint16Array(mesh.triangles),
+      faceGroups: mesh.faceGroups,
+    },
     mass,
     ocTime: originalTime,
   }
@@ -379,13 +377,13 @@ function meshWithVolumeAndSupport(solid: Solid, minZ: number) {
   return { mesh, mass, supports, ocTime }
 }
 
-export async function volume() {
-  if (!model) throw new Error('No model created yet')
-  const oc = getOC()
-  const props = new oc.GProp_GProps_1()
-  oc.BRepGProp.VolumeProperties_2(model.wrapped, props, 0.01, false, true)
-  return props.Mass()
-}
+// export async function volume() {
+//   if (!model) throw new Error('No model created yet')
+//   const oc = getOC()
+//   const props = new oc.GProp_GProps_1()
+//   oc.BRepGProp.VolumeProperties_2(model.wrapped, props, 0.01, false, true)
+//   return props.Mass()
+// }
 
 export async function intersections(conf: Cuttleform, side: 'left' | 'right' | 'unibody'): Promise<ConfErrors> {
   const intersections: ConfErrors = []

@@ -1,4 +1,6 @@
 <script lang="ts">
+  // @ts-nocheck Unused file
+
   import { CuttleformSchema } from './schema'
   import {
     cuttleConf,

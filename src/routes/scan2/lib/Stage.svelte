@@ -1,10 +1,9 @@
 <script lang="ts">
   import { FINGERS, type Hand, type Joints } from './hand'
   import { Canvas, T } from '@threlte/core'
-  import { DEG2RAD } from 'three/src/math/MathUtils'
+  import { DEG2RAD } from 'three/src/math/MathUtils.js'
   import { HTML, MeshLineGeometry, MeshLineMaterial } from '@threlte/extras'
   import { Vector3, type Vector3Tuple, Matrix4 } from 'three'
-  import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial'
 
   export let hand: Hand | undefined = undefined
   export let otherHand: Hand | undefined = undefined

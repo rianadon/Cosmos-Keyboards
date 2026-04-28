@@ -1,4 +1,6 @@
 <script lang="ts">
+  // @ts-nocheck Unused file
+
   import { ManuformSchema } from '../schema'
   import { cuttleConfFromManuform, type CuttleformThree, type Manuform } from '$lib/worker/config'
   import Field from './Field.svelte'

@@ -11,7 +11,8 @@ export function closestAspect(aspect: number) {
   return 2
 }
 
-export const KEY_INFO: Record<string, Record<number, { depth: number; tilt: number }>> = {
+type ProfileNotNull = Exclude<Profile, null>
+export const KEY_INFO: Record<ProfileNotNull, Record<number, { depth: number; tilt: number }>> = {
   mt3: {
     0: { depth: 14.7, tilt: -12.5 },
     1: { depth: 13.1, tilt: -6 },
@@ -115,7 +116,7 @@ export const KEY_DESC: Record<Exclude<Profile, null>, KeyDescription> = {
 }
 
 export function keyInfo(k: CuttleKey) {
-  if (!('keycap' in k) || !(k.keycap.profile in KEY_INFO)) {
+  if (!('keycap' in k) || !k.keycap || !(k.keycap.profile in KEY_INFO)) {
     return { depth: 10, tilt: 0 }
   }
   if (UNIFORM.includes(k.keycap.profile)) {

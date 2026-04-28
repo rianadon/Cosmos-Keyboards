@@ -2,9 +2,8 @@ import { closestAspect, UNIFORM } from '$lib/geometry/keycaps'
 import { switchInfo } from '$lib/geometry/switches'
 import type { CuttleKey } from '$lib/worker/config'
 import Trsf from '$lib/worker/modeling/transformation'
-import { type Writable, writable } from 'svelte/store'
 import { type BufferAttribute, BufferGeometry, Matrix4, Triangle, Vector3 } from 'three'
-import { STLLoader } from 'three/examples/jsm/loaders/STLLoader'
+import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
 import keys from '../../../target/keys-simple.json'
 
 export class ITriangle extends Triangle {
@@ -35,10 +34,10 @@ export function simpleKeyGeo(key: CuttleKey, addTravel: boolean): BufferGeometry
   if (name in keys) {
     const loader = new STLLoader()
     const data = Uint8Array.from(atob((keys as any)[name]), c => c.charCodeAt(0))
-    const geo = loader.parse(data.buffer)
+    const geo = loader.parse(data.buffer as ArrayBuffer)
     if (addTravel) {
       const travel = calcTravel(key)
-      const positions = (geo.attributes.position as BufferAttribute).array as number[]
+      const positions = (geo.attributes.position as BufferAttribute).array
       for (let i = 2; i < positions.length; i += 3) {
         if (positions[i] < 0) positions[i] = -travel
       }

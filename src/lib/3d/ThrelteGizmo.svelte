@@ -19,6 +19,7 @@
     type ColorRepresentation,
     type Intersection,
   } from 'three'
+  // @ts-ignore
   import type { GizmoEvents, GizmoProps, GizmoSlots } from '@threlte/extras/dist/components/Gizmo/Gizmo'
 
   type $$Props = GizmoProps

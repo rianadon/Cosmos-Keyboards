@@ -95,4 +95,8 @@ export class Assembly {
       throw new Error('WRITE STEP FILE FAILED.')
     }
   }
+
+  delete() {
+    this.parts.forEach(p => p.shape.delete())
+  }
 }

@@ -81,7 +81,7 @@ export class WorkerPool<T> {
     let result: R
     try {
       result = await task
-    } catch (e) {
+    } catch (e: any) {
       if (typeof e == 'number') e = new Error('OpenCascade Error: ' + e)
       e.task = name
       throw e

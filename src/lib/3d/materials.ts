@@ -185,16 +185,16 @@ export const COLORCONFIG = {
 }
 export type ColorScheme = keyof typeof COLORCONFIG
 
-export class CaseMaterial extends KeyboardMaterial {
-  constructor(opacity: number, brightness = 1, colorScheme: ColorScheme) {
-    super({
-      opacity,
-      brightness,
-      color: COLORCONFIG[colorScheme].caseColor,
-      saturation: COLORCONFIG[colorScheme].caseSaturation,
-    })
-  }
-}
+// export class CaseMaterial extends KeyboardMaterial {
+//   constructor(opacity: number, brightness = 1, colorScheme: ColorScheme) {
+//     super({
+//       opacity,
+//       brightness,
+//       color: COLORCONFIG[colorScheme].caseColor,
+//       saturation: COLORCONFIG[colorScheme].caseSaturation,
+//     })
+//   }
+// }
 
 export function drawLetter(canvas: HTMLCanvasElement, letter: string, flip: boolean, color = 'white') {
   const ctx = canvas.getContext('2d')!
@@ -205,23 +205,23 @@ export function drawLetter(canvas: HTMLCanvasElement, letter: string, flip: bool
   ctx.fillText(letter, flip ? -256 : 256, 315)
 }
 
-export class KeyMaterial extends KeyboardMaterial {
-  constructor(opacity: number, brightness = 1, colorScheme: ColorScheme, letter = '', flip = false) {
-    super({
-      opacity,
-      brightness,
-      color: COLORCONFIG[colorScheme].keyColor,
-      saturation: COLORCONFIG[colorScheme].keySaturation,
-    })
-    if (letter) {
-      const canvas = document.createElement('canvas')
-      canvas.width = 512
-      canvas.height = 512
-      drawLetter(canvas, letter, flip)
-      this.uniforms.tLetter.value = new THREE.CanvasTexture(canvas)
-    }
-  }
-}
+// export class KeyMaterial extends KeyboardMaterial {
+//   constructor(opacity: number, brightness = 1, colorScheme: ColorScheme, letter = '', flip = false) {
+//     super({
+//       opacity,
+//       brightness,
+//       color: COLORCONFIG[colorScheme].keyColor,
+//       saturation: COLORCONFIG[colorScheme].keySaturation,
+//     })
+//     if (letter) {
+//       const canvas = document.createElement('canvas')
+//       canvas.width = 512
+//       canvas.height = 512
+//       drawLetter(canvas, letter, flip)
+//       this.uniforms.tLetter.value = new THREE.CanvasTexture(canvas)
+//     }
+//   }
+// }
 
 export function drawLetterToTex(letter: string | undefined, tex: THREE.CanvasTexture, flip: boolean) {
   tex.needsUpdate = true

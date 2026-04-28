@@ -1,10 +1,11 @@
-import { Vector3 } from 'three/src/math/Vector3'
+import { Vector3 } from 'three/src/math/Vector3.js'
 import type { ShapeMesh } from './index'
 
 const NEEDS_SUPPORT_ANGLE = Math.PI / 6 // angles of > 30 degrees need support
 const SUPPORT_THRESH = -Math.sin(NEEDS_SUPPORT_ANGLE) // faces with normal.z < thresh need support
 
-export function supportMesh(mesh: ShapeMesh, minZ: number): ShapeMesh {
+type ShapeMeshWithVolume = ShapeMesh & { volume: number }
+export function supportMesh(mesh: ShapeMesh, minZ: number): ShapeMeshWithVolume {
   const eps = 1e-6
   const cb = new Vector3()
   const ab = new Vector3()

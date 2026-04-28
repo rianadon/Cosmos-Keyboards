@@ -1,6 +1,6 @@
 <script lang="ts">
   import type monaco from 'monaco-editor'
-  import { onMount } from 'svelte'
+  import { onDestroy, onMount } from 'svelte'
   import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
   import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker'
   import { type FullCuttleform, newFullGeometry, newGeometry } from '$lib/worker/config'
@@ -40,7 +40,7 @@
     codeError.set(null)
     if (JSON.stringify(newConf) != JSON.stringify(conf)) {
       if (!newConf || (!newConf.unibody && (!newConf.left || !newConf.right))) {
-        confError.set({ type: 'wrongformat', side: 'right' })
+        confError.set([{ type: 'wrongformat', side: 'right' }])
         return
       }
       try {
@@ -132,11 +132,11 @@
     client.getEmitOutput(model.uri.toString()).then((e) => {
       content = e.outputFiles[0].text
     })
+  })
 
-    return () => {
-      editor.dispose()
-      pool.reset()
-    }
+  onDestroy(() => {
+    editor.dispose()
+    pool.reset()
   })
 </script>
 

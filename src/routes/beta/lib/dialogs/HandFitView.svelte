@@ -9,7 +9,7 @@
   import { Matrix4, Vector3 } from 'three'
   import HandFitViewTable from './HandFitViewTable.svelte'
   import { mirrorCluster, type CosmosCluster, type CosmosKeyboard } from '$lib/worker/config.cosmos'
-  import type { Homing } from 'target/cosmosStructs'
+  import type { Homing } from '$target/cosmosStructs'
 
   let hands: HandData | undefined = undefined
   const dispatch = createEventDispatcher()
@@ -115,8 +115,14 @@
 {#if hands}
   <div class="m-4">
     <div class="max-w-prose mx-auto">
-      The following parameters are recommended for your hand. Clicking Apply will reset all modifications
-      you've made to the upper keys.
+      The following parameters are recommended for your hand. These will change the relative up/down
+      (height) and forward/backwards (Y) offsets of the columns. Clicking Apply will reset all
+      modifications you've made to the upper keys.
+    </div>
+    <div class="max-w-prose mx-auto mt-2">
+      This does not change horizontal/vertical spacing or anything about the thumb cluster (placement or
+      spacing). You should tune those yourself using the Hand 3D model. You will likely find the default
+      spacing too large.
     </div>
     <div class="flex justify-around my-6">
       <div>
