@@ -32,8 +32,8 @@ Each part has up to four touchpoints. Not every part needs all four — match th
    ```
 6. **Verify in the UI:**
    ```bash
-   npm run check
-   make dev   # → http://localhost:5173/beta — confirm the part appears and renders
+   bun src/scripts/check.ts   # CI type-check (not `npm run check`)
+   make dev                   # → http://localhost:5173/beta — confirm the part appears and renders
    ```
 
 ## Conventions

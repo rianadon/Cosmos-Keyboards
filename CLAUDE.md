@@ -15,12 +15,14 @@ The user-facing app lives at `/beta` (`src/routes/beta`). Most of the interestin
 ```bash
 make quickstart        # one-time: install deps, compile protobufs, generate parts/keycaps geometry
 make dev               # start vite dev server → http://localhost:5173/beta
-npm run check          # svelte-check + tsc — the closest thing to a CI signal locally
+bun src/scripts/check.ts  # the CI type-check — filters out known-noisy files; matches what PR checks run
 npm test               # runs `bun test` against *.test.ts files
 make build             # regenerates target/proto/*.ts and target/editorDeclarations.d.ts
 ```
 
 The default `make` target only regenerates protobufs and editor types. `make quickstart` is heavier — it also runs `parts`, `parts-simple`, `keycaps2`, `keycaps-simple2` which produce GLB/STEP files in `target/`.
+
+`npm run check` is **not** the right local signal. It runs raw `svelte-check` and reports ~50 errors that the project treats as known/accepted (mostly in `Viewer3D.svelte`, `App.svelte`, `VisualEditor2.svelte`, plus missing-`target/` import errors). `bun src/scripts/check.ts` is what CI runs — it filters those out. Use that.
 
 ## Layout
 
@@ -61,7 +63,7 @@ Two test files exist and use **`bun:test`** (not vitest):
 - `src/lib/worker/config.test.ts`
 - `src/routes/beta/lib/editor/tuple.test.ts`
 
-Run with `npm test` (which calls `bun test`). Tests are sparse — `npm run check` (svelte-check + tsc) is the more useful local signal for most changes.
+Run with `npm test` (which calls `bun test`). For type checking, use `bun src/scripts/check.ts` (the CI script) rather than `npm run check`.
 
 ## Formatting
 

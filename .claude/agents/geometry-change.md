@@ -31,8 +31,8 @@ Positioning is done with `Trsf` and `ETrsf` from `src/lib/worker/modeling/transf
 ## Verification (always run these before reporting done)
 
 ```bash
-npm run check     # svelte-check + tsc — the primary local signal
-npm test          # bun test — runs the geometry/config tests
+bun src/scripts/check.ts   # the CI type-check (filters known-noisy files; not `npm run check`)
+npm test                   # bun test — runs the geometry/config tests
 ```
 
 If you changed protobuf-related types, also:
