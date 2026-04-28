@@ -2,6 +2,8 @@
 
 Roadmap for letting users pick a keyboard layout (QWERTY, Colemak, Miryoku, etc.) in the Cosmos editor and have it flow through both visual legends and firmware (ZMK/QMK) output. One PR per phase.
 
+For end-user docs on what each keymap structure does and how they compare, see [KEYMAP_STRUCTURES.md](KEYMAP_STRUCTURES.md).
+
 ## Background
 
 Before this work, Cosmos was QWERTY-only:
