@@ -1,13 +1,13 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte'
 
-  export let value: number
+  export let value: number | undefined
   export let small = false
   export let divisor = 45
 
   const dispatch = createEventDispatcher()
 
-  $: degrees = Math.round(value * 10) / 10
+  $: degrees = value === undefined ? '' : Math.round(value * 10) / 10
 
   function onChange(e: Event) {
     value = Math.round(divisor * (e.target as any).value) / divisor

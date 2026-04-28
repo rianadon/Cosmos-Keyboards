@@ -575,6 +575,7 @@
       playing = false
       return
     }
+    if (!conf) return
     playing = true
     const filteredSentence = Array.from(sentence)
       .filter((letter) => !!findKeyByAttr(conf, 'letter', letter))
@@ -585,6 +586,7 @@
   let playing = false
   function play(sentence: string, beginning?: Record<string, Vector3[] | false>, index = 0) {
     if (!fitConf) throw new Error('No fitConf')
+    if (!conf) throw new Error('No conf')
     if (index > sentence.length) {
       playing = false
       return
@@ -593,15 +595,21 @@
 
     const prevRot = new Quaternion().setFromEuler(new Euler().fromArray(rightHandRotation))
     const prevPos = new Vector3().fromArray(rightHandPosition)
-    let targets
+    let targets: Record<string, Vector3[] | false>
     if (index >= sentence.length) {
       targets = theBigFit(fitConf)
     } else {
       const letter = sentence[index]
       const finger = fingersToKeys[letter]
-      targets = fit({
-        [finger]: pos15(conf, findKeyByAttr(conf, 'letter', letter)),
-      })
+      const fitArg: Record<string, Vector3 | undefined> = {
+        [finger]: pos15(conf, findKeyByAttr(conf, 'letter', letter)!),
+      }
+      targets = fit(
+        fitArg as Record<
+          'thumb' | 'pinky' | 'indexFinger' | 'middleFinger' | 'ringFinger',
+          Vector3 | undefined
+        >
+      )
       console.log('letter', pressedLetter)
     }
     const newRot = new Quaternion().setFromEuler(new Euler().fromArray(rightHandRotation))
@@ -618,16 +626,20 @@
 
       const percent = easeInOutQuad(p)
       if (p > 1) return play(sentence, targets, ++index)
+      if (!theHand) throw new Error('No theHand')
       theHand = new SolvedHand(jointsJSON[whichHand], theHand.position)
       for (const f of FINGERS) {
-        if (!targets[f] || !beginning[f]) continue
-        const current = beginning[f].map((b, i) =>
-          new Vector3().subVectors(targets[f][i], b).multiplyScalar(percent).add(b)
+        const targetArr = targets[f]
+        const beginArr = beginning[f]
+        if (!targetArr || !beginArr) continue
+        const current = beginArr.map((b, i) =>
+          new Vector3().subVectors(targetArr[i], b).multiplyScalar(percent).add(b)
         )
         theHand.fkBy(f, (i) => [current[i].z, current[i].y])
-        if (f == fingersToKeys[pressedLetter]) {
+        if (pressedLetter && f == fingersToKeys[pressedLetter]) {
           console.log('pl', pressedLetter)
           const key = findKeyByAttr(conf, 'letter', pressedLetter)
+          if (!key) continue
           const ti = keyPosition(conf, key, false).invert().Matrix4()
           const swInfo = switchInfo(key.type)
           const pos = theHand.worldPositions(f, 1000)
@@ -657,10 +669,19 @@
     console.log('update matrix', new Vector3().setFromMatrixPosition(rightMat))
     rightHandMatrix = rightMat
     if (pressedLetter) {
+      if (!conf) return
       const finger = fingersToKeys[pressedLetter]
-      fit({
-        [finger]: pos15(conf, findKeyByAttr(conf, 'letter', pressedLetter)),
-      })
+      const key = findKeyByAttr(conf, 'letter', pressedLetter)
+      if (!key) return
+      const fitArg: Record<string, Vector3 | undefined> = {
+        [finger]: pos15(conf, key),
+      }
+      fit(
+        fitArg as Record<
+          'thumb' | 'pinky' | 'indexFinger' | 'middleFinger' | 'ringFinger',
+          Vector3 | undefined
+        >
+      )
     } else {
       theBigFit(fitConf!)
     }
@@ -691,24 +712,25 @@
     })
   }
 
-  const onFlip = (f) => {
+  const onFlip = (f: boolean) => {
     if (fitConf && jointsJSON) updateHandMatrix(rightHandMatrix)
   }
   $: onFlip(flip)
 
-  let timer = 0
+  let timer: ReturnType<typeof setInterval> | undefined
   function scanHand() {
     const win = window.open('scan2')
+    if (!win) return
     timer = setInterval(() => {
       if (win.closed) {
-        clearInterval(timer)
+        if (timer) clearInterval(timer)
         jointsJSON = readHands()
       }
     }, 1000)
   }
   onDestroy(() => {
     cancelAnimationFrame(req)
-    clearInterval(timer)
+    if (timer) clearInterval(timer)
   })
 
   $: reachabilityArr =
@@ -1135,7 +1157,7 @@
                   {#if keyIsClicked && columnIsClicked}<DecimalInputInherit
                       small
                       bind:value={keyIsClicked.row}
-                      inherit={columnIsClicked.row}
+                      inherit={undefined}
                       on:change={updateProto}
                       divisor={100}
                     />
@@ -1275,7 +1297,10 @@
             <div class="tab">
               <div class="tabhead">
                 Column Curvature
-                {#if columnType}<button class="ctbutton" on:click={() => changeCType(columnIsClicked)}>
+                {#if columnType}<button
+                    class="ctbutton"
+                    on:click={() => changeCType(columnIsClicked ?? undefined)}
+                  >
                     {columnType}
                   </button>{/if}
               </div>
@@ -1419,7 +1444,10 @@
             <div class="tab">
               <div class="tabhead">
                 Cluster Curvature
-                {#if clusterType}<button class="ctbutton" on:click={() => changeCType(clusterIsClicked)}>
+                {#if clusterType}<button
+                    class="ctbutton"
+                    on:click={() => changeCType(clusterIsClicked ?? undefined)}
+                  >
                     {clusterType}
                   </button>{/if}
               </div>
@@ -1614,9 +1642,9 @@
     {/if}
   {/each}
   <slot />
-  {@const bestC = center.unibody || center.right || center.left}
+  {@const bestC = center.unibody || center.right || center.left || [0, 0, 0]}
   <T.Group position={[-bestC[0], -bestC[1], -bestC[2]]}>
-    {#if conf && flags.hand && showHand && jointsJSON}
+    {#if conf && flags.hand && showHand && jointsJSON && theHand}
       <T.Group
         position={$view == 'left' ? leftHandPosition : rightHandPosition}
         rotation={$view == 'left' ? leftHandRotation : rightHandRotation}
@@ -1645,7 +1673,7 @@
     {@const clickedC = center[clickedSide] || [0, 0, 0]}
     <T.Group position={[-clickedC[0], -clickedC[1], -clickedC[2]]}>
       {#if $transformMode == 'select' && !showSupports}
-        {#each adjacentPositions(geometry[clickedSide], $clickedKey, $protoConfig, $selectMode) as adj}
+        {#each adjacentPositions(geometry[clickedSide] ?? null, $clickedKey, $protoConfig, $selectMode) as adj}
           <GroupMatrix
             matrix={shouldFlipKey($view, $clickedKey, $protoConfig) ? flipMatrixX(adj.pos) : adj.pos}
           >

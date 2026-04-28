@@ -1,4 +1,4 @@
-<script lang="ts">
+<script lang="ts" generics="O extends SelectOption">
   import {
     createSelect,
     createSync,
@@ -10,16 +10,15 @@
   import { mdiCheck, mdiChevronDown, mdiChevronUp } from '@mdi/js'
   import { createEventDispatcher, SvelteComponent, type ComponentType } from 'svelte'
   import { openSelect } from '$lib/store'
-
-  type Option = { key: string; label: string }
+  import type { SelectOption } from './selectThingy.types'
 
   let syncing = false
   const dispatch = createEventDispatcher()
 
-  export let options: Option[] | Record<string, Option[]>
+  export let options: O[] | Record<string, O[]>
   const allOptions = Array.isArray(options) ? options : Object.values(options).flat()
 
-  const toOption = (option: Option | undefined): SelectOptionProps<string> =>
+  const toOption = (option: O | undefined): SelectOptionProps<string> =>
     option
       ? { value: option.key, label: option.label, disabled: false }
       : { value: '', label: '', disabled: true }
@@ -71,7 +70,7 @@
   }
   $: onValueChange(value)
 
-  export let component: ComponentType<SvelteComponent<{ option: Option }>>
+  export let component: ComponentType<SvelteComponent<{ option: O }>>
   export let labelComponent:
     | ComponentType<SvelteComponent<{ option: { label?: string; value: string } }>>
     | undefined = undefined

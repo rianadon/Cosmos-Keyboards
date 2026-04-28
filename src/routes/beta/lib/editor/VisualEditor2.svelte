@@ -178,7 +178,7 @@
 
   /** Update the connector based on microcontroller bluetooth status */
   function updateMicrocontroller(ev: CustomEvent) {
-    $protoConfig.microcontroller = ev.detail
+    $protoConfig.microcontroller = ev.detail === '' ? null : ev.detail
     if (!basic) return
 
     const { mirrorConnectors, connectors } = microcontrollerConnectors(
@@ -188,6 +188,28 @@
     $protoConfig.connectors = connectors
     $protoConfig.mirrorConnectors = mirrorConnectors
   }
+
+  type McOption = { key: Exclude<MicrocontrollerName, null> | ''; label: string }
+  $: microcontrollerOptions = ((): Record<string, McOption[]> => {
+    const result: Record<string, McOption[]> = Object.fromEntries(
+      MICROCONTROLLER_SIZES.map((s): [string, McOption[]] => [
+        s,
+        notNull(MICROCONTROLLER_NAME)
+          .filter(
+            (m) => BOARD_PROPERTIES[m].sizeName == s && (flags.draftuc || !BOARD_PROPERTIES[m].draft)
+          )
+          .sort(sortMicrocontrollers)
+          .map(
+            (m): McOption => ({
+              key: m,
+              label: BOARD_PROPERTIES[m].name + ' ' + (BOARD_PROPERTIES[m].extraName || ''),
+            })
+          ),
+      ])
+    )
+    result.More = [{ key: '', label: 'None' }]
+    return result
+  })()
 
   function updatePlate() {
     // @ts-ignore
@@ -1111,25 +1133,9 @@
   {/if}
   <Field name="Microcontroller" icon="microcontroller">
     <SelectThingy
-      value={$protoConfig.microcontroller}
+      value={$protoConfig.microcontroller ?? ''}
       on:change={updateMicrocontroller}
-      options={{
-        ...Object.fromEntries(
-          MICROCONTROLLER_SIZES.map((s) => [
-            s,
-            notNull(MICROCONTROLLER_NAME)
-              .filter(
-                (m) => BOARD_PROPERTIES[m].sizeName == s && (flags.draftuc || !BOARD_PROPERTIES[m].draft)
-              )
-              .sort(sortMicrocontrollers)
-              .map((m) => ({
-                key: m,
-                label: BOARD_PROPERTIES[m].name + ' ' + (BOARD_PROPERTIES[m].extraName || ''),
-              })),
-          ])
-        ),
-        More: [{ key: null, label: 'None' }],
-      }}
+      options={microcontrollerOptions}
       component={SelectMicrocontrollerInner}
     />
     <!-- <Select bind:value={$protoConfig.microcontroller} on:change={updateMicrocontroller}>

@@ -290,12 +290,13 @@
     cutPromise: pool.execute((w) => w.cutWall(conf), 'Cut wall'),
     holderPromise: pool.execute((w) => w.generateBoardHolder(conf), 'Holder'),
     screwPromise: pool.execute((w) => w.generateScrewInserts(conf), 'Inserts'),
-    wristRestPromise:
-      hasPro && pool.execute((w) => w.generateWristRest(conf, side == 'left'), 'Wrist Rest'),
+    wristRestPromise: hasPro
+      ? pool.execute((w) => w.generateWristRest(conf, side == 'left'), 'Wrist Rest')
+      : undefined,
     secondWristRestPromise:
-      hasPro &&
-      side == 'unibody' &&
-      pool.execute((w) => w.generateMirroredWristRest(conf), 'Wrist Rest 2'),
+      hasPro && side == 'unibody'
+        ? pool.execute((w) => w.generateMirroredWristRest(conf), 'Wrist Rest 2')
+        : undefined,
     cutPlatePromise: pool.execute((w) => w.generatePlate(conf, true), 'Full Plate'),
   })
 
@@ -451,19 +452,22 @@
       }
 
       if (!flags.fast && full) {
-        const queue = otherPromises.flatMap((p, i) =>
-          notNull(Object.values(p)).map((q) => ({ i, kbd: kbdNames[i], prom: q }))
+        type Kbd = 'left' | 'right' | 'unibody'
+        type QueueItem = { i: number; kbd: Kbd; prom: Promise<any> }
+        const queue: QueueItem[] = otherPromises.flatMap((p, i) =>
+          Object.values(p)
+            .filter((q): q is Promise<any> => !!q && typeof q === 'object')
+            .map((q): QueueItem => ({ i, kbd: kbdNames[i] as Kbd, prom: q }))
         )
         const initialLength = queue.length
         const errors: Error[] = []
         generatorProgress = 0.2
         while (queue.length) {
-          // @ts-ignore
           const { result, finished, error } = await Promise.race(
             queue.map((p) =>
               p.prom.then(
-                (res) => ({ result: res, finished: p }),
-                (error) => ({ error, finished: p })
+                (res: any) => ({ result: res, finished: p, error: undefined as any }),
+                (error: any) => ({ error, finished: p, result: undefined as any })
               )
             )
           )
@@ -863,7 +867,7 @@
         {:else if viewer == 'dev'}
           <ViewerDev {geometry} />
         {/if}
-        {#if filament && isRenderable($confError) && (config?.right ?? config?.unibody).shell?.type == 'basic'}
+        {#if filament && isRenderable($confError) && (config?.right ?? config?.unibody)?.shell?.type == 'basic'}
           <div
             class="absolute bottom-0 right-0 text-right mb-2 bg-white/50 dark:bg-gray-800/50 rounded px-2 py-0.5 z-10"
           >
