@@ -395,36 +395,14 @@ function generateEncoderMap(encodersPerSide: Record<keyof FullGeometry, number>)
   return new Array(numEncoders).fill('ENCODER_CCW_CW(KC_VOLD, KC_VOLU)').join(', ')
 }
 
-function miryokuLayerKeycodes(
-  layerName: (typeof MIRYOKU_LAYERS)[number],
-  positionToSlot: Map<number, MiryokuSlot>,
-  positionToLetter: Map<number, string>,
-  totalKeys: number,
-): string[] {
-  const layerActions = MIRYOKU_KEYMAP[layerName]
-  const codes: string[] = []
-  for (let pos = 0; pos < totalKeys; pos++) {
-    const slot = positionToSlot.get(pos)
-    if (slot) {
-      const action = layerActions[slot]
-      if (action) {
-        codes.push(keyActionToQmk(action, positionToLetter.get(pos)))
-        continue
-      }
-    }
-    codes.push('KC_TRNS')
-  }
-  return codes
-}
-
-function generateMiryokuKeymap(
+/** Build per-position Miryoku layer data: layer #defines, the keymaps[] array
+ *  body, and the encoder map body. Slots without an action emit KC_TRNS so
+ *  unmapped physical keys fall through to BASE. */
+function buildMiryokuLayerData(
   config: FullGeometry,
-  matrix: Matrix,
   options: QMKOptions & { miryoku: NonNullable<QMKOptions['miryoku']> },
+  encodersPerSide: Record<keyof FullGeometry, number>,
 ) {
-  const encodersPerSide = mapObjNotNull(config, c => encoderKeys(c.c).length)
-  const hasEncoders = Object.values(encodersPerSide).some(e => e > 0)
-
   const positionToSlot = new Map<number, MiryokuSlot>()
   const positionToLetter = new Map<number, string>()
   for (const [slot, pos] of Object.entries(options.miryoku.slotToPosition) as [MiryokuSlot, number][]) {
@@ -441,76 +419,102 @@ function generateMiryokuKeymap(
   }
   const totalKeys = zmkPos
 
-  const layerDefines = MIRYOKU_LAYERS.map((name, i) => `#define ${name} ${i}`).join('\n')
-  const layerEntries = MIRYOKU_LAYERS.map(
-    (name, i) => `    [${i}] = LAYOUT(${miryokuLayerKeycodes(name, positionToSlot, positionToLetter, totalKeys).join(', ')})`,
-  ).join(',\n')
-  const encoderEntries = MIRYOKU_LAYERS.map((_, i) => `    [${i}] = { ${generateEncoderMap(encodersPerSide)} }`).join(',\n')
+  const layerCodes = (layerName: (typeof MIRYOKU_LAYERS)[number]): string[] => {
+    const layerActions = MIRYOKU_KEYMAP[layerName]
+    const codes: string[] = []
+    for (let pos = 0; pos < totalKeys; pos++) {
+      const slot = positionToSlot.get(pos)
+      const action = slot ? layerActions[slot] : undefined
+      codes.push(action ? keyActionToQmk(action, positionToLetter.get(pos)) : 'KC_TRNS')
+    }
+    return codes
+  }
 
+  const layerDefines = MIRYOKU_LAYERS.map((name, i) => `#define ${name} ${i}`)
+  const keymapsBody = MIRYOKU_LAYERS
+    .map((name, i) => `    [${i}] = LAYOUT(${layerCodes(name).join(', ')})`)
+    .join(',\n')
+  const encoderMapBody = MIRYOKU_LAYERS
+    .map((_, i) => `    [${i}] = { ${generateEncoderMap(encodersPerSide)} }`)
+    .join(',\n')
+
+  return { layerDefines, keymapsBody, encoderMapBody }
+}
+
+function oledHandlers(): string[] {
   return [
-    '#include QMK_KEYBOARD_H',
     '',
-    layerDefines,
+    'oled_rotation_t oled_init_user(oled_rotation_t rotation) {',
+    '    return OLED_ROTATION_90;',
+    '}',
     '',
-    'const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {',
-    layerEntries,
-    '};',
-    ...(hasEncoders
-      ? ['#if defined(ENCODER_MAP_ENABLE)', 'const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = {', encoderEntries, '};', '#endif']
-      : []),
-  ].join('\n') + '\n'
+    'bool oled_task_user(void) {',
+    '    static const char PROGMEM raw_logo[] = {',
+    '        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,128,0,128,224,248,200,220,252,246,222,254,254,246,238,254,252,252,248,240,224,128,0,0,0,0,0,0,0,0,0,0,255,127,254,241,103,159,63,63,127,255,255,255,255,127,63,223,15,135,243,251,225,17,252,254,0,0,0,0,',
+    '        0,0,0,0,7,15,11,15,16,63,59,32,63,56,7,7,7,48,62,63,48,15,59,62,27,30,15,15,0,0,0,0,192,224,16,16,16,0,128,192,64,64,128,0,128,64,64,0,192,64,64,192,64,64,128,0,128,64,64,128,0,128,64,64,0,1,2,2,2,0,1,3,2,2,1,0,2,3,3,0,3,0,0,3,0,0,3,0,3,2,2,1,0,2,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,16,16,124,16,16,0,0,0,0,0,0,0,0,0,0,0,0,0,0,',
+    '        0,0,0,0,0,0,0,0,0,0,128,0,128,0,0,128,0,0,128,0,128,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,160,160,160,248,252,252,255,28,255,252,252,31,252,252,255,28,255,252,252,248,160,160,160,0,0,0,0,0,0,0,0,0,164,164,164,255,255,255,255,240,239,223,223,0,223,223,239,240,255,255,255,255,164,164,164,0,0,0,0,0,0,0,0,0,0,0,0,3,7,7,63,7,63,7,7,63,7,7,63,7,63,7,7,3,0,0,0,0,0,0,0,0,',
+    '        0,0,0,128,192,96,96,96,192,128,0,224,224,192,0,0,0,192,224,224,0,224,224,0,128,192,224,96,0,0,0,0,0,0,0,15,31,48,48,112,223,143,0,63,63,3,15,28,15,3,63,63,0,63,63,7,15,29,56,48,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,',
+    '    };',
+    '',
+    '    oled_write_raw_P(raw_logo, sizeof(raw_logo)); // Show Cosmos + QMK logo',
+    '    return false;',
+    '}',
+  ]
 }
 
 function generateKeymap(config: FullGeometry, matrix: Matrix, options: QMKOptions) {
-  if (options.miryoku) return generateMiryokuKeymap(config, matrix, options as Parameters<typeof generateMiryokuKeymap>[2])
-
   const encodersPerSide = mapObjNotNull(config, c => encoderKeys(c.c).length)
   const hasEncoders = Object.values(encodersPerSide).some(e => e > 0)
   const display = Object.values(config).flatMap(displays)[0]
+
+  // Either Miryoku-driven multi-layer data or the default single-layer keymap.
+  // The surrounding boilerplate (rgblight, RELAY pin, post-init, housekeeping,
+  // OLED handlers) is the same for both — only the keymaps[] body and the
+  // optional layer #defines change.
+  let layerDefines: string[] = []
+  let keymapsBody: string
+  let encoderMapBody: string
+  if (options.miryoku) {
+    const m = buildMiryokuLayerData(
+      config,
+      options as QMKOptions & { miryoku: NonNullable<QMKOptions['miryoku']> },
+      encodersPerSide,
+    )
+    layerDefines = m.layerDefines
+    keymapsBody = m.keymapsBody
+    encoderMapBody = m.encoderMapBody
+  } else {
+    keymapsBody = `    [0] = LAYOUT(${generateKeycodes(config).join(', ')})`
+    encoderMapBody = `    [0] = { ${generateEncoderMap(encodersPerSide)} }`
+  }
+
   return [
-    '#include QMK_KEYBOARD_H\n',
+    '#include QMK_KEYBOARD_H',
     '#include "rgblight.h"',
     '',
     '#define RELAY_PIN 11',
-    ...(
-      options.wiredVersion == 'v0.4'
-        ? [
-          '#define RELAY_ON 0',
-          '#define RELAY_OFF 1',
-        ]
-        : [
-          '#define RELAY_ON 1',
-          '#define RELAY_OFF 0',
-        ]
-    ),
+    ...(options.wiredVersion == 'v0.4'
+      ? ['#define RELAY_ON 0', '#define RELAY_OFF 1']
+      : ['#define RELAY_ON 1', '#define RELAY_OFF 0']),
     '',
+    ...(layerDefines.length > 0 ? [...layerDefines, ''] : []),
     'bool last_led_state;',
     '',
     'const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {',
-    `    [0] = LAYOUT(${generateKeycodes(config).join(', ')}),`,
+    keymapsBody,
     '};',
-    ...(
-      hasEncoders
-        ? [
-          '#if defined(ENCODER_MAP_ENABLE)',
-          'const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = {',
-          `    [0] = { ${generateEncoderMap(encodersPerSide)} },`,
-          '};',
-          '#endif',
-        ]
-        : ['']
-    ),
+    ...(hasEncoders
+      ? [
+        '#if defined(ENCODER_MAP_ENABLE)',
+        'const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = {',
+        encoderMapBody,
+        '};',
+        '#endif',
+      ]
+      : ['']),
     '',
     'void keyboard_post_init_user(void) {',
-    ...(
-      options.enableConsole
-        ? [
-          '    debug_enable=true;',
-          '    debug_matrix=true;',
-          '',
-        ]
-        : []
-    ),
+    ...(options.enableConsole ? ['    debug_enable=true;', '    debug_matrix=true;', ''] : []),
     '  last_led_state = rgblight_get_val() > 0 ? RELAY_ON : RELAY_OFF;',
     '  gpio_set_pin_output(RELAY_PIN);',
     '  gpio_write_pin(RELAY_PIN, last_led_state);',
@@ -523,28 +527,7 @@ function generateKeymap(config: FullGeometry, matrix: Matrix, options: QMKOption
     '    gpio_write_pin(RELAY_PIN, leds_on);',
     '  }',
     '}',
-    ...(
-      display
-        ? [
-          '',
-          'oled_rotation_t oled_init_user(oled_rotation_t rotation) {',
-          '    return OLED_ROTATION_90;',
-          '}',
-          '',
-          'bool oled_task_user(void) {',
-          '    static const char PROGMEM raw_logo[] = {',
-          '        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,128,0,128,224,248,200,220,252,246,222,254,254,246,238,254,252,252,248,240,224,128,0,0,0,0,0,0,0,0,0,0,255,127,254,241,103,159,63,63,127,255,255,255,255,127,63,223,15,135,243,251,225,17,252,254,0,0,0,0,',
-          '        0,0,0,0,7,15,11,15,16,63,59,32,63,56,7,7,7,48,62,63,48,15,59,62,27,30,15,15,0,0,0,0,192,224,16,16,16,0,128,192,64,64,128,0,128,64,64,0,192,64,64,192,64,64,128,0,128,64,64,128,0,128,64,64,0,1,2,2,2,0,1,3,2,2,1,0,2,3,3,0,3,0,0,3,0,0,3,0,3,2,2,1,0,2,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,16,16,124,16,16,0,0,0,0,0,0,0,0,0,0,0,0,0,0,',
-          '        0,0,0,0,0,0,0,0,0,0,128,0,128,0,0,128,0,0,128,0,128,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,160,160,160,248,252,252,255,28,255,252,252,31,252,252,255,28,255,252,252,248,160,160,160,0,0,0,0,0,0,0,0,0,164,164,164,255,255,255,255,240,239,223,223,0,223,223,239,240,255,255,255,255,164,164,164,0,0,0,0,0,0,0,0,0,0,0,0,3,7,7,63,7,63,7,7,63,7,7,63,7,63,7,7,3,0,0,0,0,0,0,0,0,',
-          '        0,0,0,128,192,96,96,96,192,128,0,224,224,192,0,0,0,192,224,224,0,224,224,0,128,192,224,96,0,0,0,0,0,0,0,15,31,48,48,112,223,143,0,63,63,3,15,28,15,3,63,63,0,63,63,7,15,29,56,48,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,',
-          '    };',
-          '',
-          '    oled_write_raw_P(raw_logo, sizeof(raw_logo)); // Show Cosmos + QMK logo',
-          '    return false;',
-          '}',
-        ]
-        : []
-    ),
+    ...(display ? oledHandlers() : []),
   ].join('\n') + '\n'
 }
 

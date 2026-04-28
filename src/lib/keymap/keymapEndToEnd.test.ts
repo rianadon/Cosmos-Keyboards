@@ -84,6 +84,34 @@ test('every Miryoku KeyAction emits valid ZMK and QMK strings', () => {
   }
 })
 
+test('Miryoku BASE alpha placeholders resolve cleanly for every realistic legend', () => {
+  // BASE has __ALPHA__ slots in the alpha rows + home-row mod-tap. Resolving
+  // them with any letter or punctuation that might appear on a keycap must
+  // produce valid ZMK/QMK output — never KC_; or &kp ; or similar.
+  // Catches the original Phase 2 bug where punctuation legends produced
+  // syntactically invalid QMK code.
+  const legends = ['Q', 'A', 'Z', '0', '9', ';', '/', '[', ']', "'", ',', '.', '`', '-', '=', '\\']
+  const validQmk = /^(KC_[A-Z0-9_]+|MT\(MOD_[A-Z]+, KC_[A-Z0-9_]+\))$/
+  const validZmk = /^(&kp [A-Z0-9_]+|&mt [A-Z]+ [A-Z0-9_]+)$/
+  for (const layer of MIRYOKU_LAYERS) {
+    for (const action of Object.values(MIRYOKU_KEYMAP[layer])) {
+      if (!action) continue
+      // Only test actions that actually consume the alpha placeholder.
+      // Other kp/mt actions (e.g. kp BOOT, kp PG_UP) ignore the legend and
+      // emit special bindings (&bootloader) or fixed mnemonics regardless.
+      const consumesAlpha = (action.kind === 'kp' && action.code === '__ALPHA__')
+        || (action.kind === 'mt' && action.tap === '__ALPHA__')
+      if (!consumesAlpha) continue
+      for (const legend of legends) {
+        const qmk = keyActionToQmk(action, legend)
+        const zmk = keyActionToZmk(action, legend)
+        expect(qmk).toMatch(validQmk)
+        expect(zmk).toMatch(validZmk)
+      }
+    }
+  }
+})
+
 test('suggestMiryokuSlots fills the right-side slots for the default config', () => {
   // The default Cosmos config has only right-side clusters defined (left is
   // mirrored at FullCuttleform-build time). Slot suggestion should fill all

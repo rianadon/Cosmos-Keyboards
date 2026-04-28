@@ -108,6 +108,11 @@
   let hideWall = false
   let lastRenderNumber = 0
   let fullMatrix: any = null
+  /** ?mode=test enables a "Fill test matrix" button so the firmware download
+   *  flow can be exercised without flashing peaMK. Synthetic (row, col) values
+   *  are produced by ViewerPea when fillTestMatrix flips true. */
+  const testMode = browser && new URLSearchParams(location.search).get('mode') === 'test'
+  let fillTestMatrix = false
 
   // @ts-ignore
   let state: State = deserialize(browser ? location.hash.substring(1) : '')
@@ -852,7 +857,7 @@
           <ViewerLayout {geometry} {darkMode} conf={config} confError={$confError} />
         {:else if viewer == 'programming'}
           {#if hasLemon}
-            <ViewerPea {geometry} {darkMode} confError={$confError} bind:fullMatrix />
+            <ViewerPea {geometry} {darkMode} confError={$confError} {fillTestMatrix} bind:fullMatrix />
           {:else}
             <ViewerMatrix {geometry} {darkMode} confError={$confError} />
           {/if}
@@ -1014,6 +1019,17 @@
               <li>If a key doesn't work, double check your wiring.</li>
               <li>When all keys have been pressed Cosmos will auto-generate your firmware.</li>
             </ol>
+            {#if testMode}
+              <button
+                class="mt-4 px-3 py-1.5 rounded bg-pink-200 dark:bg-pink-700 hover:bg-pink-300 dark:hover:bg-pink-600 text-sm"
+                on:click={() => (fillTestMatrix = true)}
+              >
+                Fill test matrix (skip peaMK)
+              </button>
+              <p class="mt-1 text-xs text-gray-500">
+                Test mode active — fake (row, col) values will be used.
+              </p>
+            {/if}
             <PeaWarnings {config} {geometry} />
           {/if}
         {:else}
