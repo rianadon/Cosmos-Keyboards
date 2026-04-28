@@ -159,18 +159,3 @@ single-layer Default.
 | Studio (ZMK)            | Bootmagic key emits `&studio_unlock` when enabled | Same — injected at the bootmagic positions on BASE        |
 | ZMK Studio extra layers | n/a                                               | `extra1`/`extra2`/`extra3` reserved when Studio is on     |
 | Encoders                | One vol-up/down map                               | Same map repeated per layer                               |
-
-## Future presets
-
-Phase 3 of the keymap work will add a "Custom" entry to the Keymap dropdown
-(the layer editor) and may add additional canonical presets. Common
-candidates from the wider community:
-
-| Preset                                                                                | Distinguishing trait                                                   |
-| ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| [**Seniply**](https://stevep99.github.io/seniply/)                                    | 4 layers; mods on thumbs (no home-row mods); friendlier learning curve |
-| [**Sturdy**](https://github.com/Adamhrv/sturdy)                                       | Mod-DH alpha + tweaked layer split; opinionated symbol arrangement     |
-| [**Callum mods**](https://github.com/callum-oakley/keymaps/tree/master/handsdown_neu) | One-shot mods + smart-shift (no tap-hold misfires); single-shot layers |
-| [**Sweep / Bilateral combinations**](https://github.com/davidphilipbarr/Sweep)        | Heavy use of combos for symbols/numbers; very compact but combo-heavy  |
-
-These are not currently selectable in Cosmos.
