@@ -91,12 +91,23 @@
   }
 
   /** Test-mode hook: when set true, populate every key with a synthetic
-   *  (row, col) pair so the matrix is "complete" without hardware input. */
+   *  (row, col) pair matching Cosmos's QMK split-rows convention so the
+   *  matrix is "complete" without hardware input. Left/unibody keys land
+   *  in rows 0-6, right-side keys in rows 7-13, both halves use cols 0-6. */
   export let fillTestMatrix = false
   $: if (fillTestMatrix && possibleKeys.length > 0 && matrices.size === 0) {
-    possibleKeys.forEach((key, i) => {
-      matrices.set(key, [i % 7, Math.floor(i / 7)])
-    })
+    const rightSet = new Set<CuttleKey>(geometry.right?.c.keys ?? [])
+    let leftIdx = 0
+    let rightIdx = 0
+    for (const key of possibleKeys) {
+      if (rightSet.has(key)) {
+        matrices.set(key, [7 + (rightIdx % 7), Math.floor(rightIdx / 7) % 7])
+        rightIdx++
+      } else {
+        matrices.set(key, [leftIdx % 7, Math.floor(leftIdx / 7) % 7])
+        leftIdx++
+      }
+    }
     matrixState = [matrices, matrixState[1] + 1]
     activeIndex = possibleKeys.length
   }
