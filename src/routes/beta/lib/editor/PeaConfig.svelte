@@ -36,8 +36,23 @@
   const miryokuOverrides = storable<Partial<Record<MiryokuSlot, number>>>('miryokuOverrides', {})
   let mergedSlots: Partial<Record<MiryokuSlot, number>> = {}
 
+  // Phase 3 will add 'custom' (user-edited layers) here. The select binds to
+  // a string id so adding more options doesn't change the data shape.
+  type KeymapChoice = 'default' | 'miryoku'
+
+  $: totalKeys = Object.values(config).reduce((sum, c) => sum + (c?.keys.length ?? 0), 0)
+  $: miryokuEligible = totalKeys >= 36
   $: miryokuEnabled = $protoConfig?.keymapPreset === KEYMAP_PRESET.MIRYOKU
   $: miryokuOption = miryokuEnabled ? { slotToPosition: mergedSlots } : undefined
+  $: keymapValue = (miryokuEnabled ? 'miryoku' : 'default') satisfies KeymapChoice
+
+  function onKeymapChange(ev: Event) {
+    const value = (ev.target as HTMLSelectElement).value as KeymapChoice
+    protoConfig.update((proto) => {
+      proto.keymapPreset = value === 'miryoku' ? KEYMAP_PRESET.MIRYOKU : undefined
+      return proto
+    })
+  }
 
   $: fullOptions = {
     ...$options,
@@ -89,6 +104,18 @@
     help="Shows matrix and split debug information when you run qmk console"
   >
     <Checkbox bind:value={$options.enableConsole} />
+  </Field>
+  <Field
+    name="Keymap"
+    icon="keycap"
+    help={miryokuEligible
+      ? 'Choose the keymap structure. Miryoku materializes a 7-layer keymap with home-row mods.'
+      : 'Miryoku requires at least 36 keys (30 finger + 6 thumb).'}
+  >
+    <Select value={keymapValue} on:change={onKeymapChange}>
+      <option value="default">Default (single-layer)</option>
+      <option value="miryoku" disabled={!miryokuEligible}>Miryoku</option>
+    </Select>
   </Field>
   {#if miryokuEnabled}
     <MiryokuSlotPicker {geometry} bind:overrides={$miryokuOverrides} bind:slotToPosition={mergedSlots} />
@@ -142,6 +169,18 @@
   </Field>
   <Field name="Enable USB Logging" icon="debug" help="Writes debug information to a USB serial port">
     <Checkbox bind:value={$options.enableConsole} />
+  </Field>
+  <Field
+    name="Keymap"
+    icon="keycap"
+    help={miryokuEligible
+      ? 'Choose the keymap structure. Miryoku materializes a 7-layer keymap with home-row mods.'
+      : 'Miryoku requires at least 36 keys (30 finger + 6 thumb).'}
+  >
+    <Select value={keymapValue} on:change={onKeymapChange}>
+      <option value="default">Default (single-layer)</option>
+      <option value="miryoku" disabled={!miryokuEligible}>Miryoku</option>
+    </Select>
   </Field>
 
   {#if miryokuEnabled}

@@ -52,7 +52,7 @@ Three discoveries shaped the phases:
 - **Miryoku is a flag, not a layout.** Stored on `CosmosKeyboard` as `keymapPreset?: KeymapPresetId` (currently only `'miryoku'`), proto field `keymap_preset = 34`, trimmed to 0 when absent for URL back-compat. Orthogonal to the Phase 1 `layout` field — you can run "Colemak-DH letters with Miryoku layers."
 - **Open-ended `KeyAction` union.** `kind: 'kp' | 'mt' | 'lt' | 'osm' | 'osl' | 'trans' | 'none'` covers what ZMK and QMK both support natively. Tap-dance, combos, and macros are deferred to Phase 3.
 - **`__ALPHA__` placeholder for layout-driven alpha.** Miryoku's BASE layer references letters via a sentinel; firmware emit resolves it to whatever letter the active layout has at that physical slot. Means Miryoku × Colemak-DH "just works" without per-layout Miryoku copies.
-- **Slot picker is in the firmware download dialog, not the main editor.** Avoids overloading the editor for the common case (no Miryoku), and the slot meaning only matters when generating firmware.
+- **Keymap preset selector lives in the firmware download dialog, not the main editor.** It's a `<Select>` (`Default` / `Miryoku`, extensible to `Custom` for Phase 3) right above the slot picker. Both the selector and the slot picker only affect firmware output, so the editor stays focused on geometry. Phase 3 will add `Custom` to the same dropdown when the layer editor lands.
 - **Smart auto-suggest + manual override.** `suggestMiryokuPositions(geometry)` walks `FullGeometry`, identifies the 5 alpha columns by letter density, maps profile rows 2/3/4 to Miryoku rows 0/1/2, and orders thumbs outer→inner per side. Users can override per-slot; overrides persist in `localStorage` (key `cosmos.prefs.miryokuOverrides`).
 - **<36 keys → checkbox disabled.** Help text explains the floor. >36 keys → unassigned positions emit `&trans` (ZMK) / `KC_TRNS` (QMK) so they fall through to BASE.
 
@@ -74,7 +74,7 @@ Three discoveries shaped the phases:
 | Firmware exports | `src/routes/beta/lib/firmware/zmk.ts`, `src/routes/beta/lib/firmware/qmk.ts` (multi-layer emission)   |
 | Download dialog  | `src/routes/beta/lib/editor/PeaConfig.svelte` (slot picker integration, `$miryokuOverrides` storable) |
 
-**Tests:** `src/lib/keymap/keymap.test.ts` (18 unit tests on emitters + Miryoku spec), `src/lib/keymap/keymapEndToEnd.test.ts` (12 e2e: proto round-trip, slot suggestion, every layer's actions emit valid syntax, home-row mod placement). Also see `docs/PHASE_2_TESTING.md` for the manual testing checklist.
+**Tests:** `src/lib/keymap/keymap.test.ts` (18 unit tests on emitters + Miryoku spec), `src/lib/keymap/keymapEndToEnd.test.ts` (12 e2e: proto round-trip, slot suggestion, every layer's actions emit valid syntax, home-row mod placement).
 
 **Out of scope (deferred to Phase 3):** general layer editor, BUTTON layer / combos, tap-dance, per-key letter override UI.
 
