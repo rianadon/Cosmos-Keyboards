@@ -91,5 +91,3 @@ These each trade off learning curve vs. ergonomics differently. Cosmos's Phase 3
 - **Slot picker:** 36 cards arranged like the keyboard. Each card maps a Miryoku slot (`L00`…`R24`, `LT0`…`RT2`) to one physical key (identified by the keycap legend + matrix coord). Auto-suggested by physical position; per-slot overrides are persisted in `localStorage`.
 - **Storage:** `keymapPreset?: 'miryoku'` on `CosmosKeyboard` (proto field 34, trimmed to absent for back-compat). Slot overrides stay client-side until Phase 3.
 - **Firmware emission:** ZMK gets 7 `bindings = <…>` blocks; QMK gets a 7-entry `keymaps[]` array. Both share the same Cosmos runtime boilerplate (relay pin, OLED, etc.) as the default keymap.
-
-For the design notes and phase plan see [LAYOUT_PHASES.md](LAYOUT_PHASES.md).
