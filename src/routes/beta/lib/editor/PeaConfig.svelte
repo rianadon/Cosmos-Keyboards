@@ -2,7 +2,7 @@
   import { base } from '$app/paths'
   import Field from '$lib/presentation/Field.svelte'
   import Select from '$lib/presentation/Select.svelte'
-  import { modelName, storable } from '$lib/store'
+  import { modelName, protoConfig, storable } from '$lib/store'
   import type { FullCuttleform } from '$lib/worker/config'
   import { mapObjNotNull } from '$lib/worker/util'
   import { downloadQMKCode, type QMKOptions } from '../firmware/qmk'
@@ -12,6 +12,9 @@
   import Checkbox from '$lib/presentation/Checkbox.svelte'
   import { encoderKeys, type Matrix } from '../firmware/firmwareHelpers'
   import InfoBox from '$lib/presentation/InfoBox.svelte'
+  import { KEYMAP_PRESET, type MiryokuSlot } from '$lib/keymap'
+  import { suggestMiryokuPositions } from '../firmware/miryokuLayout'
+  import MiryokuSlotPicker from './MiryokuSlotPicker.svelte'
 
   export let config: FullCuttleform
   export let geometry: FullGeometry
@@ -30,6 +33,12 @@
     wiredVersion: 'v0.4',
     wirelessVersion: 'v0.3',
   })
+  const miryokuOverrides = storable<Partial<Record<MiryokuSlot, number>>>('miryokuOverrides', {})
+  let mergedSlots: Partial<Record<MiryokuSlot, number>> = {}
+
+  $: miryokuEnabled = $protoConfig?.keymapPreset === KEYMAP_PRESET.MIRYOKU
+  $: miryokuOption = miryokuEnabled ? { slotToPosition: mergedSlots } : undefined
+
   $: fullOptions = {
     ...$options,
     keyboardName: $modelName,
@@ -39,6 +48,7 @@
       cirque: c.keys.some((k) => k.type == 'trackpad-cirque'),
       encoder: !!encoderKeys(c).length,
     })),
+    miryoku: miryokuOption,
   } satisfies Partial<QMKOptions | ZMKOptions>
 
   $: anyConfig = config.right || config.unibody || { microcontroller: undefined }
@@ -80,6 +90,9 @@
   >
     <Checkbox bind:value={$options.enableConsole} />
   </Field>
+  {#if miryokuEnabled}
+    <MiryokuSlotPicker {geometry} bind:overrides={$miryokuOverrides} bind:slotToPosition={mergedSlots} />
+  {/if}
   <button class="button" on:click={() => downloadQMKCode(geometry, matrix, fullOptions)}
     >Download QMK code</button
   >
@@ -130,6 +143,10 @@
   <Field name="Enable USB Logging" icon="debug" help="Writes debug information to a USB serial port">
     <Checkbox bind:value={$options.enableConsole} />
   </Field>
+
+  {#if miryokuEnabled}
+    <MiryokuSlotPicker {geometry} bind:overrides={$miryokuOverrides} bind:slotToPosition={mergedSlots} />
+  {/if}
 
   <button class="button" on:click={() => downloadZMKCode(geometry, matrix, fullOptions)}
     >Download ZMK code</button

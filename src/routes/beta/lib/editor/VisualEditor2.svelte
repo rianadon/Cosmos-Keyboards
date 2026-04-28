@@ -90,6 +90,7 @@
     type LayoutId,
     type NamedLayoutId,
   } from '$lib/layouts'
+  import { KEYMAP_PRESET } from '$lib/keymap'
   import {
     mdiCodeJson,
     mdiPencil,
@@ -293,6 +294,20 @@
       protoConfig.update((proto) => ({ ...proto, layout: LAYOUT.CUSTOM }))
     }
   }
+
+  function updateMiryoku(enabled: boolean) {
+    protoConfig.update((proto) => {
+      proto.keymapPreset = enabled ? KEYMAP_PRESET.MIRYOKU : undefined
+      return proto
+    })
+  }
+
+  function onMiryokuChange(e: Event) {
+    updateMiryoku((e.target as HTMLInputElement).checked)
+  }
+
+  $: totalKeys = getNKeys($protoConfig, undefined)
+  $: miryokuEligible = totalKeys >= 36
 
   function updateSwitch(ev: CustomEvent) {
     $protoConfig.partType.type = ev.detail
@@ -631,6 +646,19 @@
       options={LAYOUT_IDS.map((id) => ({ key: id, label: LAYOUT_NAMES[id] }))}
       component={SelectLayoutInner}
       minWidth={320}
+    />
+  </Field>
+  <Field
+    name="Miryoku Keymap"
+    icon="layers"
+    help={miryokuEligible
+      ? 'Generate a full 7-layer Miryoku keymap (base + nav/mouse/media/num/sym/fun) in ZMK/QMK output.'
+      : 'Miryoku requires at least 36 keys (30 finger + 6 thumb).'}
+  >
+    <Checkbox
+      value={$protoConfig.keymapPreset === KEYMAP_PRESET.MIRYOKU}
+      disabled={!miryokuEligible}
+      on:change={onMiryokuChange}
     />
   </Field>
   <Field name="Switches" icon="switch">

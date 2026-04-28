@@ -24,6 +24,7 @@ message Keyboard {
   optional KeyboardExtra extra = 14;
   optional int64 wrist_rest_position = 15; // For easy movement of the wrist rest
   optional uint32 layout = 33; // Keyboard layout (QWERTY, Colemak, etc.). 0 = QWERTY default.
+  optional uint32 keymap_preset = 34; // Keymap preset (0 = none, 1 = miryoku).
 
   oneof shell {
     BasicShell basic_shell = 30;
