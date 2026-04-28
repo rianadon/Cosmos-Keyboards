@@ -2,6 +2,7 @@ import ETrsf, { Constant, fullMirrorETrsf, type MatrixOptions, mirror } from '$l
 // import { deserialize } from 'src/routes/beta/lib/serialize'
 import { flippedKey } from '$lib/geometry/keycaps'
 import { decodeVariant, encodeVariant, PART_INFO, socketSize } from '$lib/geometry/socketsParts'
+import { isKeymapPresetId, KEYMAP_PRESET_IDS, type KeymapPresetId } from '$lib/keymap'
 import { DEFAULT_LAYOUT, type LayoutId } from '$lib/layouts'
 import { type ClusterName, type ClusterSide, type ClusterType, type Connector, decodeClusterFlags, encodeClusterFlags, type PartVariant, type ScrewFlags } from '$target/cosmosStructs'
 import type { Curvature } from '$target/proto/cosmos'
@@ -112,6 +113,7 @@ export type CosmosKeyboard =
     mirrorConnectors: boolean
     plate: Cuttleform['plate']
     layout: LayoutId
+    keymapPreset?: KeymapPresetId
   }
   & ScrewFlags
 

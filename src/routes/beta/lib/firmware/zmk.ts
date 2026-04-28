@@ -1,4 +1,6 @@
 import { download } from '$lib/browser'
+import { MIRYOKU_KEYMAP, MIRYOKU_LAYERS, type MiryokuSlot } from '$lib/keymap/miryoku'
+import { keyActionToZmk } from '$lib/keymap/zmkEmit'
 import { hasPinsInMatrix } from '$lib/loaders/keycaps'
 import type { CuttleKey, Geometry } from '$lib/worker/config'
 import { filterObj, findIndexIter, mapObjNotNull, mapObjNotNullToObj, mapObjToObj, objEntries, objEntriesNotNull, objKeysOfNotNull, sum } from '$lib/worker/util'
@@ -31,6 +33,10 @@ export interface ZMKOptions {
   enableConsole: boolean
   enableStudio: boolean
   wirelessVersion: 'v0.3' | 'v0.4'
+  /** When set, generate Miryoku multi-layer keymap. slotToPosition maps each
+   *  MiryokuSlot to the ZMK logical key position (index in the hasPinsInMatrix
+   *  filtered logicalKeys list). */
+  miryoku?: { slotToPosition: Partial<Record<MiryokuSlot, number>> }
 }
 
 export function validateConfig(options: ZMKOptions) {
@@ -162,7 +168,105 @@ function generateEncoderMap(encodersPerSide: Record<keyof FullGeometry, number>)
   return new Array(numEncoders).fill('&inc_dec_kp C_VOL_UP C_VOL_DN').join(' ')
 }
 
+/** Build a bindings list for one Miryoku layer.
+ * positionToSlot maps ZMK key position → MiryokuSlot.
+ * positionToLetter maps ZMK key position → resolved alpha letter (for __ALPHA__ slots).
+ */
+function miryokuLayerBindings(
+  layerName: (typeof MIRYOKU_LAYERS)[number],
+  positionToSlot: Map<number, MiryokuSlot>,
+  positionToLetter: Map<number, string>,
+  totalKeys: number,
+): string[] {
+  const layerActions = MIRYOKU_KEYMAP[layerName]
+  const bindings: string[] = []
+  for (let pos = 0; pos < totalKeys; pos++) {
+    const slot = positionToSlot.get(pos)
+    if (slot) {
+      const action = layerActions[slot]
+      if (action) {
+        bindings.push(keyActionToZmk(action, positionToLetter.get(pos)))
+        continue
+      }
+    }
+    bindings.push('&trans')
+  }
+  return bindings
+}
+
+function generateMiryokuKeymap(
+  config: FullGeometry,
+  matrix: Matrix,
+  options: ZMKOptions & { miryoku: NonNullable<ZMKOptions['miryoku']> },
+) {
+  const encodersPerSide = mapObjNotNull(config, c => encoderKeys(c.c).length)
+  const hasEncoders = Object.values(encodersPerSide).some(e => e > 0)
+  const encoderMap = '<' + generateEncoderMap(encodersPerSide) + '>'
+
+  // Build position-keyed maps from the logical key list.
+  const positionToSlot = new Map<number, MiryokuSlot>()
+  const positionToLetter = new Map<number, string>()
+  for (const [slot, pos] of Object.entries(options.miryoku.slotToPosition) as [MiryokuSlot, number][]) {
+    positionToSlot.set(pos, slot)
+  }
+
+  let zmkPos = 0
+  for (const key of logicalKeys(config)) {
+    if (!hasPinsInMatrix(key)) continue
+    if ('keycap' in key && key.keycap?.letter) {
+      positionToLetter.set(zmkPos, key.keycap.letter.toUpperCase())
+    }
+    zmkPos++
+  }
+  const totalKeys = zmkPos
+
+  // Bootmagic key positions (row=0, col % 7 == 0) get &studio_unlock on BASE
+  // when ZMK Studio is enabled, matching the regular keymap behavior.
+  const bootmagicPositions: number[] = []
+  if (options.enableStudio) {
+    let pos = 0
+    for (const key of logicalKeys(config)) {
+      if (!hasPinsInMatrix(key)) continue
+      const mc = matrix.get(key)
+      if (mc && mc[0] === 0 && mc[1] % 7 === 0) bootmagicPositions.push(pos)
+      pos++
+    }
+  }
+
+  const layerDefs: Record<string, unknown> = {}
+  const layerDefines: string[] = MIRYOKU_LAYERS.map((name, i) => `#define ${name} ${i}`)
+
+  for (const layerName of MIRYOKU_LAYERS) {
+    const bindings = miryokuLayerBindings(layerName, positionToSlot, positionToLetter, totalKeys)
+    if (layerName === 'BASE') {
+      for (const pos of bootmagicPositions) bindings[pos] = '&studio_unlock'
+    }
+    const layerKey = layerName.toLowerCase() + '_layer'
+    layerDefs[layerKey] = {
+      bindings: '<' + bindings.join(' ') + '>',
+      ...(hasEncoders ? { sensorBindings: encoderMap } : {}),
+    }
+  }
+
+  return dtsFile({
+    [raw()]: '#include <behaviors.dtsi>',
+    [raw()]: '#include <dt-bindings/zmk/keys.h>',
+    [raw()]: layerDefines.join('\n'),
+    '/': {
+      keymap: {
+        compatible: 'zmk,keymap',
+        ...layerDefs,
+        ...(options.enableStudio
+          ? { extra1: { status: 'reserved' }, extra2: { status: 'reserved' }, extra3: { status: 'reserved' } }
+          : {}),
+      },
+    },
+  })
+}
+
 function generateKeymap(config: FullGeometry, matrix: Matrix, options: ZMKOptions) {
+  if (options.miryoku) return generateMiryokuKeymap(config, matrix, options as Parameters<typeof generateMiryokuKeymap>[2])
+
   const encodersPerSide = mapObjNotNull(config, c => encoderKeys(c.c).length)
   const hasEncoders = Object.values(encodersPerSide).some(e => e > 0)
   return dtsFile({

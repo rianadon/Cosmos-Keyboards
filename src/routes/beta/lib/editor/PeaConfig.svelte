@@ -2,7 +2,7 @@
   import { base } from '$app/paths'
   import Field from '$lib/presentation/Field.svelte'
   import Select from '$lib/presentation/Select.svelte'
-  import { modelName, storable } from '$lib/store'
+  import { modelName, protoConfig, storable } from '$lib/store'
   import type { FullCuttleform } from '$lib/worker/config'
   import { mapObjNotNull } from '$lib/worker/util'
   import { downloadQMKCode, type QMKOptions } from '../firmware/qmk'
@@ -12,6 +12,9 @@
   import Checkbox from '$lib/presentation/Checkbox.svelte'
   import { encoderKeys, type Matrix } from '../firmware/firmwareHelpers'
   import InfoBox from '$lib/presentation/InfoBox.svelte'
+  import { KEYMAP_PRESET, type MiryokuSlot } from '$lib/keymap'
+  import { suggestMiryokuPositions } from '../firmware/miryokuLayout'
+  import MiryokuSlotPicker from './MiryokuSlotPicker.svelte'
 
   export let config: FullCuttleform
   export let geometry: FullGeometry
@@ -30,6 +33,27 @@
     wiredVersion: 'v0.4',
     wirelessVersion: 'v0.3',
   })
+  const miryokuOverrides = storable<Partial<Record<MiryokuSlot, number>>>('miryokuOverrides', {})
+  let mergedSlots: Partial<Record<MiryokuSlot, number>> = {}
+
+  // Phase 3 will add 'custom' (user-edited layers) here. The select binds to
+  // a string id so adding more options doesn't change the data shape.
+  type KeymapChoice = 'default' | 'miryoku'
+
+  $: totalKeys = Object.values(config).reduce((sum, c) => sum + (c?.keys.length ?? 0), 0)
+  $: miryokuEligible = totalKeys >= 36
+  $: miryokuEnabled = $protoConfig?.keymapPreset === KEYMAP_PRESET.MIRYOKU
+  $: miryokuOption = miryokuEnabled ? { slotToPosition: mergedSlots } : undefined
+  $: keymapValue = (miryokuEnabled ? 'miryoku' : 'default') satisfies KeymapChoice
+
+  function onKeymapChange(ev: Event) {
+    const value = (ev.target as HTMLSelectElement).value as KeymapChoice
+    protoConfig.update((proto) => {
+      proto.keymapPreset = value === 'miryoku' ? KEYMAP_PRESET.MIRYOKU : undefined
+      return proto
+    })
+  }
+
   $: fullOptions = {
     ...$options,
     keyboardName: $modelName,
@@ -39,6 +63,7 @@
       cirque: c.keys.some((k) => k.type == 'trackpad-cirque'),
       encoder: !!encoderKeys(c).length,
     })),
+    miryoku: miryokuOption,
   } satisfies Partial<QMKOptions | ZMKOptions>
 
   $: anyConfig = config.right || config.unibody || { microcontroller: undefined }
@@ -80,6 +105,26 @@
   >
     <Checkbox bind:value={$options.enableConsole} />
   </Field>
+  <Field
+    name="Keymap"
+    icon="keycap"
+    help={miryokuEligible
+      ? 'Choose the keymap structure. Miryoku materializes a 7-layer keymap with home-row mods.'
+      : 'Miryoku requires at least 36 keys (30 finger + 6 thumb).'}
+  >
+    <Select value={keymapValue} on:change={onKeymapChange}>
+      <option value="default">Default (single-layer)</option>
+      <option value="miryoku" disabled={!miryokuEligible}>Miryoku</option>
+    </Select>
+  </Field>
+  {#if miryokuEnabled}
+    <MiryokuSlotPicker
+      {geometry}
+      {matrix}
+      bind:overrides={$miryokuOverrides}
+      bind:slotToPosition={mergedSlots}
+    />
+  {/if}
   <button class="button" on:click={() => downloadQMKCode(geometry, matrix, fullOptions)}
     >Download QMK code</button
   >
@@ -130,6 +175,27 @@
   <Field name="Enable USB Logging" icon="debug" help="Writes debug information to a USB serial port">
     <Checkbox bind:value={$options.enableConsole} />
   </Field>
+  <Field
+    name="Keymap"
+    icon="keycap"
+    help={miryokuEligible
+      ? 'Choose the keymap structure. Miryoku materializes a 7-layer keymap with home-row mods.'
+      : 'Miryoku requires at least 36 keys (30 finger + 6 thumb).'}
+  >
+    <Select value={keymapValue} on:change={onKeymapChange}>
+      <option value="default">Default (single-layer)</option>
+      <option value="miryoku" disabled={!miryokuEligible}>Miryoku</option>
+    </Select>
+  </Field>
+
+  {#if miryokuEnabled}
+    <MiryokuSlotPicker
+      {geometry}
+      {matrix}
+      bind:overrides={$miryokuOverrides}
+      bind:slotToPosition={mergedSlots}
+    />
+  {/if}
 
   <button class="button" on:click={() => downloadZMKCode(geometry, matrix, fullOptions)}
     >Download ZMK code</button
