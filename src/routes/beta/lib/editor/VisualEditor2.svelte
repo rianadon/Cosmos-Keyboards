@@ -56,6 +56,7 @@
   import { encodeVariant, PART_INFO } from '$lib/geometry/socketsParts'
   import DecimalInputInherit from './DecimalInputInherit.svelte'
   import {
+    applyLayoutToKeys,
     clusterAngle,
     clusterSeparation,
     connectorsString,
@@ -77,6 +78,7 @@
     toggleNumRow,
     toggleOuterCol,
   } from './visualEditorHelpers'
+  import { DEFAULT_LAYOUT, getLayout, isLayoutId, LAYOUT_IDS, type LayoutId } from '$lib/layouts'
   import {
     mdiCodeJson,
     mdiPencil,
@@ -231,6 +233,15 @@
     }
   }
 
+  function updateLayout(ev: Event) {
+    const target = ev.target as HTMLSelectElement
+    if (!isLayoutId(target.value)) return
+    protoConfig.update((proto) => {
+      proto.layout = target.value as LayoutId
+      return applyLayoutToKeys(proto, proto.layout)
+    })
+  }
+
   function updateSwitch(ev: CustomEvent) {
     $protoConfig.partType.type = ev.detail
     const switchType = PART_INFO[$protoConfig.partType.type].keycap
@@ -277,7 +288,11 @@
         proto.clusters.splice(
           cluster == 'fingers' ? 2 : 3,
           0,
-          mirrorCluster(proto.clusters.find((c) => c.side == 'right' && c.name == cluster)!)
+          mirrorCluster(
+            proto.clusters.find((c) => c.side == 'right' && c.name == cluster)!,
+            true,
+            proto.layout
+          )
         )
       }
       return proto
@@ -552,6 +567,17 @@
       labelComponent={SelectProfileLabel}
       minWidth={200}
     />
+  </Field>
+  <Field
+    name="Layout"
+    icon="keycap"
+    help="The keyboard layout printed on the keycaps and used for firmware (ZMK/QMK) keycodes."
+  >
+    <Select value={$protoConfig.layout ?? DEFAULT_LAYOUT} on:change={updateLayout}>
+      {#each LAYOUT_IDS as id}
+        <option value={id}>{getLayout(id).name}</option>
+      {/each}
+    </Select>
   </Field>
   <Field name="Switches" icon="switch">
     <!-- <Select bind:value={$protoConfig.partType.type} on:change={updateSwitch}>
