@@ -118,7 +118,12 @@
     </Select>
   </Field>
   {#if miryokuEnabled}
-    <MiryokuSlotPicker {geometry} bind:overrides={$miryokuOverrides} bind:slotToPosition={mergedSlots} />
+    <MiryokuSlotPicker
+      {geometry}
+      {matrix}
+      bind:overrides={$miryokuOverrides}
+      bind:slotToPosition={mergedSlots}
+    />
   {/if}
   <button class="button" on:click={() => downloadQMKCode(geometry, matrix, fullOptions)}
     >Download QMK code</button
@@ -184,7 +189,12 @@
   </Field>
 
   {#if miryokuEnabled}
-    <MiryokuSlotPicker {geometry} bind:overrides={$miryokuOverrides} bind:slotToPosition={mergedSlots} />
+    <MiryokuSlotPicker
+      {geometry}
+      {matrix}
+      bind:overrides={$miryokuOverrides}
+      bind:slotToPosition={mergedSlots}
+    />
   {/if}
 
   <button class="button" on:click={() => downloadZMKCode(geometry, matrix, fullOptions)}

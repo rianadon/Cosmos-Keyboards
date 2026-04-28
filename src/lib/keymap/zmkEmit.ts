@@ -12,10 +12,59 @@ const SPECIAL_KP: Record<string, string> = {
   CAPS: '&caps_word',
 }
 
+/** Punctuation chars (typically a resolved __ALPHA__ where the keycap legend
+ *  is `;`, `[`, `/`, etc.). Maps the literal char → ZMK keycode mnemonic.
+ *  Mirrors the CHARS table in zmk.ts so the keycodes match what the regular
+ *  generator emits. */
+const ALPHA_PUNCT_TO_ZMK: Record<string, string> = {
+  '!': 'EXCL',
+  '@': 'AT',
+  '#': 'HASH',
+  '$': 'DLLR',
+  '%': 'PRCNT',
+  '^': 'CARET',
+  '&': 'AMPS',
+  '*': 'ASTRK',
+  '(': 'LPAR',
+  ')': 'RPAR',
+  '-': 'MINUS',
+  '_': 'UNDER',
+  '=': 'EQUAL',
+  '+': 'PLUS',
+  '[': 'LBKT',
+  '{': 'LBRC',
+  ']': 'RBKT',
+  '}': 'RBRC',
+  '\\': 'BSLH',
+  '|': 'PIPE',
+  ';': 'SEMI',
+  ':': 'COLON',
+  "'": 'SQT',
+  '"': 'DQT',
+  ',': 'COMMA',
+  '<': 'LT',
+  '.': 'DOT',
+  '>': 'GT',
+  '/': 'FSLH',
+  '?': 'QMARK',
+  '`': 'GRAVE',
+  '~': 'TILDE',
+  ' ': 'SPACE',
+}
+
+/** Resolve a code (or __ALPHA__ placeholder) to a ZMK keycode mnemonic. */
+function resolveCode(code: string, alpha?: string): string {
+  const resolved = code === '__ALPHA__' ? (alpha ?? 'A') : code
+  if (resolved.length === 1 && ALPHA_PUNCT_TO_ZMK[resolved]) {
+    return ALPHA_PUNCT_TO_ZMK[resolved]
+  }
+  return resolved
+}
+
 function kpCode(code: string, alpha?: string): string {
   const resolved = code === '__ALPHA__' ? (alpha ?? 'A') : code
   if (SPECIAL_KP[resolved]) return SPECIAL_KP[resolved]
-  return `&kp ${resolved}`
+  return `&kp ${resolveCode(code, alpha)}`
 }
 
 /** Convert a single KeyAction to a ZMK binding string.
@@ -26,7 +75,7 @@ export function keyActionToZmk(action: KeyAction, alpha?: string): string {
     case 'kp':
       return kpCode(action.code, alpha)
     case 'mt': {
-      const tap = action.tap === '__ALPHA__' ? (alpha ?? 'A') : action.tap
+      const tap = resolveCode(action.tap, alpha)
       return `&mt ${action.mod} ${tap}`
     }
     case 'lt':

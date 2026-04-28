@@ -86,6 +86,46 @@ const ZMK_TO_QMK_CODE: Record<string, string> = {
   C_MUTE: 'MUTE',
 }
 
+/** Punctuation chars that may appear as a resolved alpha placeholder (e.g. when
+ *  the keycap legend is `;`, `[`, `/`). Maps the literal char → QMK keycode
+ *  suffix (KC_ prefix added by the caller). Mirrors the CHARS table in qmk.ts
+ *  so the keycodes match what the regular generator emits. */
+const ALPHA_PUNCT_TO_QMK: Record<string, string> = {
+  '-': 'MINS',
+  '_': 'UNDS',
+  '=': 'EQL',
+  '+': 'PLUS',
+  '[': 'LBRC',
+  '{': 'LCBR',
+  ']': 'RBRC',
+  '}': 'RCBR',
+  '\\': 'BSLS',
+  '|': 'PIPE',
+  '#': 'HASH',
+  '~': 'TILD',
+  ';': 'SCLN',
+  ':': 'COLN',
+  "'": 'QUOT',
+  '"': 'DQUO',
+  '`': 'GRV',
+  ',': 'COMM',
+  '<': 'LABK',
+  '.': 'DOT',
+  '>': 'RABK',
+  '/': 'SLSH',
+  '?': 'QUES',
+  '!': 'EXLM',
+  '@': 'AT',
+  '$': 'DLR',
+  '%': 'PERC',
+  '^': 'CIRC',
+  '&': 'AMPR',
+  '*': 'ASTR',
+  '(': 'LPRN',
+  ')': 'RPRN',
+  ' ': 'SPC',
+}
+
 const ZMK_MOD_TO_QMK: Record<string, string> = {
   LSHFT: 'MOD_LSFT',
   LCTRL: 'MOD_LCTL',
@@ -106,6 +146,12 @@ function translateCode(zmkCode: string, alpha?: string): string {
   if (/^[0-9]$/.test(code)) return 'KC_' + code
   // Function key (F1..F24)
   if (/^F[0-9]+$/.test(code)) return 'KC_' + code
+  // Punctuation char (typically from a resolved __ALPHA__ placeholder where the
+  // keycap legend is `;`, `[`, `/`, etc.). Lookup uses the lowercase form so
+  // both `;` and `:` work after callers may have uppercased the alpha.
+  if (code.length === 1 && ALPHA_PUNCT_TO_QMK[code]) {
+    return 'KC_' + ALPHA_PUNCT_TO_QMK[code]
+  }
   // ZMK key combos like LC(X) → C(KC_X)
   const combo = code.match(/^L([CSAG])\((\w+)\)$/)
   if (combo) {

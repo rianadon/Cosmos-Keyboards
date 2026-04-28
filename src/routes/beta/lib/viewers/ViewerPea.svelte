@@ -90,6 +90,17 @@
     matrixState = [matrices, matrixState[1] + 1]
   }
 
+  /** Test-mode hook: when set true, populate every key with a synthetic
+   *  (row, col) pair so the matrix is "complete" without hardware input. */
+  export let fillTestMatrix = false
+  $: if (fillTestMatrix && possibleKeys.length > 0 && matrices.size === 0) {
+    possibleKeys.forEach((key, i) => {
+      matrices.set(key, [i % 7, Math.floor(i / 7)])
+    })
+    matrixState = [matrices, matrixState[1] + 1]
+    activeIndex = possibleKeys.length
+  }
+
   function isBootmagic(kbd: string, pos: [number, number] | undefined) {
     if (!pos) return false
     if (kbd == 'right') return (pos[0] == 7 && pos[1] == 0) || (pos[0] == 0 && pos[1] == 0) // First is QMK, second is ZMK

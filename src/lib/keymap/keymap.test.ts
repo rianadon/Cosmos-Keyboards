@@ -117,3 +117,47 @@ test('keyActionToZmk: number codes (N0..N9)', () => {
 test('keyActionToQmk: number codes translate N7 → 7', () => {
   expect(keyActionToQmk({ kind: 'kp', code: 'N7' })).toBe('KC_7')
 })
+
+test('keyActionToQmk: punctuation alpha → KC_<name>, never KC_<char>', () => {
+  // The bug we hit shipping: when a slot resolves __ALPHA__ to `;` etc., the
+  // generator emitted KC_; literally — invalid C. Each char must map to a
+  // valid QMK keycode short-name.
+  const cases: Record<string, string> = {
+    ';': 'KC_SCLN',
+    '/': 'KC_SLSH',
+    '[': 'KC_LBRC',
+    ']': 'KC_RBRC',
+    "'": 'KC_QUOT',
+    ',': 'KC_COMM',
+    '.': 'KC_DOT',
+    '`': 'KC_GRV',
+    '-': 'KC_MINS',
+    '=': 'KC_EQL',
+    '\\': 'KC_BSLS',
+  }
+  for (const [char, expected] of Object.entries(cases)) {
+    expect(keyActionToQmk({ kind: 'kp', code: '__ALPHA__' }, char)).toBe(expected)
+    expect(keyActionToQmk({ kind: 'mt', mod: 'LSHFT', tap: '__ALPHA__' }, char)).toBe(`MT(MOD_LSFT, ${expected})`)
+  }
+})
+
+test('keyActionToZmk: punctuation alpha → &kp <NAME>, never &kp <char>', () => {
+  const cases: Record<string, string> = {
+    ';': '&kp SEMI',
+    '/': '&kp FSLH',
+    '[': '&kp LBKT',
+    ']': '&kp RBKT',
+    "'": '&kp SQT',
+    ',': '&kp COMMA',
+    '.': '&kp DOT',
+    '`': '&kp GRAVE',
+    '-': '&kp MINUS',
+    '=': '&kp EQUAL',
+    '\\': '&kp BSLH',
+  }
+  for (const [char, expected] of Object.entries(cases)) {
+    expect(keyActionToZmk({ kind: 'kp', code: '__ALPHA__' }, char)).toBe(expected)
+  }
+  // mt with punctuation tap
+  expect(keyActionToZmk({ kind: 'mt', mod: 'LSHFT', tap: '__ALPHA__' }, ';')).toBe('&mt LSHFT SEMI')
+})

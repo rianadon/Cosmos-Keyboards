@@ -220,11 +220,27 @@ function generateMiryokuKeymap(
   }
   const totalKeys = zmkPos
 
+  // Bootmagic key positions (row=0, col % 7 == 0) get &studio_unlock on BASE
+  // when ZMK Studio is enabled, matching the regular keymap behavior.
+  const bootmagicPositions: number[] = []
+  if (options.enableStudio) {
+    let pos = 0
+    for (const key of logicalKeys(config)) {
+      if (!hasPinsInMatrix(key)) continue
+      const mc = matrix.get(key)
+      if (mc && mc[0] === 0 && mc[1] % 7 === 0) bootmagicPositions.push(pos)
+      pos++
+    }
+  }
+
   const layerDefs: Record<string, unknown> = {}
   const layerDefines: string[] = MIRYOKU_LAYERS.map((name, i) => `#define ${name} ${i}`)
 
   for (const layerName of MIRYOKU_LAYERS) {
     const bindings = miryokuLayerBindings(layerName, positionToSlot, positionToLetter, totalKeys)
+    if (layerName === 'BASE') {
+      for (const pos of bootmagicPositions) bindings[pos] = '&studio_unlock'
+    }
     const layerKey = layerName.toLowerCase() + '_layer'
     layerDefs[layerKey] = {
       bindings: '<' + bindings.join(' ') + '>',
