@@ -1,6 +1,8 @@
 import qmkVik from '$assets/qmk-vik.zip?url'
 import { download } from '$lib/browser'
 import { PART_INFO } from '$lib/geometry/socketsParts'
+import { MIRYOKU_KEYMAP, MIRYOKU_LAYERS, type MiryokuSlot } from '$lib/keymap/miryoku'
+import { keyActionToQmk } from '$lib/keymap/qmkEmit'
 import { hasKeyGeometry, hasPinsInMatrix } from '$lib/loaders/keycaps'
 import type { CuttleKey, Geometry } from '$lib/worker/config'
 import { mapObjNotNull, objKeys, sum } from '$lib/worker/util'
@@ -19,6 +21,10 @@ export interface QMKOptions {
   diodeDirection: 'COL2ROW' | 'ROW2COL'
   enableConsole: boolean
   wiredVersion: 'v0.4' | 'v0.5'
+  /** When set, generate Miryoku multi-layer keymap. slotToPosition maps each
+   *  MiryokuSlot to the ZMK logical key position (same ordering as logicalKeys
+   *  filtered by hasPinsInMatrix). */
+  miryoku?: { slotToPosition: Partial<Record<MiryokuSlot, number>> }
 }
 
 export function validateConfig(options: QMKOptions) {
@@ -389,7 +395,75 @@ function generateEncoderMap(encodersPerSide: Record<keyof FullGeometry, number>)
   return new Array(numEncoders).fill('ENCODER_CCW_CW(KC_VOLD, KC_VOLU)').join(', ')
 }
 
+function miryokuLayerKeycodes(
+  layerName: (typeof MIRYOKU_LAYERS)[number],
+  positionToSlot: Map<number, MiryokuSlot>,
+  positionToLetter: Map<number, string>,
+  totalKeys: number,
+): string[] {
+  const layerActions = MIRYOKU_KEYMAP[layerName]
+  const codes: string[] = []
+  for (let pos = 0; pos < totalKeys; pos++) {
+    const slot = positionToSlot.get(pos)
+    if (slot) {
+      const action = layerActions[slot]
+      if (action) {
+        codes.push(keyActionToQmk(action, positionToLetter.get(pos)))
+        continue
+      }
+    }
+    codes.push('KC_TRNS')
+  }
+  return codes
+}
+
+function generateMiryokuKeymap(
+  config: FullGeometry,
+  matrix: Matrix,
+  options: QMKOptions & { miryoku: NonNullable<QMKOptions['miryoku']> },
+) {
+  const encodersPerSide = mapObjNotNull(config, c => encoderKeys(c.c).length)
+  const hasEncoders = Object.values(encodersPerSide).some(e => e > 0)
+
+  const positionToSlot = new Map<number, MiryokuSlot>()
+  const positionToLetter = new Map<number, string>()
+  for (const [slot, pos] of Object.entries(options.miryoku.slotToPosition) as [MiryokuSlot, number][]) {
+    positionToSlot.set(pos, slot)
+  }
+
+  let zmkPos = 0
+  for (const key of logicalKeys(config)) {
+    if (!hasPinsInMatrix(key)) continue
+    if ('keycap' in key && key.keycap?.letter) {
+      positionToLetter.set(zmkPos, key.keycap.letter.toUpperCase())
+    }
+    zmkPos++
+  }
+  const totalKeys = zmkPos
+
+  const layerDefines = MIRYOKU_LAYERS.map((name, i) => `#define ${name} ${i}`).join('\n')
+  const layerEntries = MIRYOKU_LAYERS.map(
+    (name, i) => `    [${i}] = LAYOUT(${miryokuLayerKeycodes(name, positionToSlot, positionToLetter, totalKeys).join(', ')})`,
+  ).join(',\n')
+  const encoderEntries = MIRYOKU_LAYERS.map((_, i) => `    [${i}] = { ${generateEncoderMap(encodersPerSide)} }`).join(',\n')
+
+  return [
+    '#include QMK_KEYBOARD_H',
+    '',
+    layerDefines,
+    '',
+    'const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {',
+    layerEntries,
+    '};',
+    ...(hasEncoders
+      ? ['#if defined(ENCODER_MAP_ENABLE)', 'const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = {', encoderEntries, '};', '#endif']
+      : []),
+  ].join('\n') + '\n'
+}
+
 function generateKeymap(config: FullGeometry, matrix: Matrix, options: QMKOptions) {
+  if (options.miryoku) return generateMiryokuKeymap(config, matrix, options as Parameters<typeof generateMiryokuKeymap>[2])
+
   const encodersPerSide = mapObjNotNull(config, c => encoderKeys(c.c).length)
   const hasEncoders = Object.values(encodersPerSide).some(e => e > 0)
   const display = Object.values(config).flatMap(displays)[0]

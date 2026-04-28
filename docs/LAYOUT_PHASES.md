@@ -43,24 +43,40 @@ Three discoveries shaped the phases:
 
 **Out of scope:** layers, mod-tap/layer-tap, Miryoku, per-key letter override UI.
 
-## Phase 2 — Miryoku bundle
+## Phase 2 — Miryoku keymap preset (shipped)
 
-**In scope:** ship Miryoku as a fixed preset bundle, not as customizable layers. Apply Miryoku → 6 layers materialize in the firmware export.
+**In scope:** Miryoku as a fixed preset bundle — toggle it on, slot picker shows up in the firmware download dialog, ZMK/QMK output emits 7 layers (BASE + NAV/MOUSE/MEDIA/NUM/SYM/FUN, omitting BUTTON since that needs combos).
 
-**Why this needs a separate PR:** introduces three things Cosmos doesn't have:
+**Design decisions that landed:**
 
-1. **Layer data model.** Probably an array of layers on `CosmosKeyboard`, each layer being `Map<keyId, KeyAction>` where `KeyAction` covers basic kp, mod-tap, layer-tap, transparent, and "no-op." Phase 1's flat letter model survives as the implicit default-layer view.
-2. **Mod-tap / layer-tap encoding** in `src/routes/beta/lib/firmware/zmk.ts` and `qmk.ts`. ZMK gets `&mt LSHFT A`, `&lt 1 SPACE`, etc. QMK gets `MT(MOD_LSFT, KC_A)`, `LT(1, KC_SPC)`. CHARS/SPECIALS tables stay; the keycode generator branches on `KeyAction.kind`.
-3. **Miryoku slot assignment.** Miryoku has 36 named slots (LH4/LH3/LH2/LT1, etc.). Cosmos doesn't tag keys with those roles. The user picks "apply Miryoku" → UI shows the 36 slots with smart suggestions based on physical position (index/middle/ring/pinky finger and thumb cluster), and the user can override each slot. Slot assignments persist in the config.
+- **Miryoku is a flag, not a layout.** Stored on `CosmosKeyboard` as `keymapPreset?: KeymapPresetId` (currently only `'miryoku'`), proto field `keymap_preset = 34`, trimmed to 0 when absent for URL back-compat. Orthogonal to the Phase 1 `layout` field — you can run "Colemak-DH letters with Miryoku layers."
+- **Open-ended `KeyAction` union.** `kind: 'kp' | 'mt' | 'lt' | 'osm' | 'osl' | 'trans' | 'none'` covers what ZMK and QMK both support natively. Tap-dance, combos, and macros are deferred to Phase 3.
+- **`__ALPHA__` placeholder for layout-driven alpha.** Miryoku's BASE layer references letters via a sentinel; firmware emit resolves it to whatever letter the active layout has at that physical slot. Means Miryoku × Colemak-DH "just works" without per-layout Miryoku copies.
+- **Slot picker is in the firmware download dialog, not the main editor.** Avoids overloading the editor for the common case (no Miryoku), and the slot meaning only matters when generating firmware.
+- **Smart auto-suggest + manual override.** `suggestMiryokuPositions(geometry)` walks `FullGeometry`, identifies the 5 alpha columns by letter density, maps profile rows 2/3/4 to Miryoku rows 0/1/2, and orders thumbs outer→inner per side. Users can override per-slot; overrides persist in `localStorage` (key `cosmos.prefs.miryokuOverrides`).
+- **<36 keys → checkbox disabled.** Help text explains the floor. >36 keys → unassigned positions emit `&trans` (ZMK) / `KC_TRNS` (QMK) so they fall through to BASE.
 
-**Open questions to settle when starting Phase 2:**
+**Files added:**
 
-- How does the slot-picker UI live in the editor — modal? dedicated panel? inline overlay on the 3D view?
-- For boards with extra keys beyond Miryoku's 36, do unassigned keys get `&trans` (passthrough) or a configurable default?
-- For boards with fewer than 36 keys (e.g., a 3×4 micro), do we refuse Miryoku or auto-disable specific layers? Probably refuse with a clear message.
-- Phase 2 ships Miryoku only; do we generalize the layer data model to be Miryoku-shaped (6 specific layers), or keep it open-ended for Phase 3? Lean open-ended so Phase 3 inherits cleanly.
+| Area            | File                                                                                                                 |
+| --------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Spec + types    | `src/lib/keymap/index.ts` (`KeyAction`, `Layer`, `KEYMAP_PRESET`), `src/lib/keymap/miryoku.ts` (7-layer Miryoku def) |
+| Slot suggestion | `src/lib/keymap/miryokuSlots.ts` (CosmosKeyboard-space), `src/routes/beta/lib/firmware/miryokuLayout.ts` (geo-space) |
+| Emitters        | `src/lib/keymap/zmkEmit.ts`, `src/lib/keymap/qmkEmit.ts` (ZMK→QMK code translation incl. `LC(LALT)` → `C(KC_LALT)`)  |
+| Slot picker UI  | `src/routes/beta/lib/editor/MiryokuSlotPicker.svelte` (36-slot grid with override inputs, reset action)              |
 
-**Out of scope:** general layer editor (Phase 3), tap-dance, combos.
+**Files touched:**
+
+| Area             | File                                                                                                  |
+| ---------------- | ----------------------------------------------------------------------------------------------------- |
+| Proto + types    | `src/proto/cosmos.proto`, `src/lib/worker/config.cosmos.ts`, `src/lib/worker/config.serialize.ts`     |
+| Editor           | `src/routes/beta/lib/editor/VisualEditor2.svelte` (Miryoku checkbox)                                  |
+| Firmware exports | `src/routes/beta/lib/firmware/zmk.ts`, `src/routes/beta/lib/firmware/qmk.ts` (multi-layer emission)   |
+| Download dialog  | `src/routes/beta/lib/editor/PeaConfig.svelte` (slot picker integration, `$miryokuOverrides` storable) |
+
+**Tests:** `src/lib/keymap/keymap.test.ts` (18 unit tests on emitters + Miryoku spec), `src/lib/keymap/keymapEndToEnd.test.ts` (12 e2e: proto round-trip, slot suggestion, every layer's actions emit valid syntax, home-row mod placement). Also see `docs/PHASE_2_TESTING.md` for the manual testing checklist.
+
+**Out of scope (deferred to Phase 3):** general layer editor, BUTTON layer / combos, tap-dance, per-key letter override UI.
 
 ## Phase 3 — General layer editor
 
