@@ -93,7 +93,7 @@
             setStaggersCluster(leftSide, staggerLeft, true)
           } else {
             // Mirror the right cluster to the left, then set its size
-            const newLeftSide = mirrorCluster(rightSide!)
+            const newLeftSide = mirrorCluster(rightSide!, true, c.layout)
             setStaggersCluster(newLeftSide, staggerLeft, true)
             c.clusters.splice(2, 0, newLeftSide)
           }

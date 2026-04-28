@@ -1,4 +1,5 @@
 import { PART_INFO } from '$lib/geometry/socketsParts'
+import { flipLetter, type LayoutId, rightSideLetter } from '$lib/layouts'
 import { approximateCosmosThumbOrigin, cosmosFingers, type Cuttleform, decodeTuple, encodeTuple, type FullCuttleform, newGeometry } from '$lib/worker/config'
 import {
   type ConnectorMaybeCustom,
@@ -42,7 +43,7 @@ export function setClusterSize(keyboard: CosmosKeyboard, side: 'left' | 'right',
   if (side == 'left') newThumb.x *= -1
   const newPosition = originalPosition.add(originalThumb).sub(newThumb)
   const newTup = encodeTuple(newPosition.toArray().map((x) => Math.round(10 * x)))
-  fingers.clusters = cosmosFingers(rows, cols, side, addExtraRow)
+  fingers.clusters = cosmosFingers(rows, cols, side, addExtraRow, keyboard.layout)
   fingers.position = newTup
 
   return keyboard
@@ -196,7 +197,7 @@ export function setThumbCluster(c: CosmosKeyboard, type: Thumb, side: 'left' | '
   }
   // Erase all key labels
   cluster.clusters.forEach(c => c.keys.forEach(k => k.profile.letter = undefined))
-  if (side == 'left') cluster = mirrorCluster(cluster)
+  if (side == 'left') cluster = mirrorCluster(cluster, true, c.layout)
 
   const thumb = c.clusters.find((c) => c.name == 'thumbs' && c.side == side)
   if (!thumb) return c
@@ -478,4 +479,36 @@ export function toggleInnerCol(kbd: CosmosKeyboard) {
     // Add the column
     return addCol(kbd, -1)
   }
+}
+
+/**
+ * Update alpha-row letters across all finger clusters to match `layoutId`.
+ * Non-alpha rows (numbers, F-row, outer punctuation) are layout-independent and
+ * are left untouched. Alpha columns are identified by `alphaColumns()`, so user
+ * geometry (extra inner/outer columns, splay) is preserved.
+ */
+export function applyLayoutToKeys(kbd: CosmosKeyboard, layoutId: LayoutId): CosmosKeyboard {
+  return mapClusters(kbd, cluster => {
+    if (cluster.name !== 'fingers') return cluster
+    const alphas = alphaColumns(kbd, cluster)
+    const N = alphas.length
+    if (N === 0) return cluster
+    return mapClusters(cluster, (col, colIdx) => {
+      const alphaIdx = alphas.indexOf(colIdx)
+      if (alphaIdx < 0) return col
+      const letterCol = cluster.side === 'right' ? alphaIdx : (N - 1 - alphaIdx)
+      return {
+        ...col,
+        keys: col.keys.map(k => {
+          const row = k.profile.row
+          if (row !== 2 && row !== 3 && row !== 4) return k
+          if (!k.profile.letter) return k
+          let newLetter = rightSideLetter(row, letterCol, layoutId)
+          if (cluster.side === 'left') newLetter = flipLetter(newLetter, layoutId)
+          if (!newLetter) return k
+          return { ...k, profile: { ...k.profile, letter: newLetter } }
+        }),
+      }
+    })
+  })
 }
