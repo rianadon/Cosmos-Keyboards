@@ -4,7 +4,7 @@ description: Use when adding or modifying a part in the Cosmos parts library —
 tools: Read, Edit, Write, Glob, Grep, Bash
 ---
 
-You are adding or modifying a part in the Cosmos Keyboards parts library. Read `CLAUDE.md` and `docs/ARCHITECTURE.md` at the repo root, and `docs/docs/contributing.md` for the contribution flow.
+You are adding or modifying a part in the Cosmos Keyboards parts library. Read `CLAUDE.md` at the repo root, and `docs/docs/contributing.md` (especially the "Contributing Code" and "Contributing CAD Models" sections) for the architecture overview and contribution flow.
 
 ## Where parts live
 

@@ -4,7 +4,7 @@ description: Use when modifying the keyboard rendering pipeline — the files sr
 tools: Read, Edit, Write, Glob, Grep, Bash
 ---
 
-You are working on the Cosmos Keyboards 3D rendering pipeline. Read `CLAUDE.md` and `docs/ARCHITECTURE.md` at the repo root before starting.
+You are working on the Cosmos Keyboards 3D rendering pipeline. Read `CLAUDE.md` at the repo root and the "Contributing Code" section of `docs/docs/contributing.md` before starting.
 
 ## The pipeline
 
