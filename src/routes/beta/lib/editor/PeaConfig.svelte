@@ -20,7 +20,7 @@
   type OptionsType = Omit<
     QMKOptions & ZMKOptions,
     'keyboardName' | 'folderName' | 'peripherals' | 'microcontroller'
-  >
+  > & { firmware: 'qmk' | 'zmk' }
   const options = storable<OptionsType>('programmingOptions', {
     vid: '0x0001',
     pid: '0x0001',
@@ -32,6 +32,8 @@
     enableStudio: true,
     wiredVersion: 'v0.4',
     wirelessVersion: 'v0.3',
+    firmware: 'qmk',
+    splitTransport: 'uart',
   })
   $: fullOptions = {
     ...$options,
@@ -42,6 +44,13 @@
       cirque: c.keys.some((k) => k.type == 'trackpad-cirque'),
       encoder: !!encoderKeys(c).length,
     })),
+    microcontroller: anyConfig.microcontroller as 'lemon-wired' | 'lemon-wireless',
+    // Phase 1 wired ZMK has no working WS2812 driver yet, so force underglow
+    // off regardless of the user's preference; revisit when a PIO ws2812
+    // binding lands in the fork.
+    ...(anyConfig.microcontroller === 'lemon-wired' && $options.firmware === 'zmk'
+      ? { underGlowAtStart: false }
+      : {}),
   } satisfies Partial<QMKOptions | ZMKOptions>
 
   $: anyConfig = config.right || config.unibody || { microcontroller: undefined }
@@ -61,34 +70,83 @@
 {/if}
 
 {#if anyConfig.microcontroller == 'lemon-wired'}
+  <Field
+    name="Firmware"
+    icon="firmware"
+    help="QMK is the mature path. ZMK on the Lemon Wired is in Phase 1 — UART split over the Link port; no RGB underglow yet."
+  >
+    <Select bind:value={$options.firmware}>
+      <option value="qmk">QMK</option>
+      <option value="zmk">ZMK (Phase 1, experimental)</option>
+    </Select>
+  </Field>
   <Field name="Diode Direction" icon="diode-direction">
     <Select bind:value={$options.diodeDirection}>
       <option value="ROW2COL">ROW2COL (Pumpkin and Plum Twists)</option>
       <option value="COL2ROW">COL2ROW (Skree Flex PCBs)</option>
     </Select>
   </Field>
-  <Field name="Manufacturer Name (for USB)" icon="person">
-    <input class="input px-2" bind:value={$options.yourName} />
-  </Field>
+  {#if $options.firmware === 'qmk'}
+    <Field name="Manufacturer Name (for USB)" icon="person">
+      <input class="input px-2" bind:value={$options.yourName} />
+    </Field>
+  {/if}
   <Field name="Microcontroller Version" icon="version">
     <Select bind:value={$options.wiredVersion}>
       <option value="v0.4">v0.4</option>
       <option value="v0.5">v0.5</option>
     </Select>
   </Field>
-  <Field
-    name="Enable Console Debugging"
-    icon="debug"
-    help="Shows matrix and split debug information when you run qmk console"
-  >
-    <Checkbox bind:value={$options.enableConsole} />
-  </Field>
-  <button class="button" on:click={() => downloadQMKCode(geometry, matrix, fullOptions)}
-    >Download QMK code</button
-  >
-  <button class="button" on:click={() => downloadVia(geometry, matrix, fullOptions)}
-    >Download Via config</button
-  >
+  {#if $options.firmware === 'zmk'}
+    <Field
+      name="Central (Plug into PC) Side"
+      icon="pc"
+      help="Which half plugs into the computer. The other half talks to it over the Link USB-C port."
+    >
+      <Select bind:value={$options.centralSide}>
+        <option value="left">Left</option>
+        <option value="right">Right</option>
+      </Select>
+    </Field>
+    <Field
+      name="Split Transport"
+      icon="version"
+      help="Phase 1 only ships UART over the Link port. Pico-PIO-USB is planned for Phase 2."
+    >
+      <Select bind:value={$options.splitTransport}>
+        <option value="uart">UART (Phase 1, recommended)</option>
+        <option value="pio-usb" disabled>Pico-PIO-USB (Phase 2)</option>
+      </Select>
+    </Field>
+    <Field name="Enable ZMK Studio" icon="studio">
+      <Checkbox bind:value={$options.enableStudio} />
+    </Field>
+    <Field name="Enable USB Logging" icon="debug" help="Writes debug information to a USB serial port">
+      <Checkbox bind:value={$options.enableConsole} />
+    </Field>
+    <button class="button" on:click={() => downloadZMKCode(geometry, matrix, fullOptions)}
+      >Download ZMK code</button
+    >
+    <InfoBox class="mt-4">
+      ZMK on the Lemon Wired is Phase 1 — UART split over the Link USB-C port (GP0/GP1). RGB underglow is
+      not yet supported on this MCU; it will return once a PIO-driven WS2812 binding lands in the fork.
+      Build with <code class="font-mono text-0.9em">west build -b cosmos_lemon_wired</code>.
+    </InfoBox>
+  {:else}
+    <Field
+      name="Enable Console Debugging"
+      icon="debug"
+      help="Shows matrix and split debug information when you run qmk console"
+    >
+      <Checkbox bind:value={$options.enableConsole} />
+    </Field>
+    <button class="button" on:click={() => downloadQMKCode(geometry, matrix, fullOptions)}
+      >Download QMK code</button
+    >
+    <button class="button" on:click={() => downloadVia(geometry, matrix, fullOptions)}
+      >Download Via config</button
+    >
+  {/if}
 
   <div class="mt-4 text-gray-500 dark:text-gray-200">
     Read the <a class="text-pink-600 underline" href="{base}/docs/firmware/" target="_blank"

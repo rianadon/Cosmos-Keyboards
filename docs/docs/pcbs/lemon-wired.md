@@ -126,6 +126,29 @@ When using QMK, you will need to wire the Link-only connector on this microcontr
 
 3. Speaking of [the guide](../qmk-rp2040.md), I recommend following it if you've never used QMK before. Even if you're autogenerating your firmware, it's good to skim it so you can an idea of what the different files in QMK do.
 
+## ZMK (Phase 1)
+
+ZMK on the Lemon Wired is in early-access. The Cosmos generator can emit a ZMK config from the **Program** tab — pick **Firmware: ZMK (Phase 1, experimental)** in the Lemon Wired branch.
+
+What Phase 1 ships:
+
+- A `cosmos_lemon_wired` board in [Olson3R/rainadon-zmk](https://github.com/Olson3R/rainadon-zmk) on branch `lemon-wired-zmk-phase1`. The generator's `west.yml` pins to this remote and branch when ZMK is selected.
+- UART-based split transport over the Link USB-C port (GP0/GP1).
+- Matrix scan, encoder, VIK SPI/I2C, and ZMK Studio support.
+
+What's not in Phase 1 yet:
+
+- **No RGB underglow.** Zephyr 3.5 in the ZMK fork lacks an in-tree PIO ws2812 driver, so the generated `.conf` forces underglow off and the board overlay omits the LED strip definition. Use QMK if you need RGB today.
+- **The Link port is fixed to GP0/GP1** (the dedicated Link-only USB-C). Phase 2 will add Pico-PIO-USB so either USB-C port can be the link; Phase 3 makes both ports interchangeable.
+
+To build locally instead of via the GitHub Actions workflow:
+
+```bash
+west init -l config && west update
+west build -b cosmos_lemon_wired -- -DSHIELD=<your_folder>_left
+west build -b cosmos_lemon_wired -- -DSHIELD=<your_folder>_right
+```
+
 ## KMK Example
 
 Work in progress :) I'm working on merging my changes into CircuitPython and KMK.

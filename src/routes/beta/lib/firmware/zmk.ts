@@ -155,10 +155,86 @@ function generateKeycodes(config: FullGeometry, matrix: Matrix, options: ZMKOpti
   return keycodes
 }
 
-/** Returns the board name used for the given config */
+/** Returns the Zephyr board name used for the given microcontroller selection.
+ *  The Lemon Wireless board ships in `rianadon/zmk`; the Lemon Wired board
+ *  ships in the Phase-1 fork branch wired up by generateWestYaml. */
 function boardName(options: ZMKOptions) {
+  if (options.microcontroller === 'lemon-wired') {
+    return options.wiredVersion === 'v0.5' ? 'cosmos_lemon_wired_v5' : 'cosmos_lemon_wired'
+  }
   if (options.wirelessVersion == 'v0.4') return 'cosmos_lemon_wireless_v4'
   return 'cosmos_lemon_wireless'
+}
+
+type GpioPin = { ctrl: '&gpio0' | '&gpio1'; pin: number }
+
+interface MCUProfile {
+  /** Row GPIOs for the matrix scan. */
+  rows: GpioPin[]
+  /** Column GPIOs when columns are driven directly (no shifter). */
+  cols?: GpioPin[]
+  /** SPI-driven 595 shifter for column expansion. When set, `cols` is ignored
+   *  and columns reference the shifter outputs. */
+  shifter?: { spiBus: string; csPin: GpioPin }
+  /** Encoder A/B GPIOs (one encoder per side). */
+  encoderA: GpioPin
+  encoderB: GpioPin
+  /** When set, hold an LED-power enable pin in its OFF state at boot using a
+   *  gpio-hog. Used when the user opts not to start with underglow on. */
+  extPowerHog?: {
+    pin: GpioPin
+    activeMode: 'GPIO_ACTIVE_HIGH' | 'GPIO_ACTIVE_LOW'
+    offLevel: 'high' | 'low'
+  }
+  /** VIK_SPI_REG_START: number of devices already on the VIK SPI bus before
+   *  VIK peripherals (e.g. the Wireless shifter occupies slot 0). */
+  vikSpiRegStart: number
+  /** VIK_SPI_CS_PREFIX expression. Omitted when nothing precedes VIK on the bus. */
+  vikSpiCsPrefix?: string
+}
+
+function mcuProfile(options: ZMKOptions): MCUProfile {
+  if (options.microcontroller === 'lemon-wired') {
+    const v05 = options.wiredVersion === 'v0.5'
+    return {
+      rows: [3, 4, 5, 6, 7, 8, 9].map((pin): GpioPin => ({ ctrl: '&gpio0', pin })),
+      cols: [25, 24, 23, 22, 21, 20, 10].map((pin): GpioPin => ({ ctrl: '&gpio0', pin })),
+      encoderA: { ctrl: '&gpio0', pin: 28 },
+      encoderB: { ctrl: '&gpio0', pin: 29 },
+      extPowerHog: options.underGlowAtStart ? undefined : {
+        pin: { ctrl: '&gpio0', pin: 11 },
+        activeMode: v05 ? 'GPIO_ACTIVE_HIGH' : 'GPIO_ACTIVE_LOW',
+        offLevel: v05 ? 'low' : 'high',
+      },
+      vikSpiRegStart: 0,
+    }
+  }
+  // lemon-wireless: existing behavior (matched 1:1 with the prior hard-coded DTSI).
+  return {
+    rows: [
+      { ctrl: '&gpio0', pin: 20 },
+      { ctrl: '&gpio0', pin: 22 },
+      { ctrl: '&gpio0', pin: 24 },
+      { ctrl: '&gpio0', pin: 9 },
+      { ctrl: '&gpio0', pin: 10 },
+      { ctrl: '&gpio1', pin: 13 },
+      { ctrl: '&gpio1', pin: 15 },
+    ],
+    shifter: { spiBus: '&spi1', csPin: { ctrl: '&gpio0', pin: 4 } },
+    encoderA: { ctrl: '&gpio0', pin: 29 },
+    encoderB: { ctrl: '&gpio0', pin: 31 },
+    extPowerHog: options.underGlowAtStart ? undefined : {
+      pin: { ctrl: '&gpio0', pin: 2 },
+      activeMode: 'GPIO_ACTIVE_LOW',
+      offLevel: 'high',
+    },
+    vikSpiRegStart: 1,
+    vikSpiCsPrefix: '<&gpio0 4 GPIO_ACTIVE_LOW>',
+  }
+}
+
+function gpioRef(p: GpioPin, flags?: string) {
+  return flags ? `<${p.ctrl} ${p.pin} ${flags}>` : `<${p.ctrl} ${p.pin}>`
 }
 
 function generateEncoderMap(encodersPerSide: Record<keyof FullGeometry, number>) {
@@ -271,15 +347,21 @@ function generateDepsYaml(): string {
   })
 }
 
-function generateWestYaml(): string {
+function generateWestYaml(options: ZMKOptions): string {
+  // The Lemon Wired board lives on the Phase-1 branch of the Olson3R fork
+  // until that work merges upstream. Wireless continues to track rianadon/zmk.
+  const wired = options.microcontroller === 'lemon-wired'
   return yamlFile({
     manifest: {
       remotes: [
         { name: 'zmkfirmware', 'url-base': 'https://github.com/zmkfirmware' },
         { name: 'rianadon', 'url-base': 'https://github.com/rianadon' },
+        ...(wired ? [{ name: 'Olson3R', 'url-base': 'https://github.com/Olson3R' }] : []),
       ],
       projects: [
-        { name: 'zmk', remote: 'rianadon', revision: 'main', import: 'app/west.yml' },
+        wired
+          ? { name: 'zmk', 'repo-path': 'rainadon-zmk', remote: 'Olson3R', revision: 'lemon-wired-zmk-phase1', import: 'app/west.yml' }
+          : { name: 'zmk', remote: 'rianadon', revision: 'main', import: 'app/west.yml' },
       ],
       self: { path: 'config', import: 'deps.yml' },
     },
@@ -320,13 +402,21 @@ config SHIELD_${options.folderName}_RIGHT
 }
 
 function generateConf(config: FullGeometry, options: ZMKOptions) {
+  const wired = options.microcontroller === 'lemon-wired'
+  // Phase 1: the wired path doesn't yet ship a working WS2812 driver
+  // (RP2040 needs a PIO-based ws2812 binding the upstream Zephyr 3.5 doesn't
+  // have). Force underglow off so the build completes; revisit once the wired
+  // board overlay grows a working LED strip definition.
+  const underglow = options.underGlowAtStart && !wired
+  const hasPointing = Object.values(options.peripherals).some(p => p.pmw3610 || p.cirque)
+  const hasEncoder = Object.values(options.peripherals).some(p => p.encoder)
   return [
     'CONFIG_SPI=y',
     '',
     '# RGB underglow configuration',
-    'CONFIG_ZMK_RGB_UNDERGLOW=' + (options.underGlowAtStart ? 'y' : 'n'),
-    'CONFIG_WS2812_STRIP=' + (options.underGlowAtStart ? 'y' : 'n'),
-    ...(options.underGlowAtStart
+    'CONFIG_ZMK_RGB_UNDERGLOW=' + (underglow ? 'y' : 'n'),
+    'CONFIG_WS2812_STRIP=' + (underglow ? 'y' : 'n'),
+    ...(underglow
       ? [
         'CONFIG_ZMK_RGB_UNDERGLOW_BRT_START=50',
         'CONFIG_ZMK_RGB_UNDERGLOW_EFF_START=3',
@@ -334,13 +424,25 @@ function generateConf(config: FullGeometry, options: ZMKOptions) {
       : [
         'CONFIG_ZMK_EXT_POWER=n',
       ]),
+    ...(wired
+      ? [
+        '',
+        '# RP2040 essentials',
+        'CONFIG_PINCTRL=y',
+        'CONFIG_GPIO=y',
+        '',
+        '# Wired-split UART transport on GP0/GP1',
+        'CONFIG_ZMK_SPLIT=y',
+        'CONFIG_ZMK_SPLIT_WIRED=y',
+      ]
+      : []),
     '',
     '# zmk mouse emulation for trackball/trackpad',
-    'CONFIG_ZMK_POINTING=' + (Object.values(options.peripherals).some(p => p.pmw3610 || p.cirque) ? 'y' : 'n'),
+    'CONFIG_ZMK_POINTING=' + (hasPointing ? 'y' : 'n'),
     '',
     '# encoder support',
-    'CONFIG_EC11=' + (Object.values(options.peripherals).some(p => p.encoder) ? 'y' : 'n'),
-    'CONFIG_EC11_TRIGGER_GLOBAL_THREAD=' + (Object.values(options.peripherals).some(p => p.encoder) ? 'y' : 'n'),
+    'CONFIG_EC11=' + (hasEncoder ? 'y' : 'n'),
+    'CONFIG_EC11_TRIGGER_GLOBAL_THREAD=' + (hasEncoder ? 'y' : 'n'),
   ].join('\n') + '\n'
 }
 
@@ -349,30 +451,64 @@ function generateDTSI(config: FullGeometry, matrix: Matrix, options: ZMKOptions)
   const pullMode = options.diodeDirection == 'COL2ROW' ? 'GPIO_PULL_DOWN' : 'GPIO_PULL_UP'
   const encoders = mapObjNotNull(config, (g) => encoderKeys(g.c))
   const encodersWithLength = filterObj(encoders, (k, v) => v.length > 0)
+  const profile = mcuProfile(options)
+
+  const rowGpios = profile.rows.map(p => gpioRef(p, `(${activeMode} | ${pullMode})`))
+  const colGpios = profile.shifter
+    ? Array.from({ length: 7 }, (_, i) => `<&shifter ${i} ${activeMode}>`)
+    : (profile.cols ?? []).map(p => gpioRef(p, activeMode))
+
+  const shifterBlock: Record<string, unknown> = profile.shifter
+    ? {
+      [profile.shifter.spiBus]: {
+        status: 'okay',
+        csGpios: ['VIK_SPI_CS_PREFIX'],
+        'shifter: 595@0': {
+          compatible: 'zmk,gpio-595',
+          status: 'okay',
+          gpioController: true,
+          spiMaxFrequency: 200000,
+          reg: 0,
+          ngpios: 8,
+          '#gpio-cells': 2,
+        },
+      },
+    }
+    : {}
+
+  const vikSpiDefines: Record<string, unknown> = {
+    [raw()]: `// Tell VIK how many devices already sit on the VIK SPI bus before VIK peripherals.`,
+    [raw()]: `// Increase this number if you add another SPI device.`,
+    [raw()]: `#define VIK_SPI_REG_START ${profile.vikSpiRegStart}`,
+    ...(profile.vikSpiCsPrefix
+      ? {
+        [raw()]: '// Pulled out to an external variable so VIK can find the SPI bus.',
+        [raw()]: `#define VIK_SPI_CS_PREFIX ${profile.vikSpiCsPrefix}`,
+      }
+      : {}),
+  }
+
+  const extPowerBlock: Record<string, unknown> = profile.extPowerHog
+    ? {
+      [raw()]: '// Hack to force-drive the LED power pin to its OFF level, ensuring LEDs stay off at boot.',
+      [raw()]: '// Ext power is also disabled in the conf file.',
+      [profile.extPowerHog.pin.ctrl]: {
+        'ext_power_hog: ext_power_hog': {
+          'gpio-hog': true,
+          'gpios': [`<${profile.extPowerHog.pin.pin} ${profile.extPowerHog.activeMode}>`],
+          [`output-${profile.extPowerHog.offLevel}`]: true,
+        },
+      },
+    }
+    : {}
 
   return dtsFile({
     [raw()]: '#include <behaviors.dtsi>',
     [raw()]: '#include <dt-bindings/zmk/matrix_transform.h>',
     [raw()]: '#include <dt-bindings/zmk/keys.h>',
     [raw()]: `#include "${options.folderName}-layouts.dtsi"`,
-    [raw()]: '// Tell VIK that there is 1 other device on the SPI bus.',
-    [raw()]: '// You will need to increase this number if you add another SPI device.',
-    [raw()]: '#define VIK_SPI_REG_START 1',
-    [raw()]: '// Pulled out to an external variable so VIK can find the SPI bus.',
-    [raw()]: '#define VIK_SPI_CS_PREFIX <&gpio0 4 GPIO_ACTIVE_LOW>',
-    '&spi1': {
-      status: 'okay',
-      csGpios: ['VIK_SPI_CS_PREFIX'],
-      'shifter: 595@0': {
-        compatible: 'zmk,gpio-595',
-        status: 'okay',
-        gpioController: true,
-        spiMaxFrequency: 200000,
-        reg: 0,
-        ngpios: 8,
-        '#gpio-cells': 2,
-      },
-    },
+    ...vikSpiDefines,
+    ...shifterBlock,
     '/': {
       'chosen': {
         'zmk,kscan': '&kscan0',
@@ -388,30 +524,14 @@ function generateDTSI(config: FullGeometry, matrix: Matrix, options: ZMKOptions)
       'kscan0: kscan_0': {
         compatible: 'zmk,kscan-gpio-matrix',
         diodeDirection: 'col2row',
-        rowGpios: [
-          `<&gpio0 20 (${activeMode} | ${pullMode})>`,
-          `<&gpio0 22 (${activeMode} | ${pullMode})>`,
-          `<&gpio0 24 (${activeMode} | ${pullMode})>`,
-          `<&gpio0 9  (${activeMode} | ${pullMode})>`,
-          `<&gpio0 10 (${activeMode} | ${pullMode})>`,
-          `<&gpio1 13 (${activeMode} | ${pullMode})>`,
-          `<&gpio1 15 (${activeMode} | ${pullMode})>`,
-        ],
-        colGpios: [
-          `<&shifter 0 ${activeMode}>`,
-          `<&shifter 1 ${activeMode}>`,
-          `<&shifter 2 ${activeMode}>`,
-          `<&shifter 3 ${activeMode}>`,
-          `<&shifter 4 ${activeMode}>`,
-          `<&shifter 5 ${activeMode}>`,
-          `<&shifter 6 ${activeMode}>`,
-        ],
+        rowGpios,
+        colGpios,
       },
       ...mapObjToObj(encodersWithLength, (encoders, side) => ({
         [`${side}_encoder: encoder_${side}`]: {
           compatible: 'alps,ec11',
-          aGpios: '<&gpio0 29 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>',
-          bGpios: '<&gpio0 31 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>',
+          aGpios: gpioRef(profile.encoderA, '(GPIO_ACTIVE_HIGH | GPIO_PULL_UP)'),
+          bGpios: gpioRef(profile.encoderB, '(GPIO_ACTIVE_HIGH | GPIO_PULL_UP)'),
           steps: 80,
           status: 'disabled',
         },
@@ -426,18 +546,7 @@ function generateDTSI(config: FullGeometry, matrix: Matrix, options: ZMKOptions)
         }
         : {}),
     },
-    ...(!options.underGlowAtStart
-      ? {
-        [raw()]: '// Hack to force-drive the LED power pin high, ensuring LED power is off. Ext power is also disabled in the conf file.',
-        '&gpio0': {
-          'ext_power_hog: ext_power_hog': {
-            'gpio-hog': true,
-            'gpios': ['<2 GPIO_ACTIVE_LOW>'],
-            'output-high': true,
-          },
-        },
-      }
-      : {}),
+    ...extPowerBlock,
   })
 }
 
@@ -517,7 +626,7 @@ function generateOverlay(config: FullGeometry, matrix: Matrix, options: ZMKOptio
   })
 }
 
-const BOARD_OVERLAY = `#include <dt-bindings/led/led.h>
+const BOARD_OVERLAY_NRF52 = `#include <dt-bindings/led/led.h>
 
 &pinctrl {
     spi3_default: spi3_default {
@@ -587,6 +696,73 @@ vik_i2c: &i2c0 {};
 vik_spi: &spi1 {};
 `
 
+// Phase 1 wired board overlay. Sets up the UART used for the wired-split
+// transport (GP0/GP1 — the "Link" USB-C port pair on the Lemon Wired), the
+// VIK SPI/I2C buses, and the VIK connector pin map. RGB underglow is not
+// configured here yet: Zephyr 3.5 in the ZMK fork lacks an in-tree PIO
+// ws2812 driver, so the .conf file forces underglow off for this MCU.
+const BOARD_OVERLAY_RP2040 = `&pinctrl {
+    uart0_default: uart0_default {
+        group1 {
+            pinmux = <UART0_TX_P0>;
+        };
+        group2 {
+            pinmux = <UART0_RX_P1>;
+            input-enable;
+        };
+    };
+};
+
+&uart0 {
+    status = "okay";
+    current-speed = <115200>;
+    pinctrl-0 = <&uart0_default>;
+    pinctrl-names = "default";
+};
+
+&spi1 {
+    status = "okay";
+    clock-frequency = <DT_FREQ_M(4)>;
+};
+
+&i2c1 {
+    status = "okay";
+    clock-frequency = <I2C_BITRATE_FAST>;
+};
+
+/ {
+    wired_split: wired_split {
+        compatible = "zmk,wired-split";
+        device = <&uart0>;
+    };
+
+    vik_conn: vik_connector {
+        compatible = "sadekbaroudi,vik-connector";
+        #gpio-cells = <2>;
+        gpio-map-mask = <0xffffffff 0xffffffc0>;
+        gpio-map-pass-thru = <0 0x3f>;
+        gpio-map
+          = <0 0 &gpio0 18 0>   /* vik SDA */
+          , <1 0 &gpio0 19 0>   /* vik SCL */
+          , <2 0 &gpio0  2 0>   /* vik RGB Data */
+          , <3 0 &gpio0 26 0>   /* vik AD_1 */
+          , <4 0 &gpio0 15 0>   /* vik MOSI */
+          , <5 0 &gpio0 27 0>   /* vik AD_2 */
+          , <6 0 &gpio0 13 0>   /* vik CS */
+          , <7 0 &gpio0 12 0>   /* vik MISO */
+          , <8 0 &gpio0 14 0>   /* vik SCLK */
+          ;
+    };
+};
+
+vik_i2c: &i2c1 {};
+vik_spi: &spi1 {};
+`
+
+function boardOverlay(options: ZMKOptions) {
+  return options.microcontroller === 'lemon-wired' ? BOARD_OVERLAY_RP2040 : BOARD_OVERLAY_NRF52
+}
+
 export function downloadZMKCode(config: FullGeometry, matrix: Matrix, options: ZMKOptions) {
   const { folderName } = options
   if (!folderName || folderName == '.') {
@@ -599,9 +775,9 @@ export function downloadZMKCode(config: FullGeometry, matrix: Matrix, options: Z
       'build.yaml': strToU8(generateBuildYaml(config, options)),
       'zephyr/module.yml': strToU8(generateModuleYaml()),
       'config/deps.yml': strToU8(generateDepsYaml()),
-      'config/west.yml': strToU8(generateWestYaml()),
+      'config/west.yml': strToU8(generateWestYaml(options)),
       [`boards/shields/${folderName}`]: {
-        [`boards/${boardName(options)}.overlay`]: strToU8(BOARD_OVERLAY),
+        [`boards/${boardName(options)}.overlay`]: strToU8(boardOverlay(options)),
         'Kconfig.defconfig': strToU8(generateDefconfig(config, options)),
         'Kconfig.shield': strToU8(generateShield(config, options)),
         [folderName + '.dtsi']: strToU8(generateDTSI(config, matrix, options)),
