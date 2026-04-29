@@ -30,7 +30,11 @@ export interface ZMKOptions {
   underGlowAtStart: boolean
   enableConsole: boolean
   enableStudio: boolean
+  microcontroller: 'lemon-wireless' | 'lemon-wired'
   wirelessVersion: 'v0.3' | 'v0.4'
+  wiredVersion?: 'v0.4' | 'v0.5'
+  splitTransport?: 'uart' | 'pio-usb'
+  linkPort?: 'pio' | 'native'
 }
 
 export function validateConfig(options: ZMKOptions) {

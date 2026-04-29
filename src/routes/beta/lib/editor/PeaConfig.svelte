@@ -17,7 +17,10 @@
   export let geometry: FullGeometry
   export let matrix: Matrix
 
-  type OptionsType = Omit<QMKOptions & ZMKOptions, 'keyboardName' | 'folderName' | 'peripherals'>
+  type OptionsType = Omit<
+    QMKOptions & ZMKOptions,
+    'keyboardName' | 'folderName' | 'peripherals' | 'microcontroller'
+  >
   const options = storable<OptionsType>('programmingOptions', {
     vid: '0x0001',
     pid: '0x0001',
