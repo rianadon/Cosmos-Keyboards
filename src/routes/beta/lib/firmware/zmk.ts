@@ -157,11 +157,12 @@ function generateKeycodes(config: FullGeometry, matrix: Matrix, options: ZMKOpti
 
 /** Returns the Zephyr board name used for the given microcontroller selection.
  *  The Lemon Wireless board ships in `rianadon/zmk`; the Lemon Wired board
- *  ships in the Phase-1 fork branch wired up by generateWestYaml. */
+ *  ships in the Phase-1 fork branch wired up by generateWestYaml.
+ *
+ *  v0.4 and v0.5 Wired share one Zephyr board — the only Phase-1 hardware
+ *  diff (LED-relay polarity) is encoded in the per-shield ext_power_hog. */
 function boardName(options: ZMKOptions) {
-  if (options.microcontroller === 'lemon-wired') {
-    return options.wiredVersion === 'v0.5' ? 'cosmos_lemon_wired_v5' : 'cosmos_lemon_wired'
-  }
+  if (options.microcontroller === 'lemon-wired') return 'cosmos_lemon_wired'
   if (options.wirelessVersion == 'v0.4') return 'cosmos_lemon_wireless_v4'
   return 'cosmos_lemon_wireless'
 }
@@ -696,41 +697,13 @@ vik_i2c: &i2c0 {};
 vik_spi: &spi1 {};
 `
 
-// Phase 1 wired board overlay. Sets up the UART used for the wired-split
-// transport (GP0/GP1 — the "Link" USB-C port pair on the Lemon Wired), the
-// VIK SPI/I2C buses, and the VIK connector pin map. RGB underglow is not
-// configured here yet: Zephyr 3.5 in the ZMK fork lacks an in-tree PIO
-// ws2812 driver, so the .conf file forces underglow off for this MCU.
-const BOARD_OVERLAY_RP2040 = `&pinctrl {
-    uart0_default: uart0_default {
-        group1 {
-            pinmux = <UART0_TX_P0>;
-        };
-        group2 {
-            pinmux = <UART0_RX_P1>;
-            input-enable;
-        };
-    };
-};
-
-&uart0 {
-    status = "okay";
-    current-speed = <115200>;
-    pinctrl-0 = <&uart0_default>;
-    pinctrl-names = "default";
-};
-
-&spi1 {
-    status = "okay";
-    clock-frequency = <DT_FREQ_M(4)>;
-};
-
-&i2c1 {
-    status = "okay";
-    clock-frequency = <I2C_BITRATE_FAST>;
-};
-
-/ {
+// Phase 1 wired board overlay. The cosmos_lemon_wired board (in the fork)
+// already enables &uart0/&spi1/&i2c1 with their pinctrl groups; this overlay
+// only adds the wired-split transport node and the VIK connector pin map.
+// RGB underglow is not configured here yet: Zephyr 3.5 in the ZMK fork lacks
+// an in-tree PIO ws2812 driver, so the .conf file forces underglow off for
+// this MCU.
+const BOARD_OVERLAY_RP2040 = `/ {
     wired_split: wired_split {
         compatible = "zmk,wired-split";
         device = <&uart0>;
