@@ -452,22 +452,19 @@
       }
 
       if (!flags.fast && full) {
-        type Kbd = 'left' | 'right' | 'unibody'
-        type QueueItem = { i: number; kbd: Kbd; prom: Promise<any> }
-        const queue: QueueItem[] = otherPromises.flatMap((p, i) =>
-          Object.values(p)
-            .filter((q): q is Promise<any> => !!q && typeof q === 'object')
-            .map((q): QueueItem => ({ i, kbd: kbdNames[i] as Kbd, prom: q }))
+        const queue = otherPromises.flatMap((p, i) =>
+          notNull(Object.values(p)).map((q) => ({ i, kbd: kbdNames[i], prom: q }))
         )
         const initialLength = queue.length
         const errors: Error[] = []
         generatorProgress = 0.2
         while (queue.length) {
+          // @ts-ignore
           const { result, finished, error } = await Promise.race(
             queue.map((p) =>
               p.prom.then(
-                (res: any) => ({ result: res, finished: p, error: undefined as any }),
-                (error: any) => ({ error, finished: p, result: undefined as any })
+                (res) => ({ result: res, finished: p }),
+                (error) => ({ error, finished: p })
               )
             )
           )

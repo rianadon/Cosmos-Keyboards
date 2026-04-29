@@ -601,15 +601,9 @@
     } else {
       const letter = sentence[index]
       const finger = fingersToKeys[letter]
-      const fitArg: Record<string, Vector3 | undefined> = {
-        [finger]: pos15(conf, findKeyByAttr(conf, 'letter', letter)!),
-      }
-      targets = fit(
-        fitArg as Record<
-          'thumb' | 'pinky' | 'indexFinger' | 'middleFinger' | 'ringFinger',
-          Vector3 | undefined
-        >
-      )
+      targets = fit({
+        [finger]: pos15(conf, findKeyByAttr(conf, 'letter', letter)),
+      } as Record<Finger, Vector3 | undefined>)
       console.log('letter', pressedLetter)
     }
     const newRot = new Quaternion().setFromEuler(new Euler().fromArray(rightHandRotation))
@@ -668,20 +662,11 @@
   function updateHandMatrix(rightMat: Matrix4) {
     console.log('update matrix', new Vector3().setFromMatrixPosition(rightMat))
     rightHandMatrix = rightMat
-    if (pressedLetter) {
-      if (!conf) return
+    if (pressedLetter && conf) {
       const finger = fingersToKeys[pressedLetter]
-      const key = findKeyByAttr(conf, 'letter', pressedLetter)
-      if (!key) return
-      const fitArg: Record<string, Vector3 | undefined> = {
-        [finger]: pos15(conf, key),
-      }
-      fit(
-        fitArg as Record<
-          'thumb' | 'pinky' | 'indexFinger' | 'middleFinger' | 'ringFinger',
-          Vector3 | undefined
-        >
-      )
+      fit({
+        [finger]: pos15(conf, findKeyByAttr(conf, 'letter', pressedLetter)),
+      } as Record<Finger, Vector3 | undefined>)
     } else {
       theBigFit(fitConf!)
     }
@@ -1154,10 +1139,9 @@
               <div class="tabhead">Key Position</div>
               <div class="px-2 py-1">
                 <Field small name="Row">
-                  {#if keyIsClicked && columnIsClicked}<DecimalInputInherit
+                  {#if keyIsClicked && columnIsClicked}<DecimalInput
                       small
                       bind:value={keyIsClicked.row}
-                      inherit={undefined}
                       on:change={updateProto}
                       divisor={100}
                     />
