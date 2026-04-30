@@ -8,6 +8,18 @@ import { dtsFile, encoderKeys, fullLayout, logicalKeys, type Matrix, raw, yamlFi
 
 const RE_PID_VID = /^0x[0-9A-Fa-f]{4}$/
 
+export const Microcontroller = {
+  LemonWireless: 'lemon-wireless',
+  LemonWired: 'lemon-wired',
+} as const
+export type Microcontroller = typeof Microcontroller[keyof typeof Microcontroller]
+
+export const SplitTransport = {
+  Uart: 'uart',
+  PioUsb: 'pio-usb',
+} as const
+export type SplitTransport = typeof SplitTransport[keyof typeof SplitTransport]
+
 interface ZMKPeripherals {
   pmw3610: boolean
   cirque: boolean
@@ -30,10 +42,10 @@ export interface ZMKOptions {
   underGlowAtStart: boolean
   enableConsole: boolean
   enableStudio: boolean
-  microcontroller: 'lemon-wireless' | 'lemon-wired'
+  microcontroller: Microcontroller
   wirelessVersion: 'v0.3' | 'v0.4'
   wiredVersion?: 'v0.4' | 'v0.5'
-  splitTransport?: 'uart' | 'pio-usb'
+  splitTransport?: SplitTransport
   linkPort?: 'pio' | 'native'
 }
 
@@ -162,7 +174,7 @@ function generateKeycodes(config: FullGeometry, matrix: Matrix, options: ZMKOpti
  *  v0.4 and v0.5 Wired share one Zephyr board — the only Phase-1 hardware
  *  diff (LED-relay polarity) is encoded in the per-shield ext_power_hog. */
 function boardName(options: ZMKOptions) {
-  if (options.microcontroller === 'lemon-wired') return 'cosmos_lemon_wired'
+  if (options.microcontroller === Microcontroller.LemonWired) return 'cosmos_lemon_wired'
   if (options.wirelessVersion == 'v0.4') return 'cosmos_lemon_wireless_v4'
   return 'cosmos_lemon_wireless'
 }
@@ -195,7 +207,7 @@ interface MCUProfile {
 }
 
 function mcuProfile(options: ZMKOptions): MCUProfile {
-  if (options.microcontroller === 'lemon-wired') {
+  if (options.microcontroller === Microcontroller.LemonWired) {
     const v05 = options.wiredVersion === 'v0.5'
     return {
       rows: [3, 4, 5, 6, 7, 8, 9].map((pin): GpioPin => ({ ctrl: '&gpio0', pin })),
@@ -349,9 +361,11 @@ function generateDepsYaml(): string {
 }
 
 function generateWestYaml(options: ZMKOptions): string {
-  // The Lemon Wired board lives on the Phase-1 branch of the Olson3R fork
-  // until that work merges upstream. Wireless continues to track rianadon/zmk.
-  const wired = options.microcontroller === 'lemon-wired'
+  // The Lemon Wired board + USB split transport live on the Olson3R fork
+  // until that work merges upstream. The fork's app/west.yml pulls in the
+  // Pico-PIO-USB module + Zephyr UHC/UDC glue transitively.
+  // Wireless continues to track rianadon/zmk.
+  const wired = options.microcontroller === Microcontroller.LemonWired
   return yamlFile({
     manifest: {
       remotes: [
@@ -361,7 +375,7 @@ function generateWestYaml(options: ZMKOptions): string {
       ],
       projects: [
         wired
-          ? { name: 'zmk', 'repo-path': 'rainadon-zmk', remote: 'Olson3R', revision: 'lemon-wired-zmk-phase1', import: 'app/west.yml' }
+          ? { name: 'zmk', 'repo-path': 'rainadon-zmk', remote: 'Olson3R', revision: 'main', import: 'app/west.yml' }
           : { name: 'zmk', remote: 'rianadon', revision: 'main', import: 'app/west.yml' },
       ],
       self: { path: 'config', import: 'deps.yml' },
@@ -372,6 +386,7 @@ function generateWestYaml(options: ZMKOptions): string {
 function generateDefconfig(config: FullGeometry, options: ZMKOptions) {
   const { folderName } = options
   const centralSide = options.centralSide.toUpperCase()
+  const usbSplit = options.microcontroller === Microcontroller.LemonWired && options.splitTransport !== SplitTransport.Uart
   return `
 if SHIELD_${folderName}_${centralSide}
 
@@ -387,7 +402,14 @@ if SHIELD_${folderName}_LEFT || SHIELD_${folderName}_RIGHT
 
 config ZMK_SPLIT
     default y
-
+${
+    usbSplit
+      ? `
+config ZMK_SPLIT_USB
+    default y
+`
+      : ''
+  }
 endif # SHIELD_${folderName}_LEFT || SHIELD_${folderName}_RIGHT
 `
 }
@@ -402,8 +424,10 @@ config SHIELD_${options.folderName}_RIGHT
 `
 }
 
-function generateConf(config: FullGeometry, options: ZMKOptions) {
-  const wired = options.microcontroller === 'lemon-wired'
+function generateConf(config: FullGeometry, options: ZMKOptions, side: keyof FullGeometry) {
+  const wired = options.microcontroller === Microcontroller.LemonWired
+  const usbSplit = wired && options.splitTransport !== SplitTransport.Uart
+  const isCentral = side === 'unibody' || side === options.centralSide
   // Phase 1: the wired path doesn't yet ship a working WS2812 driver
   // (RP2040 needs a PIO-based ws2812 binding the upstream Zephyr 3.5 doesn't
   // have). Force underglow off so the build completes; revisit once the wired
@@ -432,9 +456,24 @@ function generateConf(config: FullGeometry, options: ZMKOptions) {
         'CONFIG_PINCTRL=y',
         'CONFIG_GPIO=y',
         '',
-        '# Wired-split UART transport on GP0/GP1',
+        ...(usbSplit
+          ? [
+            '# Pico-PIO-USB split transport: legacy USB device stack on the',
+            '# native USB-C carries HID (central) / split bulk endpoints (peripheral);',
+            '# the central also runs Pico-PIO-USB as a UHC on the Link port.',
+            'CONFIG_USB_DEVICE_STACK=y',
+            'CONFIG_USB_CDC_ACM=y',
+            'CONFIG_SERIAL=y',
+            'CONFIG_UART_INTERRUPT_DRIVEN=y',
+            'CONFIG_UART_LINE_CTRL=y',
+            'CONFIG_USB_DEVICE_INITIALIZE_AT_BOOT=' + (isCentral ? 'y' : 'n'),
+            ...(isCentral ? ['CONFIG_ZMK_USB=y'] : []),
+          ]
+          : [
+            '# Wired-split UART transport on GP0/GP1',
+            'CONFIG_ZMK_SPLIT_WIRED=y',
+          ]),
         'CONFIG_ZMK_SPLIT=y',
-        'CONFIG_ZMK_SPLIT_WIRED=y',
       ]
       : []),
     '',
@@ -605,18 +644,86 @@ function generateOverlay(config: FullGeometry, matrix: Matrix, options: ZMKOptio
 
   const encoders = config[side] ? encoderKeys(config[side].c) : []
 
+  // Wired-split transport DT (Phase 2: USB over Link, or legacy: UART).
+  const wired = options.microcontroller === Microcontroller.LemonWired
+  const split = side !== 'unibody'
+  const usbSplit = wired && split && options.splitTransport !== SplitTransport.Uart
+  const uartSplit = wired && split && options.splitTransport === SplitTransport.Uart
+  const isCentral = split && side === options.centralSide
+  const wantConsole = !!options.enableConsole
+
+  // Central + USB split: disable uart0 (its pins are now PIO-USB D+/D-),
+  // bring up Pico-PIO-USB as a UHC on the Link port, expose it to ZMK as
+  // the split transport, and optionally surface a CDC ACM console on the
+  // native USB-C alongside HID.
+  const centralUsbBlock: Record<string, unknown> = usbSplit && isCentral
+    ? {
+      'pio_usb_host: pio_usb_host': {
+        compatible: 'raspberrypi,pio-usb-host',
+        pinDp: 0,
+        pinout: 'dpdm',
+        dataRate: 'full-speed',
+        status: 'okay',
+      },
+      'usb_split: usb_split': {
+        compatible: 'zmk,usb-split',
+        uhc: '<&pio_usb_host>',
+      },
+      ...(wantConsole
+        ? {
+          chosen: {
+            'zephyr,console': '&cdc_acm_uart0',
+            'zephyr,uart-mcumgr': '&cdc_acm_uart0',
+          },
+        }
+        : {}),
+    }
+    : {}
+
+  // Peripheral CDC ACM bulk pair — what the central's UHC enumerates and
+  // drives. The label `zsu_cdc_acm` is what ZMK's USB-split peripheral
+  // driver looks for via DT_CHOSEN/label lookup.
+  const peripheralCdcBlock = usbSplit && !isCentral
+    ? { 'zsu_cdc_acm: zsu_cdc_acm': { compatible: 'zephyr,cdc-acm-uart' } }
+    : {}
+
+  // Optional CDC ACM console on the central's native USB-C.
+  const centralConsoleCdc = usbSplit && isCentral && wantConsole
+    ? { 'cdc_acm_uart0: cdc_acm_uart0': { compatible: 'zephyr,cdc-acm-uart' } }
+    : {}
+
+  // Legacy UART split: GP0/GP1 carry a serial link between halves.
+  const wiredSplitNode = uartSplit
+    ? {
+      'wired_split: wired_split': {
+        compatible: 'zmk,wired-split',
+        device: '<&uart0>',
+      },
+    }
+    : {}
+
   return dtsFile({
     [raw()]: `#include "${options.folderName}.dtsi"`,
+    ...(usbSplit && isCentral
+      ? { '&uart0': { status: 'disabled' } }
+      : {}),
     '/': {
       'bootloader_key: bootloader_key': {
         compatible: 'zmk,boot-magic-key',
         keyPosition: bootloaderPosition,
         jumpToBootloader: true,
       },
+      ...centralUsbBlock,
+      ...wiredSplitNode,
     },
     '&default_transform': right && {
       colOffset: 7,
     },
+    ...(usbSplit && (Object.keys(centralConsoleCdc).length || Object.keys(peripheralCdcBlock).length)
+      ? {
+        '&zephyr_udc0': { ...centralConsoleCdc, ...peripheralCdcBlock },
+      }
+      : {}),
     ...(encoders.length
       ? {
         [`&${side}_encoder`]: {
@@ -697,18 +804,14 @@ vik_i2c: &i2c0 {};
 vik_spi: &spi1 {};
 `
 
-// Phase 1 wired board overlay. The cosmos_lemon_wired board (in the fork)
-// already enables &uart0/&spi1/&i2c1 with their pinctrl groups; this overlay
-// only adds the wired-split transport node and the VIK connector pin map.
+// Wired board overlay. The cosmos_lemon_wired board (in the fork) already
+// enables &uart0/&spi1/&i2c1 with their pinctrl groups; this overlay just
+// adds the VIK connector pin map. The split transport (UART or USB) lives
+// in the per-side overlay.
 // RGB underglow is not configured here yet: Zephyr 3.5 in the ZMK fork lacks
 // an in-tree PIO ws2812 driver, so the .conf file forces underglow off for
 // this MCU.
 const BOARD_OVERLAY_RP2040 = `/ {
-    wired_split: wired_split {
-        compatible = "zmk,wired-split";
-        device = <&uart0>;
-    };
-
     vik_conn: vik_connector {
         compatible = "sadekbaroudi,vik-connector";
         #gpio-cells = <2>;
@@ -733,7 +836,7 @@ vik_spi: &spi1 {};
 `
 
 function boardOverlay(options: ZMKOptions) {
-  return options.microcontroller === 'lemon-wired' ? BOARD_OVERLAY_RP2040 : BOARD_OVERLAY_NRF52
+  return options.microcontroller === Microcontroller.LemonWired ? BOARD_OVERLAY_RP2040 : BOARD_OVERLAY_NRF52
 }
 
 export function downloadZMKCode(config: FullGeometry, matrix: Matrix, options: ZMKOptions) {
@@ -760,13 +863,13 @@ export function downloadZMKCode(config: FullGeometry, matrix: Matrix, options: Z
         ...(config.unibody
           ? {
             [folderName + '.overlay']: strToU8(generateOverlay(config, matrix, options, 'unibody')),
-            [folderName + '.conf']: strToU8(generateConf(config, options)),
+            [folderName + '.conf']: strToU8(generateConf(config, options, 'unibody')),
           }
           : {
             [folderName + '_left.overlay']: strToU8(generateOverlay(config, matrix, options, 'left')),
             [folderName + '_right.overlay']: strToU8(generateOverlay(config, matrix, options, 'right')),
-            [folderName + '_left.conf']: strToU8(generateConf(config, options)),
-            [folderName + '_right.conf']: strToU8(generateConf(config, options)),
+            [folderName + '_left.conf']: strToU8(generateConf(config, options, 'left')),
+            [folderName + '_right.conf']: strToU8(generateConf(config, options, 'right')),
           }),
       },
     },

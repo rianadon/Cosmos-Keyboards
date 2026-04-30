@@ -7,7 +7,7 @@
   import { mapObjNotNull } from '$lib/worker/util'
   import { downloadQMKCode, type QMKOptions } from '../firmware/qmk'
   import type { FullGeometry } from '../viewers/viewer3dHelpers'
-  import { downloadZMKCode, type ZMKOptions } from '../firmware/zmk'
+  import { downloadZMKCode, Microcontroller, SplitTransport, type ZMKOptions } from '../firmware/zmk'
   import { downloadVia } from '../firmware/via'
   import Checkbox from '$lib/presentation/Checkbox.svelte'
   import { encoderKeys, type Matrix } from '../firmware/firmwareHelpers'
@@ -33,7 +33,7 @@
     wiredVersion: 'v0.4',
     wirelessVersion: 'v0.3',
     firmware: 'qmk',
-    splitTransport: 'uart',
+    splitTransport: SplitTransport.PioUsb,
   })
   $: fullOptions = {
     ...$options,
@@ -44,17 +44,17 @@
       cirque: c.keys.some((k) => k.type == 'trackpad-cirque'),
       encoder: !!encoderKeys(c).length,
     })),
-    microcontroller: anyConfig.microcontroller as 'lemon-wired' | 'lemon-wireless',
+    microcontroller: anyConfig.microcontroller as Microcontroller,
     // Phase 1 wired ZMK has no working WS2812 driver yet, so force underglow
     // off regardless of the user's preference; revisit when a PIO ws2812
     // binding lands in the fork.
-    ...(anyConfig.microcontroller === 'lemon-wired' && $options.firmware === 'zmk'
+    ...(anyConfig.microcontroller === Microcontroller.LemonWired && $options.firmware === 'zmk'
       ? { underGlowAtStart: false }
       : {}),
   } satisfies Partial<QMKOptions | ZMKOptions>
 
   $: anyConfig = config.right || config.unibody || { microcontroller: undefined }
-  $: truncated = anyConfig.microcontroller == 'lemon-wireless' && $modelName.length > 16
+  $: truncated = anyConfig.microcontroller == Microcontroller.LemonWireless && $modelName.length > 16
 </script>
 
 <p class="mt-4 mb-2">Successfully made the matrix!</p>
@@ -69,11 +69,11 @@
   </div>
 {/if}
 
-{#if anyConfig.microcontroller == 'lemon-wired'}
+{#if anyConfig.microcontroller == Microcontroller.LemonWired}
   <Field
     name="Firmware"
     icon="firmware"
-    help="QMK is the mature path. ZMK on the Lemon Wired is in Phase 1 — UART split over the Link port; no RGB underglow yet."
+    help="QMK is the mature path. ZMK on the Lemon Wired is in Phase 2 — Pico-PIO-USB split over the Link port; no RGB underglow yet."
   >
     <Select bind:value={$options.firmware}>
       <option value="qmk">QMK</option>
@@ -111,11 +111,11 @@
     <Field
       name="Split Transport"
       icon="version"
-      help="Phase 1 only ships UART over the Link port. Pico-PIO-USB is planned for Phase 2."
+      help="Pico-PIO-USB drives a USB-C cable between the two halves over the Link port (recommended). UART is the legacy path."
     >
       <Select bind:value={$options.splitTransport}>
-        <option value="uart">UART (Phase 1, recommended)</option>
-        <option value="pio-usb" disabled>Pico-PIO-USB (Phase 2)</option>
+        <option value={SplitTransport.PioUsb}>Pico-PIO-USB (recommended)</option>
+        <option value={SplitTransport.Uart}>UART (legacy)</option>
       </Select>
     </Field>
     <Field name="Enable ZMK Studio" icon="studio">
@@ -128,9 +128,11 @@
       >Download ZMK code</button
     >
     <InfoBox class="mt-4">
-      ZMK on the Lemon Wired is Phase 1 — UART split over the Link USB-C port (GP0/GP1). RGB underglow is
-      not yet supported on this MCU; it will return once a PIO-driven WS2812 binding lands in the fork.
-      Build with <code class="font-mono text-0.9em">west build -b cosmos_lemon_wired</code>.
+      ZMK on the Lemon Wired is Phase 2 — Pico-PIO-USB carries the split protocol over a USB-C cable
+      between the Link ports of both halves. Plug the central (PC-facing) half's native USB-C into your
+      computer; connect the central's Link to the peripheral's native USB-C. RGB underglow is not yet
+      supported on this MCU; it will return once a PIO-driven WS2812 binding lands in the fork. Build
+      with <code class="font-mono text-0.9em">west build -b cosmos_lemon_wired</code>.
     </InfoBox>
   {:else}
     <Field
@@ -159,7 +161,7 @@
     >. If there is no bootmagic key, you will need to double-tap the reset button.
   </div>
 {/if}
-{#if anyConfig.microcontroller == 'lemon-wireless'}
+{#if anyConfig.microcontroller == Microcontroller.LemonWireless}
   <Field name="Diode Direction" icon="diode-direction">
     <Select bind:value={$options.diodeDirection}>
       <option value="ROW2COL">ROW2COL (Pumpkin and Plum Twists)</option>
