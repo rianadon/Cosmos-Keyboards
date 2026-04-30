@@ -426,8 +426,9 @@ config SHIELD_${options.folderName}_RIGHT
 
 function generateConf(config: FullGeometry, options: ZMKOptions, side: keyof FullGeometry) {
   const wired = options.microcontroller === Microcontroller.LemonWired
-  const usbSplit = wired && options.splitTransport !== SplitTransport.Uart
-  const isCentral = side === 'unibody' || side === options.centralSide
+  const split = side !== 'unibody'
+  const usbSplit = wired && split && options.splitTransport !== SplitTransport.Uart
+  const isCentral = split && side === options.centralSide
   // Phase 1: the wired path doesn't yet ship a working WS2812 driver
   // (RP2040 needs a PIO-based ws2812 binding the upstream Zephyr 3.5 doesn't
   // have). Force underglow off so the build completes; revisit once the wired
@@ -435,6 +436,11 @@ function generateConf(config: FullGeometry, options: ZMKOptions, side: keyof Ful
   const underglow = options.underGlowAtStart && !wired
   const hasPointing = Object.values(options.peripherals).some(p => p.pmw3610 || p.cirque)
   const hasEncoder = Object.values(options.peripherals).some(p => p.encoder)
+  // USB device strings. Peripheral re-uses the central PID — the host only
+  // ever sees the central, so a unique PID on the peripheral has no observer.
+  // The 16-char limit on ZMK_KEYBOARD_NAME is BLE-specific; USB strings have
+  // no such cap.
+  const productName = options.keyboardName + (usbSplit && !isCentral ? ' (peripheral)' : '')
   return [
     'CONFIG_SPI=y',
     '',
@@ -456,24 +462,47 @@ function generateConf(config: FullGeometry, options: ZMKOptions, side: keyof Ful
         'CONFIG_PINCTRL=y',
         'CONFIG_GPIO=y',
         '',
+        '# Zephyr 3.5 RP2040 flash driver is broken in this fork — non-persistent',
+        '# settings until that lands. The board defconfig sets these to y; we override.',
+        'CONFIG_FLASH=n',
+        'CONFIG_NVS=n',
+        'CONFIG_SETTINGS=n',
+        '',
         ...(usbSplit
           ? [
             '# Pico-PIO-USB split transport: legacy USB device stack on the',
             '# native USB-C carries HID (central) / split bulk endpoints (peripheral);',
             '# the central also runs Pico-PIO-USB as a UHC on the Link port.',
             'CONFIG_USB_DEVICE_STACK=y',
+            `CONFIG_USB_DEVICE_PRODUCT="${productName}"`,
+            `CONFIG_USB_DEVICE_VID=${options.vid}`,
+            `CONFIG_USB_DEVICE_PID=${options.pid}`,
             'CONFIG_USB_CDC_ACM=y',
             'CONFIG_SERIAL=y',
             'CONFIG_UART_INTERRUPT_DRIVEN=y',
             'CONFIG_UART_LINE_CTRL=y',
             'CONFIG_USB_DEVICE_INITIALIZE_AT_BOOT=' + (isCentral ? 'y' : 'n'),
             ...(isCentral ? ['CONFIG_ZMK_USB=y'] : []),
+            ...(isCentral && options.enableConsole
+              ? [
+                '',
+                '# CDC ACM console on the central native USB-C (alongside HID).',
+                'CONFIG_CONSOLE=y',
+                'CONFIG_UART_CONSOLE=y',
+                'CONFIG_LOG=y',
+                'CONFIG_LOG_PRINTK=y',
+                'CONFIG_LOG_BACKEND_UART=y',
+                'CONFIG_LOG_DEFAULT_LEVEL=2',
+              ]
+              : []),
           ]
-          : [
+          : split
+          ? [
             '# Wired-split UART transport on GP0/GP1',
             'CONFIG_ZMK_SPLIT_WIRED=y',
-          ]),
-        'CONFIG_ZMK_SPLIT=y',
+          ]
+          : []),
+        ...(split ? ['CONFIG_ZMK_SPLIT=y'] : []),
       ]
       : []),
     '',
