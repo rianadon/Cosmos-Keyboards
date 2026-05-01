@@ -544,6 +544,11 @@
         // CUSTOM when the keymap doesn't match any registered layout.
         next.layout = detectLayout(next)
         state.options = next
+        // Push into the proto store too — the basic-mode editor binds to
+        // $protoConfig, not state.options, so without this the dropdown and
+        // 3D view keep showing whatever was loaded before the expert edits.
+        protoConfig.set(next)
+        config = fromCosmosConfig(next)
         initialEditorContent = undefined // So the editor resets
       } catch (e) {
         console.error(e)
