@@ -60,6 +60,7 @@
     clusterAngle,
     clusterSeparation,
     connectorsString,
+    detectLayout,
     getNKeys,
     getSize,
     getThumbN,
@@ -69,6 +70,7 @@
     isFnKey,
     isNumKey,
     isThumb,
+    missingKeysFor,
     setClusterAngle,
     setClusterSeparation,
     setClusterSize,
@@ -78,7 +80,16 @@
     toggleNumRow,
     toggleOuterCol,
   } from './visualEditorHelpers'
-  import { DEFAULT_LAYOUT, getLayout, isLayoutId, LAYOUT_IDS, type LayoutId } from '$lib/layouts'
+  import { base } from '$app/paths'
+  import {
+    DEFAULT_LAYOUT,
+    isLayoutId,
+    LAYOUT,
+    LAYOUT_IDS,
+    LAYOUT_NAMES,
+    type LayoutId,
+    type NamedLayoutId,
+  } from '$lib/layouts'
   import {
     mdiCodeJson,
     mdiPencil,
@@ -233,13 +244,52 @@
     }
   }
 
+  // Custom-layout dialogs.
+  let customInfoDialog = false
+  let missingKeysDialog: { target: NamedLayoutId; missing: string[] } | null = null
+
   function updateLayout(ev: Event) {
     const target = ev.target as HTMLSelectElement
     if (!isLayoutId(target.value)) return
+    const next = target.value as LayoutId
+    const prev = $protoConfig.layout ?? DEFAULT_LAYOUT
+
+    // Manual switch INTO Custom from a named layout — surface a helper dialog
+    // explaining how to edit individual key legends.
+    if (next === LAYOUT.CUSTOM && prev !== LAYOUT.CUSTOM) {
+      customInfoDialog = true
+    }
+
+    // Switch OUT of Custom into a named layout — refuse if the keyboard
+    // doesn't have enough alpha columns to host the target layout (the user
+    // probably deleted columns earlier).
+    if (prev === LAYOUT.CUSTOM && next !== LAYOUT.CUSTOM) {
+      const missing = missingKeysFor($protoConfig, next as NamedLayoutId)
+      if (missing.length) {
+        missingKeysDialog = { target: next as NamedLayoutId, missing }
+        target.value = LAYOUT.CUSTOM // revert the dropdown to its current state
+        return
+      }
+    }
+
     protoConfig.update((proto) => {
-      proto.layout = target.value as LayoutId
-      return applyLayoutToKeys(proto, proto.layout)
+      proto.layout = next
+      // CUSTOM has no letter mapping — picking it means "leave the keys alone";
+      // applyLayoutToKeys would silently rewrite letters with QWERTY's fallback.
+      if (next === LAYOUT.CUSTOM) return proto
+      return applyLayoutToKeys(proto, next)
     })
+  }
+
+  // Auto-flip to Custom when the user edits an alpha legend (or removes an
+  // alpha column) so the dropdown doesn't keep claiming "Colemak" while the
+  // keymap diverges. Skip when current is already Custom — we don't auto-
+  // promote back to a named layout; the user picks that explicitly.
+  $: if ($protoConfig && ($protoConfig.layout ?? DEFAULT_LAYOUT) !== LAYOUT.CUSTOM) {
+    const detected = detectLayout($protoConfig)
+    if (detected === LAYOUT.CUSTOM) {
+      protoConfig.update((proto) => ({ ...proto, layout: LAYOUT.CUSTOM }))
+    }
   }
 
   function updateSwitch(ev: CustomEvent) {
@@ -575,7 +625,7 @@
   >
     <Select value={$protoConfig.layout ?? DEFAULT_LAYOUT} on:change={updateLayout}>
       {#each LAYOUT_IDS as id}
-        <option value={id}>{getLayout(id).name}</option>
+        <option value={id}>{LAYOUT_NAMES[id]}</option>
       {/each}
     </Select>
   </Field>
@@ -1452,6 +1502,43 @@
     <span slot="title">Set Size Exactly</span>
     <div slot="content">
       <SizeEditView on:size={(e) => setSize(e.detail[0] + 1, e.detail[1], false)} />
+    </div>
+  </Dialog>
+{/if}
+
+{#if customInfoDialog}
+  <Dialog small on:close={() => (customInfoDialog = false)}>
+    <span slot="title">Custom Layout</span>
+    <div slot="content">
+      <p class="mb-2">
+        You've switched to the <b>Custom</b> layout. Cosmos will keep whatever legends you set on each key
+        — it won't overwrite them with QWERTY/Colemak/etc.
+      </p>
+      <p class="mb-2">
+        To change a single key's legend, click the key in the 3D view and edit the <b>Letter</b> field in
+        the right panel. See
+        <a class="text-pink-600 underline" href="{base}/docs/basics/editor/#edit-key" target="_blank"
+          >the docs</a
+        > for a walkthrough.
+      </p>
+    </div>
+  </Dialog>
+{/if}
+
+{#if missingKeysDialog}
+  <Dialog small on:close={() => (missingKeysDialog = null)}>
+    <span slot="title">Missing keys for {LAYOUT_NAMES[missingKeysDialog.target]}</span>
+    <div slot="content">
+      <p class="mb-2">
+        Switching to <b>{LAYOUT_NAMES[missingKeysDialog.target]}</b> needs alpha keys you don't have:
+      </p>
+      <p class="mb-3 font-mono text-center text-lg">
+        {missingKeysDialog.missing.map((l) => `'${l}'`).join('  ')}
+      </p>
+      <p>
+        Add the missing alpha column(s) using the <b>Inner</b> or <b>Outer</b> buttons under
+        <b>Cluster Size</b>, then try the layout again.
+      </p>
     </div>
   </Dialog>
 {/if}

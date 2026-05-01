@@ -1,18 +1,54 @@
 import { expect, test } from 'bun:test'
-import { DEFAULT_LAYOUT, flipLetter, getLayout, isAlphaLetter, isLayoutId, LAYOUT, LAYOUT_IDS, rightSideLetter } from './index'
+import { DEFAULT_LAYOUT, flipLetter, getLayout, isAlphaLetter, isLayoutId, isNamedLayoutId, LAYOUT, LAYOUT_IDS, LAYOUT_NAMES, NAMED_LAYOUT_IDS, rightSideLetter } from './index'
 
 test('DEFAULT_LAYOUT is QWERTY', () => {
   expect(DEFAULT_LAYOUT).toBe(LAYOUT.QWERTY)
 })
 
-test('LAYOUT_IDS contains all five layouts', () => {
-  expect(LAYOUT_IDS).toEqual([
+test('NAMED_LAYOUT_IDS contains all five concrete layouts (no CUSTOM)', () => {
+  expect(NAMED_LAYOUT_IDS).toEqual([
     LAYOUT.QWERTY,
     LAYOUT.COLEMAK,
     LAYOUT.COLEMAK_DH,
     LAYOUT.DVORAK,
     LAYOUT.WORKMAN,
   ])
+  expect(NAMED_LAYOUT_IDS).not.toContain(LAYOUT.CUSTOM)
+})
+
+test('LAYOUT_IDS includes CUSTOM as the last option', () => {
+  expect(LAYOUT_IDS).toEqual([
+    LAYOUT.QWERTY,
+    LAYOUT.COLEMAK,
+    LAYOUT.COLEMAK_DH,
+    LAYOUT.DVORAK,
+    LAYOUT.WORKMAN,
+    LAYOUT.CUSTOM,
+  ])
+})
+
+test('LAYOUT_NAMES has a label for every layout id', () => {
+  for (const id of LAYOUT_IDS) {
+    expect(LAYOUT_NAMES[id]).toBeTruthy()
+  }
+  expect(LAYOUT_NAMES[LAYOUT.CUSTOM]).toBe('Custom')
+})
+
+test('isNamedLayoutId distinguishes CUSTOM from real layouts', () => {
+  expect(isNamedLayoutId(LAYOUT.QWERTY)).toBe(true)
+  expect(isNamedLayoutId(LAYOUT.COLEMAK_DH)).toBe(true)
+  expect(isNamedLayoutId(LAYOUT.CUSTOM)).toBe(false)
+  expect(isNamedLayoutId(undefined)).toBe(false)
+  expect(isNamedLayoutId(null)).toBe(false)
+})
+
+test('isLayoutId accepts CUSTOM', () => {
+  expect(isLayoutId(LAYOUT.CUSTOM)).toBe(true)
+  expect(isLayoutId('custom')).toBe(true)
+})
+
+test('getLayout(CUSTOM) falls back to QWERTY', () => {
+  expect(getLayout(LAYOUT.CUSTOM).id).toBe(LAYOUT.QWERTY)
 })
 
 test('isLayoutId rejects unknown values', () => {

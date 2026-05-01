@@ -26,11 +26,19 @@ export const LAYOUT = {
   COLEMAK_DH: 'colemak-dh',
   DVORAK: 'dvorak',
   WORKMAN: 'workman',
+  /** User-edited layout that doesn't match any registered named layout.
+   *  Has no rightRows/flipMap — `getLayout(CUSTOM)` returns undefined and
+   *  callers must guard. Set automatically when the user edits an alpha
+   *  legend or removes an alpha column; can also be picked manually. */
+  CUSTOM: 'custom',
 } as const
 
 export type LayoutId = (typeof LAYOUT)[keyof typeof LAYOUT]
 
-export const DEFAULT_LAYOUT: LayoutId = LAYOUT.QWERTY
+/** Layouts with concrete letter mappings (everything except CUSTOM). */
+export type NamedLayoutId = Exclude<LayoutId, 'custom'>
+
+export const DEFAULT_LAYOUT: NamedLayoutId = LAYOUT.QWERTY
 
 export interface KeyboardLayout {
   id: LayoutId
@@ -176,7 +184,7 @@ const WORKMAN: KeyboardLayout = {
   },
 }
 
-const REGISTRY: Record<LayoutId, KeyboardLayout> = {
+const REGISTRY: Record<NamedLayoutId, KeyboardLayout> = {
   [LAYOUT.QWERTY]: QWERTY,
   [LAYOUT.COLEMAK]: COLEMAK,
   [LAYOUT.COLEMAK_DH]: COLEMAK_DH,
@@ -184,7 +192,8 @@ const REGISTRY: Record<LayoutId, KeyboardLayout> = {
   [LAYOUT.WORKMAN]: WORKMAN,
 }
 
-export const LAYOUT_IDS: readonly LayoutId[] = [
+/** Concrete-mapping layouts (everything in the dropdown except CUSTOM). */
+export const NAMED_LAYOUT_IDS: readonly NamedLayoutId[] = [
   LAYOUT.QWERTY,
   LAYOUT.COLEMAK,
   LAYOUT.COLEMAK_DH,
@@ -192,16 +201,34 @@ export const LAYOUT_IDS: readonly LayoutId[] = [
   LAYOUT.WORKMAN,
 ]
 
+/** All layouts shown in the picker, including CUSTOM. */
+export const LAYOUT_IDS: readonly LayoutId[] = [...NAMED_LAYOUT_IDS, LAYOUT.CUSTOM]
+
+export const LAYOUT_NAMES: Record<LayoutId, string> = {
+  [LAYOUT.QWERTY]: QWERTY.name,
+  [LAYOUT.COLEMAK]: COLEMAK.name,
+  [LAYOUT.COLEMAK_DH]: COLEMAK_DH.name,
+  [LAYOUT.DVORAK]: DVORAK.name,
+  [LAYOUT.WORKMAN]: WORKMAN.name,
+  [LAYOUT.CUSTOM]: 'Custom',
+}
+
+export function isNamedLayoutId(id: LayoutId | undefined | null): id is NamedLayoutId {
+  return typeof id === 'string' && id !== LAYOUT.CUSTOM && id in REGISTRY
+}
+
 export function getLayout(id: LayoutId | undefined | null): KeyboardLayout {
-  return REGISTRY[id ?? DEFAULT_LAYOUT] ?? QWERTY
+  if (id && id !== LAYOUT.CUSTOM && id in REGISTRY) return REGISTRY[id as NamedLayoutId]
+  return QWERTY
 }
 
 export function isLayoutId(value: unknown): value is LayoutId {
-  return typeof value === 'string' && value in REGISTRY
+  if (typeof value !== 'string') return false
+  return value === LAYOUT.CUSTOM || value in REGISTRY
 }
 
 const ALPHA_LETTERS: ReadonlySet<string> = new Set(
-  LAYOUT_IDS.flatMap(id => {
+  NAMED_LAYOUT_IDS.flatMap(id => {
     const layout = REGISTRY[id]
     return [
       ...layout.rightRows[2],

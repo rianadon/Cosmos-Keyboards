@@ -1,5 +1,5 @@
 import { PART_INFO } from '$lib/geometry/socketsParts'
-import { flipLetter, isAlphaLetter, type LayoutId, rightSideLetter } from '$lib/layouts'
+import { DEFAULT_LAYOUT, flipLetter, getLayout, isAlphaLetter, LAYOUT, type LayoutId, NAMED_LAYOUT_IDS, type NamedLayoutId, rightSideLetter } from '$lib/layouts'
 import { approximateCosmosThumbOrigin, cosmosFingers, type Cuttleform, decodeTuple, encodeTuple, type FullCuttleform, newGeometry } from '$lib/worker/config'
 import {
   type ConnectorMaybeCustom,
@@ -515,4 +515,101 @@ export function applyLayoutToKeys(kbd: CosmosKeyboard, layoutId: LayoutId): Cosm
       }
     })
   })
+}
+
+/**
+ * Canonical width of the alpha block (Q-W-E-R-T on row 2, A-S-D-F-G on row 3,
+ * Z-X-C-V-B on row 4 for QWERTY). All registered layouts share this 5-col
+ * core; the 6th column on row 3 (`'` in QWERTY/Colemak/Workman, `-` in Dvorak)
+ * is an optional outer-pinky punctuation that some keyboards include.
+ *
+ * detectLayout matches against the first STANDARD_ALPHA_COLS positions and
+ * ignores extras in either direction. missingKeysFor uses the same width to
+ * compute what the user needs to add to host a named layout.
+ */
+const STANDARD_ALPHA_COLS = 5
+
+/**
+ * Inspect `kbd`'s right-finger alpha block and return the named layout it
+ * matches one-for-one, or `LAYOUT.CUSTOM` if no named layout fits.
+ *
+ * Match rules:
+ *   - The keyboard must have at least STANDARD_ALPHA_COLS alpha columns —
+ *     fewer can't host any layout's full alpha block, so the answer is CUSTOM.
+ *   - Positions [0, STANDARD_ALPHA_COLS) on rows 2/3/4 must agree with the
+ *     candidate layout's right-side letters (left-side keyboards compare
+ *     against the layout's flipMap-mirrored letters).
+ *   - Extra alpha columns beyond the canonical block are ignored — adding
+ *     keys "outside the layout's range" shouldn't flip the dropdown.
+ *
+ * Used by:
+ *   - the expert→basic mode transition (so the layout dropdown reflects the
+ *     keymap the user actually has, instead of always reverting to QWERTY)
+ *   - the "did the user start customizing?" auto-flip to CUSTOM after a
+ *     legend edit or column delete
+ */
+export function detectLayout(kbd: CosmosKeyboard): LayoutId {
+  const cluster = kbd.clusters.find(c => c.name === 'fingers' && c.side === 'right')
+    ?? kbd.clusters.find(c => c.name === 'fingers')
+  if (!cluster) return DEFAULT_LAYOUT
+  const alphas = alphaColumns(kbd, cluster)
+  if (alphas.length < STANDARD_ALPHA_COLS) return LAYOUT.CUSTOM
+  const isLeft = cluster.side === 'left'
+
+  const observed: Record<2 | 3 | 4, (string | undefined)[]> = { 2: [], 3: [], 4: [] }
+  for (let i = 0; i < alphas.length; i++) {
+    const col = cluster.clusters[alphas[i]]
+    const letterCol = isLeft ? alphas.length - 1 - i : i
+    for (const row of [2, 3, 4] as const) {
+      const key = col.keys.find(k => k.profile.row === row && isAlphaLetter(k.profile.letter))
+      observed[row][letterCol] = key?.profile.letter
+    }
+  }
+
+  for (const id of NAMED_LAYOUT_IDS) {
+    const layout = getLayout(id)
+    if (
+      rowMatches(observed[2], layout.rightRows[2], isLeft, id)
+      && rowMatches(observed[3], layout.rightRows[3], isLeft, id)
+      && rowMatches(observed[4], layout.rightRows[4], isLeft, id)
+    ) {
+      return id
+    }
+  }
+  return LAYOUT.CUSTOM
+}
+
+function rowMatches(observed: (string | undefined)[], layoutRow: string, isLeft: boolean, layoutId: NamedLayoutId): boolean {
+  const upper = Math.min(STANDARD_ALPHA_COLS, layoutRow.length)
+  for (let col = 0; col < upper; col++) {
+    const expectedRight = layoutRow.charAt(col) || undefined
+    if (!expectedRight) continue
+    const expected = isLeft ? flipLetter(expectedRight, layoutId) : expectedRight
+    const observedLetter = observed[col]
+    if (!observedLetter || observedLetter !== expected) return false
+  }
+  return true
+}
+
+/**
+ * Letters the named layout requires that the keyboard's right-finger alpha
+ * block can't currently host (because the user removed columns down past the
+ * canonical 5-col block). Empty when the keyboard has at least
+ * STANDARD_ALPHA_COLS alpha columns.
+ */
+export function missingKeysFor(kbd: CosmosKeyboard, target: NamedLayoutId): string[] {
+  const cluster = kbd.clusters.find(c => c.name === 'fingers' && c.side === 'right')
+    ?? kbd.clusters.find(c => c.name === 'fingers')
+  if (!cluster) return []
+  const have = alphaColumns(kbd, cluster).length
+  if (have >= STANDARD_ALPHA_COLS) return []
+  const layout = getLayout(target)
+  const missing: string[] = []
+  for (let col = have; col < STANDARD_ALPHA_COLS; col++) {
+    for (const row of [2, 3, 4] as const) {
+      const letter = layout.rightRows[row].charAt(col)
+      if (letter) missing.push(letter)
+    }
+  }
+  return missing
 }
