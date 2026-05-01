@@ -198,11 +198,12 @@ export function addColumnInPlace(keeb: CosmosKeyboard, n: number, dx: number): C
   return newKeys[0]
 }
 
-export function keyProp(keeb: CosmosKeyboard, n: number | null, prop: keyof CosmosKey & keyof CosmosCluster) {
+export function keyProp(keeb: CosmosKeyboard, n: number | null, prop: keyof CosmosKey) {
   if (!n) return ''
-  const { key, column, cluster } = nthKey(keeb, n)
+  const { key, column } = nthKey(keeb, n)
   if (typeof key[prop] != 'undefined') return key[prop]
-  return column[prop] + ' (col)'
+  if (prop in column) return (column as Record<string, unknown>)[prop] + ' (col)'
+  return ''
 }
 
 export function profileName(p: Profile, full = false) {

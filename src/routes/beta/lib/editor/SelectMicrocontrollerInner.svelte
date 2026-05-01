@@ -6,7 +6,7 @@
   import Icon from '$lib/presentation/Icon.svelte'
   import { mdiAlertCircleOutline } from '@mdi/js'
 
-  type Option = { key: Exclude<MicrocontrollerName, null>; label: string }
+  type Option = { key: Exclude<MicrocontrollerName, null> | ''; label: string }
 
   export let option: Option
 
@@ -34,7 +34,7 @@
   <span>{option.label}</span>
 </div>
 
-{#if $tooltipOpen && option.key !== null}
+{#if $tooltipOpen && option.key !== null && option.key !== ''}
   {@const boardProps = BOARD_PROPERTIES[option.key]}
   <div
     use:melt={$content}

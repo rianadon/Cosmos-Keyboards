@@ -290,12 +290,13 @@
     cutPromise: pool.execute((w) => w.cutWall(conf), 'Cut wall'),
     holderPromise: pool.execute((w) => w.generateBoardHolder(conf), 'Holder'),
     screwPromise: pool.execute((w) => w.generateScrewInserts(conf), 'Inserts'),
-    wristRestPromise:
-      hasPro && pool.execute((w) => w.generateWristRest(conf, side == 'left'), 'Wrist Rest'),
+    wristRestPromise: hasPro
+      ? pool.execute((w) => w.generateWristRest(conf, side == 'left'), 'Wrist Rest')
+      : undefined,
     secondWristRestPromise:
-      hasPro &&
-      side == 'unibody' &&
-      pool.execute((w) => w.generateMirroredWristRest(conf), 'Wrist Rest 2'),
+      hasPro && side == 'unibody'
+        ? pool.execute((w) => w.generateMirroredWristRest(conf), 'Wrist Rest 2')
+        : undefined,
     cutPlatePromise: pool.execute((w) => w.generatePlate(conf, true), 'Full Plate'),
   })
 
@@ -863,7 +864,7 @@
         {:else if viewer == 'dev'}
           <ViewerDev {geometry} />
         {/if}
-        {#if filament && isRenderable($confError) && (config?.right ?? config?.unibody).shell?.type == 'basic'}
+        {#if filament && isRenderable($confError) && (config?.right ?? config?.unibody)?.shell?.type == 'basic'}
           <div
             class="absolute bottom-0 right-0 text-right mb-2 bg-white/50 dark:bg-gray-800/50 rounded px-2 py-0.5 z-10"
           >

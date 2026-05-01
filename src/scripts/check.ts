@@ -24,7 +24,7 @@ interface SvelteCheckDiagnostic {
  * Only the basename of the file is needed.
  * For example, 'App.ts' will match 'src/lib/App.ts'.
  */
-const excludedFiles: string[] = ['VisualEditor2.ts', 'Viewer3D.svelte', 'App.svelte', 'VisualEditor2.svelte']
+const excludedFiles: string[] = []
 
 /**
  * Main asynchronous function to execute the svelte-check process,

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte'
 
-  export let value: number
+  export let value: number | undefined
   export let small = false
   export let supersmall = false
   export let units = ''
@@ -13,7 +13,7 @@
   const dispatch = createEventDispatcher()
 
   $: rounding = divisor == 100 ? 100 : 10
-  $: rounded = (Math.round(value * rounding) / rounding) * multiplier
+  $: rounded = value === undefined ? '' : (Math.round(value * rounding) / rounding) * multiplier
 
   function onChange(e: Event) {
     value = Math.round((divisor * (e.target! as any).value) / multiplier) / divisor
