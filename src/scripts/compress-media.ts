@@ -101,6 +101,6 @@ function compressFfmpeg(opts: string[], ext: string) {
 }
 
 const compressMp4 = compressFfmpeg(['-vcodec', 'libx264', '-pix_fmt', 'yuv420p', '-profile:v', 'baseline', '-level', '3', '-crf', '28', '-movflags', '+faststart'], '.mp4')
-const compressWebm = compressFfmpeg(['-vcodec', 'libvpx', '-qmin', '0', '-qmax', '50', '-crf', '15', '-b:v', '500K', '-acodec', 'libvorbis'], '.webm')
+const compressWebm = compressFfmpeg(['-vcodec', 'libvpx', '-qmin', '0', '-qmax', '50', '-crf', '15', '-b:v', '500K', '-acodec', 'libopus'], '.webm')
 
 main()
