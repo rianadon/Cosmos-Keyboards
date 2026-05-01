@@ -43,6 +43,8 @@ export const DEFAULT_LAYOUT: NamedLayoutId = LAYOUT.QWERTY
 export interface KeyboardLayout {
   id: LayoutId
   name: string
+  /** One- or two-sentence summary shown in the layout-picker tooltip. */
+  description: string
   /** Right-side rows. Each string holds letters for columns 0..N. */
   rightRows: { 2: string; 3: string; 4: string }
   /** Right-side letter -> left-side letter mirror map. */
@@ -52,6 +54,7 @@ export interface KeyboardLayout {
 const QWERTY: KeyboardLayout = {
   id: LAYOUT.QWERTY,
   name: 'QWERTY',
+  description: 'The standard layout shipped on virtually every keyboard. Familiar but not optimized — common letters are spread across rows.',
   rightRows: {
     2: 'yuiop',
     3: "hjkl;'",
@@ -79,6 +82,7 @@ const QWERTY: KeyboardLayout = {
 const COLEMAK: KeyboardLayout = {
   id: LAYOUT.COLEMAK,
   name: 'Colemak',
+  description: 'Common letters concentrated on the home row, only 17 keys move from QWERTY. Easier to learn from QWERTY than Dvorak.',
   rightRows: {
     2: 'jluy;',
     3: "hneio'",
@@ -106,6 +110,7 @@ const COLEMAK: KeyboardLayout = {
 const COLEMAK_DH: KeyboardLayout = {
   id: LAYOUT.COLEMAK_DH,
   name: 'Colemak-DH',
+  description: 'A modern Colemak variant that swaps D/H to keep index-finger reach off the bottom-center keys. Popular on column-staggered ergo boards.',
   rightRows: {
     2: 'jluy;',
     3: "mneio'",
@@ -133,6 +138,7 @@ const COLEMAK_DH: KeyboardLayout = {
 const DVORAK: KeyboardLayout = {
   id: LAYOUT.DVORAK,
   name: 'Dvorak',
+  description: 'Vowels under the left hand, common consonants under the right. Big departure from QWERTY (rebuilds muscle memory) but loved by long-time users.',
   rightRows: {
     2: 'fgcrl/',
     3: 'dhtns-',
@@ -160,6 +166,7 @@ const DVORAK: KeyboardLayout = {
 const WORKMAN: KeyboardLayout = {
   id: LAYOUT.WORKMAN,
   name: 'Workman',
+  description: 'Tries to balance hand and finger usage by avoiding QWERTY/Colemak hot spots. Less mainstream but a good fit for staggered keyboards.',
   rightRows: {
     2: 'jfup;',
     3: "yneoi'",

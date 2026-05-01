@@ -109,6 +109,7 @@
   import SelectProfileInner from './SelectProfileInner.svelte'
   import SelectProfileLabel from './SelectProfileLabel.svelte'
   import SelectMicrocontrollerInner from './SelectMicrocontrollerInner.svelte'
+  import SelectLayoutInner from './SelectLayoutInner.svelte'
   import { trackEvent } from '$lib/telemetry'
   import { footIndices } from '$lib/worker/geometry'
 
@@ -248,11 +249,11 @@
   let customInfoDialog = false
   let missingKeysDialog: { target: NamedLayoutId; missing: string[] } | null = null
 
-  function updateLayout(ev: Event) {
-    const target = ev.target as HTMLSelectElement
-    if (!isLayoutId(target.value)) return
-    const next = target.value as LayoutId
+  function updateLayout(ev: CustomEvent<string>) {
+    if (!isLayoutId(ev.detail)) return
+    const next = ev.detail as LayoutId
     const prev = $protoConfig.layout ?? DEFAULT_LAYOUT
+    if (next === prev) return
 
     // Manual switch INTO Custom from a named layout — surface a helper dialog
     // explaining how to edit individual key legends.
@@ -262,12 +263,13 @@
 
     // Switch OUT of Custom into a named layout — refuse if the keyboard
     // doesn't have enough alpha columns to host the target layout (the user
-    // probably deleted columns earlier).
+    // probably deleted columns earlier). Don't commit to protoConfig; the
+    // SelectThingy dropdown is bound to $protoConfig.layout, so leaving the
+    // store value alone reverts the visual selection on the next tick.
     if (prev === LAYOUT.CUSTOM && next !== LAYOUT.CUSTOM) {
       const missing = missingKeysFor($protoConfig, next as NamedLayoutId)
       if (missing.length) {
         missingKeysDialog = { target: next as NamedLayoutId, missing }
-        target.value = LAYOUT.CUSTOM // revert the dropdown to its current state
         return
       }
     }
@@ -623,11 +625,13 @@
     icon="letter"
     help="The keyboard layout printed on the keycaps and used for firmware (ZMK/QMK) keycodes."
   >
-    <Select value={$protoConfig.layout ?? DEFAULT_LAYOUT} on:change={updateLayout}>
-      {#each LAYOUT_IDS as id}
-        <option value={id}>{LAYOUT_NAMES[id]}</option>
-      {/each}
-    </Select>
+    <SelectThingy
+      value={$protoConfig.layout ?? DEFAULT_LAYOUT}
+      on:change={updateLayout}
+      options={LAYOUT_IDS.map((id) => ({ key: id, label: LAYOUT_NAMES[id] }))}
+      component={SelectLayoutInner}
+      minWidth={320}
+    />
   </Field>
   <Field name="Switches" icon="switch">
     <!-- <Select bind:value={$protoConfig.partType.type} on:change={updateSwitch}>
