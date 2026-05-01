@@ -20,6 +20,14 @@ export const openSelect = writable<symbol | null>(null)
 
 export const hoveredKey = writable<number | null>(null)
 export const clickedKey = writable<number | null>(null)
+/** Which visual half the user clicked, regardless of which cluster the click
+ *  resolves to in storage. In mirror form (only the right cluster is stored)
+ *  `clickedKey` resolves to a right-cluster key for either side, so the editor
+ *  needs this hint to flip its Letter input through the layout's flipMap when
+ *  the user is editing a left-side virtual key. Distinct from
+ *  `Viewer3D`'s local `clickedSide` (which reports the *resolved* cluster's
+ *  side via nthKey). */
+export const clickedVisualSide = writable<'left' | 'right' | 'unibody' | null>(null)
 export const lastKeycap = writable<number>(0)
 
 export const showGrid = writable(false)

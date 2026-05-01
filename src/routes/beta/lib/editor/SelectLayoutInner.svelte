@@ -20,11 +20,26 @@
   $: description = isNamedLayoutId(option.key) ? getLayout(option.key).description : CUSTOM_DESCRIPTION
   $: rightRows = isNamedLayoutId(option.key) ? getLayout(option.key).rightRows : null
 
-  // Mirror right-side row to left-side via the layout's flip map. Left col
-  // order is the kbd's physical order (pinky outer → index inner), which is
-  // the right row reversed and flipped.
-  function leftRow(row: string, layoutId: NamedLayoutId): string[] {
-    return [...row].reverse().map((ch) => flipLetter(ch, layoutId) ?? ch)
+  // Render exactly the canonical 5-column alpha block per side. Some layouts
+  // include a 6th outer-pinky character on the right (`'` in QWERTY/Colemak/
+  // Workman, `/` and `-` in Dvorak) that has no symmetric left-side equivalent
+  // in the flipMap, so showing it on the left would produce stray glyphs.
+  const ALPHA_COLS = 5
+
+  // The three alpha rows the layout defines (top, home, bottom). Typed as the
+  // literal union the rightRows record actually has, so {#each} lookups index
+  // it without TS complaining about `number`.
+  const ALPHA_ROWS: (2 | 3 | 4)[] = [2, 3, 4]
+
+  // Right side: first 5 chars in column-position order (index inner → pinky outer).
+  function rightCells(row: string): string[] {
+    return [...row.slice(0, ALPHA_COLS)]
+  }
+
+  // Left side: same 5 columns mirrored. Physical order is pinky outer → index
+  // inner, i.e. the right row reversed and flipped through the layout's map.
+  function leftCells(row: string, layoutId: NamedLayoutId): string[] {
+    return [...row.slice(0, ALPHA_COLS)].reverse().map((ch) => flipLetter(ch, layoutId) ?? ch)
   }
 
   const {
@@ -58,16 +73,16 @@
              with a gap representing the split. Three rows shown (top alpha,
              home, bottom alpha); home row highlighted. -->
         <div class="ortho mb-3" aria-hidden="true">
-          {#each [2, 3, 4] as row}
+          {#each ALPHA_ROWS as row}
             <div class="orow">
               <div class="oside">
-                {#each leftRow(rightRows[row], option.key) as ch}
+                {#each leftCells(rightRows[row], option.key) as ch}
                   <span class="ocell" class:home={row === 3}>{ch}</span>
                 {/each}
               </div>
               <div class="ogap" />
               <div class="oside">
-                {#each rightRows[row] as ch}
+                {#each rightCells(rightRows[row]) as ch}
                   <span class="ocell" class:home={row === 3}>{ch}</span>
                 {/each}
               </div>
