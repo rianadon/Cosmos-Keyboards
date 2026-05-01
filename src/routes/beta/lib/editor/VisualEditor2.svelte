@@ -570,7 +570,7 @@
   </Field>
   <Field
     name="Layout"
-    icon="keycap"
+    icon="letter"
     help="The keyboard layout printed on the keycaps and used for firmware (ZMK/QMK) keycodes."
   >
     <Select value={$protoConfig.layout ?? DEFAULT_LAYOUT} on:change={updateLayout}>
