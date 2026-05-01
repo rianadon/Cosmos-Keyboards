@@ -1,5 +1,5 @@
 import { PART_INFO } from '$lib/geometry/socketsParts'
-import { flipLetter, type LayoutId, rightSideLetter } from '$lib/layouts'
+import { flipLetter, isAlphaLetter, type LayoutId, rightSideLetter } from '$lib/layouts'
 import { approximateCosmosThumbOrigin, cosmosFingers, type Cuttleform, decodeTuple, encodeTuple, type FullCuttleform, newGeometry } from '$lib/worker/config'
 import {
   type ConnectorMaybeCustom,
@@ -502,7 +502,11 @@ export function applyLayoutToKeys(kbd: CosmosKeyboard, layoutId: LayoutId): Cosm
         keys: col.keys.map(k => {
           const row = k.profile.row
           if (row !== 2 && row !== 3 && row !== 4) return k
-          if (!k.profile.letter) return k
+          // keycapInfo() collapses row 5 → 4 for MT3 keycap-profile reasons,
+          // so a row check alone wrongly catches row-5 outer punctuation
+          // ([, ], etc). Gate on whether the letter is one a layout actually
+          // manages.
+          if (!isAlphaLetter(k.profile.letter)) return k
           let newLetter = rightSideLetter(row, letterCol, layoutId)
           if (cluster.side === 'left') newLetter = flipLetter(newLetter, layoutId)
           if (!newLetter) return k

@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { DEFAULT_LAYOUT, flipLetter, getLayout, isLayoutId, LAYOUT, LAYOUT_IDS, rightSideLetter } from './index'
+import { DEFAULT_LAYOUT, flipLetter, getLayout, isAlphaLetter, isLayoutId, LAYOUT, LAYOUT_IDS, rightSideLetter } from './index'
 
 test('DEFAULT_LAYOUT is QWERTY', () => {
   expect(DEFAULT_LAYOUT).toBe(LAYOUT.QWERTY)
@@ -79,4 +79,41 @@ test('flipLetter passes through letters not in the flip map', () => {
 
 test('flipLetter handles undefined gracefully', () => {
   expect(flipLetter(undefined, LAYOUT.QWERTY)).toBeUndefined()
+})
+
+test('isAlphaLetter recognizes alpha-row letters across all layouts', () => {
+  // QWERTY right rows
+  expect(isAlphaLetter('y')).toBe(true)
+  expect(isAlphaLetter('h')).toBe(true)
+  expect(isAlphaLetter('n')).toBe(true)
+  // QWERTY left (via flipMap values)
+  expect(isAlphaLetter('t')).toBe(true)
+  expect(isAlphaLetter('a')).toBe(true)
+  expect(isAlphaLetter('z')).toBe(true)
+  // Punctuation that participates in some layout's alpha row
+  expect(isAlphaLetter(';')).toBe(true)
+  expect(isAlphaLetter(',')).toBe(true)
+  expect(isAlphaLetter('/')).toBe(true)
+  expect(isAlphaLetter("'")).toBe(true)
+})
+
+test('isAlphaLetter rejects row-5 outer punctuation', () => {
+  // The bug from PR #87: keycapInfo() collapses row 5 → 4 for keycap profile
+  // reasons, so a row-based filter wrongly catches these letters.
+  expect(isAlphaLetter('[')).toBe(false)
+  expect(isAlphaLetter(']')).toBe(false)
+  expect(isAlphaLetter('{')).toBe(false)
+  expect(isAlphaLetter('}')).toBe(false)
+  expect(isAlphaLetter('\\')).toBe(false)
+})
+
+test('isAlphaLetter rejects number-row and F-row legends', () => {
+  expect(isAlphaLetter('1')).toBe(false)
+  expect(isAlphaLetter('5')).toBe(false)
+  expect(isAlphaLetter('F1')).toBe(false)
+})
+
+test('isAlphaLetter handles empty/undefined', () => {
+  expect(isAlphaLetter(undefined)).toBe(false)
+  expect(isAlphaLetter('')).toBe(false)
 })

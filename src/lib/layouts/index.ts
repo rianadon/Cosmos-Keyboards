@@ -200,6 +200,33 @@ export function isLayoutId(value: unknown): value is LayoutId {
   return typeof value === 'string' && value in REGISTRY
 }
 
+const ALPHA_LETTERS: ReadonlySet<string> = new Set(
+  LAYOUT_IDS.flatMap(id => {
+    const layout = REGISTRY[id]
+    return [
+      ...layout.rightRows[2],
+      ...layout.rightRows[3],
+      ...layout.rightRows[4],
+      ...Object.keys(layout.flipMap),
+      ...Object.values(layout.flipMap),
+    ]
+  }),
+)
+
+/**
+ * True iff `letter` is a legend that any registered layout places in its
+ * alpha rows (right side or, after flipping, left side).
+ *
+ * Used to gate layout-swap operations so they don't touch outer punctuation
+ * (`{`, `}`, `[`, `]`, `\` from row 5 — which `keycapInfo()` collapses to
+ * `profile.row = 4` for MT3 keycap-profile reasons, defeating a row-based
+ * filter).
+ */
+export function isAlphaLetter(letter: string | undefined): boolean {
+  if (!letter) return false
+  return ALPHA_LETTERS.has(letter)
+}
+
 /** Returns the right-side legend for (row, col) in the given layout, or undefined. */
 export function rightSideLetter(row: number, col: number, layoutId: LayoutId = DEFAULT_LAYOUT): string | undefined {
   const layout = getLayout(layoutId)
