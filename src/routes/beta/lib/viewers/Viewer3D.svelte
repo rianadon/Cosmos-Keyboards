@@ -16,6 +16,7 @@
     protoConfig,
     transformMode,
     clickedKey,
+    clickedVisualSide,
     selectMode,
     tempConfig,
     hoveredKey,
@@ -41,6 +42,7 @@
   import { componentBoxes, componentGeometry } from '$lib/worker/geometry'
   import * as mdi from '@mdi/js'
   import Icon from '$lib/presentation/Icon.svelte'
+  import { flipLetter } from '$lib/layouts'
   import {
     diff,
     filterObj,
@@ -59,6 +61,7 @@
   import Gizmo from '$lib/3d/ThrelteGizmo.svelte'
   import NewViewer from './Viewer.svelte'
   import {
+    detectLayout,
     indexOfKey,
     nthKey,
     nthPartType,
@@ -678,10 +681,30 @@
       $protoConfig.wristRestPosition = encodeTuple(wrOrigin.map((w) => Math.round(w * 10)))
   }
 
+  // In mirror form (storage has only the right cluster, the left side is
+  // synthesized via mirrorCluster + flipLetter at render time), clicking a
+  // visually-left key resolves to the same right-cluster key as clicking the
+  // right counterpart. The Letter input then needs to flip the storage value
+  // through the layout's flipMap on read AND write so the user sees and types
+  // what's drawn rather than the right-side source-of-truth letter.
+  $: needsLetterFlip =
+    $clickedVisualSide === 'left' && clusterIsClicked != null && clusterIsClicked.side === 'right'
+  // Re-derive the layout from the kbd's own labels — the layout dropdown is
+  // a function of the keys, so the flip target follows the keys too.
+  $: detectedFlipLayout = $protoConfig ? detectLayout($protoConfig) : undefined
+  $: displayedLetter = keyIsClicked
+    ? needsLetterFlip && detectedFlipLayout
+      ? flipLetter(keyIsClicked.profile.letter, detectedFlipLayout) ?? keyIsClicked.profile.letter ?? ''
+      : keyIsClicked.profile.letter ?? ''
+    : ''
+
   function setLetter(e: Event) {
     if (!keyIsClicked) return
+    const typed = (e.target as HTMLInputElement).value
+    const stored =
+      needsLetterFlip && detectedFlipLayout ? flipLetter(typed, detectedFlipLayout) ?? typed : typed
     protoConfig.update((p) => {
-      keyIsClicked.profile.letter = (e.target as HTMLInputElement).value
+      keyIsClicked.profile.letter = stored
       return p
     })
   }
@@ -1084,7 +1107,7 @@
                     <Field small name="Letter" icon="letter">
                       {#if keyIsClicked}<input
                           class="s-input w-[5.4rem] mx-0 px-2"
-                          bind:value={keyIsClicked.profile.letter}
+                          value={displayedLetter}
                           on:change={updateProto}
                           on:input={setLetter}
                         />

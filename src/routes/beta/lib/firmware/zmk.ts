@@ -8,6 +8,18 @@ import { dtsFile, encoderKeys, fullLayout, logicalKeys, type Matrix, raw, yamlFi
 
 const RE_PID_VID = /^0x[0-9A-Fa-f]{4}$/
 
+export const Microcontroller = {
+  LemonWireless: 'lemon-wireless',
+  LemonWired: 'lemon-wired',
+} as const
+export type Microcontroller = typeof Microcontroller[keyof typeof Microcontroller]
+
+export const SplitTransport = {
+  Uart: 'uart',
+  PioUsb: 'pio-usb',
+} as const
+export type SplitTransport = typeof SplitTransport[keyof typeof SplitTransport]
+
 interface ZMKPeripherals {
   pmw3610: boolean
   cirque: boolean
@@ -30,7 +42,11 @@ export interface ZMKOptions {
   underGlowAtStart: boolean
   enableConsole: boolean
   enableStudio: boolean
+  microcontroller: Microcontroller
   wirelessVersion: 'v0.3' | 'v0.4'
+  wiredVersion?: 'v0.4' | 'v0.5'
+  splitTransport?: SplitTransport
+  linkPort?: 'pio' | 'native'
 }
 
 export function validateConfig(options: ZMKOptions) {
@@ -122,7 +138,7 @@ const SPECIALS = [
 ]
 
 /** Return the ZMK keycode for a letter */
-function keycode(code: string | undefined) {
+export function keycode(code: string | undefined) {
   const c = code?.toLowerCase()
 
   if (!c || !code) return '&kp SPACE'
@@ -151,10 +167,87 @@ function generateKeycodes(config: FullGeometry, matrix: Matrix, options: ZMKOpti
   return keycodes
 }
 
-/** Returns the board name used for the given config */
+/** Returns the Zephyr board name used for the given microcontroller selection.
+ *  The Lemon Wireless board ships in `rianadon/zmk`; the Lemon Wired board
+ *  ships in the Phase-1 fork branch wired up by generateWestYaml.
+ *
+ *  v0.4 and v0.5 Wired share one Zephyr board — the only Phase-1 hardware
+ *  diff (LED-relay polarity) is encoded in the per-shield ext_power_hog. */
 function boardName(options: ZMKOptions) {
+  if (options.microcontroller === Microcontroller.LemonWired) return 'cosmos_lemon_wired'
   if (options.wirelessVersion == 'v0.4') return 'cosmos_lemon_wireless_v4'
   return 'cosmos_lemon_wireless'
+}
+
+type GpioPin = { ctrl: '&gpio0' | '&gpio1'; pin: number }
+
+interface MCUProfile {
+  /** Row GPIOs for the matrix scan. */
+  rows: GpioPin[]
+  /** Column GPIOs when columns are driven directly (no shifter). */
+  cols?: GpioPin[]
+  /** SPI-driven 595 shifter for column expansion. When set, `cols` is ignored
+   *  and columns reference the shifter outputs. */
+  shifter?: { spiBus: string; csPin: GpioPin }
+  /** Encoder A/B GPIOs (one encoder per side). */
+  encoderA: GpioPin
+  encoderB: GpioPin
+  /** When set, hold an LED-power enable pin in its OFF state at boot using a
+   *  gpio-hog. Used when the user opts not to start with underglow on. */
+  extPowerHog?: {
+    pin: GpioPin
+    activeMode: 'GPIO_ACTIVE_HIGH' | 'GPIO_ACTIVE_LOW'
+    offLevel: 'high' | 'low'
+  }
+  /** VIK_SPI_REG_START: number of devices already on the VIK SPI bus before
+   *  VIK peripherals (e.g. the Wireless shifter occupies slot 0). */
+  vikSpiRegStart: number
+  /** VIK_SPI_CS_PREFIX expression. Omitted when nothing precedes VIK on the bus. */
+  vikSpiCsPrefix?: string
+}
+
+function mcuProfile(options: ZMKOptions): MCUProfile {
+  if (options.microcontroller === Microcontroller.LemonWired) {
+    const v05 = options.wiredVersion === 'v0.5'
+    return {
+      rows: [3, 4, 5, 6, 7, 8, 9].map((pin): GpioPin => ({ ctrl: '&gpio0', pin })),
+      cols: [25, 24, 23, 22, 21, 20, 10].map((pin): GpioPin => ({ ctrl: '&gpio0', pin })),
+      encoderA: { ctrl: '&gpio0', pin: 28 },
+      encoderB: { ctrl: '&gpio0', pin: 29 },
+      extPowerHog: options.underGlowAtStart ? undefined : {
+        pin: { ctrl: '&gpio0', pin: 11 },
+        activeMode: v05 ? 'GPIO_ACTIVE_HIGH' : 'GPIO_ACTIVE_LOW',
+        offLevel: v05 ? 'low' : 'high',
+      },
+      vikSpiRegStart: 0,
+    }
+  }
+  // lemon-wireless: existing behavior (matched 1:1 with the prior hard-coded DTSI).
+  return {
+    rows: [
+      { ctrl: '&gpio0', pin: 20 },
+      { ctrl: '&gpio0', pin: 22 },
+      { ctrl: '&gpio0', pin: 24 },
+      { ctrl: '&gpio0', pin: 9 },
+      { ctrl: '&gpio0', pin: 10 },
+      { ctrl: '&gpio1', pin: 13 },
+      { ctrl: '&gpio1', pin: 15 },
+    ],
+    shifter: { spiBus: '&spi1', csPin: { ctrl: '&gpio0', pin: 4 } },
+    encoderA: { ctrl: '&gpio0', pin: 29 },
+    encoderB: { ctrl: '&gpio0', pin: 31 },
+    extPowerHog: options.underGlowAtStart ? undefined : {
+      pin: { ctrl: '&gpio0', pin: 2 },
+      activeMode: 'GPIO_ACTIVE_LOW',
+      offLevel: 'high',
+    },
+    vikSpiRegStart: 1,
+    vikSpiCsPrefix: '<&gpio0 4 GPIO_ACTIVE_LOW>',
+  }
+}
+
+function gpioRef(p: GpioPin, flags?: string) {
+  return flags ? `<${p.ctrl} ${p.pin} ${flags}>` : `<${p.ctrl} ${p.pin}>`
 }
 
 function generateEncoderMap(encodersPerSide: Record<keyof FullGeometry, number>) {
@@ -267,15 +360,23 @@ function generateDepsYaml(): string {
   })
 }
 
-function generateWestYaml(): string {
+function generateWestYaml(options: ZMKOptions): string {
+  // The Lemon Wired board + USB split transport live on the Olson3R fork
+  // until that work merges upstream. The fork's app/west.yml pulls in the
+  // Pico-PIO-USB module + Zephyr UHC/UDC glue transitively.
+  // Wireless continues to track rianadon/zmk.
+  const wired = options.microcontroller === Microcontroller.LemonWired
   return yamlFile({
     manifest: {
       remotes: [
         { name: 'zmkfirmware', 'url-base': 'https://github.com/zmkfirmware' },
         { name: 'rianadon', 'url-base': 'https://github.com/rianadon' },
+        ...(wired ? [{ name: 'Olson3R', 'url-base': 'https://github.com/Olson3R' }] : []),
       ],
       projects: [
-        { name: 'zmk', remote: 'rianadon', revision: 'main', import: 'app/west.yml' },
+        wired
+          ? { name: 'zmk', 'repo-path': 'rainadon-zmk', remote: 'Olson3R', revision: 'main', import: 'app/west.yml' }
+          : { name: 'zmk', remote: 'rianadon', revision: 'main', import: 'app/west.yml' },
       ],
       self: { path: 'config', import: 'deps.yml' },
     },
@@ -285,6 +386,7 @@ function generateWestYaml(): string {
 function generateDefconfig(config: FullGeometry, options: ZMKOptions) {
   const { folderName } = options
   const centralSide = options.centralSide.toUpperCase()
+  const usbSplit = options.microcontroller === Microcontroller.LemonWired && options.splitTransport !== SplitTransport.Uart
   return `
 if SHIELD_${folderName}_${centralSide}
 
@@ -300,7 +402,14 @@ if SHIELD_${folderName}_LEFT || SHIELD_${folderName}_RIGHT
 
 config ZMK_SPLIT
     default y
-
+${
+    usbSplit
+      ? `
+config ZMK_SPLIT_USB
+    default y
+`
+      : ''
+  }
 endif # SHIELD_${folderName}_LEFT || SHIELD_${folderName}_RIGHT
 `
 }
@@ -315,14 +424,30 @@ config SHIELD_${options.folderName}_RIGHT
 `
 }
 
-function generateConf(config: FullGeometry, options: ZMKOptions) {
+function generateConf(config: FullGeometry, options: ZMKOptions, side: keyof FullGeometry) {
+  const wired = options.microcontroller === Microcontroller.LemonWired
+  const split = side !== 'unibody'
+  const usbSplit = wired && split && options.splitTransport !== SplitTransport.Uart
+  const isCentral = split && side === options.centralSide
+  // Phase 1: the wired path doesn't yet ship a working WS2812 driver
+  // (RP2040 needs a PIO-based ws2812 binding the upstream Zephyr 3.5 doesn't
+  // have). Force underglow off so the build completes; revisit once the wired
+  // board overlay grows a working LED strip definition.
+  const underglow = options.underGlowAtStart && !wired
+  const hasPointing = Object.values(options.peripherals).some(p => p.pmw3610 || p.cirque)
+  const hasEncoder = Object.values(options.peripherals).some(p => p.encoder)
+  // USB device strings. Peripheral re-uses the central PID — the host only
+  // ever sees the central, so a unique PID on the peripheral has no observer.
+  // The 16-char limit on ZMK_KEYBOARD_NAME is BLE-specific; USB strings have
+  // no such cap.
+  const productName = options.keyboardName + (usbSplit && !isCentral ? ' (peripheral)' : '')
   return [
     'CONFIG_SPI=y',
     '',
     '# RGB underglow configuration',
-    'CONFIG_ZMK_RGB_UNDERGLOW=' + (options.underGlowAtStart ? 'y' : 'n'),
-    'CONFIG_WS2812_STRIP=' + (options.underGlowAtStart ? 'y' : 'n'),
-    ...(options.underGlowAtStart
+    'CONFIG_ZMK_RGB_UNDERGLOW=' + (underglow ? 'y' : 'n'),
+    'CONFIG_WS2812_STRIP=' + (underglow ? 'y' : 'n'),
+    ...(underglow
       ? [
         'CONFIG_ZMK_RGB_UNDERGLOW_BRT_START=50',
         'CONFIG_ZMK_RGB_UNDERGLOW_EFF_START=3',
@@ -330,13 +455,63 @@ function generateConf(config: FullGeometry, options: ZMKOptions) {
       : [
         'CONFIG_ZMK_EXT_POWER=n',
       ]),
+    ...(wired
+      ? [
+        '',
+        '# RP2040 essentials',
+        'CONFIG_PINCTRL=y',
+        'CONFIG_GPIO=y',
+        '',
+        '# Zephyr 3.5 RP2040 flash driver is broken in this fork — non-persistent',
+        '# settings until that lands. The board defconfig sets these to y; we override.',
+        'CONFIG_FLASH=n',
+        'CONFIG_NVS=n',
+        'CONFIG_SETTINGS=n',
+        '',
+        ...(usbSplit
+          ? [
+            '# Pico-PIO-USB split transport: legacy USB device stack on the',
+            '# native USB-C carries HID (central) / split bulk endpoints (peripheral);',
+            '# the central also runs Pico-PIO-USB as a UHC on the Link port.',
+            'CONFIG_USB_DEVICE_STACK=y',
+            `CONFIG_USB_DEVICE_PRODUCT="${productName}"`,
+            `CONFIG_USB_DEVICE_VID=${options.vid}`,
+            `CONFIG_USB_DEVICE_PID=${options.pid}`,
+            'CONFIG_USB_CDC_ACM=y',
+            'CONFIG_SERIAL=y',
+            'CONFIG_UART_INTERRUPT_DRIVEN=y',
+            'CONFIG_UART_LINE_CTRL=y',
+            'CONFIG_USB_DEVICE_INITIALIZE_AT_BOOT=' + (isCentral ? 'y' : 'n'),
+            ...(isCentral ? ['CONFIG_ZMK_USB=y'] : []),
+            ...(isCentral && options.enableConsole
+              ? [
+                '',
+                '# CDC ACM console on the central native USB-C (alongside HID).',
+                'CONFIG_CONSOLE=y',
+                'CONFIG_UART_CONSOLE=y',
+                'CONFIG_LOG=y',
+                'CONFIG_LOG_PRINTK=y',
+                'CONFIG_LOG_BACKEND_UART=y',
+                'CONFIG_LOG_DEFAULT_LEVEL=2',
+              ]
+              : []),
+          ]
+          : split
+          ? [
+            '# Wired-split UART transport on GP0/GP1',
+            'CONFIG_ZMK_SPLIT_WIRED=y',
+          ]
+          : []),
+        ...(split ? ['CONFIG_ZMK_SPLIT=y'] : []),
+      ]
+      : []),
     '',
     '# zmk mouse emulation for trackball/trackpad',
-    'CONFIG_ZMK_POINTING=' + (Object.values(options.peripherals).some(p => p.pmw3610 || p.cirque) ? 'y' : 'n'),
+    'CONFIG_ZMK_POINTING=' + (hasPointing ? 'y' : 'n'),
     '',
     '# encoder support',
-    'CONFIG_EC11=' + (Object.values(options.peripherals).some(p => p.encoder) ? 'y' : 'n'),
-    'CONFIG_EC11_TRIGGER_GLOBAL_THREAD=' + (Object.values(options.peripherals).some(p => p.encoder) ? 'y' : 'n'),
+    'CONFIG_EC11=' + (hasEncoder ? 'y' : 'n'),
+    'CONFIG_EC11_TRIGGER_GLOBAL_THREAD=' + (hasEncoder ? 'y' : 'n'),
   ].join('\n') + '\n'
 }
 
@@ -345,30 +520,64 @@ function generateDTSI(config: FullGeometry, matrix: Matrix, options: ZMKOptions)
   const pullMode = options.diodeDirection == 'COL2ROW' ? 'GPIO_PULL_DOWN' : 'GPIO_PULL_UP'
   const encoders = mapObjNotNull(config, (g) => encoderKeys(g.c))
   const encodersWithLength = filterObj(encoders, (k, v) => v.length > 0)
+  const profile = mcuProfile(options)
+
+  const rowGpios = profile.rows.map(p => gpioRef(p, `(${activeMode} | ${pullMode})`))
+  const colGpios = profile.shifter
+    ? Array.from({ length: 7 }, (_, i) => `<&shifter ${i} ${activeMode}>`)
+    : (profile.cols ?? []).map(p => gpioRef(p, activeMode))
+
+  const shifterBlock: Record<string, unknown> = profile.shifter
+    ? {
+      [profile.shifter.spiBus]: {
+        status: 'okay',
+        csGpios: ['VIK_SPI_CS_PREFIX'],
+        'shifter: 595@0': {
+          compatible: 'zmk,gpio-595',
+          status: 'okay',
+          gpioController: true,
+          spiMaxFrequency: 200000,
+          reg: 0,
+          ngpios: 8,
+          '#gpio-cells': 2,
+        },
+      },
+    }
+    : {}
+
+  const vikSpiDefines: Record<string, unknown> = {
+    [raw()]: `// Tell VIK how many devices already sit on the VIK SPI bus before VIK peripherals.`,
+    [raw()]: `// Increase this number if you add another SPI device.`,
+    [raw()]: `#define VIK_SPI_REG_START ${profile.vikSpiRegStart}`,
+    ...(profile.vikSpiCsPrefix
+      ? {
+        [raw()]: '// Pulled out to an external variable so VIK can find the SPI bus.',
+        [raw()]: `#define VIK_SPI_CS_PREFIX ${profile.vikSpiCsPrefix}`,
+      }
+      : {}),
+  }
+
+  const extPowerBlock: Record<string, unknown> = profile.extPowerHog
+    ? {
+      [raw()]: '// Hack to force-drive the LED power pin to its OFF level, ensuring LEDs stay off at boot.',
+      [raw()]: '// Ext power is also disabled in the conf file.',
+      [profile.extPowerHog.pin.ctrl]: {
+        'ext_power_hog: ext_power_hog': {
+          'gpio-hog': true,
+          'gpios': [`<${profile.extPowerHog.pin.pin} ${profile.extPowerHog.activeMode}>`],
+          [`output-${profile.extPowerHog.offLevel}`]: true,
+        },
+      },
+    }
+    : {}
 
   return dtsFile({
     [raw()]: '#include <behaviors.dtsi>',
     [raw()]: '#include <dt-bindings/zmk/matrix_transform.h>',
     [raw()]: '#include <dt-bindings/zmk/keys.h>',
     [raw()]: `#include "${options.folderName}-layouts.dtsi"`,
-    [raw()]: '// Tell VIK that there is 1 other device on the SPI bus.',
-    [raw()]: '// You will need to increase this number if you add another SPI device.',
-    [raw()]: '#define VIK_SPI_REG_START 1',
-    [raw()]: '// Pulled out to an external variable so VIK can find the SPI bus.',
-    [raw()]: '#define VIK_SPI_CS_PREFIX <&gpio0 4 GPIO_ACTIVE_LOW>',
-    '&spi1': {
-      status: 'okay',
-      csGpios: ['VIK_SPI_CS_PREFIX'],
-      'shifter: 595@0': {
-        compatible: 'zmk,gpio-595',
-        status: 'okay',
-        gpioController: true,
-        spiMaxFrequency: 200000,
-        reg: 0,
-        ngpios: 8,
-        '#gpio-cells': 2,
-      },
-    },
+    ...vikSpiDefines,
+    ...shifterBlock,
     '/': {
       'chosen': {
         'zmk,kscan': '&kscan0',
@@ -384,30 +593,14 @@ function generateDTSI(config: FullGeometry, matrix: Matrix, options: ZMKOptions)
       'kscan0: kscan_0': {
         compatible: 'zmk,kscan-gpio-matrix',
         diodeDirection: 'col2row',
-        rowGpios: [
-          `<&gpio0 20 (${activeMode} | ${pullMode})>`,
-          `<&gpio0 22 (${activeMode} | ${pullMode})>`,
-          `<&gpio0 24 (${activeMode} | ${pullMode})>`,
-          `<&gpio0 9  (${activeMode} | ${pullMode})>`,
-          `<&gpio0 10 (${activeMode} | ${pullMode})>`,
-          `<&gpio1 13 (${activeMode} | ${pullMode})>`,
-          `<&gpio1 15 (${activeMode} | ${pullMode})>`,
-        ],
-        colGpios: [
-          `<&shifter 0 ${activeMode}>`,
-          `<&shifter 1 ${activeMode}>`,
-          `<&shifter 2 ${activeMode}>`,
-          `<&shifter 3 ${activeMode}>`,
-          `<&shifter 4 ${activeMode}>`,
-          `<&shifter 5 ${activeMode}>`,
-          `<&shifter 6 ${activeMode}>`,
-        ],
+        rowGpios,
+        colGpios,
       },
       ...mapObjToObj(encodersWithLength, (encoders, side) => ({
         [`${side}_encoder: encoder_${side}`]: {
           compatible: 'alps,ec11',
-          aGpios: '<&gpio0 29 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>',
-          bGpios: '<&gpio0 31 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>',
+          aGpios: gpioRef(profile.encoderA, '(GPIO_ACTIVE_HIGH | GPIO_PULL_UP)'),
+          bGpios: gpioRef(profile.encoderB, '(GPIO_ACTIVE_HIGH | GPIO_PULL_UP)'),
           steps: 80,
           status: 'disabled',
         },
@@ -422,18 +615,7 @@ function generateDTSI(config: FullGeometry, matrix: Matrix, options: ZMKOptions)
         }
         : {}),
     },
-    ...(!options.underGlowAtStart
-      ? {
-        [raw()]: '// Hack to force-drive the LED power pin high, ensuring LED power is off. Ext power is also disabled in the conf file.',
-        '&gpio0': {
-          'ext_power_hog: ext_power_hog': {
-            'gpio-hog': true,
-            'gpios': ['<2 GPIO_ACTIVE_LOW>'],
-            'output-high': true,
-          },
-        },
-      }
-      : {}),
+    ...extPowerBlock,
   })
 }
 
@@ -491,18 +673,86 @@ function generateOverlay(config: FullGeometry, matrix: Matrix, options: ZMKOptio
 
   const encoders = config[side] ? encoderKeys(config[side].c) : []
 
+  // Wired-split transport DT (Phase 2: USB over Link, or legacy: UART).
+  const wired = options.microcontroller === Microcontroller.LemonWired
+  const split = side !== 'unibody'
+  const usbSplit = wired && split && options.splitTransport !== SplitTransport.Uart
+  const uartSplit = wired && split && options.splitTransport === SplitTransport.Uart
+  const isCentral = split && side === options.centralSide
+  const wantConsole = !!options.enableConsole
+
+  // Central + USB split: disable uart0 (its pins are now PIO-USB D+/D-),
+  // bring up Pico-PIO-USB as a UHC on the Link port, expose it to ZMK as
+  // the split transport, and optionally surface a CDC ACM console on the
+  // native USB-C alongside HID.
+  const centralUsbBlock: Record<string, unknown> = usbSplit && isCentral
+    ? {
+      'pio_usb_host: pio_usb_host': {
+        compatible: 'raspberrypi,pio-usb-host',
+        pinDp: 0,
+        pinout: 'dpdm',
+        dataRate: 'full-speed',
+        status: 'okay',
+      },
+      'usb_split: usb_split': {
+        compatible: 'zmk,usb-split',
+        uhc: '<&pio_usb_host>',
+      },
+      ...(wantConsole
+        ? {
+          chosen: {
+            'zephyr,console': '&cdc_acm_uart0',
+            'zephyr,uart-mcumgr': '&cdc_acm_uart0',
+          },
+        }
+        : {}),
+    }
+    : {}
+
+  // Peripheral CDC ACM bulk pair — what the central's UHC enumerates and
+  // drives. The label `zsu_cdc_acm` is what ZMK's USB-split peripheral
+  // driver looks for via DT_CHOSEN/label lookup.
+  const peripheralCdcBlock = usbSplit && !isCentral
+    ? { 'zsu_cdc_acm: zsu_cdc_acm': { compatible: 'zephyr,cdc-acm-uart' } }
+    : {}
+
+  // Optional CDC ACM console on the central's native USB-C.
+  const centralConsoleCdc = usbSplit && isCentral && wantConsole
+    ? { 'cdc_acm_uart0: cdc_acm_uart0': { compatible: 'zephyr,cdc-acm-uart' } }
+    : {}
+
+  // Legacy UART split: GP0/GP1 carry a serial link between halves.
+  const wiredSplitNode = uartSplit
+    ? {
+      'wired_split: wired_split': {
+        compatible: 'zmk,wired-split',
+        device: '<&uart0>',
+      },
+    }
+    : {}
+
   return dtsFile({
     [raw()]: `#include "${options.folderName}.dtsi"`,
+    ...(usbSplit && isCentral
+      ? { '&uart0': { status: 'disabled' } }
+      : {}),
     '/': {
       'bootloader_key: bootloader_key': {
         compatible: 'zmk,boot-magic-key',
         keyPosition: bootloaderPosition,
         jumpToBootloader: true,
       },
+      ...centralUsbBlock,
+      ...wiredSplitNode,
     },
     '&default_transform': right && {
       colOffset: 7,
     },
+    ...(usbSplit && (Object.keys(centralConsoleCdc).length || Object.keys(peripheralCdcBlock).length)
+      ? {
+        '&zephyr_udc0': { ...centralConsoleCdc, ...peripheralCdcBlock },
+      }
+      : {}),
     ...(encoders.length
       ? {
         [`&${side}_encoder`]: {
@@ -513,7 +763,7 @@ function generateOverlay(config: FullGeometry, matrix: Matrix, options: ZMKOptio
   })
 }
 
-const BOARD_OVERLAY = `#include <dt-bindings/led/led.h>
+const BOARD_OVERLAY_NRF52 = `#include <dt-bindings/led/led.h>
 
 &pinctrl {
     spi3_default: spi3_default {
@@ -583,6 +833,41 @@ vik_i2c: &i2c0 {};
 vik_spi: &spi1 {};
 `
 
+// Wired board overlay. The cosmos_lemon_wired board (in the fork) already
+// enables &uart0/&spi1/&i2c1 with their pinctrl groups; this overlay just
+// adds the VIK connector pin map. The split transport (UART or USB) lives
+// in the per-side overlay.
+// RGB underglow is not configured here yet: Zephyr 3.5 in the ZMK fork lacks
+// an in-tree PIO ws2812 driver, so the .conf file forces underglow off for
+// this MCU.
+const BOARD_OVERLAY_RP2040 = `/ {
+    vik_conn: vik_connector {
+        compatible = "sadekbaroudi,vik-connector";
+        #gpio-cells = <2>;
+        gpio-map-mask = <0xffffffff 0xffffffc0>;
+        gpio-map-pass-thru = <0 0x3f>;
+        gpio-map
+          = <0 0 &gpio0 18 0>   /* vik SDA */
+          , <1 0 &gpio0 19 0>   /* vik SCL */
+          , <2 0 &gpio0  2 0>   /* vik RGB Data */
+          , <3 0 &gpio0 26 0>   /* vik AD_1 */
+          , <4 0 &gpio0 15 0>   /* vik MOSI */
+          , <5 0 &gpio0 27 0>   /* vik AD_2 */
+          , <6 0 &gpio0 13 0>   /* vik CS */
+          , <7 0 &gpio0 12 0>   /* vik MISO */
+          , <8 0 &gpio0 14 0>   /* vik SCLK */
+          ;
+    };
+};
+
+vik_i2c: &i2c1 {};
+vik_spi: &spi1 {};
+`
+
+function boardOverlay(options: ZMKOptions) {
+  return options.microcontroller === Microcontroller.LemonWired ? BOARD_OVERLAY_RP2040 : BOARD_OVERLAY_NRF52
+}
+
 export function downloadZMKCode(config: FullGeometry, matrix: Matrix, options: ZMKOptions) {
   const { folderName } = options
   if (!folderName || folderName == '.') {
@@ -595,9 +880,9 @@ export function downloadZMKCode(config: FullGeometry, matrix: Matrix, options: Z
       'build.yaml': strToU8(generateBuildYaml(config, options)),
       'zephyr/module.yml': strToU8(generateModuleYaml()),
       'config/deps.yml': strToU8(generateDepsYaml()),
-      'config/west.yml': strToU8(generateWestYaml()),
+      'config/west.yml': strToU8(generateWestYaml(options)),
       [`boards/shields/${folderName}`]: {
-        [`boards/${boardName(options)}.overlay`]: strToU8(BOARD_OVERLAY),
+        [`boards/${boardName(options)}.overlay`]: strToU8(boardOverlay(options)),
         'Kconfig.defconfig': strToU8(generateDefconfig(config, options)),
         'Kconfig.shield': strToU8(generateShield(config, options)),
         [folderName + '.dtsi']: strToU8(generateDTSI(config, matrix, options)),
@@ -607,13 +892,13 @@ export function downloadZMKCode(config: FullGeometry, matrix: Matrix, options: Z
         ...(config.unibody
           ? {
             [folderName + '.overlay']: strToU8(generateOverlay(config, matrix, options, 'unibody')),
-            [folderName + '.conf']: strToU8(generateConf(config, options)),
+            [folderName + '.conf']: strToU8(generateConf(config, options, 'unibody')),
           }
           : {
             [folderName + '_left.overlay']: strToU8(generateOverlay(config, matrix, options, 'left')),
             [folderName + '_right.overlay']: strToU8(generateOverlay(config, matrix, options, 'right')),
-            [folderName + '_left.conf']: strToU8(generateConf(config, options)),
-            [folderName + '_right.conf']: strToU8(generateConf(config, options)),
+            [folderName + '_left.conf']: strToU8(generateConf(config, options, 'left')),
+            [folderName + '_right.conf']: strToU8(generateConf(config, options, 'right')),
           }),
       },
     },

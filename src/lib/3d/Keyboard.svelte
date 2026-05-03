@@ -190,6 +190,7 @@
         {@const index = nthIndex($protoConfig, side, key.i)}
         <KeyboardKey
           {index}
+          {side}
           visible={visible && (!keyColor || keyColor[1] != 0)}
           position={pressedLetter && lett == pressedLetter
             ? adjustedPosition(key, translation)
@@ -219,6 +220,7 @@
       {@const index = nthIndex($protoConfig, side, key.i)}
       <KeyboardKey
         {index}
+        {side}
         visible={visible &&
           (key.key.type != 'blank' || !($noBlanks || keyColor)) &&
           (!PART_INFO[key.key.type].keycap || !switchColor || switchColor[1] != 0)}
@@ -259,6 +261,6 @@
 
       {#each keys as key}
         {@const index = nthIndex($protoConfig, side, key.i)}
-        <KeyboardKeyInstance {index} brightness={0.7} position={key.pos} rotation={key.rot} />
+        <KeyboardKeyInstance {index} {side} brightness={0.7} position={key.pos} rotation={key.rot} />
       {/each}
     </InstancedMesh> -->

@@ -20,7 +20,47 @@ export const openSelect = writable<symbol | null>(null)
 
 export const hoveredKey = writable<number | null>(null)
 export const clickedKey = writable<number | null>(null)
+/** Which visual half the user clicked, regardless of which cluster the click
+ *  resolves to in storage. In mirror form (only the right cluster is stored)
+ *  `clickedKey` resolves to a right-cluster key for either side, so the editor
+ *  needs this hint to flip its Letter input through the layout's flipMap when
+ *  the user is editing a left-side virtual key. Distinct from
+ *  `Viewer3D`'s local `clickedSide` (which reports the *resolved* cluster's
+ *  side via nthKey). */
+export const clickedVisualSide = writable<'left' | 'right' | 'unibody' | null>(null)
 export const lastKeycap = writable<number>(0)
+
+// --- Alerts -----------------------------------------------------------------
+//
+// A lightweight popover-alert system: callers `pushAlert({ message, anchor })`
+// from anywhere; `Alert.svelte` (mounted once in App.svelte) renders a
+// dismissible popover next to the anchor element with a 10s auto-dismiss
+// timer and a progress bar. Used by the layout dropdown to surface "missing
+// keys" warnings and "you've switched to Custom" hints without blocking the
+// page with a modal dialog.
+
+export interface AlertItem {
+  id: symbol
+  message: string
+  /** DOM element to anchor the popover next to (typically the Field that
+   *  triggered the alert). null disables anchoring (centered fallback). */
+  anchor: HTMLElement | null
+  variant?: 'info' | 'warn' | 'error'
+  /** Auto-dismiss after this many ms. Default 10000. Pass 0 to disable. */
+  durationMs?: number
+}
+
+export const alerts = writable<AlertItem[]>([])
+
+export function pushAlert(a: Omit<AlertItem, 'id'>): symbol {
+  const id = Symbol()
+  alerts.update(xs => [...xs, { id, durationMs: 10000, variant: 'info', ...a }])
+  return id
+}
+
+export function dismissAlert(id: symbol) {
+  alerts.update(xs => xs.filter(a => a.id !== id))
+}
 
 export const showGrid = writable(false)
 export const noWall = writable(false)

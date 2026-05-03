@@ -29,7 +29,7 @@
   import { TupleStore } from './tuple'
 
   import { createEventDispatcher } from 'svelte'
-  import { protoConfig, tempConfig } from '$lib/store'
+  import { protoConfig, pushAlert, tempConfig } from '$lib/store'
   import { hasPro } from '@pro'
   import {
     BOARD_PROPERTIES,
@@ -38,8 +38,10 @@
     microcontrollerConnectors,
   } from '$lib/geometry/microcontrollers'
   import {
+    detectLayout,
     fromCosmosConfig,
     mirrorCluster,
+    missingKeysFor,
     partVariant,
     toCosmosConfig,
     type ConnectorMaybeCustom,
@@ -56,6 +58,7 @@
   import { encodeVariant, PART_INFO } from '$lib/geometry/socketsParts'
   import DecimalInputInherit from './DecimalInputInherit.svelte'
   import {
+    applyLayoutToKeys,
     clusterAngle,
     clusterSeparation,
     connectorsString,
@@ -78,6 +81,15 @@
     toggleOuterCol,
   } from './visualEditorHelpers'
   import {
+    DEFAULT_LAYOUT,
+    isLayoutId,
+    LAYOUT,
+    LAYOUT_IDS,
+    LAYOUT_NAMES,
+    type LayoutId,
+    type NamedLayoutId,
+  } from '$lib/layouts'
+  import {
     mdiCodeJson,
     mdiPencil,
     mdiArrowLeft,
@@ -96,6 +108,7 @@
   import SelectProfileInner from './SelectProfileInner.svelte'
   import SelectProfileLabel from './SelectProfileLabel.svelte'
   import SelectMicrocontrollerInner from './SelectMicrocontrollerInner.svelte'
+  import SelectLayoutInner from './SelectLayoutInner.svelte'
   import { trackEvent } from '$lib/telemetry'
   import { footIndices } from '$lib/worker/geometry'
 
@@ -231,6 +244,54 @@
     }
   }
 
+  // Layout is derived purely from the kbd's alpha labels — like clusterAngle
+  // / clusterSeparation. The dropdown displays detectLayout($protoConfig);
+  // picking a named option mutates the keys via applyLayoutToKeys. There's
+  // no `kbd.layout` field to keep in sync, and no reactive auto-flip block
+  // (the dropdown re-derives on every render).
+  $: currentLayout = detectLayout($protoConfig)
+  // Anchor for layout-related alerts; bound to the Layout Field below.
+  let layoutFieldEl: HTMLElement
+
+  function updateLayout(ev: CustomEvent<string>) {
+    if (!isLayoutId(ev.detail)) return
+    const next = ev.detail as LayoutId
+    const prev = currentLayout
+    if (next === prev) return
+
+    // Manual switch INTO Custom from a named layout — pop a helper alert
+    // explaining how to edit individual key legends.
+    if (next === LAYOUT.CUSTOM && prev !== LAYOUT.CUSTOM) {
+      pushAlert({
+        message:
+          "You're now on Custom — Cosmos won't overwrite your key legends. To edit a single key, click it in the 3D view and edit the Letter field.",
+        anchor: layoutFieldEl,
+        variant: 'info',
+      })
+      return // No kbd mutation — Custom is the absence of a named layout.
+    }
+
+    // Switch OUT of Custom into a named layout — refuse if the keyboard
+    // doesn't have enough alpha columns to host the target layout (the user
+    // probably deleted columns earlier). Don't mutate the kbd; the dropdown
+    // re-derives via detectLayout and stays at Custom.
+    if (prev === LAYOUT.CUSTOM && next !== LAYOUT.CUSTOM) {
+      const missing = missingKeysFor($protoConfig, next as NamedLayoutId)
+      if (missing.length) {
+        pushAlert({
+          message: `${LAYOUT_NAMES[next]} needs alpha keys you don't have: ${missing.join(
+            ' '
+          )}. Add them via the Inner/Outer column buttons under Cluster Size and try again.`,
+          anchor: layoutFieldEl,
+          variant: 'warn',
+        })
+        return
+      }
+    }
+
+    protoConfig.update((proto) => applyLayoutToKeys(proto, next))
+  }
+
   function updateSwitch(ev: CustomEvent) {
     $protoConfig.partType.type = ev.detail
     const switchType = PART_INFO[$protoConfig.partType.type].keycap
@@ -277,7 +338,7 @@
         proto.clusters.splice(
           cluster == 'fingers' ? 2 : 3,
           0,
-          mirrorCluster(proto.clusters.find((c) => c.side == 'right' && c.name == cluster)!)
+          mirrorCluster(proto.clusters.find((c) => c.side == 'right' && c.name == cluster)!, proto)
         )
       }
       return proto
@@ -553,6 +614,21 @@
       minWidth={200}
     />
   </Field>
+  <div bind:this={layoutFieldEl}>
+    <Field
+      name="Layout"
+      icon="letter"
+      help="The keyboard layout printed on the keycaps and used for firmware (ZMK/QMK) keycodes."
+    >
+      <SelectThingy
+        value={currentLayout}
+        on:change={updateLayout}
+        options={LAYOUT_IDS.map((id) => ({ key: id, label: LAYOUT_NAMES[id] }))}
+        component={SelectLayoutInner}
+        minWidth={320}
+      />
+    </Field>
+  </div>
   <Field name="Switches" icon="switch">
     <!-- <Select bind:value={$protoConfig.partType.type} on:change={updateSwitch}>
            {#each objKeys(PART_INFO).filter((k) => PART_INFO[k].category == 'Sockets' && k != 'blank') as part}
