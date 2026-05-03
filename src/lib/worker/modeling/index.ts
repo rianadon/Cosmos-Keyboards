@@ -128,7 +128,7 @@ export function blobSTL(shape: AnyShape | Assembly, opts?: {
     oc.FS.unlink('/' + filename)
 
     // Return the contents of the STEP File
-    const blob = new Blob([file], { type: 'application/sla' })
+    const blob = new Blob([file.buffer as ArrayBuffer], { type: 'application/sla' })
     return blob
   } else {
     throw new Error('WRITE STL FILE FAILED.')

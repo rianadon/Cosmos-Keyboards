@@ -619,7 +619,7 @@ export function downloadZMKCode(config: FullGeometry, matrix: Matrix, options: Z
     },
   }, (err, data) => {
     if (!err) {
-      const blob = new Blob([data], { type: 'application/x-zip' })
+      const blob = new Blob([data.buffer as ArrayBuffer], { type: 'application/x-zip' })
       download(blob, `firmware-${options.folderName}.zip`)
     }
   })

@@ -539,7 +539,7 @@ export function downloadQMKCode(config: FullGeometry, matrix: Matrix, options: Q
         },
       },
     }))().then((data) => {
-      const blob = new Blob([data], { type: 'application/x-zip' })
+      const blob = new Blob([data.buffer as ArrayBuffer], { type: 'application/x-zip' })
       download(blob, `firmware-${options.keyboardName}.zip`)
     })
     .catch(err => console.error(err))

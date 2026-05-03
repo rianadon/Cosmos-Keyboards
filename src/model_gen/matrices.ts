@@ -131,10 +131,10 @@ for (const keyboard of keyboards) {
 
   const { data, dataURL } = await renderScene(scene, camera, page, { width, height })
 
-  await writeFile(`matrices/${keyboard.key}.png`, data)
+  await writeFile(`matrices/${keyboard.key}.png`, data as any)
   urls.push(dataURL)
 }
 
-await writeFile(`matrices/big.png`, dataURLToData(await mergeDataURLs(urls, page, { width, height })))
+await writeFile(`matrices/big.png`, dataURLToData(await mergeDataURLs(urls, page, { width, height })) as any)
 
 await browser.close()
