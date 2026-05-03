@@ -58,6 +58,10 @@ optimize:
 	$(NODE) src/compress-media.ts
 keyboards: build
 	$(NODE) src/model_gen/keyboards.ts
+renderKeycaps: build
+	$(NODE) src/model_gen/renderKeycaps.ts
+renderMicrocontrollers: build
+	$(NODE) src/model_gen/renderMicrocontrollers.ts
 
 dev:
 	$(NPM) run dev
@@ -76,6 +80,8 @@ vite-build:
 	$(NPM) run build
 npm-install:
 	$(NPM) install
+fetch-assets:
+	src/scripts/fetch-assets.sh
 ci-base: build keycaps-simple2 keycaps2 parts parts-simple
-ci: ci-setup ci-base vite-build docs-ci
+ci: fetch-assets ci-setup build vite-build docs-ci
 quickstart: npm-install ci-setup ci-base
