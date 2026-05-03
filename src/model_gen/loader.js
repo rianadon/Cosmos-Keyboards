@@ -7,8 +7,8 @@
 
 import { pathToFileURL } from 'node:url'
 import * as tsConfigPaths from 'tsconfig-paths'
-// @ts-ignore: Tyescript doesn't recognize ts-node/esm/transpile-only
-import { resolve as resolveTs } from 'ts-node/esm/transpile-only'
+// @ts-ignore: Tyescript doesn't recognize @swc-node/register/esm
+import { load as loadTs, resolve as resolveTs } from '@swc-node/register/esm'
 
 const config = tsConfigPaths.loadConfig('.svelte-kit')
 if (config.resultType == 'failed') throw new Error('Loading typescript config failed: ' + config.message)
@@ -30,6 +30,7 @@ export function resolve(specifier, context, defaultResolver) {
     !specifier.endsWith('.ts') && !specifier.endsWith('.js')
     && !specifier.endsWith('.cjs')
     && (specifier.includes('three/') || specifier.includes('./'))
+    && (!specifier.endsWith('?url'))
   ) {
     specifier = specifier + '.js'
   }
@@ -37,5 +38,18 @@ export function resolve(specifier, context, defaultResolver) {
   return resolveTs(specifier, context, defaultResolver)
 }
 
-// @ts-ignore
-export { load } from 'ts-node/esm/transpile-only'
+/** Load a file
+ * @param {string} url    The given import
+ * @param {any} context         Some context
+ * @param {any} nextLoad The loader to fall back to
+ */
+export async function load(url, context, nextLoad) {
+  if (url.includes('?url')) {
+    return {
+      format: 'module',
+      source: `export default "${url.replace('?url', '')}"`,
+      shortCircuit: true,
+    }
+  }
+  return await loadTs(url, context, nextLoad)
+}
