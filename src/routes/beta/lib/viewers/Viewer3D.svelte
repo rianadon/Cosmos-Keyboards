@@ -157,6 +157,7 @@
           preserveDrawingBuffer: true,
         })
       }
+      // @ts-ignore
       return origFn.call(this, type, attributes)
     }
   }
