@@ -16,7 +16,6 @@
   export let cameraPosition: any
   export let center: Center
   export let geometry: FullGeometry
-  export let floorZ: number
 
   let caseColor: [any, number] = [CASE_COLOR, 1]
   let plateColor: [any, number] = [PLATE_COLOR, 1]

@@ -54,7 +54,7 @@
       </tr>
       <tr>
         <th />
-        <th class="font-normal pb-0.5 pl-4 text-left {staggerStyle[0]}" :>Thumb</th>
+        <th class="font-normal pb-0.5 pl-4 text-left {staggerStyle[0]}">Thumb</th>
         <th class="font-normal pb-0.5 pl-4 text-left {staggerStyle[1]}">Index</th>
         <th class="font-normal pb-0.5 pl-4 text-left {staggerStyle[2]}">Middle</th>
         <th class="font-normal pb-0.5 pl-4 text-left {staggerStyle[3]}">Ring</th>
@@ -123,10 +123,6 @@
 
   .sinput {
     --at-apply: 'appearance-none w-[5.45rem] rounded ml-2.5 input-basic text-ellipsis';
-  }
-
-  input:focus + div > div {
-    --at-apply: 'border-teal-500';
   }
 
   .preset {

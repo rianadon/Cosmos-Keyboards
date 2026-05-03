@@ -49,6 +49,7 @@
   <img
     src={thumbURL(option.key)}
     class="size-4 inline mr-1 align-baseline pointer-events-none light:(filter-invert opacity-60)"
+    alt=""
   />
   <span>{option.label}</span>
 </div>
@@ -68,7 +69,7 @@
           transition:fly={{ x: flyAmount }}
         >
           {#each allProfiles as prof}
-            <img src={profileURL(prof)} class="size-16" class:disable={prof != option.key} />
+            <img src={profileURL(prof)} class="size-16" class:disable={prof != option.key} alt="" />
           {/each}
         </div>
       </div>

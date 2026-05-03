@@ -247,14 +247,8 @@ wristRestOrigin,
   .errorMsg {
     --at-apply: 'absolute text-white m-4 right-[80px] rounded p-4 top-[5%] flex z-40';
   }
-  .errorMsg.custom {
-    --at-apply: 'top-[10%]';
-  }
   .errorMsg.expand {
     --at-apply: 'top-[5%] left-0 right-0 block';
-  }
-  .errorMsg.expand.custom {
-    --at-apply: 'top-[20%] left-0';
   }
 
   .expandedMsg + .expandedMsg {

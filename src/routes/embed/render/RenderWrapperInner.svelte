@@ -25,12 +25,10 @@
   let center = {}
   let size = [0, 0, 0]
   let geometry: FullGeometry
-  let floorZ = 0
 
   if (config && !config.error) {
     const conf = fromCosmosConfig(config.options as any)
     geometry = newFullGeometry(conf)
-    floorZ = (geometry.right || geometry.unibody)?.floorZ || 0
 
     center = fullEstimatedCenter(geometry).both
     size = fullEstimatedSize(geometry).both
@@ -59,7 +57,7 @@
     <div class="flex w-full h-full items-center justify-center">{config.error}</div>
   {:else if models.length}
     <Canvas>
-      <Render {cameraPosition} {models} {center} {geometry} {floorZ} />
+      <Render {cameraPosition} {models} {center} {geometry} />
     </Canvas>
   {:else}
     <Loading step={2} />

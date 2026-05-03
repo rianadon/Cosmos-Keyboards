@@ -12,5 +12,6 @@
 <img
   src={thumbURL(option.value)}
   class="size-4 inline mr-0.5 align-baseline pointer-events-none light:(filter-invert opacity-60)"
+  alt=""
 />
 <span>{option.label}</span>

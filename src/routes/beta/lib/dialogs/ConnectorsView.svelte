@@ -172,9 +172,6 @@
   .button {
     --at-apply: 'bg-slate-300 dark:bg-gray-900  hover:bg-teal-500 dark:hover:bg-pink-700 dark:text-white font-bold py-2 px-4 rounded focus:outline-none border border-transparent focus:border-pink-500 flex items-center gap-2';
   }
-  .button2 {
-    --at-apply: 'bg-slate-300 dark:bg-purple-900  hover:bg-teal-500 dark:hover:bg-pink-700 dark:text-white font-bold py-1 px-1 rounded focus:outline-none border border-transparent focus:border-pink-500 flex items-center gap-2';
-  }
   .button-thin {
     --at-apply: 'bg-slate-300 dark:bg-gray-900  hover:bg-teal-500 dark:hover:bg-pink-700 dark:text-white font-bold py-1 px-1 rounded focus:outline-none border border-transparent focus:border-pink-500 flex items-center gap-2';
   }

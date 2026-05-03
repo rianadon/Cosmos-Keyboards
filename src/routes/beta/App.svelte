@@ -724,18 +724,23 @@
                   class:selected={$view == 'right'}><Icon name="kb-right" /></button
                 >
               </div>
+              <!-- svelte-ignore a11y-label-has-associated-control -->
               <label class="flex items-center mt-2 mb-4">
                 <Checkbox small purple basic bind:value={$showGrid} /> Show Grid
               </label>
+              <!-- svelte-ignore a11y-label-has-associated-control -->
               <label class="flex items-center my-2">
                 <Checkbox small purple basic bind:value={$noWall} /> Hide Wall
               </label>
+              <!-- svelte-ignore a11y-label-has-associated-control -->
               <label class="flex items-center my-2">
                 <Checkbox small purple basic bind:value={$noBase} /> Hide Base
               </label>
+              <!-- svelte-ignore a11y-label-has-associated-control -->
               <label class="flex items-center my-2">
                 <Checkbox small purple basic bind:value={$noLabels} /> Hide Labels
               </label>
+              <!-- svelte-ignore a11y-label-has-associated-control -->
               <label class="flex items-center my-2">
                 <Checkbox small purple basic bind:value={$noBlanks} /> Hide Shapers
               </label>
@@ -847,7 +852,7 @@
           <ViewerLayout {geometry} {darkMode} conf={config} confError={$confError} />
         {:else if viewer == 'programming'}
           {#if hasLemon}
-            <ViewerPea {geometry} {darkMode} confError={$confError} bind:fullMatrix />
+            <ViewerPea {geometry} confError={$confError} bind:fullMatrix />
           {:else}
             <ViewerMatrix {geometry} {darkMode} confError={$confError} />
           {/if}
@@ -1141,7 +1146,7 @@
   <Dialog big on:close={() => (kleView = false)}>
     <span slot="title">KLE Export</span>
     <div slot="content">
-      <KleView conf={config} geo={geometry} />
+      <KleView geo={geometry} />
     </div>
   </Dialog>
 {/if}

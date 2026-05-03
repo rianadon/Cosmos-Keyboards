@@ -33,6 +33,7 @@
   <img
     src="{base}/cosmos-icon.png"
     class="w-12 rounded-4 mx-8 shadow-[0_2px_20px_-3px_rgba(0,0,0,0.3)] shadow-pink/50"
+    alt=""
   />
   <h1
     class="my-8 capitalize text-4xl text-purple font-semibold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-amber-600 tracking-tight"
@@ -55,7 +56,11 @@
           improve scanning accuracy.
         </div>
       {/if}
-      <img class="max-w-lg mx-auto rounded mb-10" src="{base}/cosmos-hand-landing.png" />
+      <img
+        class="max-w-lg mx-auto rounded mb-10"
+        src="{base}/cosmos-hand-landing.png"
+        alt="Illustration of hand scanning with phone and laptop"
+      />
       <p class="mb-2">
         This tool will use your smartphone camera and a large display (e.g. laptop or monitor) to analyze
         your hand entirely on-device.

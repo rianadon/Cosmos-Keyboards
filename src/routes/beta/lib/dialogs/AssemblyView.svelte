@@ -76,7 +76,7 @@
       <Icon size={24} path={mdiChevronLeft} />
       Back to Generator
     </button>
-    <img src={modelImg} class="w-full" />
+    <img src={modelImg} class="w-full" alt="Preview of your keyboard model" />
     <p class="my-8">
       Your Keyboard arrives pre-assembled, pre-programmed, and ready to immediately start typing on!
     </p>
@@ -105,9 +105,13 @@
       >
         <div>
           <div class="flex items-center gap-4 my--1">
-            <img src={vendor.logo} class="size-12 rounded-2 pointer-events-none flex-none" />
+            <img src={vendor.logo} class="size-12 rounded-2 pointer-events-none flex-none" alt="" />
             <h2 class="text-2xl font-medium my-3 flex-shrink-0">Order from {vendor.name}</h2>
-            <img src={vendor.banner} class="h-12 pointer-events-none flex-grow self-start flex-grow-0" />
+            <img
+              src={vendor.banner}
+              class="h-12 pointer-events-none flex-grow self-start flex-grow-0"
+              alt=""
+            />
           </div>
           <p class="my-3 text-justify">{vendor.description}</p>
           <p class="my-3 text-gray-600 dark:text-gray-400">

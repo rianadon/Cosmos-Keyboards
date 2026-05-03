@@ -119,6 +119,7 @@
   }
 </script>
 
+<!-- svelte-ignore a11y-no-static-element-interactions -->
 <svg
   viewBox="0 0 {VIEWX} {VIEWY}"
   class="w-full h-full"
@@ -184,6 +185,7 @@
       <feComposite operator="over" in="shadow" in2="SourceGraphic" />
     </filter>
   </defs>
+  <!-- svelte-ignore a11y-no-static-element-interactions -->
   <g
     transform={cssMatrix(geo.keyHolesTrsfs[1])}
     class="rotation"
@@ -210,6 +212,7 @@
       <path d="M-7.7,0 v-0.8 H-7.1 L-3.6 -6.2 H3.6 L7.1,-0.8 H7.7 v0.8Z" fill="url(#{keyA})" />
       <use href="#keycap" fill="url(#{keyA})" />
     </g>
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
     <g
       transform={cssMatrix(geo.keyHolesTrsfs[1])}
       class="moveable"
