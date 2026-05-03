@@ -1,5 +1,7 @@
 import { cpus } from 'os'
+import { Memoize } from 'typescript-memoize'
 import { maybeStat } from './modeling'
+import { getChangedFiles, relativePathToRepo } from './vercel'
 
 type R = string | void | { key: string; result: any; output?: string }
 type QueueItem = { name: string; f: () => Promise<R> }
@@ -21,6 +23,12 @@ export class PromisePool {
     this.queue.push({ name, f })
   }
 
+  /** Fetch changed files from Vercel */
+  @Memoize()
+  changedGitFiles() {
+    return new Set(getChangedFiles())
+  }
+
   /** Add a task to the queue only if the generated file is older than any of its dependencies */
   addIfModified(name: string, output: string | string[], dependencies: string[], f: () => Promise<R>): void {
     this.queuePromises.push((async () => {
@@ -32,7 +40,12 @@ export class PromisePool {
         if (!depStats[i]) throw new Error(`Dependency ${dependencies[i]} was not found in the filesystem.`)
       }
       const minMTime = Math.min(...outStats.map(m => m?.mtime.getTime() || Infinity))
-      if (outStats.some(s => !s) || depStats.some(d => !d!.mtime || minMTime < d!.mtime.getTime())) {
+      const gitChanges = this.changedGitFiles()
+      // If running in CI, use Git to determine if the depency changed instead of mtime
+      const haveDependenciesChanged = gitChanges
+        ? dependencies.some(dep => gitChanges.has(relativePathToRepo(dep)))
+        : depStats.some(d => !d!.mtime || minMTime < d!.mtime.getTime())
+      if (haveDependenciesChanged || outStats.some(s => !s)) {
         this.queue.push({ name, f })
       } else {
         this.nSkipped++
