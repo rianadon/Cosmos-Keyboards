@@ -1,5 +1,4 @@
 import { cpus } from 'os'
-import { Memoize } from 'typescript-memoize'
 import { maybeStat } from './modeling'
 import { getChangedFiles, relativePathToRepo } from './vercel'
 
@@ -13,6 +12,7 @@ export class PromisePool {
   protected working: WorkingItem[] = []
   protected interactive: boolean
   public results: Record<string, any> = {}
+  private changedGitFileCache: Set<string> | undefined
 
   constructor(protected size = cpus().length, interactive?: boolean) {
     this.interactive = interactive ?? (process.stdout.moveCursor != null)
@@ -24,9 +24,11 @@ export class PromisePool {
   }
 
   /** Fetch changed files from Vercel */
-  @Memoize()
   changedGitFiles() {
-    return new Set(getChangedFiles())
+    if (this.changedGitFileCache) return this.changedGitFileCache
+    const files = new Set(getChangedFiles())
+    this.changedGitFileCache = files
+    return files
   }
 
   /** Add a task to the queue only if the generated file is older than any of its dependencies */

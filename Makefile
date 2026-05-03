@@ -7,7 +7,7 @@ ifdef BUN
   NPM = bun
   NPX = bunx
 else
-  NODE = node --import ./src/model_gen/register_loader.js
+  NODE = node --trace-uncaught --import ./src/model_gen/register_loader.js
   NPM = npm
   NPX = npx
 endif
