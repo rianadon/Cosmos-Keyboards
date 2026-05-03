@@ -29,7 +29,7 @@
   import { TupleStore } from './tuple'
 
   import { createEventDispatcher } from 'svelte'
-  import { protoConfig, tempConfig } from '$lib/store'
+  import { protoConfig, pushAlert, tempConfig } from '$lib/store'
   import { hasPro } from '@pro'
   import {
     BOARD_PROPERTIES,
@@ -80,7 +80,6 @@
     toggleNumRow,
     toggleOuterCol,
   } from './visualEditorHelpers'
-  import { base } from '$app/paths'
   import {
     DEFAULT_LAYOUT,
     isLayoutId,
@@ -245,16 +244,14 @@
     }
   }
 
-  // Custom-layout dialogs (replaced with alerts in a follow-up commit).
-  let customInfoDialog = false
-  let missingKeysDialog: { target: NamedLayoutId; missing: string[] } | null = null
-
   // Layout is derived purely from the kbd's alpha labels — like clusterAngle
   // / clusterSeparation. The dropdown displays detectLayout($protoConfig);
   // picking a named option mutates the keys via applyLayoutToKeys. There's
   // no `kbd.layout` field to keep in sync, and no reactive auto-flip block
   // (the dropdown re-derives on every render).
   $: currentLayout = detectLayout($protoConfig)
+  // Anchor for layout-related alerts; bound to the Layout Field below.
+  let layoutFieldEl: HTMLElement
 
   function updateLayout(ev: CustomEvent<string>) {
     if (!isLayoutId(ev.detail)) return
@@ -262,10 +259,15 @@
     const prev = currentLayout
     if (next === prev) return
 
-    // Manual switch INTO Custom from a named layout — surface a helper dialog
+    // Manual switch INTO Custom from a named layout — pop a helper alert
     // explaining how to edit individual key legends.
     if (next === LAYOUT.CUSTOM && prev !== LAYOUT.CUSTOM) {
-      customInfoDialog = true
+      pushAlert({
+        message:
+          "You're now on Custom — Cosmos won't overwrite your key legends. To edit a single key, click it in the 3D view and edit the Letter field.",
+        anchor: layoutFieldEl,
+        variant: 'info',
+      })
       return // No kbd mutation — Custom is the absence of a named layout.
     }
 
@@ -276,7 +278,13 @@
     if (prev === LAYOUT.CUSTOM && next !== LAYOUT.CUSTOM) {
       const missing = missingKeysFor($protoConfig, next as NamedLayoutId)
       if (missing.length) {
-        missingKeysDialog = { target: next as NamedLayoutId, missing }
+        pushAlert({
+          message: `${LAYOUT_NAMES[next]} needs alpha keys you don't have: ${missing.join(
+            ' '
+          )}. Add them via the Inner/Outer column buttons under Cluster Size and try again.`,
+          anchor: layoutFieldEl,
+          variant: 'warn',
+        })
         return
       }
     }
@@ -606,19 +614,21 @@
       minWidth={200}
     />
   </Field>
-  <Field
-    name="Layout"
-    icon="letter"
-    help="The keyboard layout printed on the keycaps and used for firmware (ZMK/QMK) keycodes."
-  >
-    <SelectThingy
-      value={currentLayout}
-      on:change={updateLayout}
-      options={LAYOUT_IDS.map((id) => ({ key: id, label: LAYOUT_NAMES[id] }))}
-      component={SelectLayoutInner}
-      minWidth={320}
-    />
-  </Field>
+  <div bind:this={layoutFieldEl}>
+    <Field
+      name="Layout"
+      icon="letter"
+      help="The keyboard layout printed on the keycaps and used for firmware (ZMK/QMK) keycodes."
+    >
+      <SelectThingy
+        value={currentLayout}
+        on:change={updateLayout}
+        options={LAYOUT_IDS.map((id) => ({ key: id, label: LAYOUT_NAMES[id] }))}
+        component={SelectLayoutInner}
+        minWidth={320}
+      />
+    </Field>
+  </div>
   <Field name="Switches" icon="switch">
     <!-- <Select bind:value={$protoConfig.partType.type} on:change={updateSwitch}>
            {#each objKeys(PART_INFO).filter((k) => PART_INFO[k].category == 'Sockets' && k != 'blank') as part}
@@ -1492,43 +1502,6 @@
     <span slot="title">Set Size Exactly</span>
     <div slot="content">
       <SizeEditView on:size={(e) => setSize(e.detail[0] + 1, e.detail[1], false)} />
-    </div>
-  </Dialog>
-{/if}
-
-{#if customInfoDialog}
-  <Dialog small on:close={() => (customInfoDialog = false)}>
-    <span slot="title">Custom Layout</span>
-    <div slot="content">
-      <p class="mb-2">
-        You've switched to the <b>Custom</b> layout. Cosmos will keep whatever legends you set on each key
-        — it won't overwrite them with QWERTY/Colemak/etc.
-      </p>
-      <p class="mb-2">
-        To change a single key's legend, click the key in the 3D view and edit the <b>Letter</b> field in
-        the right panel. See
-        <a class="text-pink-600 underline" href="{base}/docs/basics/editor/#edit-key" target="_blank"
-          >the docs</a
-        > for a walkthrough.
-      </p>
-    </div>
-  </Dialog>
-{/if}
-
-{#if missingKeysDialog}
-  <Dialog small on:close={() => (missingKeysDialog = null)}>
-    <span slot="title">Missing keys for {LAYOUT_NAMES[missingKeysDialog.target]}</span>
-    <div slot="content">
-      <p class="mb-2">
-        Switching to <b>{LAYOUT_NAMES[missingKeysDialog.target]}</b> needs alpha keys you don't have:
-      </p>
-      <p class="mb-3 font-mono text-center text-lg">
-        {missingKeysDialog.missing.map((l) => `'${l}'`).join('  ')}
-      </p>
-      <p>
-        Add the missing alpha column(s) using the <b>Inner</b> or <b>Outer</b> buttons under
-        <b>Cluster Size</b>, then try the layout again.
-      </p>
     </div>
   </Dialog>
 {/if}

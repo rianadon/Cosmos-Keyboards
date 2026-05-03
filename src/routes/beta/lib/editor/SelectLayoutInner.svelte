@@ -5,7 +5,6 @@
     flipLetter,
     getLayout,
     isNamedLayoutId,
-    LAYOUT,
     type LayoutId,
     type NamedLayoutId,
   } from '$lib/layouts'
@@ -89,24 +88,6 @@
             </div>
           {/each}
         </div>
-      {:else if option.key === LAYOUT.CUSTOM}
-        <div class="ortho mb-3" aria-hidden="true">
-          {#each [0, 1, 2] as r}
-            <div class="orow">
-              <div class="oside">
-                {#each Array(5) as _}
-                  <span class="ocell custom">?</span>
-                {/each}
-              </div>
-              <div class="ogap" />
-              <div class="oside">
-                {#each Array(5) as _}
-                  <span class="ocell custom">?</span>
-                {/each}
-              </div>
-            </div>
-          {/each}
-        </div>
       {/if}
       <p>{description}</p>
     </div>
@@ -130,10 +111,7 @@
     --at-apply: 'inline-flex items-center justify-center w-6 h-6 rounded bg-pink-50 dark:bg-pink-100 text-pink-900 font-mono text-xs border border-pink-300';
   }
   .ocell.home {
-    --at-apply: 'bg-pink-300 dark:bg-pink-300 border-pink-500';
-  }
-  .ocell.custom {
-    --at-apply: 'opacity-60 italic';
+    --at-apply: 'bg-pink-200 dark:bg-pink-200 border-pink-400';
   }
   :global(.layoutinfo p) {
     --at-apply: 'mb-1';
