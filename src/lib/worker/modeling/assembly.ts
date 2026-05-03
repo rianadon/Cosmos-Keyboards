@@ -89,7 +89,7 @@ export class Assembly {
       this.oc.FS.unlink('/' + filename)
 
       // Return the contents of the STEP File
-      const blob = new Blob([file], { type: 'application/STEP' })
+      const blob = new Blob([file.buffer as ArrayBuffer], { type: 'application/STEP' })
       return blob
     } else {
       throw new Error('WRITE STEP FILE FAILED.')

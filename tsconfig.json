@@ -6,10 +6,12 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,
+    "types": ["bun"],
     "typeRoots": ["src/types", "node_modules/@types"]
   },
   // Path aliases are handled by https://kit.svelte.dev/docs/configuration#alias

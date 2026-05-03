@@ -38,7 +38,7 @@ export const DEFAULT_PROPS: MicrocontrollerProps = {
 // For loading STEP files and caching them
 const cacher = makeAsyncCacher(async (name: string) => {
   const file = await readFile(`src/assets/${name}`)
-  return await importSTEP(new Blob([file]))
+  return await importSTEP(new Blob([file.buffer as ArrayBuffer]))
 })
 const loadModel = (name: string) => cacher(name, name)
 

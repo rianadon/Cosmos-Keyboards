@@ -42,7 +42,7 @@ async function generateKey(name: string, options: any) {
  */
 async function generateHotswapKey(name: string, ...options: any[]) {
   const topFile = await readFile(`src/assets/key-mx-better.step`)
-  const top = await importSTEP(new Blob([topFile])) as Solid
+  const top = await importSTEP(new Blob([topFile.buffer as ArrayBuffer])) as Solid
   const moveFace = new FaceFinder().inPlane('XY', -4.7).find(top)[0]
   const extrude = basicFaceExtrusion(moveFace, new Vector([0, 0, -1.15]))
 

@@ -2,9 +2,9 @@ import { Cuttleform } from '../../../../target/proto/cuttleform'
 import { Lightcycle } from '../../../../target/proto/lightcycle'
 import { Manuform } from '../../../../target/proto/manuform'
 
-import cuttleform from '$assets/cuttleform.json' assert { type: 'json' }
-import lightcycle from '$assets/lightcycle.json' assert { type: 'json' }
-import manuform from '$assets/manuform.json' assert { type: 'json' }
+import cuttleform from '$assets/cuttleform.json' with { type: 'json' }
+import lightcycle from '$assets/lightcycle.json' with { type: 'json' }
+import manuform from '$assets/manuform.json' with { type: 'json' }
 import { cuttleConf, type CuttleformProto } from '$lib/worker/config'
 import { toCosmosConfig } from '$lib/worker/config.cosmos'
 import { decodeConfigIdk, encodeCosmosConfig, serializeCosmosConfig } from '$lib/worker/config.serialize'

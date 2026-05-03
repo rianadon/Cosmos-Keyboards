@@ -82,20 +82,25 @@ async function gatherSTEPFilesToSplit(prefix: '/src/assets' | '/target', warn: b
   const results = await mapObjAsync(relevantParts, (info, socket) =>
     Promise.all(
       findStepFiles(socket, info).map(async stepFile => {
-        const contents = await readFile('.' + stepFile, { encoding: 'utf-8' })
-        const names = [...contents.matchAll(/PRODUCT\('(.*?)'/g)].map(m => m[1])
-        const hasSocket = names.includes('Socket')
-        const hasPart = names.includes('Part')
-        if (warn && !(hasSocket && hasPart)) {
-          console.error(`The STEP file for part ${socket}, ${info.stepFile} does not a specify a partOverride,`)
-          console.error('so the file will be split into part and socket models based on component names in the assembly.')
-          console.error('The following names are missing:')
-          if (!hasPart) console.error(' - "Socket" for the socket')
-          if (!hasPart) console.error(' - "Part" for the part')
-          console.error(`Please rename the components ${JSON.stringify(names)} to "Part" and "Socket".`)
-          console.error()
+        try {
+          const contents = await readFile('.' + stepFile, { encoding: 'utf-8' })
+          const names = [...contents.matchAll(/PRODUCT\('(.*?)'/g)].map(m => m[1])
+          const hasSocket = names.includes('Socket')
+          const hasPart = names.includes('Part')
+          if (warn && !(hasSocket && hasPart)) {
+            console.error(`The STEP file for part ${socket}, ${info.stepFile} does not a specify a partOverride,`)
+            console.error('so the file will be split into part and socket models based on component names in the assembly.')
+            console.error('The following names are missing:')
+            if (!hasPart) console.error(' - "Socket" for the socket')
+            if (!hasPart) console.error(' - "Part" for the part')
+            console.error(`Please rename the components ${JSON.stringify(names)} to "Part" and "Socket".`)
+            console.error()
+          }
+          return hasSocket && hasPart
+        } catch (e) {
+          console.error(`Missing STEP file for ${socket} @ ${stepFile}. It must not have generated correctly.`)
+          return false
         }
-        return hasSocket && hasPart
       }),
     ).then(t => t.every(success => success)))
   return { success: Object.values(results).every(sucess => sucess), toSplit: objKeys(results) }
@@ -312,19 +317,22 @@ async function main() {
     trackpadRounding: 2,
   }, { size: '57x80' })
 
-  // Make all combinations of trackballs
-  const trackballCode = fileURLToPath(new URL('./parametric/trackball-gen.ts', import.meta.url))
-  for (const v of allVariants('trackball') as TrackballVariant[]) {
-    const url = variantURL({ type: 'trackball', variant: v } as any)
-    const stepName = join(targetDir, `key-trackball${url}.step`.toLowerCase())
-    const glbName = join(targetDir, `switch-trackball${url}.glb`.toLowerCase())
-    pool.addIfModified(`${v.size} trackball, ${v.bearings}, ${v.sensor}`, stepName, [trackballCode], async () => {
-      await writeModel(stepName, trackballSocket({ diameter: parseFloat(v.size), bearings: v.bearings, sensor: v.sensor }))
-    })
-    if (v.bearings == 'BTU (7.5mm)' || v.bearings == 'BTU (9mm)') {
-      pool.addIfModified(`${v.size} trackball BTU Part, ${v.bearings}, ${v.sensor}`, glbName, [trackballCode], async () => {
-        await writeMesh(glbName, trackballPart({ diameter: parseFloat(v.size), bearings: v.bearings, sensor: v.sensor }))
+  // Variants take a very long time, so CI skips them for OS checks
+  if (!process.env.SKIP_VARIANTS) {
+    // Make all combinations of trackballs
+    const trackballCode = fileURLToPath(new URL('./parametric/trackball-gen.ts', import.meta.url))
+    for (const v of allVariants('trackball') as TrackballVariant[]) {
+      const url = variantURL({ type: 'trackball', variant: v } as any)
+      const stepName = join(targetDir, `key-trackball${url}.step`.toLowerCase())
+      const glbName = join(targetDir, `switch-trackball${url}.glb`.toLowerCase())
+      pool.addIfModified(`${v.size} trackball, ${v.bearings}, ${v.sensor}`, stepName, [trackballCode], async () => {
+        await writeModel(stepName, trackballSocket({ diameter: parseFloat(v.size), bearings: v.bearings, sensor: v.sensor }))
       })
+      if (v.bearings == 'BTU (7.5mm)' || v.bearings == 'BTU (9mm)') {
+        pool.addIfModified(`${v.size} trackball BTU Part, ${v.bearings}, ${v.sensor}`, glbName, [trackballCode], async () => {
+          await writeMesh(glbName, trackballPart({ diameter: parseFloat(v.size), bearings: v.bearings, sensor: v.sensor }))
+        })
+      }
     }
   }
 
@@ -377,16 +385,20 @@ async function main() {
   console.log(`\nGenerating GLB files for ${partTasks.length} parts (skipped ${nParts - partTasks.length})...`)
 
   for (const { socket, variantURL, glbName, stepName } of partTasks) {
-    const blob = new Blob([await readFile(stepName) as any])
-    if (toSplit.includes(socket)) {
-      const socketModel = await importSTEPSpecifically(blob, 'Socket')
-      const partModel = await importSTEPSpecifically(blob, 'Part')
+    try {
+      const blob = new Blob([await readFile(stepName) as any])
+      if (toSplit.includes(socket)) {
+        const socketModel = await importSTEPSpecifically(blob, 'Socket')
+        const partModel = await importSTEPSpecifically(blob, 'Part')
 
-      await writeModel(join(targetDir, 'splitsocket-' + socket + variantURL + '.step'), socketModel.clone())
-      await writeMesh(join(targetDir, 'splitpart-' + socket + variantURL + '.glb'), partModel)
-      masses[socket + variantURL] = await writeMesh(glbName, socketModel)
-    } else {
-      masses[socket + variantURL] = await writeMesh(glbName, await importSTEP(blob))
+        await writeModel(join(targetDir, 'splitsocket-' + socket + variantURL + '.step'), socketModel.clone())
+        await writeMesh(join(targetDir, 'splitpart-' + socket + variantURL + '.glb'), partModel)
+        masses[socket + variantURL] = await writeMesh(glbName, socketModel)
+      } else {
+        masses[socket + variantURL] = await writeMesh(glbName, await importSTEP(blob))
+      }
+    } catch (e) {
+      throw new Error(`Error reading ${stepName}: ${e}`)
     }
   }
 

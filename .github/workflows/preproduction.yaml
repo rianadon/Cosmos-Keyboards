@@ -1,0 +1,63 @@
+name: Deploy to Preproduction (Vercel)
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  preproduction:
+    runs-on: ubuntu-latest
+    environment: Preproduction
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install NPM Dependencies
+        run: npm ci
+
+      - name: Install Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: CI Setup
+        run: make ci-setup
+
+      - name: Generate Keycaps
+        run: make keycaps2
+
+      - name: Generate Simple Keycaps
+        run: make keycaps-simple2
+
+      - name: Generate Parts
+        run: make parts
+
+      - name: Generate Simple Parts
+        run: make parts-simple
+
+      - name: Render Keycaps
+        run: make renderKeycaps
+
+      - name: Render Microcontrollers
+        run: make renderMicrocontrollers
+
+      - name: Clean up target
+        run: rm -rf target/KeyV2 target/PseudoProfiles
+
+      - name: Create archive
+        run: tar -czf assets.tar.gz ./target
+
+      - name: Upload to R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          R2_ENDPOINT: ${{ vars.AWS_URL }}
+          R2_BUCKET: ${{ vars.AWS_BUCKET }}
+        run: |
+          aws s3 cp assets.tar.gz s3://$R2_BUCKET/assets.tar.gz \
+            --endpoint-url $R2_ENDPOINT

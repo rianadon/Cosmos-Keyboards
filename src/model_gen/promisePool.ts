@@ -1,5 +1,6 @@
 import { cpus } from 'os'
 import { maybeStat } from './modeling'
+import { getChangedFiles, relativePathToRepo } from './vercel'
 
 type R = string | void | { key: string; result: any; output?: string }
 type QueueItem = { name: string; f: () => Promise<R> }
@@ -11,6 +12,7 @@ export class PromisePool {
   protected working: WorkingItem[] = []
   protected interactive: boolean
   public results: Record<string, any> = {}
+  private changedGitFileCache: Set<string> | undefined
 
   constructor(protected size = cpus().length, interactive?: boolean) {
     this.interactive = interactive ?? (process.stdout.moveCursor != null)
@@ -19,6 +21,14 @@ export class PromisePool {
   /** Add a task to the queue */
   add(name: string, f: () => Promise<R>): void {
     this.queue.push({ name, f })
+  }
+
+  /** Fetch changed files from Vercel */
+  changedGitFiles() {
+    if (this.changedGitFileCache) return this.changedGitFileCache
+    const files = new Set(getChangedFiles())
+    this.changedGitFileCache = files
+    return files
   }
 
   /** Add a task to the queue only if the generated file is older than any of its dependencies */
@@ -32,7 +42,12 @@ export class PromisePool {
         if (!depStats[i]) throw new Error(`Dependency ${dependencies[i]} was not found in the filesystem.`)
       }
       const minMTime = Math.min(...outStats.map(m => m?.mtime.getTime() || Infinity))
-      if (minMTime == Infinity || depStats.some(d => !d!.mtime || minMTime < d!.mtime.getTime())) {
+      const gitChanges = this.changedGitFiles()
+      // If running in CI, use Git to determine if the depency changed instead of mtime
+      const haveDependenciesChanged = gitChanges
+        ? dependencies.some(dep => gitChanges.has(relativePathToRepo(dep)))
+        : depStats.some(d => !d!.mtime || minMTime < d!.mtime.getTime())
+      if (haveDependenciesChanged || outStats.some(s => !s)) {
         this.queue.push({ name, f })
       } else {
         this.nSkipped++
