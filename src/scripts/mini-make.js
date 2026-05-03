@@ -9,49 +9,65 @@ import shelljs from 'shelljs'
 
 /* ------------------ Types ------------------ */
 
-type Vars = Record<string, string>
+/**
+ * @typedef {Record<string, string>} Vars
+ */
 
-interface Rule {
-  target: string
-  deps: string[]
-  cmds: string[]
+/**
+ * @typedef {Object} Rule
+ * @property {string} target
+ * @property {string[]} deps
+ * @property {string[]} cmds
+ */
+
+/**
+ * @typedef {Object} MakeContext
+ * @property {Vars} vars
+ * @property {Map<string, Rule>} rules
+ * @property {Set<string>} phony
+ */
+
+/**
+ * @enum {number}
+ */
+const NodeState = {
+  Unvisited: 0,
+  Visiting: 1,
+  Done: 2,
 }
 
-interface MakeContext {
-  vars: Vars
-  rules: Map<string, Rule>
-  phony: Set<string>
-}
-
-enum NodeState {
-  Unvisited,
-  Visiting,
-  Done,
-}
-
-interface BuildNode {
-  rule: Rule
-  deps: BuildNode[]
-  rebuilt: boolean
-  state: NodeState
-}
+/**
+ * @typedef {Object} BuildNode
+ * @property {Rule} rule
+ * @property {BuildNode[]} deps
+ * @property {boolean} rebuilt
+ * @property {number} state
+ */
 
 /* ------------ MANUAL OVERRIDES ----------- */
-async function parseVar(name: string, value: string): Promise<string> {
+
+/**
+ * @param {string} name
+ * @param {string} value
+ * @returns {Promise<string>}
+ */
+async function parseVar(name, value) {
   if (name in cliVars) return cliVars[name]
-  if (name == 'BUN') return shelljs.which('bun') || ''
+  if (name === 'BUN') return shelljs.which('bun') || ''
   return value
 }
 
 /* ------------------ CLI ------------------ */
 
-function parseCliArgs(args: string[]): {
-  cliVars: Record<string, string>
-  targets: string[]
-  dryRun: boolean
-} {
-  const cliVars: Record<string, string> = {}
-  const targets: string[] = []
+/**
+ * @param {string[]} args
+ * @returns {{ cliVars: Record<string, string>, targets: string[], dryRun: boolean }}
+ */
+function parseCliArgs(args) {
+  /** @type {Record<string, string>} */
+  const cliVars = {}
+  /** @type {string[]} */
+  const targets = []
   let dryRun = false
 
   for (const arg of args) {
@@ -83,20 +99,42 @@ for (const [k, v] of Object.entries(cliVars)) {
 }
 
 // Default to the first target in the Makefile if none supplied
-const targets = cliTargets.length ? cliTargets : [ctx.rules.keys().next()?.value]
+const targets = cliTargets.length
+  ? cliTargets
+  : [ctx.rules.keys().next()?.value]
 
 /* ------------------ Utilities ------------------ */
 
-async function runShell(cmd: string): Promise<void> {
+/**
+ * @param {string} cmd
+ * @returns {Promise<void>}
+ */
+async function runShell(cmd) {
   console.log(cmd)
-  if (DRY_RUN) {
-    return Promise.resolve()
-  }
+  if (DRY_RUN) return
 
-  shelljs.exec(cmd)
+  const parts = cmd.split('&&').map(p => p.trim()).filter(Boolean)
+  const originalDir = shelljs.pwd().toString()
+
+  try {
+    for (const part of parts) {
+      const parsedArgs = part.match(/(?:[^\s"]+|"[^"]*")+/g) || []
+      const [fnName, ...args] = parsedArgs.map(s => s.replace(/^"|"$/g, ''))
+
+      const result = typeof shelljs[fnName] === 'function'
+        ? shelljs[fnName](args)
+        : shelljs.exec(part)
+    }
+  } finally {
+    shelljs.cd(originalDir)
+  }
 }
 
-async function mtime(file: string): Promise<number | null> {
+/**
+ * @param {string} file
+ * @returns {Promise<number|null>}
+ */
+async function mtime(file) {
   try {
     return (await stat(file)).mtimeMs
   } catch {
@@ -106,17 +144,26 @@ async function mtime(file: string): Promise<number | null> {
 
 /* ------------------ Parser ------------------ */
 
-async function parseMakefile(text: string): Promise<MakeContext> {
+/**
+ * @param {string} text
+ * @returns {Promise<MakeContext>}
+ */
+async function parseMakefile(text) {
   const lines = text.split(/\r?\n/)
 
-  const vars: Vars = {}
-  const rules = new Map<string, Rule>()
-  const phony = new Set<string>()
+  /** @type {Vars} */
+  const vars = {}
+  /** @type {Map<string, Rule>} */
+  const rules = new Map()
+  /** @type {Set<string>} */
+  const phony = new Set()
 
-  let currentRule: Rule | null = null
-  const condStack: boolean[] = []
+  /** @type {Rule|null} */
+  let currentRule = null
+  /** @type {boolean[]} */
+  const condStack = []
 
-  const isActive = (): boolean => condStack.every(Boolean)
+  const isActive = () => condStack.every(Boolean)
 
   for (const raw of lines) {
     const line = raw.replace(/\s+$/, '')
@@ -144,10 +191,7 @@ async function parseMakefile(text: string): Promise<MakeContext> {
 
     /* ---- .PHONY ---- */
     if (line.startsWith('.PHONY')) {
-      const targets = line
-        .split(':')[1]
-        ?.trim()
-        .split(/\s+/) ?? []
+      const targets = line.split(':')[1]?.trim().split(/\s+/) ?? []
       for (const t of targets) phony.add(t)
       continue
     }
@@ -182,18 +226,15 @@ async function parseMakefile(text: string): Promise<MakeContext> {
 
 /* ------------------ Expansion ------------------ */
 
-function expand(
-  str: string,
-  vars: Vars,
-  auto: Record<string, string> = {},
-): string {
+/**
+ * @param {string} str
+ * @param {Vars} vars
+ * @param {Record<string, string>} [auto]
+ * @returns {string}
+ */
+function expand(str, vars, auto = {}) {
   return str
-    .replace(/\$\(([^)]+)\)/g, (_, name: string) => {
-      // if (name.startsWith('shell ')) {
-      //   if (DRY_RUN) return ''
-      //   const cmd = expand(name.slice(6), vars, auto)
-      //   return execSync(cmd, { encoding: 'utf8' }).trim()
-      // }
+    .replace(/\$\(([^)]+)\)/g, (_, name) => {
       return auto[name] ?? vars[name] ?? ''
     })
     .replace(/\$</g, auto['<'] ?? '')
@@ -201,13 +242,20 @@ function expand(
 
 /* ------------------ Executor ------------------ */
 
+/**
+ * @param {string} target
+ * @param {MakeContext} ctx
+ * @param {Set<string>} [visiting]
+ * @param {Map<string, BuildNode>} [built]
+ * @returns {BuildNode}
+ */
 function buildGraph(
-  target: string,
-  ctx: MakeContext,
-  visiting = new Set<string>(),
-  built = new Map<string, BuildNode>(),
-): BuildNode {
-  if (built.has(target)) return built.get(target)!
+  target,
+  ctx,
+  visiting = new Set(),
+  built = new Map(),
+) {
+  if (built.has(target)) return built.get(target)
 
   if (visiting.has(target)) {
     throw new Error(`Circular dependency detected at ${target}`)
@@ -216,8 +264,7 @@ function buildGraph(
 
   const rule = ctx.rules.get(target)
   if (!rule) {
-    // leaf node (file-only dependency)
-    const node: BuildNode = {
+    const node = {
       rule: { target, deps: [], cmds: [] },
       deps: [],
       rebuilt: false,
@@ -230,18 +277,25 @@ function buildGraph(
 
   const deps = rule.deps.map(d => buildGraph(d, ctx, visiting, built))
 
-  const node: BuildNode = { rule, deps, rebuilt: false, state: NodeState.Unvisited }
+  const node = {
+    rule,
+    deps,
+    rebuilt: false,
+    state: NodeState.Unvisited,
+  }
+
   built.set(target, node)
   visiting.delete(target)
   return node
 }
-async function executeNode(
-  node: BuildNode,
-  ctx: MakeContext,
-): Promise<void> {
-  if (node.state === NodeState.Done) {
-    return // ✅ already handled
-  }
+
+/**
+ * @param {BuildNode} node
+ * @param {MakeContext} ctx
+ * @returns {Promise<void>}
+ */
+async function executeNode(node, ctx) {
+  if (node.state === NodeState.Done) return
 
   if (node.state === NodeState.Visiting) {
     throw new Error(
@@ -251,7 +305,6 @@ async function executeNode(
 
   node.state = NodeState.Visiting
 
-  // Execute dependencies first
   for (const dep of node.deps) {
     await executeNode(dep, ctx)
   }
@@ -290,14 +343,16 @@ async function executeNode(
     node.rebuilt = true
   }
 
-  node.state = NodeState.Done // ✅ mark complete
+  node.state = NodeState.Done
 } /* ------------------ Main ------------------ */
 
-;(async (): Promise<void> => {
+;(async () => {
   const makefile = await readFile(MAKEFILE, 'utf8')
   const ctx = await parseMakefile(makefile)
 
-  const theTargets = targets.length ? targets : [ctx.rules.keys().next().value]
+  const theTargets = targets.length
+    ? targets
+    : [ctx.rules.keys().next().value]
 
   for (const target of theTargets) {
     if (!target) continue
@@ -305,7 +360,7 @@ async function executeNode(
       const graph = buildGraph(target, ctx)
       await executeNode(graph, ctx)
     } catch (err) {
-      console.error((err as Error).message)
+      console.error(err.message)
       process.exit(1)
     }
   }

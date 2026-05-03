@@ -312,19 +312,22 @@ async function main() {
     trackpadRounding: 2,
   }, { size: '57x80' })
 
-  // Make all combinations of trackballs
-  const trackballCode = fileURLToPath(new URL('./parametric/trackball-gen.ts', import.meta.url))
-  for (const v of allVariants('trackball') as TrackballVariant[]) {
-    const url = variantURL({ type: 'trackball', variant: v } as any)
-    const stepName = join(targetDir, `key-trackball${url}.step`.toLowerCase())
-    const glbName = join(targetDir, `switch-trackball${url}.glb`.toLowerCase())
-    pool.addIfModified(`${v.size} trackball, ${v.bearings}, ${v.sensor}`, stepName, [trackballCode], async () => {
-      await writeModel(stepName, trackballSocket({ diameter: parseFloat(v.size), bearings: v.bearings, sensor: v.sensor }))
-    })
-    if (v.bearings == 'BTU (7.5mm)' || v.bearings == 'BTU (9mm)') {
-      pool.addIfModified(`${v.size} trackball BTU Part, ${v.bearings}, ${v.sensor}`, glbName, [trackballCode], async () => {
-        await writeMesh(glbName, trackballPart({ diameter: parseFloat(v.size), bearings: v.bearings, sensor: v.sensor }))
+  // Variants take a very long time, so CI skips them for OS checks
+  if (!process.env.SKIP_VARIANTS) {
+    // Make all combinations of trackballs
+    const trackballCode = fileURLToPath(new URL('./parametric/trackball-gen.ts', import.meta.url))
+    for (const v of allVariants('trackball') as TrackballVariant[]) {
+      const url = variantURL({ type: 'trackball', variant: v } as any)
+      const stepName = join(targetDir, `key-trackball${url}.step`.toLowerCase())
+      const glbName = join(targetDir, `switch-trackball${url}.glb`.toLowerCase())
+      pool.addIfModified(`${v.size} trackball, ${v.bearings}, ${v.sensor}`, stepName, [trackballCode], async () => {
+        await writeModel(stepName, trackballSocket({ diameter: parseFloat(v.size), bearings: v.bearings, sensor: v.sensor }))
       })
+      if (v.bearings == 'BTU (7.5mm)' || v.bearings == 'BTU (9mm)') {
+        pool.addIfModified(`${v.size} trackball BTU Part, ${v.bearings}, ${v.sensor}`, glbName, [trackballCode], async () => {
+          await writeMesh(glbName, trackballPart({ diameter: parseFloat(v.size), bearings: v.bearings, sensor: v.sensor }))
+        })
+      }
     }
   }
 
