@@ -32,17 +32,7 @@ async function runSvelteCheckParser() {
   // We wrap the child process logic in a Promise to handle the async, event-driven nature.
   await new Promise<void>((resolve, reject) => {
     // Spawn the svelte-check process with the required arguments.
-    const proc = spawn(
-      'npx',
-      [
-        'svelte-check',
-        '--threshold',
-        'warning',
-        '--output',
-        'machine-verbose',
-      ],
-      { shell: true }, // Use shell to ensure npx is found correctly across environments
-    )
+    const proc = spawn('npx', ['svelte-check', '--threshold', 'warning', '--output', 'machine-verbose'])
 
     let stderrData = ''
     proc.stderr?.on('data', (chunk) => {
@@ -55,6 +45,8 @@ async function runSvelteCheckParser() {
       crlfDelay: Infinity,
     })
 
+    let lastFile = ''
+
     rl.on('line', (line) => {
       // Each machine-verbose diagnostic is a JSON object on a new line.
       const jsonStart = line.indexOf('{')
@@ -65,7 +57,6 @@ async function runSvelteCheckParser() {
 
       try {
         const diagnostic: SvelteCheckDiagnostic = JSON.parse(jsonStr)
-
         if (diagnostic.message.includes('Cannot find module') && diagnostic.message.includes('target/')) {
           return // Ignore ungenerated files
         }
@@ -79,6 +70,11 @@ async function runSvelteCheckParser() {
         if (filePath.startsWith('target/')) {
           return
         }
+
+        if (filePath != lastFile) console.log(`\n\x1b[1m\x1b[36m${filePath}\x1b[0m`) // Bold cyan
+        lastFile = filePath
+        const location = `L${diagnostic.start.line}:${diagnostic.start.character}`
+        console.log(`  \x1b[33m[${location}]\x1b[0m ${diagnostic.message} \x1b[2m(${diagnostic.code})\x1b[0m`)
 
         const existingErrors = errorsByFile.get(filePath) || []
         existingErrors.push(diagnostic)
@@ -102,19 +98,8 @@ async function runSvelteCheckParser() {
       if (errorsByFile.size === 0) {
         console.log('\n✅ No relevant errors found!')
       } else {
-        // 1. Print all individual errors, grouped by file.
-        console.log('\n\n--- Detailed Error Report ---')
-        for (const [file, errors] of errorsByFile.entries()) {
-          errors.sort((a, b) => a.start.line - b.start.line)
-          console.log(`\n\x1b[1m\x1b[36m${file}\x1b[0m`) // Bold cyan
-          for (const error of errors) {
-            const location = `L${error.start.line}:${error.start.character}`
-            console.log(`  \x1b[33m[${location}]\x1b[0m ${error.message} \x1b[2m(${error.code})\x1b[0m`)
-          }
-        }
-
         // 2. Print the summary table.
-        console.log('\n\n--- Error Summary ---')
+        console.log('\n--- Error Summary ---')
         console.log(`${'Errors'.padStart(7)}  Files`)
         const sortedFiles = Array.from(errorsByFile.keys()).sort()
         let totalErrors = 0
