@@ -24,6 +24,7 @@
   import HandFitView from './lib/dialogs/HandFitView.svelte'
   import Dialog from '$lib/presentation/Dialog.svelte'
   import Footer from './lib/Footer.svelte'
+  import Alert from '$lib/presentation/Alert.svelte'
   import Editor from './lib/editor/CodeEditor.svelte'
   import Preset from '$lib/presentation/Preset.svelte'
   import FilamentChart from './lib/FilamentChart.svelte'
@@ -1214,6 +1215,7 @@
 {/if} -->
 
 <DarkTheme bind:darkMode />
+<Alert />
 
 <style>
   @media (min-height: 480px) {
