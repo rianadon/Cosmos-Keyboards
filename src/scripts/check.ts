@@ -20,13 +20,6 @@ interface SvelteCheckDiagnostic {
 }
 
 /**
- * A list of filenames to be excluded from the error report.
- * Only the basename of the file is needed.
- * For example, 'App.ts' will match 'src/lib/App.ts'.
- */
-const excludedFiles: string[] = []
-
-/**
  * Main asynchronous function to execute the svelte-check process,
  * parse its output, and display the results using Node.js's child_process.
  */
@@ -44,7 +37,7 @@ async function runSvelteCheckParser() {
       [
         'svelte-check',
         '--threshold',
-        'error',
+        'warning',
         '--output',
         'machine-verbose',
       ],
@@ -73,10 +66,6 @@ async function runSvelteCheckParser() {
       try {
         const diagnostic: SvelteCheckDiagnostic = JSON.parse(jsonStr)
 
-        if (diagnostic.type !== 'ERROR') {
-          return
-        }
-
         if (diagnostic.message.includes('Cannot find module') && diagnostic.message.includes('target/')) {
           return // Ignore ungenerated files
         }
@@ -87,8 +76,7 @@ async function runSvelteCheckParser() {
           return
         }
 
-        const fileBasename = filePath.split('/').pop()
-        if (fileBasename && excludedFiles.includes(fileBasename)) {
+        if (filePath.startsWith('target/')) {
           return
         }
 
