@@ -6,24 +6,21 @@ jobs:
     name: Verify that Docker can build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Build the Dockerfile
         run: docker compose build
   openscad-node:
     name: Verify that OpenSCAD keycap scripts work (Node.js)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: 21
-
-      - name: Just make npm work
-        run: npm i @rollup/rollup-linux-x64-gnu
+          node-version: 22
 
       - name: Install npm dependencies
-        run: npm install --omit=optional
+        run: npm ci
 
       - name: Install openscad
         run: sudo apt-get update && sudo apt-get install -y openscad
@@ -37,7 +34,7 @@ jobs:
     name: Verify that OpenSCAD keycap scripts work (Bun/Linux)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -59,7 +56,7 @@ jobs:
   #   name: Verify Set up (Bun/Linux)
   #   runs-on: ubuntu-latest
   #   steps:
-  #     - uses: actions/checkout@v4
+  #     - uses: actions/checkout@v6
 
   #     - uses: oven-sh/setup-bun@v2
 
@@ -71,7 +68,7 @@ jobs:
   #   name: Verify Set up (Bun/Windows)
   #   runs-on: windows-latest
   #   steps:
-  #     - uses: actions/checkout@v4
+  #     - uses: actions/checkout@v6
 
   #     - uses: oven-sh/setup-bun@v1
   #       with:
@@ -90,11 +87,11 @@ jobs:
   #   name: Verify Set up (Node/Windows)
   #   runs-on: windows-latest
   #   steps:
-  #     - uses: actions/checkout@v4
+  #     - uses: actions/checkout@v6
 
-  #     - uses: actions/setup-node@v4
+  #     - uses: actions/setup-node@v6
   #       with:
-  #         node-version: 21
+  #         node-version: 24
 
   #     - name: Install npm dependencies
   #       run: npm install
