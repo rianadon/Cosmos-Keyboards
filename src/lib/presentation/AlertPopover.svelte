@@ -2,7 +2,7 @@
   // One alert popover. Positions itself below + slightly left of its anchor
   // element using getBoundingClientRect. Tracks a setTimeout for auto-dismiss
   // and pauses both the timer and the progress-bar animation while the
-  // pointer is over the popover. Drops itself if the anchor leaves the DOM.
+  // pointer is over the popover.
 
   import { type AlertItem, dismissAlert } from '$lib/store'
   import Icon from '$lib/presentation/Icon.svelte'
@@ -27,9 +27,13 @@
   let visible = false
   let paused = false
   let dismissTimer: ReturnType<typeof setTimeout> | null = null
-  let remaining = duration
-  let pauseStart = 0
-  let anchorObserver: MutationObserver | null = null
+  // Initialize from the prop directly — `duration` is a reactive var that's
+  // still undefined at script-init time.
+  let remaining = alert.durationMs ?? 10000
+  // `performance.now()` at the moment the current setTimeout was scheduled.
+  // Lets us subtract the active (un-paused) time spent so far when the user
+  // hovers, so resuming continues from where the dismiss timer left off.
+  let timerStart = 0
   let onResize: (() => void) | null = null
 
   function reposition() {
@@ -40,11 +44,16 @@
       return
     }
     const r = alert.anchor.getBoundingClientRect()
-    // Place below the anchor, left-aligned with it (slight inset).
-    top = r.bottom + 8
-    left = r.left
-    // Keep within the viewport horizontally.
     const w = popoverEl.offsetWidth
+    const h = popoverEl.offsetHeight
+    // Default: place below the anchor, left-aligned. If the anchor is too low
+    // for the popover to fit below, flip above instead. Then clamp to viewport
+    // so the popover never lands off-screen.
+    top = r.bottom + 8
+    if (top + h > window.innerHeight - 8) top = r.top - h - 8
+    if (top < 8) top = 8
+    if (top + h > window.innerHeight - 8) top = window.innerHeight - 8 - h
+    left = r.left
     if (left + w > window.innerWidth - 8) left = window.innerWidth - 8 - w
     if (left < 8) left = 8
   }
@@ -52,6 +61,7 @@
   function startTimer() {
     if (duration <= 0) return
     if (dismissTimer) clearTimeout(dismissTimer)
+    timerStart = performance.now()
     dismissTimer = setTimeout(() => dismissAlert(alert.id), remaining)
   }
 
@@ -60,15 +70,13 @@
     if (dismissTimer) {
       clearTimeout(dismissTimer)
       dismissTimer = null
-      pauseStart = performance.now()
+      remaining -= performance.now() - timerStart
+      if (remaining < 0) remaining = 0
     }
   }
 
   function onPointerLeave() {
     paused = false
-    if (pauseStart) remaining -= performance.now() - pauseStart
-    if (remaining < 0) remaining = 0
-    pauseStart = 0
     startTimer()
   }
 
@@ -82,20 +90,11 @@
       onResize = () => reposition()
       window.addEventListener('resize', onResize)
       window.addEventListener('scroll', onResize, true)
-
-      // Drop the alert if its anchor is removed from the DOM.
-      if (alert.anchor) {
-        anchorObserver = new MutationObserver(() => {
-          if (alert.anchor && !document.contains(alert.anchor)) dismissAlert(alert.id)
-        })
-        anchorObserver.observe(document.body, { childList: true, subtree: true })
-      }
     })
   })
 
   onDestroy(() => {
     if (dismissTimer) clearTimeout(dismissTimer)
-    if (anchorObserver) anchorObserver.disconnect()
     if (onResize) {
       window.removeEventListener('resize', onResize)
       window.removeEventListener('scroll', onResize, true)

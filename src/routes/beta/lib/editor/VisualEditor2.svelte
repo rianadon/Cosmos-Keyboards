@@ -249,9 +249,26 @@
   // picking a named option mutates the keys via applyLayoutToKeys. There's
   // no `kbd.layout` field to keep in sync, and no reactive auto-flip block
   // (the dropdown re-derives on every render).
-  $: currentLayout = detectLayout($protoConfig)
+  $: currentLayout = $protoConfig ? detectLayout($protoConfig) : DEFAULT_LAYOUT
   // Anchor for layout-related alerts; bound to the Layout Field below.
   let layoutFieldEl: HTMLElement
+  // Watch transitions named-layout → Custom (e.g. user edited an alpha key
+  // or deleted a column) and fire an info alert so the change is visible.
+  // Only mutates the local `prevLayout` — no protoConfig writes, so this
+  // doesn't pollute browser history the way the old reactive auto-flip did.
+  let prevLayout: LayoutId | undefined
+  function onLayoutChange(layout: LayoutId) {
+    if (prevLayout && prevLayout !== LAYOUT.CUSTOM && layout === LAYOUT.CUSTOM) {
+      pushAlert({
+        message:
+          "Your keys no longer match a named layout — switched to Custom. If this wasn't intentional, add the removed keys back and pick a layout to restore the standard legends.",
+        anchor: layoutFieldEl,
+        variant: 'warn',
+      })
+    }
+    prevLayout = layout
+  }
+  $: onLayoutChange(currentLayout)
 
   function updateLayout(ev: CustomEvent<string>) {
     if (!isLayoutId(ev.detail)) return
@@ -279,9 +296,11 @@
       const missing = missingKeysFor($protoConfig, next as NamedLayoutId)
       if (missing.length) {
         pushAlert({
-          message: `${LAYOUT_NAMES[next]} needs alpha keys you don't have: ${missing.join(
+          message: `${
+            LAYOUT_NAMES[next]
+          } can't fit on this keyboard — it needs alpha keys you don't have (${missing.join(
             ' '
-          )}. Add them via the Inner/Outer column buttons under Cluster Size and try again.`,
+          )}). Add the missing keys (or pick a wider size preset) and try again.`,
           anchor: layoutFieldEl,
           variant: 'warn',
         })
@@ -617,7 +636,7 @@
   <div bind:this={layoutFieldEl}>
     <Field
       name="Layout"
-      icon="letter"
+      icon="layout"
       help="The keyboard layout printed on the keycaps and used for firmware (ZMK/QMK) keycodes."
     >
       <SelectThingy

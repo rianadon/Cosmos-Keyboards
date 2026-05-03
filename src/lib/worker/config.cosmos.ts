@@ -1000,42 +1000,67 @@ export function alphaColumns(kbd: CosmosKeyboard, cluster: CosmosCluster) {
   return topColumns.sort((a, b) => a.column - b.column).map(c => c.index)
 }
 
-/** Inspect the right-finger alpha block and return the named layout it
- *  matches one-for-one, or `LAYOUT.CUSTOM` if no named layout fits. Match
- *  rules:
- *    - At least STANDARD_ALPHA_COLS alpha columns required (else CUSTOM).
- *    - Positions [0, STANDARD_ALPHA_COLS) on rows 2/3/4 must agree with the
- *      candidate layout's right-side letters (left clusters compare against
- *      the layout's flipMap-mirrored letters).
- *    - Extra alpha columns past the canonical block are ignored. */
+/** Inspect every finger cluster and return the named layout the kbd matches
+ *  one-for-one, or `LAYOUT.CUSTOM` if no named layout fits. Match rules:
+ *    - Each finger cluster must have at least STANDARD_ALPHA_COLS alpha cols.
+ *    - Positions [0, STANDARD_ALPHA_COLS) on rows 2/3/4 in each cluster must
+ *      agree with the candidate layout's right-side letters (left clusters
+ *      compare against the layout's flipMap-mirrored letters).
+ *    - No cluster may have duplicate alpha letters (catches stray expert-mode
+ *      edits onto inner/outer cols).
+ *    - All clusters (left and right, when both are present in non-mirror form)
+ *      must agree on the same named layout. If they don't, return CUSTOM. */
 export function detectLayout(kbd: CosmosKeyboard): LayoutId {
-  const cluster = kbd.clusters.find(c => c.name === 'fingers' && c.side === 'right')
-    ?? kbd.clusters.find(c => c.name === 'fingers')
-  if (!cluster) return DEFAULT_LAYOUT
-  const alphas = alphaColumns(kbd, cluster)
-  if (alphas.length < STANDARD_ALPHA_COLS) return LAYOUT.CUSTOM
-  const isLeft = cluster.side === 'left'
+  const fingerClusters = kbd.clusters.filter(c => c.name === 'fingers')
+  if (fingerClusters.length === 0) return DEFAULT_LAYOUT
 
-  const observed: Record<2 | 3 | 4, (string | undefined)[]> = { 2: [], 3: [], 4: [] }
-  for (let i = 0; i < alphas.length; i++) {
-    const col = cluster.clusters[alphas[i]]
-    const letterCol = isLeft ? alphas.length - 1 - i : i
-    for (const row of [2, 3, 4] as const) {
-      const key = col.keys.find(k => k.profile.row === row && isAlphaLetter(k.profile.letter))
-      observed[row][letterCol] = key?.profile.letter
+  const candidates = new Set<LayoutId>(NAMED_LAYOUT_IDS)
+  for (const cluster of fingerClusters) {
+    const alphas = alphaColumns(kbd, cluster)
+    if (alphas.length < STANDARD_ALPHA_COLS) return LAYOUT.CUSTOM
+    const isLeft = cluster.side === 'left'
+
+    // Reject this cluster (and therefore the whole kbd) if it has duplicate
+    // alpha letters — even when the canonical 5-col alpha block matches a
+    // named layout, an extra alpha letter elsewhere (e.g., an inner-pinky col
+    // edited to 'a' while the home row already has 'a') means the kbd is no
+    // longer pure.
+    const seen = new Set<string>()
+    for (const col of cluster.clusters) {
+      for (const key of col.keys) {
+        const letter = key.profile.letter
+        if (!isAlphaLetter(letter)) continue
+        if (seen.has(letter!)) return LAYOUT.CUSTOM
+        seen.add(letter!)
+      }
     }
+
+    const observed: Record<2 | 3 | 4, (string | undefined)[]> = { 2: [], 3: [], 4: [] }
+    for (let i = 0; i < alphas.length; i++) {
+      const col = cluster.clusters[alphas[i]]
+      const letterCol = isLeft ? alphas.length - 1 - i : i
+      for (const row of [2, 3, 4] as const) {
+        const key = col.keys.find(k => k.profile.row === row && isAlphaLetter(k.profile.letter))
+        observed[row][letterCol] = key?.profile.letter
+      }
+    }
+
+    // Narrow `candidates` to the layouts that match this cluster.
+    for (const id of [...candidates]) {
+      const layout = getLayout(id)
+      if (
+        !rowMatches(observed[2], layout.rightRows[2], isLeft, id as NamedLayoutId)
+        || !rowMatches(observed[3], layout.rightRows[3], isLeft, id as NamedLayoutId)
+        || !rowMatches(observed[4], layout.rightRows[4], isLeft, id as NamedLayoutId)
+      ) {
+        candidates.delete(id)
+      }
+    }
+    if (candidates.size === 0) return LAYOUT.CUSTOM
   }
 
-  for (const id of NAMED_LAYOUT_IDS) {
-    const layout = getLayout(id)
-    if (
-      rowMatches(observed[2], layout.rightRows[2], isLeft, id)
-      && rowMatches(observed[3], layout.rightRows[3], isLeft, id)
-      && rowMatches(observed[4], layout.rightRows[4], isLeft, id)
-    ) {
-      return id
-    }
-  }
+  // Prefer the first candidate in named-order so the result is deterministic.
+  for (const id of NAMED_LAYOUT_IDS) if (candidates.has(id)) return id
   return LAYOUT.CUSTOM
 }
 
@@ -1051,22 +1076,44 @@ function rowMatches(observed: (string | undefined)[], layoutRow: string, isLeft:
   return true
 }
 
-/** Letters the named layout requires that the keyboard can't currently host
- *  (because the user removed columns down past STANDARD_ALPHA_COLS). Empty
- *  when the kbd already has enough alpha columns. */
+/** Letters the named layout requires that the keyboard can't currently host.
+ *  Checks two failure modes:
+ *    1. Fewer than STANDARD_ALPHA_COLS alpha columns (user shrank the kbd).
+ *    2. An alpha column is missing one of rows 2/3/4 (user deleted a single
+ *       key). detectLayout requires all three alpha rows in every alpha col,
+ *       so a single missing key prevents the layout from being detected even
+ *       after applyLayoutToKeys runs.
+ *  Empty when the kbd has enough columns *and* every alpha col has rows 2/3/4. */
 export function missingKeysFor(kbd: CosmosKeyboard, target: NamedLayoutId): string[] {
   const cluster = kbd.clusters.find(c => c.name === 'fingers' && c.side === 'right')
     ?? kbd.clusters.find(c => c.name === 'fingers')
   if (!cluster) return []
-  const have = alphaColumns(kbd, cluster).length
-  if (have >= STANDARD_ALPHA_COLS) return []
+  const alphas = alphaColumns(kbd, cluster)
   const layout = getLayout(target)
+  const isLeft = cluster.side === 'left'
   const missing: string[] = []
-  for (let col = have; col < STANDARD_ALPHA_COLS; col++) {
+
+  // Mode 1: extra columns the kbd doesn't have at all.
+  for (let col = alphas.length; col < STANDARD_ALPHA_COLS; col++) {
     for (const row of [2, 3, 4] as const) {
       const letter = layout.rightRows[row].charAt(col)
       if (letter) missing.push(letter)
     }
   }
+
+  // Mode 2: existing alpha cols that are missing one of rows 2/3/4.
+  for (let i = 0; i < alphas.length && i < STANDARD_ALPHA_COLS; i++) {
+    const col = cluster.clusters[alphas[i]]
+    const letterCol = isLeft ? alphas.length - 1 - i : i
+    for (const row of [2, 3, 4] as const) {
+      const hasRow = col.keys.some(k => k.profile.row === row)
+      if (hasRow) continue
+      const expectedRight = layout.rightRows[row].charAt(letterCol)
+      if (!expectedRight) continue
+      const expected = isLeft ? flipLetter(expectedRight, target) : expectedRight
+      if (expected) missing.push(expected)
+    }
+  }
+
   return missing
 }
