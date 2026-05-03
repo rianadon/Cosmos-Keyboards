@@ -42,7 +42,7 @@
   import { componentBoxes, componentGeometry } from '$lib/worker/geometry'
   import * as mdi from '@mdi/js'
   import Icon from '$lib/presentation/Icon.svelte'
-  import { DEFAULT_LAYOUT, flipLetter } from '$lib/layouts'
+  import { flipLetter } from '$lib/layouts'
   import {
     diff,
     filterObj,
@@ -61,6 +61,7 @@
   import Gizmo from '$lib/3d/ThrelteGizmo.svelte'
   import NewViewer from './Viewer.svelte'
   import {
+    detectLayout,
     indexOfKey,
     nthKey,
     nthPartType,
@@ -688,20 +689,20 @@
   // what's drawn rather than the right-side source-of-truth letter.
   $: needsLetterFlip =
     $clickedVisualSide === 'left' && clusterIsClicked != null && clusterIsClicked.side === 'right'
+  // Re-derive the layout from the kbd's own labels — the layout dropdown is
+  // a function of the keys, so the flip target follows the keys too.
+  $: detectedFlipLayout = $protoConfig ? detectLayout($protoConfig) : undefined
   $: displayedLetter = keyIsClicked
-    ? needsLetterFlip
-      ? flipLetter(keyIsClicked.profile.letter, $protoConfig?.layout ?? DEFAULT_LAYOUT) ??
-        keyIsClicked.profile.letter ??
-        ''
+    ? needsLetterFlip && detectedFlipLayout
+      ? flipLetter(keyIsClicked.profile.letter, detectedFlipLayout) ?? keyIsClicked.profile.letter ?? ''
       : keyIsClicked.profile.letter ?? ''
     : ''
 
   function setLetter(e: Event) {
     if (!keyIsClicked) return
     const typed = (e.target as HTMLInputElement).value
-    const stored = needsLetterFlip
-      ? flipLetter(typed, $protoConfig?.layout ?? DEFAULT_LAYOUT) ?? typed
-      : typed
+    const stored =
+      needsLetterFlip && detectedFlipLayout ? flipLetter(typed, detectedFlipLayout) ?? typed : typed
     protoConfig.update((p) => {
       keyIsClicked.profile.letter = stored
       return p

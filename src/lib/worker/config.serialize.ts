@@ -2,7 +2,7 @@
  * For now, the new serializationf format for Cosmos is kept in a separate file.
  */
 
-import { DEFAULT_LAYOUT, isLayoutId, LAYOUT_IDS, type LayoutId } from '$lib/layouts'
+import { DEFAULT_LAYOUT, type LayoutId } from '$lib/layouts'
 import { BinaryReader, BinaryWriter } from '@protobuf-ts/runtime'
 import {
   decodeBasicShellFlags,
@@ -40,16 +40,6 @@ import { objKeys } from './util'
 function lookupId<E>(items: readonly E[], id: number, msg: string) {
   if (id >= items.length || id < 0) throw new Error(`No ${msg} for id ${id}`)
   return items[id]
-}
-
-function encodeLayout(id: LayoutId): number {
-  const idx = LAYOUT_IDS.indexOf(id)
-  return idx < 0 ? 0 : idx
-}
-
-function decodeLayout(value: number | undefined): LayoutId {
-  const id = LAYOUT_IDS[value ?? 0]
-  return isLayoutId(id) ? id : DEFAULT_LAYOUT
 }
 
 export function encodePartType(key: PartType) {
@@ -224,7 +214,6 @@ export const KEYBOARD_DEFAULTS: Keyboard = {
   nScrews: 7,
   screwFlags: encodeScrewFlags({ screwSize: 'M3', screwType: 'screw insert', screwCountersink: true, clearScrews: true }),
   microcontroller: encodeMicrocontroller({ microcontroller: 'kb2040-adafruit', fastenMicrocontroller: true }),
-  layout: 0, // QWERTY
   roundedFlags: encodeRoundedFlags({ side: false, top: false }),
   keyboardFlags: encodeKeyboardFlags({ wrEnable: true, unibody: false, noMirrorConnectors: false }),
   wristRestPosition: encodeTuple([100, -1100, 0]),
@@ -532,7 +521,6 @@ export function decodeConfigIdk(b64: string): CosmosKeyboard {
     connectorLeftIndex: keebExtra.connectorLeftIndex / 10,
     connectorRightIndex: keebExtra.connectorRightIndex / 10,
     clusters: keeb.cluster.map(decodeCosmosCluster),
-    layout: decodeLayout(keeb.layout),
     plate: hasSpecialPlate
       ? {
         art: decodePlateArt(keebExtra.plateArt) || undefined,
@@ -714,7 +702,6 @@ export function encodeCosmosConfig(conf: CosmosKeyboard): Keyboard {
     roundedFlags: encodeRoundedFlags({ side: !!conf.rounded.side, top: !!conf.rounded.top }),
     keyboardFlags: encodeKeyboardFlags({ wrEnable: conf.wristRestEnable, unibody: conf.unibody, noMirrorConnectors: !conf.mirrorConnectors }),
     wristRestPosition: conf.wristRestPosition,
-    layout: encodeLayout(conf.layout ?? DEFAULT_LAYOUT),
     cluster: conf.clusters.map(encodeCosmosCluster),
     shell: encodeShell(conf.shell),
     extra: {

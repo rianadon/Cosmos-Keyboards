@@ -9,7 +9,7 @@ import { applyLayoutToKeys } from '../../routes/beta/lib/editor/visualEditorHelp
 import { keycode as qmkKeycode } from '../../routes/beta/lib/firmware/qmk'
 import { keycode as zmkKeycode } from '../../routes/beta/lib/firmware/zmk'
 import { cuttleConf } from '../worker/config'
-import { type CosmosKeyboard, toCosmosConfig } from '../worker/config.cosmos'
+import { type CosmosKeyboard, detectLayout, toCosmosConfig } from '../worker/config.cosmos'
 import { decodeConfigIdk, encodeCosmosConfig, serializeCosmosConfig } from '../worker/config.serialize'
 import { LAYOUT, LAYOUT_IDS, type LayoutId } from './index'
 
@@ -20,23 +20,26 @@ function buildDefaultCosmos(): CosmosKeyboard {
   return cosmos
 }
 
-test('layout round-trips through serialize/deserialize for every layout', () => {
+test('layout survives serialize/deserialize via the keys, not a stored field', () => {
+  // Layout is a function of the alpha-key labels — serialize/deserialize
+  // round-trips the letters in cluster.col.keys[].profile.letter, and
+  // detectLayout(decoded) re-derives the named layout from those letters.
   for (const layoutId of LAYOUT_IDS) {
-    const cosmos = buildDefaultCosmos()
-    cosmos.layout = layoutId
+    if (layoutId === LAYOUT.CUSTOM) continue // CUSTOM has no canonical letters
+    const cosmos = applyLayoutToKeys(buildDefaultCosmos(), layoutId)
     const encoded = serializeCosmosConfig(encodeCosmosConfig(cosmos))
     const decoded = decodeConfigIdk(encoded)
-    expect(decoded.layout).toBe(layoutId)
+    expect(detectLayout(decoded as unknown as CosmosKeyboard)).toBe(layoutId)
   }
 })
 
-test('omitted layout decodes as QWERTY (back-compat)', () => {
-  // An older URL encoded before this feature has no layout field. Decoding it
-  // should produce a QWERTY config so existing shared keyboards still work.
+test('legacy URL with default letters detects as QWERTY (back-compat)', () => {
+  // Old URLs (before the layouts feature) had QWERTY letters baked into
+  // their keys; decoding them and detecting should still return QWERTY.
   const legacyEncoded =
     'Cn8KDxIFEIA/ICcSABIAEgA4MQoPEgUQgEsgJxIAEgASADgdChwSBRCAVyAnEgASABIDELAvEgMQsF84CUCE8LwCChcSBRCAYyAnEgASABIDELA7EgMQsGs4CgoVEgUQgG8gJxIAEgASADgeQJCGirAHGABA6IWgrvBVSNzwoqABCpIBChcSExDAwAJAgICYAkjCmaCVkLwBUEM4CAoVEhAQQECAgCBI0JWA3ZD1A1ALUJ4CChYSEhBAQICAzAJIwpmglZC8AVCGAVA6ChQSEBBAQICA+AFI5pn8p5ALUFdQfwoVEhAQQECAgKQDSPCZzLXQMFB0UJUBGAIiCgjIARDIARgAIABAy4uEpNAxSK2R3I3BkwZyAA=='
   const decoded = decodeConfigIdk(legacyEncoded)
-  expect(decoded.layout).toBe(LAYOUT.QWERTY)
+  expect(detectLayout(decoded as unknown as CosmosKeyboard)).toBe(LAYOUT.QWERTY)
 })
 
 test('applyLayoutToKeys updates alpha-row letters per layout', () => {

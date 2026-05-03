@@ -45,8 +45,7 @@ function allClustersFlipped(conf: CosmosKeyboard) {
           ...newClusters.find(c => c.side == 'right' && c.name == name)!,
           side: 'left',
         },
-        true,
-        conf.layout,
+        conf,
       ))
     }
   }

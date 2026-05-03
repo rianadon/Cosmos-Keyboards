@@ -38,8 +38,10 @@
     microcontrollerConnectors,
   } from '$lib/geometry/microcontrollers'
   import {
+    detectLayout,
     fromCosmosConfig,
     mirrorCluster,
+    missingKeysFor,
     partVariant,
     toCosmosConfig,
     type ConnectorMaybeCustom,
@@ -60,7 +62,6 @@
     clusterAngle,
     clusterSeparation,
     connectorsString,
-    detectLayout,
     getNKeys,
     getSize,
     getThumbN,
@@ -70,7 +71,6 @@
     isFnKey,
     isNumKey,
     isThumb,
-    missingKeysFor,
     setClusterAngle,
     setClusterSeparation,
     setClusterSize,
@@ -245,27 +245,34 @@
     }
   }
 
-  // Custom-layout dialogs.
+  // Custom-layout dialogs (replaced with alerts in a follow-up commit).
   let customInfoDialog = false
   let missingKeysDialog: { target: NamedLayoutId; missing: string[] } | null = null
+
+  // Layout is derived purely from the kbd's alpha labels — like clusterAngle
+  // / clusterSeparation. The dropdown displays detectLayout($protoConfig);
+  // picking a named option mutates the keys via applyLayoutToKeys. There's
+  // no `kbd.layout` field to keep in sync, and no reactive auto-flip block
+  // (the dropdown re-derives on every render).
+  $: currentLayout = detectLayout($protoConfig)
 
   function updateLayout(ev: CustomEvent<string>) {
     if (!isLayoutId(ev.detail)) return
     const next = ev.detail as LayoutId
-    const prev = $protoConfig.layout ?? DEFAULT_LAYOUT
+    const prev = currentLayout
     if (next === prev) return
 
     // Manual switch INTO Custom from a named layout — surface a helper dialog
     // explaining how to edit individual key legends.
     if (next === LAYOUT.CUSTOM && prev !== LAYOUT.CUSTOM) {
       customInfoDialog = true
+      return // No kbd mutation — Custom is the absence of a named layout.
     }
 
     // Switch OUT of Custom into a named layout — refuse if the keyboard
     // doesn't have enough alpha columns to host the target layout (the user
-    // probably deleted columns earlier). Don't commit to protoConfig; the
-    // SelectThingy dropdown is bound to $protoConfig.layout, so leaving the
-    // store value alone reverts the visual selection on the next tick.
+    // probably deleted columns earlier). Don't mutate the kbd; the dropdown
+    // re-derives via detectLayout and stays at Custom.
     if (prev === LAYOUT.CUSTOM && next !== LAYOUT.CUSTOM) {
       const missing = missingKeysFor($protoConfig, next as NamedLayoutId)
       if (missing.length) {
@@ -274,24 +281,7 @@
       }
     }
 
-    protoConfig.update((proto) => {
-      proto.layout = next
-      // CUSTOM has no letter mapping — picking it means "leave the keys alone";
-      // applyLayoutToKeys would silently rewrite letters with QWERTY's fallback.
-      if (next === LAYOUT.CUSTOM) return proto
-      return applyLayoutToKeys(proto, next)
-    })
-  }
-
-  // Auto-flip to Custom when the user edits an alpha legend (or removes an
-  // alpha column) so the dropdown doesn't keep claiming "Colemak" while the
-  // keymap diverges. Skip when current is already Custom — we don't auto-
-  // promote back to a named layout; the user picks that explicitly.
-  $: if ($protoConfig && ($protoConfig.layout ?? DEFAULT_LAYOUT) !== LAYOUT.CUSTOM) {
-    const detected = detectLayout($protoConfig)
-    if (detected === LAYOUT.CUSTOM) {
-      protoConfig.update((proto) => ({ ...proto, layout: LAYOUT.CUSTOM }))
-    }
+    protoConfig.update((proto) => applyLayoutToKeys(proto, next))
   }
 
   function updateSwitch(ev: CustomEvent) {
@@ -340,11 +330,7 @@
         proto.clusters.splice(
           cluster == 'fingers' ? 2 : 3,
           0,
-          mirrorCluster(
-            proto.clusters.find((c) => c.side == 'right' && c.name == cluster)!,
-            true,
-            proto.layout
-          )
+          mirrorCluster(proto.clusters.find((c) => c.side == 'right' && c.name == cluster)!, proto)
         )
       }
       return proto
@@ -626,7 +612,7 @@
     help="The keyboard layout printed on the keycaps and used for firmware (ZMK/QMK) keycodes."
   >
     <SelectThingy
-      value={$protoConfig.layout ?? DEFAULT_LAYOUT}
+      value={currentLayout}
       on:change={updateLayout}
       options={LAYOUT_IDS.map((id) => ({ key: id, label: LAYOUT_NAMES[id] }))}
       component={SelectLayoutInner}

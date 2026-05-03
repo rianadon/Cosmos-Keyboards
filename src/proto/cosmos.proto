@@ -23,7 +23,16 @@ message Keyboard {
 
   optional KeyboardExtra extra = 14;
   optional int64 wrist_rest_position = 15; // For easy movement of the wrist rest
-  optional uint32 layout = 33; // Keyboard layout (QWERTY, Colemak, etc.). 0 = QWERTY default.
+
+  // Field 33 was a serialized layout id (QWERTY/Colemak/etc.). Layout is now
+  // derived purely from the alpha-key labels via detectLayout(kbd) at read
+  // time, like clusterAngle/clusterSeparation. Reserve so the field number
+  // can't be repurposed; old URLs that include it are silently ignored on
+  // decode. The cosmetic fallout is acceptable: a kbd serialized as
+  // "Colemak" with QWERTY letters baked in (shouldn't happen, since
+  // applyLayoutToKeys writes the letters whenever the dropdown changes) will
+  // now show up as QWERTY — the dropdown was lying before.
+  reserved 33;
 
   oneof shell {
     BasicShell basic_shell = 30;

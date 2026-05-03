@@ -66,7 +66,6 @@
   import ViewerDev from './lib/viewers/ViewerDev.svelte'
   import DownloadDialog from './lib/dialogs/DownloadDialog.svelte'
   import { fromCosmosConfig, toFullCosmosConfig, type CosmosKeyboard } from '$lib/worker/config.cosmos'
-  import { detectLayout } from './lib/editor/visualEditorHelpers'
   import KeyboardModel from '$lib/3d/KeyboardModel.svelte'
   import { type FullGeometry, type FullKeyboardMeshes } from './lib/viewers/viewer3dHelpers'
   import { notNull, objEntriesNotNull, objKeys } from '$lib/worker/util'
@@ -538,15 +537,13 @@
       // if (!confirm('Are you sure you wish to exit expert mode? Your work will not be saved.')) return
       try {
         const next = toFullCosmosConfig(config, true)
-        // Recompute the layout from the keys themselves so the dropdown
-        // doesn't snap back to QWERTY when the user already designed a
-        // Colemak/Dvorak/etc. keymap in expert mode. Falls through to
-        // CUSTOM when the keymap doesn't match any registered layout.
-        next.layout = detectLayout(next)
         state.options = next
         // Push into the proto store too — the basic-mode editor binds to
         // $protoConfig, not state.options, so without this the dropdown and
         // 3D view keep showing whatever was loaded before the expert edits.
+        // The layout dropdown re-derives its value from $protoConfig via
+        // detectLayout() at render time, so no explicit field write is
+        // needed here.
         protoConfig.set(next)
         config = fromCosmosConfig(next)
         initialEditorContent = undefined // So the editor resets
