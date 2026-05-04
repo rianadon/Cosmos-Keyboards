@@ -40,10 +40,13 @@ function allClustersFlipped(conf: CosmosKeyboard) {
   const newClusters = [...conf.clusters]
   for (const name of ['fingers', 'thumbs'] as ClusterName[]) {
     if (!newClusters.find(c => c.side == 'left' && c.name == name)) {
-      newClusters.push(mirrorCluster({
-        ...newClusters.find(c => c.side == 'right' && c.name == name)!,
-        side: 'left',
-      }))
+      newClusters.push(mirrorCluster(
+        {
+          ...newClusters.find(c => c.side == 'right' && c.name == name)!,
+          side: 'left',
+        },
+        conf,
+      ))
     }
   }
   sortClusters(newClusters)

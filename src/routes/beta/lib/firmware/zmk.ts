@@ -122,7 +122,7 @@ const SPECIALS = [
 ]
 
 /** Return the ZMK keycode for a letter */
-function keycode(code: string | undefined) {
+export function keycode(code: string | undefined) {
   const c = code?.toLowerCase()
 
   if (!c || !code) return '&kp SPACE'

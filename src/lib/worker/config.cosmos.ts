@@ -2,11 +2,12 @@ import ETrsf, { Constant, fullMirrorETrsf, type MatrixOptions, mirror } from '$l
 // import { deserialize } from 'src/routes/beta/lib/serialize'
 import { flippedKey } from '$lib/geometry/keycaps'
 import { decodeVariant, encodeVariant, PART_INFO, socketSize } from '$lib/geometry/socketsParts'
+import { DEFAULT_LAYOUT, flipLetter, getLayout, isAlphaLetter, LAYOUT, type LayoutId, NAMED_LAYOUT_IDS, type NamedLayoutId } from '$lib/layouts'
 import { type ClusterName, type ClusterSide, type ClusterType, type Connector, decodeClusterFlags, encodeClusterFlags, type PartVariant, type ScrewFlags } from '$target/cosmosStructs'
 import type { Curvature } from '$target/proto/cosmos'
 import { Matrix4, Vector3 } from 'three'
 import { type AnyShell, curvature, type Cuttleform, type CuttleKey, decodeTuple, encodeTuple, type FullCuttleform, type Keycap, matrixToRPY, tupleToRot, tupleToXYZ } from './config'
-import { decodePartType, encodePartType, KEYBOARD_DEFAULTS } from './config.serialize'
+import { decodePartType, encodePartType, KEYBOARD_DEFAULTS, LETTERS } from './config.serialize'
 import Trsf from './modeling/transformation'
 import { capitalize, DefaultMap, objEntries, objKeys, sum, TallyMap, trimUndefined } from './util'
 
@@ -297,12 +298,12 @@ export function toFullCosmosConfig(conf: FullCuttleform, flipLeft = false): Cosm
   // This halves the URL size and gives better editing experience
   const rightFingers = kbd.clusters.find(c => c.side == 'right' && c.name == 'fingers')
   const leftFingers = kbd.clusters.find(c => c.side == 'left' && c.name == 'fingers')
-  if (rightFingers && leftFingers && stringifyCluster(mirrorCluster(rightFingers)) == stringifyCluster(leftFingers)) {
+  if (rightFingers && leftFingers && stringifyCluster(mirrorCluster(rightFingers, kbd)) == stringifyCluster(leftFingers)) {
     kbd.clusters.splice(kbd.clusters.indexOf(leftFingers), 1)
   }
   const rightThumbs = kbd.clusters.find(c => c.side == 'right' && c.name == 'thumbs')
   const leftThumbs = kbd.clusters.find(c => c.side == 'left' && c.name == 'thumbs')
-  if (rightThumbs && leftThumbs && stringifyCluster(mirrorCluster(rightThumbs)) == stringifyCluster(leftThumbs)) {
+  if (rightThumbs && leftThumbs && stringifyCluster(mirrorCluster(rightThumbs, kbd)) == stringifyCluster(leftThumbs)) {
     kbd.clusters.splice(kbd.clusters.indexOf(leftThumbs), 1)
   }
   sortClusters(kbd.clusters)
@@ -375,7 +376,7 @@ export function toCosmosConfig(conf: Cuttleform, side: 'left' | 'right' | 'unibo
       ]
       : toCosmosClusters(conf.keys, side, globalProfile, globalPartType, globalCurvature, wrOriginInv),
   }
-  if (flipLeft && side == 'left') keyboard.clusters = keyboard.clusters.map(c => mirrorCluster(c, false))
+  if (flipLeft && side == 'left') keyboard.clusters = keyboard.clusters.map(c => mirrorCluster(c, keyboard, false))
   sortClusters(keyboard.clusters)
   return keyboard
 }
@@ -480,9 +481,15 @@ export function sideFromCosmosConfig(c: CosmosKeyboard, side: 'left' | 'right' |
     plate: c.plate,
   }
   const clusters: CosmosCluster[] = c.clusters.filter(c => side == 'unibody' || c.side == side)
-  if (side == 'left' && !c.clusters.find(c => c.side == 'left' && c.name == 'fingers')) clusters.unshift(mirrorCluster(c.clusters.find(c => c.side == 'right' && c.name == 'fingers')!))
-  if (side == 'unibody' && !c.clusters.find(c => c.side == 'left' && c.name == 'fingers')) clusters.splice(2, 0, mirrorCluster(c.clusters.find(c => c.side == 'right' && c.name == 'fingers')!))
-  if (side != 'right' && !c.clusters.find(c => c.side == 'left' && c.name == 'thumbs')) clusters.push(mirrorCluster(c.clusters.find(c => c.side == 'right' && c.name == 'thumbs')!))
+  if (side == 'left' && !c.clusters.find(c => c.side == 'left' && c.name == 'fingers')) clusters.unshift(mirrorCluster(c.clusters.find(c => c.side == 'right' && c.name == 'fingers')!, c))
+  if (side == 'unibody' && !c.clusters.find(c => c.side == 'left' && c.name == 'fingers')) {
+    clusters.splice(
+      2,
+      0,
+      mirrorCluster(c.clusters.find(c => c.side == 'right' && c.name == 'fingers')!, c),
+    )
+  }
+  if (side != 'right' && !c.clusters.find(c => c.side == 'left' && c.name == 'thumbs')) clusters.push(mirrorCluster(c.clusters.find(c => c.side == 'right' && c.name == 'thumbs')!, c))
   // console.log('CLUSTERS', clusters)
   for (const clusterA of clusters) {
     for (const clusterB of clusterA.clusters) {
@@ -542,7 +549,7 @@ export function fromCosmosConfig(c: CosmosKeyboard, flipLeft = true): FullCuttle
 export function calcClusterTrsf(cluster: CosmosCluster, keeb: CosmosKeyboard) {
   if (cluster.name == 'fingers') return rotationPositionETrsf(cluster, false)
 
-  const fingerCluster = keeb.clusters.find(c => c.side == cluster.side && c.name == 'fingers') || mirrorCluster(keeb.clusters.find(c => c.name == 'fingers')!)
+  const fingerCluster = keeb.clusters.find(c => c.side == cluster.side && c.name == 'fingers') || mirrorCluster(keeb.clusters.find(c => c.name == 'fingers')!, keeb)
   const fingerPos = rotationPositionETrsf(fingerCluster, false) || new ETrsf()
   const fingerPosInv = rotationPositionInvETrsf(fingerCluster) || new ETrsf()
   return (rotationPositionETrsf(cluster) || new ETrsf()).transformBy(fingerPosInv).transformBy(fingerPos)
@@ -906,7 +913,15 @@ function mirrorRotationTuple(t: bigint | undefined) {
   return encodeTuple([x, -y, -z])
 }
 
-export function mirrorCluster(clr: CosmosCluster, flipLetters = true): CosmosCluster {
+/** Synthesize the left side of a (right-side) cluster.
+ *
+ *  `kbd` is needed to derive the layout (via `detectLayout`) — alpha-letter
+ *  flipping uses the layout's flipMap. Pass `undefined` at module-level call
+ *  sites (e.g. cached cluster libraries) where no kbd is in scope; the result
+ *  there falls back to QWERTY semantics, which is fine because those callers
+ *  erase letters before display anyway. */
+export function mirrorCluster(clr: CosmosCluster, kbd: CosmosKeyboard | undefined, flipLetters = true): CosmosCluster {
+  const layout = kbd ? detectLayout(kbd) : DEFAULT_LAYOUT
   return {
     ...clr,
     curvature: { ...clr.curvature },
@@ -924,7 +939,7 @@ export function mirrorCluster(clr: CosmosCluster, flipLetters = true): CosmosClu
       column: typeof c.column != 'undefined' ? -c.column : undefined,
       keys: c.keys.map(k => ({
         ...k,
-        profile: { ...k.profile, letter: flipLetters ? flippedKey(k.profile.letter) : k.profile.letter },
+        profile: { ...k.profile, letter: flipLetters ? flippedKey(k.profile.letter, layout) : k.profile.letter },
         partType: { ...k.partType },
         column: typeof k.column != 'undefined' ? -k.column : undefined,
         position: mirrorPositionTuple(k.position),
@@ -953,4 +968,171 @@ export function calculateSplay(column: CosmosCluster, cluster: CosmosCluster) {
 export function nthSplay(conf: CosmosKeyboard, n: number) {
   const { column, cluster } = nthKey(conf, n)
   return calculateSplay(column, cluster)
+}
+
+// --- Layout detection -------------------------------------------------------
+//
+// Layout used to be a stored field on CosmosKeyboard. It's now a pure function
+// of the alpha-key labels — like clusterAngle/clusterSeparation. detectLayout
+// inspects the right finger cluster and reports the named layout it matches,
+// or LAYOUT.CUSTOM. mirrorCluster() calls it internally so callers don't have
+// to thread the layout through.
+
+/** Canonical 5-col alpha block (Q-W-E-R-T row 2, A-S-D-F-G row 3, Z-X-C-V-B
+ *  row 4). All registered layouts share this width; an optional 6th outer-
+ *  pinky column (`'` in QWERTY/Colemak/Workman, `-` in Dvorak) is treated as
+ *  extra and doesn't participate in matching. */
+const STANDARD_ALPHA_COLS = 5
+
+/** Find the indices of the alpha/letter columns within a finger cluster.
+ *  Picks the up-to-5 columns with the most letter-keys; sorts by physical
+ *  column position (left → right). */
+export function alphaColumns(kbd: CosmosKeyboard, cluster: CosmosCluster) {
+  const columns = cluster.clusters.map((col, index) => ({
+    index,
+    column: col.column ?? -1000,
+    nLetters: col.keys
+      .filter(k => PART_INFO[k.partType.type || col.partType.type || kbd.partType.type!].keycap && LETTERS.includes(k.profile.letter!))
+      .length,
+  })).filter(c => c.nLetters > 0)
+  columns.sort((a, b) => b.nLetters - a.nLetters)
+  const topColumns = columns.slice(0, STANDARD_ALPHA_COLS)
+  return topColumns.sort((a, b) => a.column - b.column).map(c => c.index)
+}
+
+/** Inspect every finger cluster and return the named layout the kbd matches
+ *  one-for-one, or `LAYOUT.CUSTOM` if no named layout fits. Match rules:
+ *    - Each finger cluster must have at least STANDARD_ALPHA_COLS alpha cols.
+ *    - Positions [0, STANDARD_ALPHA_COLS) on rows 2/3/4 in each cluster must
+ *      agree with the candidate layout's right-side letters (left clusters
+ *      compare against the layout's flipMap-mirrored letters).
+ *    - No cluster may have duplicate alpha letters (catches stray expert-mode
+ *      edits onto inner/outer cols).
+ *    - All clusters (left and right, when both are present in non-mirror form)
+ *      must agree on the same named layout. If they don't, return CUSTOM. */
+export function detectLayout(kbd: CosmosKeyboard): LayoutId {
+  const fingerClusters = kbd.clusters.filter(c => c.name === 'fingers')
+  if (fingerClusters.length === 0) return DEFAULT_LAYOUT
+
+  const candidates = new Set<LayoutId>(NAMED_LAYOUT_IDS)
+  for (const cluster of fingerClusters) {
+    const alphas = alphaColumns(kbd, cluster)
+    if (alphas.length < STANDARD_ALPHA_COLS) return LAYOUT.CUSTOM
+    const isLeft = cluster.side === 'left'
+
+    // Reject this cluster (and therefore the whole kbd) if it has duplicate
+    // alpha letters — even when the canonical 5-col alpha block matches a
+    // named layout, an extra alpha letter elsewhere (e.g., an inner-pinky col
+    // edited to 'a' while the home row already has 'a') means the kbd is no
+    // longer pure.
+    const seen = new Set<string>()
+    for (const col of cluster.clusters) {
+      for (const key of col.keys) {
+        const letter = key.profile.letter
+        if (!isAlphaLetter(letter)) continue
+        if (seen.has(letter!)) return LAYOUT.CUSTOM
+        seen.add(letter!)
+      }
+    }
+
+    const observed: Record<2 | 3 | 4, (string | undefined)[]> = { 2: [], 3: [], 4: [] }
+    for (let i = 0; i < alphas.length; i++) {
+      const col = cluster.clusters[alphas[i]]
+      const letterCol = isLeft ? alphas.length - 1 - i : i
+      for (const row of [2, 3, 4] as const) {
+        const key = col.keys.find(k => k.profile.row === row && isAlphaLetter(k.profile.letter))
+        observed[row][letterCol] = key?.profile.letter
+      }
+    }
+
+    // Narrow `candidates` to the layouts that match this cluster.
+    for (const id of [...candidates]) {
+      const layout = getLayout(id)
+      if (
+        !rowMatches(observed[2], layout.rightRows[2], isLeft, id as NamedLayoutId)
+        || !rowMatches(observed[3], layout.rightRows[3], isLeft, id as NamedLayoutId)
+        || !rowMatches(observed[4], layout.rightRows[4], isLeft, id as NamedLayoutId)
+      ) {
+        candidates.delete(id)
+      }
+    }
+    if (candidates.size === 0) return LAYOUT.CUSTOM
+  }
+
+  // Prefer the first candidate in named-order so the result is deterministic.
+  for (const id of NAMED_LAYOUT_IDS) if (candidates.has(id)) return id
+  return LAYOUT.CUSTOM
+}
+
+function rowMatches(observed: (string | undefined)[], layoutRow: string, isLeft: boolean, layoutId: NamedLayoutId): boolean {
+  const upper = Math.min(STANDARD_ALPHA_COLS, layoutRow.length)
+  for (let col = 0; col < upper; col++) {
+    const expectedRight = layoutRow.charAt(col) || undefined
+    if (!expectedRight) continue
+    const expected = isLeft ? flipLetter(expectedRight, layoutId) : expectedRight
+    const observedLetter = observed[col]
+    if (!observedLetter || observedLetter !== expected) return false
+  }
+  return true
+}
+
+/** Letters the named layout requires that the keyboard can't currently host.
+ *  Inspects every visible half — both clusters when stored explicitly, plus
+ *  a synthesized left mirror in mirror form (where only the right is stored).
+ *  That way deleting `q` on a mirrored split surfaces both `q` and `p`, not
+ *  just the right-cluster's `p`.
+ *  Checks two failure modes per half:
+ *    1. Fewer than STANDARD_ALPHA_COLS alpha columns (user shrank the kbd).
+ *    2. An alpha column is missing one of rows 2/3/4 (user deleted a single
+ *       key). detectLayout requires all three alpha rows in every alpha col,
+ *       so a single missing key prevents the layout from being detected even
+ *       after applyLayoutToKeys runs.
+ *  Empty when every visible half has enough columns *and* every alpha col has
+ *  rows 2/3/4. */
+export function missingKeysFor(kbd: CosmosKeyboard, target: NamedLayoutId): string[] {
+  const fingerClusters = kbd.clusters.filter(c => c.name === 'fingers')
+  if (fingerClusters.length === 0) return []
+
+  // Build the visible halves. Mirror form (only the right is stored)
+  // synthesizes the left via mirrorCluster so its missing keys are reported
+  // alongside the right's. Non-mirror splits and unibody keep their stored
+  // clusters as-is.
+  const right = fingerClusters.find(c => c.side === 'right')
+  const left = fingerClusters.find(c => c.side === 'left')
+  const halves: CosmosCluster[] = [...fingerClusters]
+  if (right && !left) halves.push(mirrorCluster(right, kbd))
+
+  const layout = getLayout(target)
+  const missing = new Set<string>()
+
+  for (const cluster of halves) {
+    const alphas = alphaColumns(kbd, cluster)
+    const isLeft = cluster.side === 'left'
+
+    // Mode 1: extra columns the cluster doesn't have at all.
+    for (let col = alphas.length; col < STANDARD_ALPHA_COLS; col++) {
+      for (const row of [2, 3, 4] as const) {
+        const expectedRight = layout.rightRows[row].charAt(col)
+        if (!expectedRight) continue
+        const expected = isLeft ? flipLetter(expectedRight, target) : expectedRight
+        if (expected) missing.add(expected)
+      }
+    }
+
+    // Mode 2: existing alpha cols that are missing one of rows 2/3/4.
+    for (let i = 0; i < alphas.length && i < STANDARD_ALPHA_COLS; i++) {
+      const col = cluster.clusters[alphas[i]]
+      const letterCol = isLeft ? alphas.length - 1 - i : i
+      for (const row of [2, 3, 4] as const) {
+        const hasRow = col.keys.some(k => k.profile.row === row)
+        if (hasRow) continue
+        const expectedRight = layout.rightRows[row].charAt(letterCol)
+        if (!expectedRight) continue
+        const expected = isLeft ? flipLetter(expectedRight, target) : expectedRight
+        if (expected) missing.add(expected)
+      }
+    }
+  }
+
+  return [...missing]
 }

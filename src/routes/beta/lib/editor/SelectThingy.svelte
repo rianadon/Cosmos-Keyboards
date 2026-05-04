@@ -38,6 +38,14 @@
   const onSelectedChange: CreateSelectProps<string>['onSelectedChange'] = ({ next }) => {
     if (syncing) return next
     dispatch('change', next!.value)
+    // melt-ui has already committed `next` internally. The parent may have
+    // updated the controlling `value` prop in response to the dispatch, or
+    // not. Re-sync from `value` after Svelte's reactive flush — if the parent
+    // accepted, value === next.value (no-op); if rejected, we revert melt-ui
+    // to the controlling value.
+    queueMicrotask(() => {
+      if (next!.value !== value) onValueChange(value)
+    })
     return next
   }
 
@@ -65,7 +73,13 @@
 
   function onValueChange(val: string) {
     syncing = true
-    sync.selected(toOption(allOptions.find((opt) => opt.key == val)), (v) => v && (value = v.value))
+    // Empty callback: the original wrote `value = v.value` back to the local
+    // prop, which made the dropdown un-controllable — when the parent rejects
+    // a change, the local `value` had already been overwritten by createSync's
+    // back-sync, so we couldn't tell that the parent disagreed. With no
+    // back-sync the local `value` only changes when the parent's prop
+    // expression changes.
+    sync.selected(toOption(allOptions.find((opt) => opt.key == val)), () => {})
     syncing = false
   }
   $: onValueChange(value)

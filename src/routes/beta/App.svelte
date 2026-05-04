@@ -24,6 +24,7 @@
   import HandFitView from './lib/dialogs/HandFitView.svelte'
   import Dialog from '$lib/presentation/Dialog.svelte'
   import Footer from './lib/Footer.svelte'
+  import Alert from '$lib/presentation/Alert.svelte'
   import Editor from './lib/editor/CodeEditor.svelte'
   import Preset from '$lib/presentation/Preset.svelte'
   import FilamentChart from './lib/FilamentChart.svelte'
@@ -536,7 +537,16 @@
     if (mode === 'advanced' && newMode !== 'advanced') {
       // if (!confirm('Are you sure you wish to exit expert mode? Your work will not be saved.')) return
       try {
-        state.options = toFullCosmosConfig(config, true)
+        const next = toFullCosmosConfig(config, true)
+        state.options = next
+        // Push into the proto store too — the basic-mode editor binds to
+        // $protoConfig, not state.options, so without this the dropdown and
+        // 3D view keep showing whatever was loaded before the expert edits.
+        // The layout dropdown re-derives its value from $protoConfig via
+        // detectLayout() at render time, so no explicit field write is
+        // needed here.
+        protoConfig.set(next)
+        config = fromCosmosConfig(next)
         initialEditorContent = undefined // So the editor resets
       } catch (e) {
         console.error(e)
@@ -1205,6 +1215,7 @@
 {/if} -->
 
 <DarkTheme bind:darkMode />
+<Alert />
 
 <style>
   @media (min-height: 480px) {

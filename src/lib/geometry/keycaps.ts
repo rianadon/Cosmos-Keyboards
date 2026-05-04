@@ -1,3 +1,4 @@
+import { DEFAULT_LAYOUT, flipLetter, type LayoutId } from '$lib/layouts'
 import type { CuttleKey } from '$lib/worker/config'
 import type { Profile } from '$target/cosmosStructs'
 
@@ -127,19 +128,18 @@ export function keyInfo(k: CuttleKey) {
   return KEY_INFO[k.keycap.profile][k.keycap.row]
 }
 
+// Number-row and F-row mirror map (layout-independent for letter-swap layouts).
 // dprint-ignore
-const FLIPPED_KEY: Record<string, string> = {
+const SHARED_FLIP: Record<string, string> = {
   0: '1', 9: '2', 8: '3', 7: '4', 6: '5',
-  p: 'q', o: 'w', i: 'e', u: 'r', y: 't',
-  ';': 'a', l: 's', k: 'd', j: 'f', h: 'g',
-  '/': 'z', '.': 'x', ',': 'c', 'm': 'v', n: 'b',
-  'F10': 'F1', 'F9': 'F2', 'F8': 'F3', 'F7': 'F4', 'F6': 'F5'
+  'F10': 'F1', 'F9': 'F2', 'F8': 'F3', 'F7': 'F4', 'F6': 'F5',
 }
-for (const k of Object.keys(FLIPPED_KEY)) FLIPPED_KEY[FLIPPED_KEY[k]] = k
+for (const k of Object.keys(SHARED_FLIP)) SHARED_FLIP[SHARED_FLIP[k]] = k
 
-export function flippedKey(letter: string | undefined) {
+export function flippedKey(letter: string | undefined, layout: LayoutId = DEFAULT_LAYOUT) {
   if (!letter) return letter
-  return FLIPPED_KEY[letter] ?? letter
+  if (letter in SHARED_FLIP) return SHARED_FLIP[letter]
+  return flipLetter(letter, layout) ?? letter
 }
 
 const KEY_MATRIX = [

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { hoveredKey, clickedKey, selectMode, protoConfig } from '$lib/store'
+  import { hoveredKey, clickedKey, clickedVisualSide, selectMode, protoConfig } from '$lib/store'
   import { getContext } from 'svelte'
   import { nthKey, type CosmosKeyboard } from '$lib/worker/config.cosmos'
   import { Instance, interactivity } from '@threlte/extras'
@@ -9,6 +9,12 @@
   export let index: number | null
   export let position: Vector3Tuple
   export let rotation: Vector4Tuple
+  export let side: 'left' | 'right' | 'unibody' = 'right'
+
+  function onClick() {
+    $clickedKey = index
+    $clickedVisualSide = side
+  }
 
   type InteractivityContext = ReturnType<typeof interactivity>
   const context: InteractivityContext = getContext('interactivity')
@@ -41,8 +47,11 @@
   quaternion={rotation}
   on:pointerenter={() => ($hoveredKey = index)}
   on:pointerleave={() => ($hoveredKey = null)}
-  on:click={() => ($clickedKey = index)}
+  on:click={onClick}
   on:pointermissed={() => {
-    if (!context.initialHits.length) $clickedKey = null
+    if (!context.initialHits.length) {
+      $clickedKey = null
+      $clickedVisualSide = null
+    }
   }}
 />

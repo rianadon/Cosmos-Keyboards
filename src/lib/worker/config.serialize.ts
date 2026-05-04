@@ -2,6 +2,7 @@
  * For now, the new serializationf format for Cosmos is kept in a separate file.
  */
 
+import { DEFAULT_LAYOUT, type LayoutId } from '$lib/layouts'
 import { BinaryReader, BinaryWriter } from '@protobuf-ts/runtime'
 import {
   decodeBasicShellFlags,
