@@ -45,7 +45,6 @@ export interface AlertItem {
   /** DOM element to anchor the popover next to (typically the Field that
    *  triggered the alert). null disables anchoring (centered fallback). */
   anchor: HTMLElement | null
-  variant?: 'info' | 'warn' | 'error'
   /** Auto-dismiss after this many ms. Default 10000. Pass 0 to disable. */
   durationMs?: number
 }
@@ -54,7 +53,7 @@ export const alerts = writable<AlertItem[]>([])
 
 export function pushAlert(a: Omit<AlertItem, 'id'>): symbol {
   const id = Symbol()
-  alerts.update(xs => [...xs, { id, durationMs: 10000, variant: 'info', ...a }])
+  alerts.update(xs => [...xs, { id, durationMs: 10000, ...a }])
   return id
 }
 

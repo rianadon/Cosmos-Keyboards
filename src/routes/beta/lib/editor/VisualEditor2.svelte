@@ -252,23 +252,6 @@
   $: currentLayout = $protoConfig ? detectLayout($protoConfig) : DEFAULT_LAYOUT
   // Anchor for layout-related alerts; bound to the Layout Field below.
   let layoutFieldEl: HTMLElement
-  // Watch transitions named-layout → Custom (e.g. user edited an alpha key
-  // or deleted a column) and fire an info alert so the change is visible.
-  // Only mutates the local `prevLayout` — no protoConfig writes, so this
-  // doesn't pollute browser history the way the old reactive auto-flip did.
-  let prevLayout: LayoutId | undefined
-  function onLayoutChange(layout: LayoutId) {
-    if (prevLayout && prevLayout !== LAYOUT.CUSTOM && layout === LAYOUT.CUSTOM) {
-      pushAlert({
-        message:
-          "Your keys no longer match a named layout — switched to Custom. If this wasn't intentional, add the removed keys back and pick a layout to restore the standard legends.",
-        anchor: layoutFieldEl,
-        variant: 'warn',
-      })
-    }
-    prevLayout = layout
-  }
-  $: onLayoutChange(currentLayout)
 
   function updateLayout(ev: CustomEvent<string>) {
     if (!isLayoutId(ev.detail)) return
@@ -283,7 +266,6 @@
         message:
           "You're now on Custom — Cosmos won't overwrite your key legends. To edit a single key, click it in the 3D view and edit the Letter field.",
         anchor: layoutFieldEl,
-        variant: 'info',
       })
       return // No kbd mutation — Custom is the absence of a named layout.
     }
@@ -302,7 +284,6 @@
             ' '
           )}). Add the missing keys (or pick a wider size preset) and try again.`,
           anchor: layoutFieldEl,
-          variant: 'warn',
         })
         return
       }

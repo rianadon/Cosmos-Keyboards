@@ -207,6 +207,55 @@ test('REPRO: expert-mode edit to a non-alpha-block key (inner col) → duplicate
   expect(detectLayout(original)).toBe(LAYOUT.CUSTOM)
 })
 
+test('mirrored split: deleting a single right-side alpha key reports both halves', () => {
+  // Reviewer's case: in mirror form only the right cluster is stored, but the
+  // user sees both halves. Deleting QWERTY's 'p' on the right (= 'q' on the
+  // visible left) should surface BOTH 'p' and 'q' as missing — not just 'p'.
+  const kbd = buildDefaultCosmos()
+  expect(detectLayout(kbd)).toBe(LAYOUT.QWERTY)
+
+  // Confirm we're in mirror form (no explicit left fingers cluster stored).
+  expect(kbd.clusters.find(c => c.name === 'fingers' && c.side === 'left')).toBeUndefined()
+
+  const cluster = rightCluster(kbd)
+  const pCol = cluster.clusters.find(c => c.keys.some(k => k.profile.letter === 'p'))!
+  pCol.keys = pCol.keys.filter(k => k.profile.letter !== 'p')
+
+  const missing = missingKeysFor(kbd, LAYOUT.QWERTY)
+  expect(missing).toContain('p')
+  expect(missing).toContain(flipLetter('p', LAYOUT.QWERTY)!) // 'q'
+})
+
+test('non-mirror split: missing column on left reports left-side letter only', () => {
+  // When both halves are stored explicitly, each half is checked independently.
+  // Deleting a row-2 key on the LEFT side only should surface only the
+  // left-side letter ('q' for QWERTY) — the right cluster is untouched.
+  const kbd = buildDefaultCosmos()
+  expect(detectLayout(kbd)).toBe(LAYOUT.QWERTY)
+
+  // Splice in an explicit left cluster mirroring the right.
+  const right = rightCluster(kbd)
+  kbd.clusters.push(mirrorCluster(right, kbd))
+  expect(detectLayout(kbd)).toBe(LAYOUT.QWERTY)
+
+  // Delete the 'q' key (the visual left top-row outer alpha) from the left
+  // cluster only. The right cluster's 'p' is still intact.
+  const leftCluster = kbd.clusters.find(c => c.name === 'fingers' && c.side === 'left')!
+  const qCol = leftCluster.clusters.find(c => c.keys.some(k => k.profile.letter === 'q'))!
+  qCol.keys = qCol.keys.filter(k => k.profile.letter !== 'q')
+
+  const missing = missingKeysFor(kbd, LAYOUT.QWERTY)
+  expect(missing).toContain('q')
+  expect(missing).not.toContain('p')
+})
+
+test('intact mirror keyboard reports no missing keys', () => {
+  // Sanity check: a default mirrored QWERTY kbd should report zero missing
+  // keys for QWERTY (and the new dedupe shouldn't introduce phantoms).
+  const kbd = buildDefaultCosmos()
+  expect(missingKeysFor(kbd, LAYOUT.QWERTY)).toEqual([])
+})
+
 test('REPRO: left-cluster-only edit is detected (right cluster still pure)', () => {
   // The actual screenshot scenario: user is on Colemak, edits a LEFT-side
   // alpha key in expert mode (e.g., changes the top-row 'g' to 'a'), then

@@ -1077,43 +1077,62 @@ function rowMatches(observed: (string | undefined)[], layoutRow: string, isLeft:
 }
 
 /** Letters the named layout requires that the keyboard can't currently host.
- *  Checks two failure modes:
+ *  Inspects every visible half — both clusters when stored explicitly, plus
+ *  a synthesized left mirror in mirror form (where only the right is stored).
+ *  That way deleting `q` on a mirrored split surfaces both `q` and `p`, not
+ *  just the right-cluster's `p`.
+ *  Checks two failure modes per half:
  *    1. Fewer than STANDARD_ALPHA_COLS alpha columns (user shrank the kbd).
  *    2. An alpha column is missing one of rows 2/3/4 (user deleted a single
  *       key). detectLayout requires all three alpha rows in every alpha col,
  *       so a single missing key prevents the layout from being detected even
  *       after applyLayoutToKeys runs.
- *  Empty when the kbd has enough columns *and* every alpha col has rows 2/3/4. */
+ *  Empty when every visible half has enough columns *and* every alpha col has
+ *  rows 2/3/4. */
 export function missingKeysFor(kbd: CosmosKeyboard, target: NamedLayoutId): string[] {
-  const cluster = kbd.clusters.find(c => c.name === 'fingers' && c.side === 'right')
-    ?? kbd.clusters.find(c => c.name === 'fingers')
-  if (!cluster) return []
-  const alphas = alphaColumns(kbd, cluster)
+  const fingerClusters = kbd.clusters.filter(c => c.name === 'fingers')
+  if (fingerClusters.length === 0) return []
+
+  // Build the visible halves. Mirror form (only the right is stored)
+  // synthesizes the left via mirrorCluster so its missing keys are reported
+  // alongside the right's. Non-mirror splits and unibody keep their stored
+  // clusters as-is.
+  const right = fingerClusters.find(c => c.side === 'right')
+  const left = fingerClusters.find(c => c.side === 'left')
+  const halves: CosmosCluster[] = [...fingerClusters]
+  if (right && !left) halves.push(mirrorCluster(right, kbd))
+
   const layout = getLayout(target)
-  const isLeft = cluster.side === 'left'
-  const missing: string[] = []
+  const missing = new Set<string>()
 
-  // Mode 1: extra columns the kbd doesn't have at all.
-  for (let col = alphas.length; col < STANDARD_ALPHA_COLS; col++) {
-    for (const row of [2, 3, 4] as const) {
-      const letter = layout.rightRows[row].charAt(col)
-      if (letter) missing.push(letter)
+  for (const cluster of halves) {
+    const alphas = alphaColumns(kbd, cluster)
+    const isLeft = cluster.side === 'left'
+
+    // Mode 1: extra columns the cluster doesn't have at all.
+    for (let col = alphas.length; col < STANDARD_ALPHA_COLS; col++) {
+      for (const row of [2, 3, 4] as const) {
+        const expectedRight = layout.rightRows[row].charAt(col)
+        if (!expectedRight) continue
+        const expected = isLeft ? flipLetter(expectedRight, target) : expectedRight
+        if (expected) missing.add(expected)
+      }
+    }
+
+    // Mode 2: existing alpha cols that are missing one of rows 2/3/4.
+    for (let i = 0; i < alphas.length && i < STANDARD_ALPHA_COLS; i++) {
+      const col = cluster.clusters[alphas[i]]
+      const letterCol = isLeft ? alphas.length - 1 - i : i
+      for (const row of [2, 3, 4] as const) {
+        const hasRow = col.keys.some(k => k.profile.row === row)
+        if (hasRow) continue
+        const expectedRight = layout.rightRows[row].charAt(letterCol)
+        if (!expectedRight) continue
+        const expected = isLeft ? flipLetter(expectedRight, target) : expectedRight
+        if (expected) missing.add(expected)
+      }
     }
   }
 
-  // Mode 2: existing alpha cols that are missing one of rows 2/3/4.
-  for (let i = 0; i < alphas.length && i < STANDARD_ALPHA_COLS; i++) {
-    const col = cluster.clusters[alphas[i]]
-    const letterCol = isLeft ? alphas.length - 1 - i : i
-    for (const row of [2, 3, 4] as const) {
-      const hasRow = col.keys.some(k => k.profile.row === row)
-      if (hasRow) continue
-      const expectedRight = layout.rightRows[row].charAt(letterCol)
-      if (!expectedRight) continue
-      const expected = isLeft ? flipLetter(expectedRight, target) : expectedRight
-      if (expected) missing.push(expected)
-    }
-  }
-
-  return missing
+  return [...missing]
 }

@@ -1,29 +1,30 @@
 <script lang="ts">
-  // One alert popover. Positions itself below + slightly left of its anchor
-  // element using getBoundingClientRect. Tracks a setTimeout for auto-dismiss
-  // and pauses both the timer and the progress-bar animation while the
-  // pointer is over the popover.
+  // One alert popover. Positions itself to the right of its anchor element
+  // using getBoundingClientRect, falling back to below if the right edge
+  // would clip the viewport. Tracks a setTimeout for auto-dismiss and pauses
+  // both the timer and the progress-bar animation while the pointer is over
+  // the popover.
 
   import { type AlertItem, dismissAlert } from '$lib/store'
-  import Icon from '$lib/presentation/Icon.svelte'
-  import { mdiAlertCircleOutline, mdiAlertOutline, mdiClose, mdiInformationOutline } from '@mdi/js'
   import { fade } from 'svelte/transition'
   import { onDestroy, onMount, tick } from 'svelte'
 
   export let alert: AlertItem
 
   $: duration = alert.durationMs ?? 10000
-  $: variant = alert.variant ?? 'info'
-  $: iconPath =
-    variant === 'warn'
-      ? mdiAlertOutline
-      : variant === 'error'
-      ? mdiAlertCircleOutline
-      : mdiInformationOutline
 
   let popoverEl: HTMLElement
   let top = 0
   let left = 0
+  // Which side of the popover the tail/arrow points from. `right` means the
+  // popover sits to the right of the anchor and the arrow points left back at
+  // it; `below` is the narrow-viewport fallback where the popover sits below
+  // and the arrow points up.
+  let placement: 'right' | 'below' = 'right'
+  // Arrow position along the cross-axis of `placement`, in px from the popover
+  // edge. Aligned with the anchor's center so the arrow tip lands on the
+  // dropdown / field that triggered the alert.
+  let arrowOffset = 0
   let visible = false
   let paused = false
   let dismissTimer: ReturnType<typeof setTimeout> | null = null
@@ -38,24 +39,44 @@
 
   function reposition() {
     if (!alert.anchor || !popoverEl) {
-      // Fallback: pin to top-right of viewport.
+      // Fallback: pin to top-right of viewport. No anchor to point at, so hide
+      // the arrow by clamping it off-popover.
       top = 16
       left = window.innerWidth - popoverEl?.offsetWidth - 16
+      arrowOffset = -100
       return
     }
     const r = alert.anchor.getBoundingClientRect()
     const w = popoverEl.offsetWidth
     const h = popoverEl.offsetHeight
-    // Default: place below the anchor, left-aligned. If the anchor is too low
-    // for the popover to fit below, flip above instead. Then clamp to viewport
-    // so the popover never lands off-screen.
-    top = r.bottom + 8
-    if (top + h > window.innerHeight - 8) top = r.top - h - 8
-    if (top < 8) top = 8
-    if (top + h > window.innerHeight - 8) top = window.innerHeight - 8 - h
-    left = r.left
-    if (left + w > window.innerWidth - 8) left = window.innerWidth - 8 - w
-    if (left < 8) left = 8
+    // Default: place to the right of the anchor, top-aligned. If the right
+    // edge would clip, fall back to placing below the anchor (so narrow
+    // viewports still get a usable position). Then clamp to viewport.
+    let nextPlacement: 'right' | 'below' = 'right'
+    let l = r.right + 8
+    let t = r.top
+    if (l + w > window.innerWidth - 8) {
+      nextPlacement = 'below'
+      l = r.left
+      t = r.bottom + 8
+    }
+    if (t + h > window.innerHeight - 8) t = window.innerHeight - 8 - h
+    if (t < 8) t = 8
+    if (l + w > window.innerWidth - 8) l = window.innerWidth - 8 - w
+    if (l < 8) l = 8
+
+    // Point the arrow tip at the anchor's center along the cross-axis.
+    // Clamp away from the rounded corners so the arrow doesn't poke out.
+    if (nextPlacement === 'right') {
+      const anchorMidY = (r.top + r.bottom) / 2
+      arrowOffset = Math.max(12, Math.min(h - 12, anchorMidY - t))
+    } else {
+      const anchorMidX = (r.left + r.right) / 2
+      arrowOffset = Math.max(14, Math.min(w - 14, anchorMidX - l))
+    }
+    placement = nextPlacement
+    top = t
+    left = l
   }
 
   function startTimer() {
@@ -105,20 +126,17 @@
 {#if visible}
   <div
     bind:this={popoverEl}
-    class="alert-popover {variant}"
+    class="alert-popover {placement}"
     class:alert-paused={paused}
-    style="top: {top}px; left: {left}px; --dur: {duration}ms;"
+    style="top: {top}px; left: {left}px; --dur: {duration}ms; --arrow: {arrowOffset}px;"
     on:pointerenter={onPointerEnter}
     on:pointerleave={onPointerLeave}
     transition:fade={{ duration: 120 }}
     role="status"
   >
     <div class="alert-body">
-      <Icon path={iconPath} size="20" class="alert-icon flex-none" />
       <div class="text-sm">{alert.message}</div>
-      <button class="alert-close ml-2" on:click={() => dismissAlert(alert.id)} aria-label="Dismiss">
-        <Icon path={mdiClose} size="16" />
-      </button>
+      <button class="alert-dismiss" on:click={() => dismissAlert(alert.id)}>Dismiss</button>
     </div>
     {#if duration > 0}
       <div class="alert-progress" />
@@ -130,70 +148,101 @@
   .alert-popover {
     position: fixed;
     z-index: 100;
-    max-width: 24rem;
-    padding: 0.5rem 0.5rem 0.6rem 0.75rem;
+    max-width: 18rem;
+    padding: 0.6rem 0.75rem 0.7rem 0.75rem;
     border-radius: 0.375rem;
     box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.2);
     background: rgb(254 232 240);
     color: rgb(60 20 50);
     border: 1px solid rgb(244 200 220);
-    overflow: hidden;
   }
   :global(.dark) .alert-popover {
     background: rgb(80 28 56);
     color: rgb(254 232 240);
     border-color: rgb(120 50 90);
   }
-  .alert-popover.warn {
-    background: rgb(254 240 220);
-    border-color: rgb(240 200 140);
+
+  /* Tail/arrow pointing back at the anchor. ::before draws the slightly
+     larger border-color triangle, ::after the background-color fill on top.
+     The 1px overlap hides the seam between the popover border and the arrow. */
+  .alert-popover::before,
+  .alert-popover::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 0;
   }
-  :global(.dark) .alert-popover.warn {
-    background: rgb(96 56 12);
-    border-color: rgb(140 90 30);
+  .alert-popover.right::before,
+  .alert-popover.right::after {
+    top: var(--arrow);
+    transform: translateY(-50%);
   }
-  .alert-popover.error {
-    background: rgb(254 226 226);
-    border-color: rgb(248 180 180);
+  .alert-popover.right::before {
+    left: -7px;
+    border-top: 7px solid transparent;
+    border-bottom: 7px solid transparent;
+    border-right: 7px solid rgb(244 200 220);
   }
-  :global(.dark) .alert-popover.error {
-    background: rgb(96 28 28);
-    border-color: rgb(160 60 60);
+  .alert-popover.right::after {
+    left: -6px;
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    border-right: 6px solid rgb(254 232 240);
+  }
+  .alert-popover.below::before,
+  .alert-popover.below::after {
+    left: var(--arrow);
+    transform: translateX(-50%);
+  }
+  .alert-popover.below::before {
+    top: -7px;
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-bottom: 7px solid rgb(244 200 220);
+  }
+  .alert-popover.below::after {
+    top: -6px;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-bottom: 6px solid rgb(254 232 240);
+  }
+  :global(.dark) .alert-popover.right::before {
+    border-right-color: rgb(120 50 90);
+  }
+  :global(.dark) .alert-popover.right::after {
+    border-right-color: rgb(80 28 56);
+  }
+  :global(.dark) .alert-popover.below::before {
+    border-bottom-color: rgb(120 50 90);
+  }
+  :global(.dark) .alert-popover.below::after {
+    border-bottom-color: rgb(80 28 56);
   }
 
   .alert-body {
     display: flex;
-    align-items: flex-start;
-    gap: 0.5rem;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.35rem;
+  }
+  .alert-body .text-sm {
+    align-self: stretch;
   }
 
-  :global(.alert-icon) {
-    color: rgb(190 60 130);
-    margin-top: 1px;
-  }
-  .warn :global(.alert-icon) {
-    color: rgb(170 100 20);
-  }
-  .error :global(.alert-icon) {
-    color: rgb(190 50 50);
-  }
-
-  .alert-close {
+  .alert-dismiss {
     appearance: none;
     background: transparent;
     border: none;
     cursor: pointer;
-    padding: 2px;
-    border-radius: 3px;
-    opacity: 0.6;
-    color: inherit;
+    padding: 0;
+    font-weight: 500;
+    color: rgb(190 60 130);
   }
-  .alert-close:hover {
-    opacity: 1;
-    background: rgba(0, 0, 0, 0.05);
+  .alert-dismiss:hover {
+    text-decoration: underline;
   }
-  :global(.dark) .alert-close:hover {
-    background: rgba(255, 255, 255, 0.1);
+  :global(.dark) .alert-dismiss {
+    color: rgb(244 160 200);
   }
 
   .alert-progress {
@@ -203,14 +252,10 @@
     bottom: 0;
     height: 3px;
     background: rgb(190 60 130);
+    border-bottom-left-radius: 0.375rem;
+    border-bottom-right-radius: 0.375rem;
     transform-origin: left;
     animation: alert-deplete var(--dur, 10s) linear forwards;
-  }
-  .warn .alert-progress {
-    background: rgb(200 130 30);
-  }
-  .error .alert-progress {
-    background: rgb(190 50 50);
   }
   .alert-paused .alert-progress {
     animation-play-state: paused;
