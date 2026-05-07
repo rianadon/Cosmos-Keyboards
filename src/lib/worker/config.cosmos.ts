@@ -972,16 +972,17 @@ export function nthSplay(conf: CosmosKeyboard, n: number) {
 
 // --- Layout detection -------------------------------------------------------
 //
-// Layout used to be a stored field on CosmosKeyboard. It's now a pure function
-// of the alpha-key labels — like clusterAngle/clusterSeparation. detectLayout
-// inspects the right finger cluster and reports the named layout it matches,
-// or LAYOUT.CUSTOM. mirrorCluster() calls it internally so callers don't have
-// to thread the layout through.
+// Layout is a pure function of the alpha-key labels — like clusterAngle /
+// clusterSeparation. `detectLayout(kbd)` returns the named layout consistent
+// with every filled alpha key, or `LAYOUT.CUSTOM` when the kbd has at least
+// one alien letter (no named layout would put that letter at that position)
+// or duplicate alpha letters within a cluster. Missing keys never push the
+// kbd into Custom — deletion is absence, not contradiction. `mirrorCluster`
+// calls this internally so the synthesized left side keeps the user's
+// intended layout across deletions.
 
-/** Canonical 5-col alpha block (Q-W-E-R-T row 2, A-S-D-F-G row 3, Z-X-C-V-B
- *  row 4). All registered layouts share this width; an optional 6th outer-
- *  pinky column (`'` in QWERTY/Colemak/Workman, `-` in Dvorak) is treated as
- *  extra and doesn't participate in matching. */
+/** Canonical 5-col alpha block. All named layouts share this width; an
+ *  optional 6th outer-pinky column is treated as extra. */
 const STANDARD_ALPHA_COLS = 5
 
 /** Find the indices of the alpha/letter columns within a finger cluster.
@@ -1000,103 +1001,102 @@ export function alphaColumns(kbd: CosmosKeyboard, cluster: CosmosCluster) {
   return topColumns.sort((a, b) => a.column - b.column).map(c => c.index)
 }
 
-/** Inspect every finger cluster and return the named layout the kbd matches
- *  one-for-one, or `LAYOUT.CUSTOM` if no named layout fits. Match rules:
- *    - Each finger cluster must have at least STANDARD_ALPHA_COLS alpha cols.
- *    - Positions [0, STANDARD_ALPHA_COLS) on rows 2/3/4 in each cluster must
- *      agree with the candidate layout's right-side letters (left clusters
- *      compare against the layout's flipMap-mirrored letters).
- *    - No cluster may have duplicate alpha letters (catches stray expert-mode
- *      edits onto inner/outer cols).
- *    - All clusters (left and right, when both are present in non-mirror form)
- *      must agree on the same named layout. If they don't, return CUSTOM. */
+/** Map each surviving alpha column to a canonical column index 0..N-1.
+ *  When the cluster has fewer than STANDARD_ALPHA_COLS alpha cols, the
+ *  caller can't tell which col(s) were dropped (innermost vs outermost) —
+ *  cosmosFingers, for example, seeds 4-col clusters with cols 1..4 (inner
+ *  dropped) but a user manually shrinking might drop the outermost. Try
+ *  both anchorings via this offset list. For full 5-col clusters there's
+ *  only one mapping. */
+function anchorOffsets(alphasLength: number): number[] {
+  if (alphasLength >= STANDARD_ALPHA_COLS) return [0]
+  return [0, STANDARD_ALPHA_COLS - alphasLength]
+}
+
+/** Physical alpha-index → canonical column (with the given offset). */
+function canonicalCol(isLeft: boolean, alphasLength: number, physicalI: number, offset: number): number {
+  return isLeft ? offset + alphasLength - 1 - physicalI : offset + physicalI
+}
+
+/** Canonical column → physical alpha-index (or -1 if outside the cluster). */
+function physicalAlphaIndex(isLeft: boolean, alphasLength: number, canonical: number, offset: number): number {
+  const i = isLeft ? alphasLength - 1 - (canonical - offset) : canonical - offset
+  return i >= 0 && i < alphasLength ? i : -1
+}
+
+/** Score how well a layout matches a cluster: count canonical alpha
+ *  positions whose existing letter equals the layout's expected letter.
+ *  Picks the best of the supplied anchoring offsets. Mismatches and
+ *  missing keys lower the score but don't disqualify — best-fit detection
+ *  prefers "QWERTY with one mismatch" over "CUSTOM" for a single off-key. */
+function scoreClusterAgainst(
+  cluster: CosmosCluster,
+  alphas: number[],
+  isLeft: boolean,
+  id: NamedLayoutId,
+  offsets: number[],
+): number {
+  const layout = getLayout(id)
+  let best = 0
+  for (const offset of offsets) {
+    let score = 0
+    for (let i = 0; i < alphas.length; i++) {
+      const col = cluster.clusters[alphas[i]]
+      const letterCol = canonicalCol(isLeft, alphas.length, i, offset)
+      for (const row of [2, 3, 4] as const) {
+        const key = col.keys.find(k => k.profile.row === row && isAlphaLetter(k.profile.letter))
+        if (!key) continue
+        const expectedRight = layout.rightRows[row].charAt(letterCol) || undefined
+        if (!expectedRight) continue
+        const expected = isLeft ? flipLetter(expectedRight, id) : expectedRight
+        if (key.profile.letter === expected) score++
+      }
+    }
+    if (score > best) best = score
+  }
+  return best
+}
+
+/** Best-fit layout detection: pick the named layout with the most matching
+ *  alpha positions across every finger cluster. A single edited key keeps
+ *  the kbd on its closest named layout (e.g., QWERTY with 1 mismatch rather
+ *  than CUSTOM). CUSTOM is only returned when no named layout has any
+ *  matching position at all — typically only a kbd with no alpha letters
+ *  defaults via registry-order tiebreak to QWERTY. */
 export function detectLayout(kbd: CosmosKeyboard): LayoutId {
   const fingerClusters = kbd.clusters.filter(c => c.name === 'fingers')
   if (fingerClusters.length === 0) return DEFAULT_LAYOUT
 
-  const candidates = new Set<LayoutId>(NAMED_LAYOUT_IDS)
-  for (const cluster of fingerClusters) {
-    const alphas = alphaColumns(kbd, cluster)
-    if (alphas.length < STANDARD_ALPHA_COLS) return LAYOUT.CUSTOM
-    const isLeft = cluster.side === 'left'
-
-    // Reject this cluster (and therefore the whole kbd) if it has duplicate
-    // alpha letters — even when the canonical 5-col alpha block matches a
-    // named layout, an extra alpha letter elsewhere (e.g., an inner-pinky col
-    // edited to 'a' while the home row already has 'a') means the kbd is no
-    // longer pure.
-    const seen = new Set<string>()
-    for (const col of cluster.clusters) {
-      for (const key of col.keys) {
-        const letter = key.profile.letter
-        if (!isAlphaLetter(letter)) continue
-        if (seen.has(letter!)) return LAYOUT.CUSTOM
-        seen.add(letter!)
-      }
+  let bestId: LayoutId = LAYOUT.CUSTOM
+  let bestScore = -1
+  // Iterate in registry order so ties resolve to the earliest layout
+  // (QWERTY first → empty/ambiguous kbds default to QWERTY).
+  for (const id of NAMED_LAYOUT_IDS) {
+    let total = 0
+    for (const cluster of fingerClusters) {
+      const alphas = alphaColumns(kbd, cluster)
+      const offsets = anchorOffsets(alphas.length)
+      total += scoreClusterAgainst(cluster, alphas, cluster.side === 'left', id, offsets)
     }
-
-    const observed: Record<2 | 3 | 4, (string | undefined)[]> = { 2: [], 3: [], 4: [] }
-    for (let i = 0; i < alphas.length; i++) {
-      const col = cluster.clusters[alphas[i]]
-      const letterCol = isLeft ? alphas.length - 1 - i : i
-      for (const row of [2, 3, 4] as const) {
-        const key = col.keys.find(k => k.profile.row === row && isAlphaLetter(k.profile.letter))
-        observed[row][letterCol] = key?.profile.letter
-      }
+    if (total > bestScore) {
+      bestScore = total
+      bestId = id
     }
-
-    // Narrow `candidates` to the layouts that match this cluster.
-    for (const id of [...candidates]) {
-      const layout = getLayout(id)
-      if (
-        !rowMatches(observed[2], layout.rightRows[2], isLeft, id as NamedLayoutId)
-        || !rowMatches(observed[3], layout.rightRows[3], isLeft, id as NamedLayoutId)
-        || !rowMatches(observed[4], layout.rightRows[4], isLeft, id as NamedLayoutId)
-      ) {
-        candidates.delete(id)
-      }
-    }
-    if (candidates.size === 0) return LAYOUT.CUSTOM
   }
-
-  // Prefer the first candidate in named-order so the result is deterministic.
-  for (const id of NAMED_LAYOUT_IDS) if (candidates.has(id)) return id
-  return LAYOUT.CUSTOM
+  return bestScore > 0 ? bestId : DEFAULT_LAYOUT
 }
 
-function rowMatches(observed: (string | undefined)[], layoutRow: string, isLeft: boolean, layoutId: NamedLayoutId): boolean {
-  const upper = Math.min(STANDARD_ALPHA_COLS, layoutRow.length)
-  for (let col = 0; col < upper; col++) {
-    const expectedRight = layoutRow.charAt(col) || undefined
-    if (!expectedRight) continue
-    const expected = isLeft ? flipLetter(expectedRight, layoutId) : expectedRight
-    const observedLetter = observed[col]
-    if (!observedLetter || observedLetter !== expected) return false
-  }
-  return true
-}
-
-/** Letters the named layout requires that the keyboard can't currently host.
- *  Inspects every visible half — both clusters when stored explicitly, plus
- *  a synthesized left mirror in mirror form (where only the right is stored).
- *  That way deleting `q` on a mirrored split surfaces both `q` and `p`, not
- *  just the right-cluster's `p`.
- *  Checks two failure modes per half:
- *    1. Fewer than STANDARD_ALPHA_COLS alpha columns (user shrank the kbd).
- *    2. An alpha column is missing one of rows 2/3/4 (user deleted a single
- *       key). detectLayout requires all three alpha rows in every alpha col,
- *       so a single missing key prevents the layout from being detected even
- *       after applyLayoutToKeys runs.
- *  Empty when every visible half has enough columns *and* every alpha col has
- *  rows 2/3/4. */
-export function missingKeysFor(kbd: CosmosKeyboard, target: NamedLayoutId): string[] {
+/** Per-position diff between the kbd and a target named layout. Used by the
+ *  layout-completeness indicator next to the dropdown.
+ *    `missing`    — canonical position has no key (column or row deleted).
+ *    `mismatched` — canonical position has a key whose letter differs from
+ *                   the target's expected letter at that position.
+ *  Mirror form synthesizes the left half so deleting one alpha key on a
+ *  mirrored split surfaces both halves' letters. */
+export function layoutDiff(kbd: CosmosKeyboard, target: NamedLayoutId): { missing: string[]; mismatched: string[] } {
   const fingerClusters = kbd.clusters.filter(c => c.name === 'fingers')
-  if (fingerClusters.length === 0) return []
+  if (fingerClusters.length === 0) return { missing: [], mismatched: [] }
 
-  // Build the visible halves. Mirror form (only the right is stored)
-  // synthesizes the left via mirrorCluster so its missing keys are reported
-  // alongside the right's. Non-mirror splits and unibody keep their stored
-  // clusters as-is.
   const right = fingerClusters.find(c => c.side === 'right')
   const left = fingerClusters.find(c => c.side === 'left')
   const halves: CosmosCluster[] = [...fingerClusters]
@@ -1104,35 +1104,48 @@ export function missingKeysFor(kbd: CosmosKeyboard, target: NamedLayoutId): stri
 
   const layout = getLayout(target)
   const missing = new Set<string>()
+  const mismatched = new Set<string>()
 
   for (const cluster of halves) {
     const alphas = alphaColumns(kbd, cluster)
     const isLeft = cluster.side === 'left'
+    const offsets = anchorOffsets(alphas.length)
 
-    // Mode 1: extra columns the cluster doesn't have at all.
-    for (let col = alphas.length; col < STANDARD_ALPHA_COLS; col++) {
-      for (const row of [2, 3, 4] as const) {
-        const expectedRight = layout.rightRows[row].charAt(col)
-        if (!expectedRight) continue
-        const expected = isLeft ? flipLetter(expectedRight, target) : expectedRight
-        if (expected) missing.add(expected)
+    // Pick the anchoring (canonical-col → physical mapping) that yields the
+    // smallest diff for this cluster. Avoids reporting both "missing q" and
+    // "mismatched j" when the user's letters actually align under one
+    // anchoring (e.g., setClusterSize seeds 4 cols starting at canonical 1).
+    let bestMissing: Set<string> | null = null
+    let bestMismatched: Set<string> | null = null
+    let bestScore = Infinity
+    for (const offset of offsets) {
+      const m = new Set<string>()
+      const x = new Set<string>()
+      for (let cc = 0; cc < STANDARD_ALPHA_COLS; cc++) {
+        const physicalI = physicalAlphaIndex(isLeft, alphas.length, cc, offset)
+        const colIdx = physicalI >= 0 ? alphas[physicalI] : -1
+        const col = colIdx >= 0 ? cluster.clusters[colIdx] : undefined
+
+        for (const row of [2, 3, 4] as const) {
+          const expectedRight = layout.rightRows[row].charAt(cc)
+          if (!expectedRight) continue
+          const expected = isLeft ? flipLetter(expectedRight, target) : expectedRight
+          if (!expected) continue
+          const key = col?.keys.find(k => k.profile.row === row)
+          if (!key) m.add(expected)
+          else if (key.profile.letter !== expected) x.add(expected)
+        }
+      }
+      const score = m.size + x.size
+      if (score < bestScore) {
+        bestScore = score
+        bestMissing = m
+        bestMismatched = x
       }
     }
-
-    // Mode 2: existing alpha cols that are missing one of rows 2/3/4.
-    for (let i = 0; i < alphas.length && i < STANDARD_ALPHA_COLS; i++) {
-      const col = cluster.clusters[alphas[i]]
-      const letterCol = isLeft ? alphas.length - 1 - i : i
-      for (const row of [2, 3, 4] as const) {
-        const hasRow = col.keys.some(k => k.profile.row === row)
-        if (hasRow) continue
-        const expectedRight = layout.rightRows[row].charAt(letterCol)
-        if (!expectedRight) continue
-        const expected = isLeft ? flipLetter(expectedRight, target) : expectedRight
-        if (expected) missing.add(expected)
-      }
-    }
+    if (bestMissing) for (const v of bestMissing) missing.add(v)
+    if (bestMismatched) for (const v of bestMismatched) mismatched.add(v)
   }
 
-  return [...missing]
+  return { missing: [...missing], mismatched: [...mismatched] }
 }

@@ -29,7 +29,8 @@
   import { TupleStore } from './tuple'
 
   import { createEventDispatcher } from 'svelte'
-  import { protoConfig, pushAlert, tempConfig } from '$lib/store'
+  import { fade } from 'svelte/transition'
+  import { protoConfig, tempConfig } from '$lib/store'
   import { hasPro } from '@pro'
   import {
     BOARD_PROPERTIES,
@@ -40,8 +41,8 @@
   import {
     detectLayout,
     fromCosmosConfig,
+    layoutDiff,
     mirrorCluster,
-    missingKeysFor,
     partVariant,
     toCosmosConfig,
     type ConnectorMaybeCustom,
@@ -82,14 +83,15 @@
   } from './visualEditorHelpers'
   import {
     DEFAULT_LAYOUT,
-    isLayoutId,
-    LAYOUT,
-    LAYOUT_IDS,
+    isNamedLayoutId,
     LAYOUT_NAMES,
+    NAMED_LAYOUT_IDS,
     type LayoutId,
     type NamedLayoutId,
   } from '$lib/layouts'
   import {
+    mdiAlertCircleOutline,
+    mdiCheckCircleOutline,
     mdiCodeJson,
     mdiPencil,
     mdiArrowLeft,
@@ -98,6 +100,7 @@
     mdiChevronDown,
   } from '@mdi/js'
   import Icon from '$lib/presentation/Icon.svelte'
+  import Popover from 'svelte-easy-popover'
   import Dialog from '$lib/presentation/Dialog.svelte'
   import ConnectorsView from '../dialogs/ConnectorsView.svelte'
   import * as flags from '$lib/flags'
@@ -245,50 +248,29 @@
   }
 
   // Layout is derived purely from the kbd's alpha labels — like clusterAngle
-  // / clusterSeparation. The dropdown displays detectLayout($protoConfig);
-  // picking a named option mutates the keys via applyLayoutToKeys. There's
-  // no `kbd.layout` field to keep in sync, and no reactive auto-flip block
-  // (the dropdown re-derives on every render).
+  // / clusterSeparation. The dropdown displays detectLayout($protoConfig)
+  // (best-fit named layout); picking an option rewrites alpha letters via
+  // applyLayoutToKeys. Off-script edits stay on the closest named layout
+  // and surface in the indicator's mismatched/missing popover.
   $: currentLayout = $protoConfig ? detectLayout($protoConfig) : DEFAULT_LAYOUT
-  // Anchor for layout-related alerts; bound to the Layout Field below.
-  let layoutFieldEl: HTMLElement
+  $: currentDiff =
+    $protoConfig && isNamedLayoutId(currentLayout)
+      ? layoutDiff($protoConfig, currentLayout)
+      : { missing: [], mismatched: [] }
+  $: layoutComplete = currentDiff.missing.length === 0 && currentDiff.mismatched.length === 0
+  // Only the named layouts are user-selectable. CUSTOM isn't reachable via
+  // auto-detection (best-fit always returns a named layout), so it doesn't
+  // need to be in the dropdown either.
+  $: layoutOptions = NAMED_LAYOUT_IDS.map((id): { key: LayoutId; label: string } => ({
+    key: id,
+    label: LAYOUT_NAMES[id],
+  }))
+  let indicatorEl: HTMLElement
 
   function updateLayout(ev: CustomEvent<string>) {
-    if (!isLayoutId(ev.detail)) return
     const next = ev.detail as LayoutId
-    const prev = currentLayout
-    if (next === prev) return
-
-    // Manual switch INTO Custom from a named layout — pop a helper alert
-    // explaining how to edit individual key legends.
-    if (next === LAYOUT.CUSTOM && prev !== LAYOUT.CUSTOM) {
-      pushAlert({
-        message:
-          "You're now on Custom — Cosmos won't overwrite your key legends. To edit a single key, click it in the 3D view and edit the Letter field.",
-        anchor: layoutFieldEl,
-      })
-      return // No kbd mutation — Custom is the absence of a named layout.
-    }
-
-    // Switch OUT of Custom into a named layout — refuse if the keyboard
-    // doesn't have enough alpha columns to host the target layout (the user
-    // probably deleted columns earlier). Don't mutate the kbd; the dropdown
-    // re-derives via detectLayout and stays at Custom.
-    if (prev === LAYOUT.CUSTOM && next !== LAYOUT.CUSTOM) {
-      const missing = missingKeysFor($protoConfig, next as NamedLayoutId)
-      if (missing.length) {
-        pushAlert({
-          message: `${
-            LAYOUT_NAMES[next]
-          } can't fit on this keyboard — it needs alpha keys you don't have (${missing.join(
-            ' '
-          )}). Add the missing keys (or pick a wider size preset) and try again.`,
-          anchor: layoutFieldEl,
-        })
-        return
-      }
-    }
-
+    if (!isNamedLayoutId(next)) return
+    if (next === currentLayout) return
     protoConfig.update((proto) => applyLayoutToKeys(proto, next))
   }
 
@@ -614,21 +596,58 @@
       minWidth={200}
     />
   </Field>
-  <div bind:this={layoutFieldEl}>
-    <Field
-      name="Layout"
-      icon="layout"
-      help="The keyboard layout printed on the keycaps and used for firmware (ZMK/QMK) keycodes."
+  <Field
+    name="Layout"
+    icon="layout"
+    help="The keyboard layout printed on the keycaps and used for firmware (ZMK/QMK) keycodes."
+  >
+    <span
+      class="layout-indicator"
+      class:layout-indicator-ok={layoutComplete}
+      class:layout-indicator-warn={!layoutComplete}
+      bind:this={indicatorEl}
+      aria-label={layoutComplete ? 'Layout complete' : 'Layout partial'}
+      role="img"
     >
-      <SelectThingy
-        value={currentLayout}
-        on:change={updateLayout}
-        options={LAYOUT_IDS.map((id) => ({ key: id, label: LAYOUT_NAMES[id] }))}
-        component={SelectLayoutInner}
-        minWidth={320}
-      />
-    </Field>
-  </div>
+      <Icon path={layoutComplete ? mdiCheckCircleOutline : mdiAlertCircleOutline} size="20px" />
+    </span>
+    {#if !layoutComplete}
+      <Popover
+        triggerEvents={['hover', 'focus']}
+        referenceElement={indicatorEl}
+        placement="left"
+        spaceAway={6}
+      >
+        <div class="layout-indicator-popover" in:fade={{ duration: 100 }} out:fade={{ duration: 200 }}>
+          <div class="font-semibold text-sm mb-1">
+            {LAYOUT_NAMES[currentLayout]} — partial match
+          </div>
+          {#if currentDiff.missing.length}
+            <div class="text-sm">
+              <span class="opacity-70">Missing:</span>
+              <span class="font-mono">{currentDiff.missing.join(' ')}</span>
+            </div>
+          {/if}
+          {#if currentDiff.mismatched.length}
+            <div class="text-sm">
+              <span class="opacity-70">Mismatched:</span>
+              <span class="font-mono">{currentDiff.mismatched.join(' ')}</span>
+            </div>
+          {/if}
+          <div class="text-xs opacity-70 mt-1">
+            Re-pick the layout to apply its letters where keys exist.
+          </div>
+        </div>
+      </Popover>
+    {/if}
+    <SelectThingy
+      value={currentLayout}
+      on:change={updateLayout}
+      options={layoutOptions}
+      component={SelectLayoutInner}
+      minWidth={320}
+    />
+  </Field>
   <Field name="Switches" icon="switch">
     <!-- <Select bind:value={$protoConfig.partType.type} on:change={updateSwitch}>
            {#each objKeys(PART_INFO).filter((k) => PART_INFO[k].category == 'Sockets' && k != 'blank') as part}
@@ -1518,5 +1537,29 @@
     padding-top: calc(1rem - 10px) !important;
     padding-bottom: calc(1rem - 10px) !important;
     vertical-align: bottom;
+  }
+
+  .layout-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .layout-indicator-ok {
+    color: rgb(13 148 136); /* teal-600 */
+  }
+  :global(.dark) .layout-indicator-ok {
+    color: rgb(94 234 212); /* teal-300 */
+  }
+  .layout-indicator-warn {
+    color: rgb(217 119 6); /* amber-600 */
+    cursor: help;
+  }
+  :global(.dark) .layout-indicator-warn {
+    color: rgb(252 211 77); /* amber-300 */
+  }
+
+  .layout-indicator-popover {
+    --at-apply: 'rounded bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 px-3 py-2 mx-2';
+    max-width: 18rem;
   }
 </style>
