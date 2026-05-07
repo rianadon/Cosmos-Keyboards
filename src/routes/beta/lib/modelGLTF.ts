@@ -13,7 +13,7 @@ import * as THREE from 'three'
 import type { FullGeometry, KeyboardMeshes } from './viewers/viewer3dHelpers'
 import type { WorkerPool } from './workerPool'
 
-export async function modelAsScene(pool: WorkerPool<typeof import('$lib/worker/api')>, geometry: FullGeometry, side: 'left' | 'right' | 'unibody') {
+export async function modelAsScene(pool: WorkerPool<typeof import('$lib/worker/api')>, geometry: FullGeometry, side: 'left' | 'right' | 'center' | 'unibody') {
   const geo = geometry[side]!
   const conf = geo.c
   const wall = pool.execute((p) => p.cutWall(conf))
@@ -128,7 +128,7 @@ export function cosmosMaterial(kind: 'key' | 'case', opts: { opacity?: number; b
   })
 }
 
-export async function renderedModelAsGroup(geometry: FullGeometry, side: 'left' | 'right' | 'unibody', meshes: KeyboardMeshes, cosmosMaterials = false) {
+export async function renderedModelAsGroup(geometry: FullGeometry, side: 'left' | 'right' | 'center' | 'unibody', meshes: KeyboardMeshes, cosmosMaterials = false) {
   const geo = geometry[side]!
   const conf = geo.c
 
@@ -231,7 +231,7 @@ export async function renderedModelAsGroup(geometry: FullGeometry, side: 'left' 
   return group
 }
 
-export async function renderedModelsAsScene(geometry: FullGeometry, meshes: ['left' | 'right' | 'unibody', KeyboardMeshes][], center: Center, cosmosMaterials = false) {
+export async function renderedModelsAsScene(geometry: FullGeometry, meshes: ['left' | 'right' | 'center' | 'unibody', KeyboardMeshes][], center: Center, cosmosMaterials = false) {
   const scene = new THREE.Scene()
   for (const [side, model] of meshes) {
     const cent = center[side]!

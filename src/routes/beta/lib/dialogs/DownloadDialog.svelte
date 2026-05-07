@@ -44,7 +44,7 @@
   const defaultEmail = lastUser.success && lastUser.method == 'Email' ? lastUser.user.login : ''
   console.log('defaultEmail', defaultEmail, lastUser)
 
-  function downloadSTEP(side: 'left' | 'right' | 'unibody') {
+  function downloadSTEP(side: 'left' | 'right' | 'center' | 'unibody') {
     numDownloaded += 1
     if (!config) {
       generatingError = new Error('Configuration has not yet been evaluated')
@@ -78,7 +78,7 @@
       )
   }
 
-  function downloadSTL(model: string, side: 'left' | 'right' | 'unibody' | 'test') {
+  function downloadSTL(model: string, side: 'left' | 'right' | 'center' | 'unibody' | 'test') {
     numDownloaded += 1
     if (!config) {
       generatingError = new Error('Configuration has not yet been evaluated')
@@ -140,7 +140,7 @@
     return new Blob([contents], { type: blob.type })
   }
 
-  async function downloadGLB(side: 'left' | 'right' | 'unibody') {
+  async function downloadGLB(side: 'left' | 'right' | 'center' | 'unibody') {
     numDownloaded += 1
     generatingGLB = true
     const scene = await modelAsScene(pool, newFullGeometry(config), side)
@@ -151,20 +151,22 @@
     generatingGLB = false
   }
 
-  function iconPath(kbdName: 'left' | 'right' | 'unibody') {
+  function iconPath(kbdName: 'left' | 'right' | 'center' | 'unibody') {
     if (kbdName == 'left') return mdiHandBackLeft
     if (kbdName == 'right') return mdiHandBackRight
     return mdiKeyboard
   }
 
-  function kbdName(kbdName: 'left' | 'right' | 'unibody', name = '') {
+  function kbdName(kbdName: 'left' | 'right' | 'center' | 'unibody', name = '') {
     if (name) {
       if (kbdName == 'left') return 'L / ' + name
       if (kbdName == 'right') return 'R / ' + name
+      if (kbdName == 'center') return 'C / ' + name
       return name
     }
     if (kbdName == 'left') return 'Left'
     if (kbdName == 'right') return 'Right'
+    if (kbdName == 'center') return 'Center'
     return 'Unibody'
   }
 

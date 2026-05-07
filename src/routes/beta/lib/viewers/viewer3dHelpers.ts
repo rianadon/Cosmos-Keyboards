@@ -22,7 +22,7 @@ export type KeyboardMeshes = {
   supportGeometries?: ShapeMesh[]
 }
 
-type Full<T> = { left?: T; right?: T; unibody?: T }
+type Full<T> = { left?: T; right?: T; center?: T; unibody?: T }
 
 export type FullKeyboardMeshes = Full<KeyboardMeshes>
 export type FullGeometry = Full<Geometry>
@@ -237,7 +237,7 @@ export function formatHoming(key: CosmosKey) {
   return key.profile.home[0].toUpperCase() + key.profile.home.substring(1)
 }
 
-export function kbdOffset(kbd: 'left' | 'right' | 'unibody') {
+export function kbdOffset(kbd: 'left' | 'right' | 'center' | 'unibody') {
   return 0
   // if (kbd == 'left') return -90
   // if (kbd == 'right') return 90

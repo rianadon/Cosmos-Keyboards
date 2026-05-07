@@ -6,10 +6,12 @@ import {
   type CosmosKey,
   type CosmosKeyboard,
   fromCosmosConfig,
+  hasCenter,
   indexOfKey,
   mirrorCluster,
   type PartType,
   sideFromCosmosConfig,
+  sortClusters,
   toCosmosConfig,
 } from '$lib/worker/config.cosmos'
 import { decodeCosmosCluster, LETTERS } from '$lib/worker/config.serialize'
@@ -61,6 +63,7 @@ export function setClusterSeparation(c: CosmosKeyboard, desiredSeparation: numbe
   const currentSeparation = clusterSeparation(c)
   const separationToAdd = (desiredSeparation - currentSeparation) / 2
   for (const cluster of c.clusters) {
+    if (cluster.side === 'center') continue // Center stays put; left/right move outward.
     let [x, y, z] = decodeTuple(cluster.position ?? 0n)
     x += Math.round(10 * (cluster.side == 'left' ? -separationToAdd : separationToAdd))
     cluster.position = encodeTuple([x, y, z])
@@ -68,6 +71,50 @@ export function setClusterSeparation(c: CosmosKeyboard, desiredSeparation: numbe
   let [x, y, z] = decodeTuple(c.wristRestPosition)
   x += 10 * separationToAdd
   c.wristRestPosition = encodeTuple([x, y, z])
+  return c
+}
+
+/** Gap between the right edge of the left half and the left edge of the center cluster. */
+export function clusterLeftSeparation(c: CosmosKeyboard) {
+  const leftSide = sideFromCosmosConfig(c, 'left', false)
+  const centerSide = sideFromCosmosConfig(c, 'center', false)
+  if (!leftSide || !centerSide) return 0
+  const leftBB = estimatedBB(newGeometry(leftSide), false, false)
+  const centerBB = estimatedBB(newGeometry(centerSide), false, false)
+  return centerBB[0] - leftBB[1]
+}
+
+/** Gap between the right edge of the center cluster and the left edge of the right half. */
+export function clusterRightSeparation(c: CosmosKeyboard) {
+  const rightSide = sideFromCosmosConfig(c, 'right', false)
+  const centerSide = sideFromCosmosConfig(c, 'center', false)
+  if (!rightSide || !centerSide) return 0
+  const rightBB = estimatedBB(newGeometry(rightSide), false, false)
+  const centerBB = estimatedBB(newGeometry(centerSide), false, false)
+  return rightBB[0] - centerBB[1]
+}
+
+/** Translate left clusters outward (or inward) so the gap to the center reaches `desiredGap`. */
+export function setClusterLeftSeparation(c: CosmosKeyboard, desiredGap: number) {
+  const current = clusterLeftSeparation(c)
+  const delta = current - desiredGap // positive: move left clusters right (closer to center)
+  for (const cluster of c.clusters) {
+    if (cluster.side !== 'left') continue
+    const [x, y, z] = decodeTuple(cluster.position ?? 0n)
+    cluster.position = encodeTuple([x + Math.round(10 * delta), y, z])
+  }
+  return c
+}
+
+/** Translate right clusters outward (or inward) so the gap from the center reaches `desiredGap`. */
+export function setClusterRightSeparation(c: CosmosKeyboard, desiredGap: number) {
+  const current = clusterRightSeparation(c)
+  const delta = desiredGap - current // positive: push right clusters further right
+  for (const cluster of c.clusters) {
+    if (cluster.side !== 'right') continue
+    const [x, y, z] = decodeTuple(cluster.position ?? 0n)
+    cluster.position = encodeTuple([x + Math.round(10 * delta), y, z])
+  }
   return c
 }
 
@@ -243,6 +290,111 @@ export function isThumb(c: CosmosKeyboard, type: Thumb, side: 'left' | 'right') 
   )
 }
 
+// ---------- Center cluster helpers ----------
+
+export type CenterPreset = 'manuform'
+
+const CENTER_CONFIG: Record<CenterPreset, { b64: string; n?: number[]; defaultN?: number }> = {
+  manuform: THUMB_CONFIG.manuform,
+}
+
+/** Compute the world-space midpoint of left and right finger clusters.
+ * If left is omitted (mirror-collapsed), use (0, ry, rz) — the implicit mirror axis. */
+function computeCenterMidpoint(c: CosmosKeyboard): bigint {
+  const rightFingers = c.clusters.find(cl => cl.side === 'right' && cl.name === 'fingers')
+  const leftFingers = c.clusters.find(cl => cl.side === 'left' && cl.name === 'fingers')
+  if (!rightFingers) return 0n
+  const [rx, ry, rz] = decodeTuple(rightFingers.position ?? 0n)
+  if (!leftFingers) {
+    // Mirror-collapsed: midpoint is on the X-axis of symmetry.
+    return encodeTuple([0, ry, rz])
+  }
+  const [lx, ly, lz] = decodeTuple(leftFingers.position ?? 0n)
+  return encodeTuple([Math.round((rx + lx) / 2), Math.round((ry + ly) / 2), Math.round((rz + lz) / 2)])
+}
+
+export function setCenterCluster(c: CosmosKeyboard, type: CenterPreset, howMany?: number) {
+  const { b64, n, defaultN } = CENTER_CONFIG[type]
+  const cluster = decodeCosmosCluster(Cluster.fromBinary(Uint8Array.from(atob(b64), c => c.charCodeAt(0))))
+  if (n) {
+    const limit = howMany ?? defaultN ?? Infinity
+    cluster.clusters.forEach(c => c.keys = c.keys.filter(k => Number(k.profile.letter) <= limit))
+  }
+  cluster.clusters.forEach(c => c.keys.forEach(k => k.profile.letter = undefined))
+
+  // Mark as center (no mirroring — center is symmetric about its own axis).
+  cluster.side = 'center'
+  cluster.name = 'center'
+  cluster.clusters.forEach(col => {
+    col.side = 'center'
+    col.name = 'center'
+  })
+
+  // Initial position: midpoint of left and right finger clusters.
+  cluster.position = computeCenterMidpoint(c)
+
+  // Lazy add or replace.
+  const existing = c.clusters.find(cl => cl.side === 'center')
+  if (existing) {
+    if (existing.type !== cluster.type) existing.curvature = cluster.curvature
+    existing.type = cluster.type
+    existing.clusters = cluster.clusters
+    existing.rotation = cluster.rotation
+    existing.position = cluster.position
+  } else {
+    c.clusters.push(cluster)
+    sortClusters(c.clusters)
+  }
+  return c
+}
+
+export function removeCenterCluster(c: CosmosKeyboard) {
+  c.clusters = c.clusters.filter(cl => cl.side !== 'center')
+  return c
+}
+
+const decodedCenterClusters = mapObj(CENTER_CONFIG, ({ b64 }) => {
+  const cl = decodeCosmosCluster(Cluster.fromBinary(Uint8Array.from(atob(b64), c => c.charCodeAt(0))))
+  cl.side = 'center'
+  cl.name = 'center'
+  cl.clusters.forEach(col => {
+    col.side = 'center'
+    col.name = 'center'
+  })
+  return cl
+})
+
+export function isCenterCluster(c: CosmosKeyboard, type: CenterPreset) {
+  const ref = decodedCenterClusters[type]
+  const center = c.clusters.find(cl => cl.side === 'center')
+  if (!center || center.clusters.length == 0) return false
+  return center.clusters.every(c =>
+    ref.clusters.find(c2 =>
+      c.column == c2.column && c.type == c2.type
+      && c.rotation == c2.rotation
+      && c.keys.every(k =>
+        c2.keys.find(k2 =>
+          k.row == k2.row && k.column == k2.column
+          && k.position == k2.position && k.rotation == k2.rotation
+        )
+      )
+    )
+  )
+}
+
+export function getCenterClusterN(c: CosmosKeyboard) {
+  const center = c.clusters.find(cl => cl.side === 'center')
+  if (!center) return
+  const which = objKeys(CENTER_CONFIG).find(k => CENTER_CONFIG[k].n && isCenterCluster(c, k))
+  if (which) {
+    return {
+      which,
+      options: CENTER_CONFIG[which].n!,
+      n: sum(center.clusters.map(c => c.keys.length)),
+    }
+  }
+}
+
 /** Returns a test print for a given config */
 export function testPrint(c: FullCuttleform) {
   // Use the first key of the curved thumb cluster
@@ -284,6 +436,11 @@ export function getNKeys(kbd: CosmosKeyboard, type: PartType['type']) {
       ? sum(rightSide!.clusters.map(c => c.keys.filter(k => !type || (k.partType.type || c.partType.type || kbd.partType.type) == type).length))
       : nRight
     nKeys += nRight + nLeft
+  }
+  // Center cluster: counted once (no mirror).
+  const centerSide = kbd.clusters.find(c => c.side == 'center')
+  if (centerSide) {
+    nKeys += sum(centerSide.clusters.map(c => c.keys.filter(k => !type || (k.partType.type || c.partType.type || kbd.partType.type) == type).length))
   }
   return nKeys
 }
@@ -342,6 +499,7 @@ function alphaColumns(kbd: CosmosKeyboard, cluster: CosmosCluster) {
 export function addRow(kbd: CosmosKeyboard, fn: (side: 'left' | 'right', alphas: number[], row: number, column: number) => string | null) {
   return mapClusters(kbd, cluster => {
     if (cluster.name !== 'fingers') return cluster // Only change fingers cluster
+    if (cluster.side === 'center') return cluster // No num/fn rows on center cluster
     const alphas = alphaColumns(kbd, cluster)
     return mapClusters(cluster, (col, i) => {
       const firstKey = col.keys.filter(a => !!a.row).sort((a, b) => a.row! - b.row!)[0]
@@ -349,7 +507,7 @@ export function addRow(kbd: CosmosKeyboard, fn: (side: 'left' | 'right', alphas:
       if (!PART_INFO[firstKey.partType.type || col.partType.type || kbd.partType.type!].keycap) return col // Skip if first key not a keycap
       const oldRow = firstKey?.profile.row
       const row = (firstKey?.row || 0) - 1
-      const letter = fn(cluster.side, alphas, i, cluster.clusters.length)
+      const letter = fn(cluster.side as 'left' | 'right', alphas, i, cluster.clusters.length)
       if (letter === null) return col // Skip adding key if fn returns null
       const key: CosmosKey = {
         profile: {

@@ -12,7 +12,7 @@
   import Dialog from '$lib/presentation/Dialog.svelte'
 
   export let center: Center
-  export let meshes: ['left' | 'right' | 'unibody', KeyboardMeshes][]
+  export let meshes: ['left' | 'right' | 'center' | 'unibody', KeyboardMeshes][]
   export let geometry: FullGeometry
   export let size: [number, number, number]
 

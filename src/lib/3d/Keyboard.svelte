@@ -31,7 +31,7 @@
   export let translation: number = 0
   export let flip = true
   export let reachability: boolean[] | undefined = undefined
-  export let side: 'left' | 'right' | 'unibody'
+  export let side: 'left' | 'right' | 'center' | 'unibody'
   export let keyColor: [any, number] | undefined = undefined
   export let trackballColor: any | undefined = undefined
   export let switchColor: [any, number] | undefined = undefined

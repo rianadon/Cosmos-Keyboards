@@ -10,7 +10,7 @@
   export let keebGeometry: Geometry | undefined = undefined
   export let meshes: KeyboardMeshes
   export let transparency: number = 100
-  export let side: 'left' | 'right' | 'unibody'
+  export let side: 'left' | 'right' | 'center' | 'unibody'
 
   export let noWeb = false
 

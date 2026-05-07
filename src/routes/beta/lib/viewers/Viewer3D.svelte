@@ -361,7 +361,7 @@
   function getClickedSide(
     config: CosmosKeyboard,
     n: number | null
-  ): 'unibody' | 'right' | 'left' | null {
+  ): 'unibody' | 'right' | 'left' | 'center' | null {
     if (config?.unibody) return 'unibody'
     if (n == null) return null
     return nthKey(config, n).cluster.side

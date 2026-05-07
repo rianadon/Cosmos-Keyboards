@@ -39,6 +39,7 @@
   } from '$lib/geometry/microcontrollers'
   import {
     fromCosmosConfig,
+    hasCenter,
     mirrorCluster,
     partVariant,
     toCosmosConfig,
@@ -57,18 +58,26 @@
   import DecimalInputInherit from './DecimalInputInherit.svelte'
   import {
     clusterAngle,
+    clusterLeftSeparation,
+    clusterRightSeparation,
     clusterSeparation,
     connectorsString,
+    getCenterClusterN,
     getNKeys,
     getSize,
     getThumbN,
     hasInnerCol,
     hasKey,
     hasOuterCol,
+    isCenterCluster,
     isFnKey,
     isNumKey,
     isThumb,
+    removeCenterCluster,
+    setCenterCluster,
     setClusterAngle,
+    setClusterLeftSeparation,
+    setClusterRightSeparation,
     setClusterSeparation,
     setClusterSize,
     setThumbCluster,
@@ -441,10 +450,13 @@
   $: leftThumbCluster = $protoConfig.clusters.find((c) => c.name == 'thumbs' && c.side == 'left')
   $: rightFingersCl = $protoConfig.clusters.find((c) => c.name == 'fingers' && c.side == 'right')!
   $: leftFingersCl = $protoConfig.clusters.find((c) => c.name == 'fingers' && c.side == 'left')
+  $: centerCl = $protoConfig.clusters.find((c) => c.side == 'center')
   $: tempFingersCluster = $tempConfig.clusters.find((c) => c.name == 'fingers')!
 
   $: whichRight = getThumbN($protoConfig, 'right')
   $: whichLeft = getThumbN($protoConfig, 'left')
+  $: whichCenter = getCenterClusterN($protoConfig)
+  $: hasCenterCl = hasCenter($protoConfig)
 
   const rotationStore = new TupleStore(-1n, 45, true)
   const [rotationX, rotationY, rotationZ, _] = rotationStore.components()
@@ -463,6 +475,18 @@
   $: clusterSep = clusterSeparation($tempConfig)
   const setClusterSep = (ev: CustomEvent) =>
     protoConfig.update((proto) => setClusterSeparation(proto, ev.detail))
+
+  $: clusterLeftSep = clusterLeftSeparation($tempConfig)
+  $: clusterRightSep = clusterRightSeparation($tempConfig)
+  const setClusterLeftSep = (ev: CustomEvent) =>
+    protoConfig.update((proto) => setClusterLeftSeparation(proto, ev.detail))
+  const setClusterRightSep = (ev: CustomEvent) =>
+    protoConfig.update((proto) => setClusterRightSeparation(proto, ev.detail))
+
+  function changeCenterCluster(which: 'manuform', e: Event) {
+    const n = Number((e.target as HTMLInputElement).value)
+    protoConfig.update((p) => setCenterCluster(p, which, n))
+  }
 
   $: clusterAng = clusterAngle($tempConfig)
   const setClusterAng = (ev: CustomEvent) =>
@@ -832,6 +856,50 @@
     </Field>
   {/if}
 </Section>
+<Section name="Center Cluster">
+  <Preset
+    on:click={() => protoConfig.update(removeCenterCluster)}
+    selected={!centerCl || centerCl.clusters.length == 0}
+    ><span class="relative top-[-0.1em]">&empty;</span></Preset
+  >
+  <Preset
+    name="Manuform"
+    on:click={() => protoConfig.update((p) => setCenterCluster(p, 'manuform'))}
+    selected={isCenterCluster($protoConfig, 'manuform')}
+  />
+  {#if whichCenter}
+    {@const which = whichCenter.which}
+    <Field name="Number of Keys" icon="numeric">
+      <Select value={whichCenter.n} on:change={(e) => changeCenterCluster(which, e)}>
+        {#each whichCenter.options.toReversed() as opt}<option value={opt}>{opt}</option>{/each}
+      </Select>
+    </Field>
+  {/if}
+  {#if centerCl && centerCl.clusters.length > 0}
+    <Field name="Row's Curvature" plusminus icon="row-curve">
+      <AngleInput bind:value={centerCl.curvature.curvatureA} />
+    </Field>
+    <Field name="Column's Curvature" plusminus icon="column-curve">
+      <AngleInput bind:value={centerCl.curvature.curvatureB} />
+    </Field>
+    {#if !basic}
+      <Field name="Horizontal (X) Spacing" icon="expand-horizontal">
+        <DecimalInputInherit
+          bind:value={centerCl.curvature.horizontalSpacing}
+          inherit={$protoConfig.curvature.horizontalSpacing}
+          units="mm"
+        />
+      </Field>
+      <Field name="Vertical (Y) Spacing" icon="expand-vertical">
+        <DecimalInputInherit
+          bind:value={centerCl.curvature.verticalSpacing}
+          inherit={$protoConfig.curvature.horizontalSpacing}
+          units="mm"
+        />
+      </Field>
+    {/if}
+  {/if}
+</Section>
 <!--
 <Section name="Thumb Cluster">
   <svelte:fragment slot="preset">
@@ -1123,9 +1191,19 @@
         <DecimalInput bind:value={$protoConfig.connectorLeftIndex} class="w-[5.2rem]" />
         <DecimalInput bind:value={$protoConfig.connectorRightIndex} class="w-[5.2rem]" />
       </Field>
+      {#if hasCenterCl}
+        <Field
+          name="Connector Index (C)"
+          help="Position of the microcontroller and connector on the center piece, expressed as a wall index.<br>Currently, it is {attempt(
+            () => geometry.center?.connectorIndex
+          )} (0–{geometry.center?.allWallCriticalPoints().length})."
+        >
+          <DecimalInput bind:value={$protoConfig.connectorCenterIndex} />
+        </Field>
+      {/if}
     {/if}
   {/if}
-  {#if $protoConfig.connectorRightIndex != -1 || (!$protoConfig.unibody && $protoConfig.connectorLeftIndex != -1)}
+  {#if $protoConfig.connectorRightIndex != -1 || (!$protoConfig.unibody && $protoConfig.connectorLeftIndex != -1) || (hasCenterCl && $protoConfig.connectorCenterIndex != -1)}
     <InfoBox>
       The microcontroller and connector are manually placed in this model. Set Advanced &rarr; Connector
       Index to -1 to automatically place them.
@@ -1370,9 +1448,19 @@
     <Checkbox value={$protoConfig.unibody} on:change={setUnibody} />
   </Field>
   {#if $protoConfig.unibody}
-    <Field name="Unibody Separation" help="Minimum distance between the left and right clusters">
-      <DecimalInput value={clusterSep} on:change={setClusterSep} units="mm" />
-    </Field>
+    {#if hasCenterCl}
+      <Field
+        name="Unibody Separation (L/R)"
+        help="Distance from the left half to center, and from center to the right half"
+      >
+        <DecimalInput value={clusterLeftSep} on:change={setClusterLeftSep} class="w-[5.2rem]" />
+        <DecimalInput value={clusterRightSep} on:change={setClusterRightSep} class="w-[5.2rem]" />
+      </Field>
+    {:else}
+      <Field name="Unibody Separation" help="Minimum distance between the left and right clusters">
+        <DecimalInput value={clusterSep} on:change={setClusterSep} units="mm" />
+      </Field>
+    {/if}
     <Field name="Unibody Angle">
       <AngleInput value={clusterAng} on:change={setClusterAng} />
     </Field>

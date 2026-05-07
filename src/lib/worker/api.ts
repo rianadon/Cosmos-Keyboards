@@ -306,7 +306,7 @@ async function getModel(conf: Cuttleform, name: string, stitchWalls: boolean, fl
   }
 }
 
-export async function getSTL(conf: Cuttleform, name: string, side: 'left' | 'right' | 'unibody' | 'test', stitchWalls: boolean) {
+export async function getSTL(conf: Cuttleform, name: string, side: 'left' | 'right' | 'center' | 'unibody' | 'test', stitchWalls: boolean) {
   const flip = side == 'left'
   let model = await getModel(conf, name, stitchWalls, flip)
   if (name == 'wristrest' && side == 'unibody' && conf.wristRestRight && model) {
@@ -385,7 +385,7 @@ function meshWithVolumeAndSupport(solid: Solid, minZ: number) {
 //   return props.Mass()
 // }
 
-export async function intersections(conf: Cuttleform, side: 'left' | 'right' | 'unibody'): Promise<ConfErrors> {
+export async function intersections(conf: Cuttleform, side: 'left' | 'right' | 'center' | 'unibody'): Promise<ConfErrors> {
   const intersections: ConfErrors = []
   try {
     const geometry = newGeometry(conf)
