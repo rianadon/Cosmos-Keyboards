@@ -56,7 +56,7 @@
       case 'rotatex': return mdi.mdiAxisXRotateClockwise
       case 'rotatey': return mdi.mdiAxisYRotateClockwise
       case 'rotatez': return mdi.mdiAxisZRotateClockwise
-      case 'letter': return mdi.mdiAlphaA
+      case 'letter': return mdi.mdiAlphaA // legacy alias; prefer name="layout" for the layout dropdown
       case 'shaper': return mdi.mdiSquareRoundedBadgeOutline
       case 'joystick': return 'm6.8 13l5.2 3l5.2-3l-4.2-2.425V14h-2v-3.425zM11 8.275V7.85q-1.1-.325-1.8-1.238T8.5 4.5q0-1.45 1.025-2.475T12 1t2.475 1.025T15.5 4.5q0 1.2-.7 2.113T13 7.85v.425l7 4.025q.475.275.738.738T21 14.05v1.9q0 .55-.262 1.013T20 17.7l-7 4.025Q12.525 22 12 22t-1-.275L4 17.7q-.475-.275-.737-.737T3 15.95v-1.9q0-.55.263-1.012T4 12.3zm0 9.45l-6-3.45v1.675L12 20l7-4.05v-1.675l-6 3.45Q12.525 18 12 18t-1-.275M12 6q.625 0 1.063-.437T13.5 4.5t-.437-1.062T12 3t-1.062.438T10.5 4.5t.438 1.063T12 6m0 14'
       case 'plum-twist': return 'M12.83 11.7c-1.09.51-.2 1.92-.35 2.81-.66.79.28 2.1 1.08 1.23.18-1.28.68-3.27-.73-4.04ZM4.27 9.5c-1.27.38-1.77 1.85-2.2 2.96-.43.92-1.17 3.58.6 3.23.88-.82.45-2.25 1.12-3.21.33-.89 1.98-2.36.49-2.98ZM7.89 6.45c1.93-.26.77 1.43.83 2.44 1.61.01 3.39.52 4.31 1.94 1.48 2.22.9 5.13-.18 7.39-.44 1.36-1.38 2.49-2.45 3.41-2.93 2.46-7.93 1.38-9.69-1.98-1.34-2.93-.69-6.45 1.01-9.09.94-1.71 3.06-2.11 4.85-2.03 1.64.74.52-1.63 1.31-2.07Zm5.48-4.44c-.22.26-.37.46 0 0ZM13.36 0c.64.04.88.81.55 1.3-1.02.97.31.37.84.17 2.86-.36 5.79 1.03 7.55 3.27.66.95 1.28 1.8 1.41 2.96.43 1.23-.13 2.46.22 3.64-.07.14-.54.21-.52.85-.31 1.18-.86 2.29-1.52 3.32-1.04 1.64-2.13-.44-2.61-1.42-1.51-1.81-2.66-3.87-4.04-5.77-.83-1.34-1.8-2.59-2.81-3.81-.36-.95-1.11-.8-1.73-.15-1.04.65-2.17 1.25-3.44 1.23-1.15.5-1.87-.93-.78-1.55 1.16-.75 2.55-1.05 3.67-1.87C11.4 1.71 12.03.28 13.36 0Z'
@@ -80,6 +80,21 @@
   <svg viewBox="0 0 24 24" width={size} height={size} class={clazz} aria-label={alt}>
     {#if alt} <title>{alt}</title>{/if}
     <path d={path} fill="currentColor" />
+  </svg>
+{:else if name == 'layout'}
+  <!-- 3 rows × 5 columns of mini-keys, mirroring the alpha block in the
+       layout dropdown's preview. Home row drawn at full opacity to read as
+       the visual centerpiece; top + bottom rows lightened. Fills the icon
+       area at sizes comparable to the neighboring Keycaps and Switches. -->
+  <svg viewBox="0 0 24 24" width={size} height={size} class={clazz} aria-label={alt}>
+    {#if alt}<title>{alt}</title>{/if}
+    <g fill="currentColor">
+      {#each [{ y: 6, op: 0.55 }, { y: 10.2, op: 1 }, { y: 14.4, op: 0.55 }] as row}
+        {#each [1.8, 6, 10.2, 14.4, 18.6] as x}
+          <rect {x} y={row.y} width="3.6" height="3.6" rx="0.6" opacity={row.op} />
+        {/each}
+      {/each}
+    </g>
   </svg>
 {:else if name == 'shrouding'}
   <!-- From IconPark -->

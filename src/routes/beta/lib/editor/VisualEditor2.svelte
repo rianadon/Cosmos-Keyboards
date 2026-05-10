@@ -29,7 +29,8 @@
   import { TupleStore } from './tuple'
 
   import { createEventDispatcher } from 'svelte'
-  import { protoConfig, tempConfig } from '$lib/store'
+  import { fade } from 'svelte/transition'
+  import { protoConfig, pushAlert, tempConfig } from '$lib/store'
   import { hasPro } from '@pro'
   import {
     BOARD_PROPERTIES,
@@ -38,7 +39,9 @@
     microcontrollerConnectors,
   } from '$lib/geometry/microcontrollers'
   import {
+    detectLayout,
     fromCosmosConfig,
+    layoutDiff,
     mirrorCluster,
     partVariant,
     toCosmosConfig,
@@ -56,6 +59,7 @@
   import { encodeVariant, PART_INFO } from '$lib/geometry/socketsParts'
   import DecimalInputInherit from './DecimalInputInherit.svelte'
   import {
+    applyLayoutToKeys,
     clusterAngle,
     clusterSeparation,
     connectorsString,
@@ -78,6 +82,19 @@
     toggleOuterCol,
   } from './visualEditorHelpers'
   import {
+    DEFAULT_LAYOUT,
+    getLayout,
+    isNamedLayoutId,
+    LANGUAGES,
+    LAYOUT_NAMES,
+    NAMED_LAYOUT_IDS,
+    orderLanguages,
+    type LayoutId,
+    type NamedLayoutId,
+  } from '$lib/layouts'
+  import {
+    mdiAlertCircleOutline,
+    mdiCheckCircleOutline,
     mdiCodeJson,
     mdiPencil,
     mdiArrowLeft,
@@ -86,6 +103,7 @@
     mdiChevronDown,
   } from '@mdi/js'
   import Icon from '$lib/presentation/Icon.svelte'
+  import Popover from 'svelte-easy-popover'
   import Dialog from '$lib/presentation/Dialog.svelte'
   import ConnectorsView from '../dialogs/ConnectorsView.svelte'
   import * as flags from '$lib/flags'
@@ -96,6 +114,7 @@
   import SelectProfileInner from './SelectProfileInner.svelte'
   import SelectProfileLabel from './SelectProfileLabel.svelte'
   import SelectMicrocontrollerInner from './SelectMicrocontrollerInner.svelte'
+  import SelectLayoutInner from './SelectLayoutInner.svelte'
   import { trackEvent } from '$lib/telemetry'
   import { footIndices } from '$lib/worker/geometry'
 
@@ -231,6 +250,86 @@
     }
   }
 
+  // Layout: `kbd.layoutId` is the user's stored pick; detectLayout returns
+  // it directly when set, else falls back to best-fit on the alpha letters
+  // (legacy URLs). Picking an option writes both the letters and layoutId.
+  // The indicator surfaces any divergence between the stored layout and the
+  // kbd's actual letters.
+  $: currentLayout = $protoConfig ? detectLayout($protoConfig) : DEFAULT_LAYOUT
+  $: currentDiff =
+    $protoConfig && isNamedLayoutId(currentLayout)
+      ? layoutDiff($protoConfig, currentLayout)
+      : { missing: [], mismatched: [] }
+  $: layoutComplete = currentDiff.missing.length === 0 && currentDiff.mismatched.length === 0
+
+  // Group the dropdown by language. `navigator.language` (with SSR guard)
+  // puts the user's group at the top; remaining languages follow in registry
+  // order. Each option carries a precomputed diff against the current kbd so
+  // SelectLayoutInner can render a per-option match indicator without
+  // touching the store.
+  type LayoutOption = {
+    key: LayoutId
+    label: string
+    diff?: { missing: string[]; mismatched: string[] } | null
+    firmwareSafe?: boolean
+  }
+  $: userLang = typeof window !== 'undefined' ? navigator.language?.split('-')[0] ?? 'en' : 'en'
+  $: layoutOptions = (() => {
+    const ordered = orderLanguages(LANGUAGES, userLang)
+    const groups: Record<string, LayoutOption[]> = {}
+    for (const code of ordered) {
+      const opts = NAMED_LAYOUT_IDS.filter((id) => getLayout(id).languages.includes(code)).map(
+        (id): LayoutOption => ({
+          key: id,
+          label: LAYOUT_NAMES[id],
+          diff: $protoConfig ? layoutDiff($protoConfig, id) : null,
+          firmwareSafe: getLayout(id).firmwareSafe,
+        })
+      )
+      if (opts.length) groups[LANGUAGES[code].name] = opts
+    }
+    return groups
+  })()
+  let indicatorEl: HTMLElement
+  let layoutSelectEl: HTMLElement
+  // Suppress the firmware-incomplete alert on subsequent picks of the same
+  // non-ASCII layout in this session. Persists only for the current page;
+  // a reload resets so users get reminded once per session.
+  const seenWarnings = new Set<NamedLayoutId>()
+
+  function updateLayout(ev: CustomEvent<string>) {
+    const next = ev.detail as LayoutId
+    if (!isNamedLayoutId(next)) return
+    if (next === currentLayout && $protoConfig?.layoutId === next) return
+    const layout = getLayout(next)
+    protoConfig.update((proto) => {
+      const updated = applyLayoutToKeys(proto, next)
+      updated.layoutId = next
+      return updated
+    })
+    if (!layout.firmwareSafe && !seenWarnings.has(next)) {
+      seenWarnings.add(next)
+      const sample = currentDiffSample(layout)
+      pushAlert({
+        message: `${layout.name} uses non-ASCII keys${
+          sample ? ` (${sample})` : ''
+        }. Firmware export for these is pending a follow-up — your keymap will have gaps until then.`,
+        anchor: layoutSelectEl,
+      })
+    }
+  }
+
+  function currentDiffSample(layout: ReturnType<typeof getLayout>): string {
+    const chars: string[] = []
+    for (const row of [2, 3, 4] as const) {
+      for (const ch of layout.rightRows[row]) {
+        if (ch.charCodeAt(0) > 127 && !chars.includes(ch)) chars.push(ch)
+        if (chars.length >= 2) return chars.join(', ')
+      }
+    }
+    return chars.join(', ')
+  }
+
   function updateSwitch(ev: CustomEvent) {
     $protoConfig.partType.type = ev.detail
     const switchType = PART_INFO[$protoConfig.partType.type].keycap
@@ -277,7 +376,7 @@
         proto.clusters.splice(
           cluster == 'fingers' ? 2 : 3,
           0,
-          mirrorCluster(proto.clusters.find((c) => c.side == 'right' && c.name == cluster)!)
+          mirrorCluster(proto.clusters.find((c) => c.side == 'right' && c.name == cluster)!, proto)
         )
       }
       return proto
@@ -552,6 +651,60 @@
       labelComponent={SelectProfileLabel}
       minWidth={200}
     />
+  </Field>
+  <Field
+    name="Layout"
+    icon="layout"
+    help="The keyboard layout printed on the keycaps and used for firmware (ZMK/QMK) keycodes."
+  >
+    <span
+      class="layout-indicator"
+      class:layout-indicator-ok={layoutComplete}
+      class:layout-indicator-warn={!layoutComplete}
+      bind:this={indicatorEl}
+      aria-label={layoutComplete ? 'Layout complete' : 'Layout partial'}
+      role="img"
+    >
+      <Icon path={layoutComplete ? mdiCheckCircleOutline : mdiAlertCircleOutline} size="20px" />
+    </span>
+    {#if !layoutComplete}
+      <Popover
+        triggerEvents={['hover', 'focus']}
+        referenceElement={indicatorEl}
+        placement="left"
+        spaceAway={6}
+      >
+        <div class="layout-indicator-popover" in:fade={{ duration: 100 }} out:fade={{ duration: 200 }}>
+          <div class="font-semibold text-sm mb-1">
+            {LAYOUT_NAMES[currentLayout]} — partial match
+          </div>
+          {#if currentDiff.missing.length}
+            <div class="text-sm">
+              <span class="opacity-70">Missing:</span>
+              <span class="font-mono">{currentDiff.missing.join(' ')}</span>
+            </div>
+          {/if}
+          {#if currentDiff.mismatched.length}
+            <div class="text-sm">
+              <span class="opacity-70">Mismatched:</span>
+              <span class="font-mono">{currentDiff.mismatched.join(' ')}</span>
+            </div>
+          {/if}
+          <div class="text-xs opacity-70 mt-1">
+            Re-pick the layout to apply its letters where keys exist.
+          </div>
+        </div>
+      </Popover>
+    {/if}
+    <div bind:this={layoutSelectEl}>
+      <SelectThingy
+        value={currentLayout}
+        on:change={updateLayout}
+        options={layoutOptions}
+        component={SelectLayoutInner}
+        minWidth={320}
+      />
+    </div>
   </Field>
   <Field name="Switches" icon="switch">
     <!-- <Select bind:value={$protoConfig.partType.type} on:change={updateSwitch}>
@@ -1442,5 +1595,29 @@
     padding-top: calc(1rem - 10px) !important;
     padding-bottom: calc(1rem - 10px) !important;
     vertical-align: bottom;
+  }
+
+  .layout-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .layout-indicator-ok {
+    color: rgb(13 148 136); /* teal-600 */
+  }
+  :global(.dark) .layout-indicator-ok {
+    color: rgb(94 234 212); /* teal-300 */
+  }
+  .layout-indicator-warn {
+    color: rgb(217 119 6); /* amber-600 */
+    cursor: help;
+  }
+  :global(.dark) .layout-indicator-warn {
+    color: rgb(252 211 77); /* amber-300 */
+  }
+
+  .layout-indicator-popover {
+    --at-apply: 'rounded bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 px-3 py-2 mx-2';
+    max-width: 18rem;
   }
 </style>

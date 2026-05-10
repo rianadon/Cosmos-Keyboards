@@ -2,6 +2,7 @@
  * For now, the new serializationf format for Cosmos is kept in a separate file.
  */
 
+import { DEFAULT_LAYOUT, LAYOUT_ENCODE, type LayoutId } from '$lib/layouts'
 import { BinaryReader, BinaryWriter } from '@protobuf-ts/runtime'
 import {
   decodeBasicShellFlags,
@@ -527,6 +528,9 @@ export function decodeConfigIdk(b64: string): CosmosKeyboard {
         footDiameter: keebExtra.footDiameter / 10,
       }
       : undefined,
+    layoutId: keeb.layoutId != null && keeb.layoutId < LAYOUT_ENCODE.length
+      ? LAYOUT_ENCODE[keeb.layoutId]
+      : undefined,
   }
   return conf
 }
@@ -703,6 +707,9 @@ export function encodeCosmosConfig(conf: CosmosKeyboard): Keyboard {
     wristRestPosition: conf.wristRestPosition,
     cluster: conf.clusters.map(encodeCosmosCluster),
     shell: encodeShell(conf.shell),
+    layoutId: conf.layoutId != null
+      ? (LAYOUT_ENCODE.indexOf(conf.layoutId) >= 0 ? LAYOUT_ENCODE.indexOf(conf.layoutId) : undefined)
+      : undefined,
     extra: {
       verticalClearance: Math.round(conf.verticalClearance * 10),
       wristRestAngle: Math.round(conf.wristRestProps.angle * 45),

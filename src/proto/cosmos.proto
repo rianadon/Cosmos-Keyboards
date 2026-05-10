@@ -24,6 +24,13 @@ message Keyboard {
   optional KeyboardExtra extra = 14;
   optional int64 wrist_rest_position = 15; // For easy movement of the wrist rest
 
+  // The user's picked layout, indexed into LAYOUT_ENCODE (append-only). The
+  // 5 original layouts (QWERTY=0, Colemak=1, Colemak-DH=2, Dvorak=3,
+  // Workman=4) keep their previous indices so URLs from before the
+  // no-attribute interregnum decode unchanged. Unset on legacy/no-attribute
+  // URLs, which fall through to best-fit detection on the alpha letters.
+  optional uint32 layout_id = 33;
+
   oneof shell {
     BasicShell basic_shell = 30;
     TiltShell tilt_shell = 31;

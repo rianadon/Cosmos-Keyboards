@@ -359,7 +359,7 @@ const EXTRAKEY_REQUIRED = new Set([
 ])
 
 /** Return the QMK keycode for a letter */
-function keycode(code: string | undefined) {
+export function keycode(code: string | undefined) {
   const c = code?.toLowerCase()
 
   if (!c || !code) return 'KC_SPACE'

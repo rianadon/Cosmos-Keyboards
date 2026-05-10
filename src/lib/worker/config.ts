@@ -1,5 +1,6 @@
 import type manuform from '$assets/manuform.json'
 import { socketSize } from '$lib/geometry/socketsParts'
+import { DEFAULT_LAYOUT, type LayoutId, rightSideLetter } from '$lib/layouts'
 import type { CuttleKey, CuttleTrackpadCirqueKey, MicrocontrollerName } from '$target/cosmosStructs'
 import {
   CONNECTOR,
@@ -513,19 +514,14 @@ function mergedCurvature(c: CuttleformProto, pinky: boolean, curv: any): any {
   }
 }
 
-function letterForKeycap(row: number, column: number) {
-  let letter = {
-    1: '67890',
-    2: 'yuiop',
-    3: "hjkl;'",
-    4: 'nm,./',
-    5: '{}[]\\',
-  }[row]?.charAt(column) || undefined
-  if (row == 0) letter = ['F6', 'F7', 'F8', 'F9', 'F10'][column] || undefined
-  return letter
+function letterForKeycap(row: number, column: number, layout: LayoutId = DEFAULT_LAYOUT) {
+  if (row == 0) return ['F6', 'F7', 'F8', 'F9', 'F10'][column] || undefined
+  if (row == 1) return '67890'.charAt(column) || undefined
+  if (row == 5) return '{}[]\\'.charAt(column) || undefined
+  return rightSideLetter(row, column, layout)
 }
 
-function keycapInfo(c: CuttleformProto, row: number, column: number): Keycap {
+function keycapInfo(c: CuttleformProto, row: number, column: number, layout: LayoutId = DEFAULT_LAYOUT): Keycap {
   let home: Keycap['home']
   if (row == 3) {
     home = ({
@@ -539,7 +535,7 @@ function keycapInfo(c: CuttleformProto, row: number, column: number): Keycap {
   // Row 5 is used for thumb keys (in MT3, the 5th row key has zero tilt)
   // So don't use it for the non-thumb keys since it is special!
   // (hence the Math.min(x, 4)
-  return { profile: keycapType(c), row: Math.min(row, 4), home, letter: letterForKeycap(row, column) }
+  return { profile: keycapType(c), row: Math.min(row, 4), home, letter: letterForKeycap(row, column, layout) }
 }
 
 export function decodeTuple(tuple: bigint): [number, number, number, number] {
@@ -602,7 +598,7 @@ export function tupleToXYZ(tuple: bigint) {
   return [decoded[0] / 10, decoded[1] / 10, decoded[2] / 10] as Point
 }
 
-export function cosmosFingers(nRows: number, nCols: number, side: 'left' | 'right', addExtraRow = true): CosmosCluster[] {
+export function cosmosFingers(nRows: number, nCols: number, side: 'left' | 'right', addExtraRow = true, layout: LayoutId = DEFAULT_LAYOUT): CosmosCluster[] {
   let columns = range(0, nCols)
   if (nCols <= 4) columns = range(1, nCols + 1)
   const rows = range(0, nRows)
@@ -650,7 +646,7 @@ export function cosmosFingers(nRows: number, nCols: number, side: 'left' | 'righ
             4: 'pinky',
           } as Record<number, Keycap['home']>)[column] ?? null
           : null,
-        letter: letterForKeycap(row2Row(row), column),
+        letter: letterForKeycap(row2Row(row), column, layout),
       },
       row: row - centerRow,
       position: undefined,
