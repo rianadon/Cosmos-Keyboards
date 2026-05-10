@@ -18,6 +18,16 @@
  * `flipMap` mirrors a right-side letter to its left-side counterpart for split
  * keyboards. The map only needs to cover one direction; consumers handle the
  * inverse.
+ *
+ * Each layout also carries:
+ *   `languages`     — ISO 639-1 codes the layout applies to. Drives the
+ *                     dropdown's language grouping. Multi-entry for shared
+ *                     layouts (e.g. Swedish/Finnish).
+ *   `firmwareSafe`  — `true` when the alpha block is ASCII-only, so ZMK/QMK
+ *                     export emits the right keycodes without locale-specific
+ *                     keymap includes. `false` when the alpha block has
+ *                     non-ASCII chars (ä, ö, ñ, etc.); export of those keys is
+ *                     pending a follow-up PR adding `firmwareLocale` routing.
  */
 
 export const LAYOUT = {
@@ -26,10 +36,26 @@ export const LAYOUT = {
   COLEMAK_DH: 'colemak-dh',
   DVORAK: 'dvorak',
   WORKMAN: 'workman',
+  HALMAK: 'halmak',
+  NORMAN: 'norman',
+  HANDS_DOWN: 'hands-down',
+  ENGRAM: 'engram',
+  QWERTZ: 'qwertz',
+  AZERTY: 'azerty',
+  QWERTY_ES: 'qwerty-es',
+  QWERTY_IT: 'qwerty-it',
+  QWERTY_PT_BR: 'qwerty-pt-br',
+  QWERTY_NL: 'qwerty-nl',
+  QWERTY_SV: 'qwerty-sv',
+  QWERTY_DA: 'qwerty-da',
+  QWERTY_NO: 'qwerty-no',
+  QWERTY_PL: 'qwerty-pl',
+  QWERTY_TR: 'qwerty-tr',
   /** User-edited layout that doesn't match any registered named layout.
-   *  Has no rightRows/flipMap — `getLayout(CUSTOM)` returns undefined and
-   *  callers must guard. Set automatically when the user edits an alpha
-   *  legend or removes an alpha column; can also be picked manually. */
+   *  Has no rightRows/flipMap — `getLayout(CUSTOM)` falls back to QWERTY.
+   *  Auto-detection no longer returns CUSTOM (best-fit always picks a named
+   *  layout, with `kbd.layoutId` overriding when set); kept here for legacy
+   *  callers and as a sentinel. */
   CUSTOM: 'custom',
 } as const
 
@@ -49,7 +75,14 @@ export interface KeyboardLayout {
   rightRows: { 2: string; 3: string; 4: string }
   /** Right-side letter -> left-side letter mirror map. */
   flipMap: Record<string, string>
+  /** ISO 639-1 codes the layout applies to. Drives dropdown grouping. */
+  languages: readonly string[]
+  /** True when the alpha block is ASCII-only (ZMK/QMK export works without
+   *  locale-specific keymap includes). */
+  firmwareSafe: boolean
 }
+
+// --- English (en) ----------------------------------------------------------
 
 const QWERTY: KeyboardLayout = {
   id: LAYOUT.QWERTY,
@@ -77,6 +110,8 @@ const QWERTY: KeyboardLayout = {
     '.': 'x',
     '/': 'z',
   },
+  languages: ['en'],
+  firmwareSafe: true,
 }
 
 const COLEMAK: KeyboardLayout = {
@@ -105,6 +140,8 @@ const COLEMAK: KeyboardLayout = {
     '.': 'x',
     '/': 'z',
   },
+  languages: ['en'],
+  firmwareSafe: true,
 }
 
 const COLEMAK_DH: KeyboardLayout = {
@@ -133,6 +170,8 @@ const COLEMAK_DH: KeyboardLayout = {
     '.': 'd',
     '/': 'v',
   },
+  languages: ['en'],
+  firmwareSafe: true,
 }
 
 const DVORAK: KeyboardLayout = {
@@ -161,6 +200,8 @@ const DVORAK: KeyboardLayout = {
     v: 'k',
     z: ';',
   },
+  languages: ['en'],
+  firmwareSafe: true,
 }
 
 const WORKMAN: KeyboardLayout = {
@@ -189,7 +230,451 @@ const WORKMAN: KeyboardLayout = {
     '.': 'x',
     '/': 'z',
   },
+  languages: ['en'],
+  firmwareSafe: true,
 }
+
+const HALMAK: KeyboardLayout = {
+  id: LAYOUT.HALMAK,
+  name: 'Halmak',
+  description: 'Genetically-optimized 30-key layout that places frequent letters under the strongest fingers. Includes punctuation in the alpha block.',
+  rightRows: {
+    2: ';qudj',
+    3: '.aeoi',
+    4: 'gpxky',
+  },
+  flipMap: {
+    ';': 'z',
+    q: 'b',
+    u: 'r',
+    d: 'l',
+    j: 'w',
+    '.': ',',
+    a: 't',
+    e: 'n',
+    o: 'h',
+    i: 's',
+    g: '/',
+    p: 'c',
+    x: 'v',
+    k: 'm',
+    y: 'f',
+  },
+  languages: ['en'],
+  firmwareSafe: true,
+}
+
+const NORMAN: KeyboardLayout = {
+  id: LAYOUT.NORMAN,
+  name: 'Norman',
+  description: 'A QWERTY-friendly redesign that keeps Z/X/C/V positions for shortcut familiarity while moving the home row toward Colemak-like efficiency.',
+  rightRows: {
+    2: 'jurl;',
+    3: 'ynioh',
+    4: 'pm,./',
+  },
+  flipMap: {
+    j: 'k',
+    u: 'f',
+    r: 'd',
+    l: 'w',
+    ';': 'q',
+    y: 'g',
+    n: 't',
+    i: 'e',
+    o: 's',
+    h: 'a',
+    p: 'b',
+    m: 'v',
+    ',': 'c',
+    '.': 'x',
+    '/': 'z',
+  },
+  languages: ['en'],
+  firmwareSafe: true,
+}
+
+const HANDS_DOWN: KeyboardLayout = {
+  id: LAYOUT.HANDS_DOWN,
+  name: 'Hands Down',
+  description: "Alan Reiser's ergonomic layout designed for column-staggered boards. Vowels on the right, consonants on the left, very low same-finger reuse.",
+  rightRows: {
+    2: 'kyoj/',
+    3: 'wueia',
+    4: 'zf,.;',
+  },
+  flipMap: {
+    k: 'v',
+    y: 'p',
+    o: 'h',
+    j: 'c',
+    '/': 'q',
+    w: 'g',
+    u: 't',
+    e: 'n',
+    i: 's',
+    a: 'r',
+    z: 'b',
+    f: 'd',
+    ',': 'l',
+    '.': 'm',
+    ';': 'x',
+  },
+  languages: ['en'],
+  firmwareSafe: true,
+}
+
+const ENGRAM: KeyboardLayout = {
+  id: LAYOUT.ENGRAM,
+  name: 'Engram',
+  description: "Arno Klein's 2021 layout, designed via formal scoring over English text. Vowels on the left, balanced finger load.",
+  rightRows: {
+    2: 'ldwvz',
+    3: '.htsn',
+    4: 'rmfp/',
+  },
+  flipMap: {
+    l: "'",
+    d: 'u',
+    w: 'o',
+    v: 'y',
+    z: 'b',
+    '.': ',',
+    h: 'a',
+    t: 'e',
+    s: 'i',
+    n: 'c',
+    r: '-',
+    m: 'k',
+    f: 'j',
+    p: 'x',
+    '/': 'g',
+  },
+  languages: ['en'],
+  firmwareSafe: true,
+}
+
+// --- German (de) -----------------------------------------------------------
+
+const QWERTZ: KeyboardLayout = {
+  id: LAYOUT.QWERTZ,
+  name: 'QWERTZ',
+  description: 'The German-region standard. Y and Z are swapped from QWERTY; ä, ö, ü sit at the right pinky.',
+  rightRows: {
+    2: 'zuiopü',
+    3: 'hjklöä',
+    4: 'nm,.-',
+  },
+  flipMap: {
+    z: 't',
+    u: 'r',
+    i: 'e',
+    o: 'w',
+    p: 'q',
+    h: 'g',
+    j: 'f',
+    k: 'd',
+    l: 's',
+    'ö': 'a',
+    n: 'b',
+    m: 'v',
+    ',': 'c',
+    '.': 'x',
+    '-': 'y',
+  },
+  languages: ['de'],
+  firmwareSafe: false,
+}
+
+// --- French (fr) -----------------------------------------------------------
+
+const AZERTY: KeyboardLayout = {
+  id: LAYOUT.AZERTY,
+  name: 'AZERTY',
+  description: 'The French and Belgian standard. A/Q swap, Z/W swap, M moves to right of L; ù sits at the right pinky.',
+  rightRows: {
+    2: 'yuiop',
+    3: 'hjklmù',
+    4: 'n,;:!',
+  },
+  flipMap: {
+    y: 't',
+    u: 'r',
+    i: 'e',
+    o: 'z',
+    p: 'a',
+    h: 'g',
+    j: 'f',
+    k: 'd',
+    l: 's',
+    m: 'q',
+    n: 'b',
+    ',': 'v',
+    ';': 'c',
+    ':': 'x',
+    '!': 'w',
+  },
+  languages: ['fr'],
+  firmwareSafe: false,
+}
+
+// --- Spanish (es) ----------------------------------------------------------
+
+const QWERTY_ES: KeyboardLayout = {
+  id: LAYOUT.QWERTY_ES,
+  name: 'QWERTY',
+  description: 'The Spanish QWERTY. Same shape as US QWERTY plus ñ on the home-row pinky.',
+  rightRows: {
+    2: 'yuiop',
+    3: 'hjklñ',
+    4: 'nm,.-',
+  },
+  flipMap: {
+    y: 't',
+    u: 'r',
+    i: 'e',
+    o: 'w',
+    p: 'q',
+    h: 'g',
+    j: 'f',
+    k: 'd',
+    l: 's',
+    'ñ': 'a',
+    n: 'b',
+    m: 'v',
+    ',': 'c',
+    '.': 'x',
+    '-': 'z',
+  },
+  languages: ['es'],
+  firmwareSafe: false,
+}
+
+// --- Italian (it) ----------------------------------------------------------
+
+const QWERTY_IT: KeyboardLayout = {
+  id: LAYOUT.QWERTY_IT,
+  name: 'QWERTY',
+  description: 'The Italian QWERTY. Same shape as US QWERTY plus ò on the home-row pinky.',
+  rightRows: {
+    2: 'yuiop',
+    3: 'hjklò',
+    4: 'nm,.-',
+  },
+  flipMap: {
+    y: 't',
+    u: 'r',
+    i: 'e',
+    o: 'w',
+    p: 'q',
+    h: 'g',
+    j: 'f',
+    k: 'd',
+    l: 's',
+    'ò': 'a',
+    n: 'b',
+    m: 'v',
+    ',': 'c',
+    '.': 'x',
+    '-': 'z',
+  },
+  languages: ['it'],
+  firmwareSafe: false,
+}
+
+// --- Portuguese (pt-BR) ----------------------------------------------------
+
+const QWERTY_PT_BR: KeyboardLayout = {
+  id: LAYOUT.QWERTY_PT_BR,
+  name: 'QWERTY',
+  description: 'The Brazilian Portuguese QWERTY. Same shape as US QWERTY plus ç on the home-row pinky.',
+  rightRows: {
+    2: 'yuiop',
+    3: 'hjklç',
+    4: 'nm,.;',
+  },
+  flipMap: {
+    y: 't',
+    u: 'r',
+    i: 'e',
+    o: 'w',
+    p: 'q',
+    h: 'g',
+    j: 'f',
+    k: 'd',
+    l: 's',
+    'ç': 'a',
+    n: 'b',
+    m: 'v',
+    ',': 'c',
+    '.': 'x',
+    ';': 'z',
+  },
+  languages: ['pt-BR'],
+  firmwareSafe: false,
+}
+
+// --- Dutch (nl) ------------------------------------------------------------
+
+const QWERTY_NL: KeyboardLayout = {
+  id: LAYOUT.QWERTY_NL,
+  name: 'QWERTY',
+  description: 'The Dutch QWERTY. Alpha block is identical to US QWERTY; locale-specific characters appear via AltGr.',
+  rightRows: {
+    2: 'yuiop',
+    3: "hjkl;'",
+    4: 'nm,./',
+  },
+  flipMap: { ...QWERTY.flipMap },
+  languages: ['nl'],
+  firmwareSafe: true,
+}
+
+// --- Swedish / Finnish (sv, fi) --------------------------------------------
+
+const QWERTY_SV: KeyboardLayout = {
+  id: LAYOUT.QWERTY_SV,
+  name: 'QWERTY',
+  description: 'The Swedish/Finnish QWERTY. Same shape as US QWERTY plus å, ä, ö at the right pinky.',
+  rightRows: {
+    2: 'yuiopå',
+    3: 'hjklöä',
+    4: 'nm,.-',
+  },
+  flipMap: {
+    y: 't',
+    u: 'r',
+    i: 'e',
+    o: 'w',
+    p: 'q',
+    h: 'g',
+    j: 'f',
+    k: 'd',
+    l: 's',
+    'ö': 'a',
+    n: 'b',
+    m: 'v',
+    ',': 'c',
+    '.': 'x',
+    '-': 'z',
+  },
+  languages: ['sv', 'fi'],
+  firmwareSafe: false,
+}
+
+// --- Danish (da) -----------------------------------------------------------
+
+const QWERTY_DA: KeyboardLayout = {
+  id: LAYOUT.QWERTY_DA,
+  name: 'QWERTY',
+  description: 'The Danish QWERTY. Same shape as US QWERTY plus å, æ, ø at the right pinky.',
+  rightRows: {
+    2: 'yuiopå',
+    3: 'hjklæø',
+    4: 'nm,.-',
+  },
+  flipMap: {
+    y: 't',
+    u: 'r',
+    i: 'e',
+    o: 'w',
+    p: 'q',
+    h: 'g',
+    j: 'f',
+    k: 'd',
+    l: 's',
+    'æ': 'a',
+    n: 'b',
+    m: 'v',
+    ',': 'c',
+    '.': 'x',
+    '-': 'z',
+  },
+  languages: ['da'],
+  firmwareSafe: false,
+}
+
+// --- Norwegian (no) --------------------------------------------------------
+
+const QWERTY_NO: KeyboardLayout = {
+  id: LAYOUT.QWERTY_NO,
+  name: 'QWERTY',
+  description: 'The Norwegian QWERTY. Same shape as US QWERTY plus å, ø, æ at the right pinky.',
+  rightRows: {
+    2: 'yuiopå',
+    3: 'hjkløæ',
+    4: 'nm,.-',
+  },
+  flipMap: {
+    y: 't',
+    u: 'r',
+    i: 'e',
+    o: 'w',
+    p: 'q',
+    h: 'g',
+    j: 'f',
+    k: 'd',
+    l: 's',
+    'ø': 'a',
+    n: 'b',
+    m: 'v',
+    ',': 'c',
+    '.': 'x',
+    '-': 'z',
+  },
+  languages: ['no'],
+  firmwareSafe: false,
+}
+
+// --- Polish (pl) -----------------------------------------------------------
+
+const QWERTY_PL: KeyboardLayout = {
+  id: LAYOUT.QWERTY_PL,
+  name: "Programmer's QWERTY",
+  description: "The Polish Programmer's QWERTY. Alpha block is identical to US QWERTY; ą, ę, ó, ł, ż, ź, ć, ń, ś appear via AltGr.",
+  rightRows: {
+    2: 'yuiop',
+    3: "hjkl;'",
+    4: 'nm,./',
+  },
+  flipMap: { ...QWERTY.flipMap },
+  languages: ['pl'],
+  firmwareSafe: true,
+}
+
+// --- Turkish (tr) ----------------------------------------------------------
+
+const QWERTY_TR: KeyboardLayout = {
+  id: LAYOUT.QWERTY_TR,
+  name: 'Turkish-Q',
+  description: 'The Turkish-Q QWERTY. ı (dotless i) replaces i on the top row; ş, ğ, ö, ç appear in the alpha block.',
+  rightRows: {
+    2: 'yuıopğ',
+    3: 'hjklşi',
+    4: 'nmöç.',
+  },
+  flipMap: {
+    y: 't',
+    u: 'r',
+    'ı': 'e',
+    o: 'w',
+    p: 'q',
+    h: 'g',
+    j: 'f',
+    k: 'd',
+    l: 's',
+    'ş': 'a',
+    n: 'b',
+    m: 'v',
+    'ö': 'c',
+    'ç': 'x',
+    '.': 'z',
+  },
+  languages: ['tr'],
+  firmwareSafe: false,
+}
+
+// --- Registry --------------------------------------------------------------
 
 const REGISTRY: Record<NamedLayoutId, KeyboardLayout> = {
   [LAYOUT.QWERTY]: QWERTY,
@@ -197,15 +682,77 @@ const REGISTRY: Record<NamedLayoutId, KeyboardLayout> = {
   [LAYOUT.COLEMAK_DH]: COLEMAK_DH,
   [LAYOUT.DVORAK]: DVORAK,
   [LAYOUT.WORKMAN]: WORKMAN,
+  [LAYOUT.HALMAK]: HALMAK,
+  [LAYOUT.NORMAN]: NORMAN,
+  [LAYOUT.HANDS_DOWN]: HANDS_DOWN,
+  [LAYOUT.ENGRAM]: ENGRAM,
+  [LAYOUT.QWERTZ]: QWERTZ,
+  [LAYOUT.AZERTY]: AZERTY,
+  [LAYOUT.QWERTY_ES]: QWERTY_ES,
+  [LAYOUT.QWERTY_IT]: QWERTY_IT,
+  [LAYOUT.QWERTY_PT_BR]: QWERTY_PT_BR,
+  [LAYOUT.QWERTY_NL]: QWERTY_NL,
+  [LAYOUT.QWERTY_SV]: QWERTY_SV,
+  [LAYOUT.QWERTY_DA]: QWERTY_DA,
+  [LAYOUT.QWERTY_NO]: QWERTY_NO,
+  [LAYOUT.QWERTY_PL]: QWERTY_PL,
+  [LAYOUT.QWERTY_TR]: QWERTY_TR,
 }
 
-/** Concrete-mapping layouts (everything in the dropdown except CUSTOM). */
+/** Concrete-mapping layouts (everything in the dropdown except CUSTOM).
+ *  Order here is also the dropdown's within-language sort order and the
+ *  registry-tiebreak order for best-fit detection. Append-only is *not*
+ *  required (dropdown order can change freely); see LAYOUT_ENCODE for
+ *  the wire-format-stable ordering. */
 export const NAMED_LAYOUT_IDS: readonly NamedLayoutId[] = [
   LAYOUT.QWERTY,
   LAYOUT.COLEMAK,
   LAYOUT.COLEMAK_DH,
   LAYOUT.DVORAK,
   LAYOUT.WORKMAN,
+  LAYOUT.HALMAK,
+  LAYOUT.NORMAN,
+  LAYOUT.HANDS_DOWN,
+  LAYOUT.ENGRAM,
+  LAYOUT.QWERTZ,
+  LAYOUT.AZERTY,
+  LAYOUT.QWERTY_ES,
+  LAYOUT.QWERTY_IT,
+  LAYOUT.QWERTY_PT_BR,
+  LAYOUT.QWERTY_NL,
+  LAYOUT.QWERTY_SV,
+  LAYOUT.QWERTY_DA,
+  LAYOUT.QWERTY_NO,
+  LAYOUT.QWERTY_PL,
+  LAYOUT.QWERTY_TR,
+]
+
+/** Wire-format-stable layout id ordering. The 5 original layouts keep their
+ *  original indices (0=QWERTY, 1=COLEMAK, 2=COLEMAK_DH, 3=DVORAK, 4=WORKMAN)
+ *  so URLs serialized before the no-attribute interregnum decode unchanged.
+ *  **Append-only** — never re-order, never delete; reserve indices for
+ *  removed layouts if needed. */
+export const LAYOUT_ENCODE: readonly NamedLayoutId[] = [
+  LAYOUT.QWERTY,
+  LAYOUT.COLEMAK,
+  LAYOUT.COLEMAK_DH,
+  LAYOUT.DVORAK,
+  LAYOUT.WORKMAN,
+  LAYOUT.HALMAK,
+  LAYOUT.NORMAN,
+  LAYOUT.HANDS_DOWN,
+  LAYOUT.ENGRAM,
+  LAYOUT.QWERTZ,
+  LAYOUT.AZERTY,
+  LAYOUT.QWERTY_ES,
+  LAYOUT.QWERTY_IT,
+  LAYOUT.QWERTY_PT_BR,
+  LAYOUT.QWERTY_NL,
+  LAYOUT.QWERTY_SV,
+  LAYOUT.QWERTY_DA,
+  LAYOUT.QWERTY_NO,
+  LAYOUT.QWERTY_PL,
+  LAYOUT.QWERTY_TR,
 ]
 
 /** All layouts shown in the picker, including CUSTOM. */
@@ -217,8 +764,64 @@ export const LAYOUT_NAMES: Record<LayoutId, string> = {
   [LAYOUT.COLEMAK_DH]: COLEMAK_DH.name,
   [LAYOUT.DVORAK]: DVORAK.name,
   [LAYOUT.WORKMAN]: WORKMAN.name,
+  [LAYOUT.HALMAK]: HALMAK.name,
+  [LAYOUT.NORMAN]: NORMAN.name,
+  [LAYOUT.HANDS_DOWN]: HANDS_DOWN.name,
+  [LAYOUT.ENGRAM]: ENGRAM.name,
+  [LAYOUT.QWERTZ]: QWERTZ.name,
+  [LAYOUT.AZERTY]: AZERTY.name,
+  [LAYOUT.QWERTY_ES]: QWERTY_ES.name,
+  [LAYOUT.QWERTY_IT]: QWERTY_IT.name,
+  [LAYOUT.QWERTY_PT_BR]: QWERTY_PT_BR.name,
+  [LAYOUT.QWERTY_NL]: QWERTY_NL.name,
+  [LAYOUT.QWERTY_SV]: QWERTY_SV.name,
+  [LAYOUT.QWERTY_DA]: QWERTY_DA.name,
+  [LAYOUT.QWERTY_NO]: QWERTY_NO.name,
+  [LAYOUT.QWERTY_PL]: QWERTY_PL.name,
+  [LAYOUT.QWERTY_TR]: QWERTY_TR.name,
   [LAYOUT.CUSTOM]: 'Custom',
 }
+
+// --- Languages -------------------------------------------------------------
+
+/** Languages registered for the dropdown grouping UI. The display name is
+ *  shown as the group header in the dropdown; ISO 639-1 codes drive
+ *  membership via `KeyboardLayout.languages`. The order here is the fallback
+ *  order when `navigator.language` doesn't match any registered language. */
+export const LANGUAGES: Record<string, { name: string }> = {
+  en: { name: 'English' },
+  de: { name: 'German' },
+  fr: { name: 'French' },
+  es: { name: 'Spanish' },
+  it: { name: 'Italian' },
+  'pt-BR': { name: 'Portuguese (Brazil)' },
+  nl: { name: 'Dutch' },
+  sv: { name: 'Swedish' },
+  fi: { name: 'Finnish' },
+  da: { name: 'Danish' },
+  no: { name: 'Norwegian' },
+  pl: { name: 'Polish' },
+  tr: { name: 'Turkish' },
+}
+
+/** Order language codes with `userLang` first, then registry order. */
+export function orderLanguages(languages: Record<string, { name: string }>, userLang: string | undefined): string[] {
+  const codes = Object.keys(languages)
+  if (!userLang) return codes
+  const idx = codes.indexOf(userLang)
+  if (idx < 0) {
+    // Try the language family (e.g., 'en' for 'en-GB' if only 'en' is
+    // registered). pt-BR-style entries match against the full 'pt-BR' code;
+    // 'pt-PT' would still fall through to 'pt' if it existed, else the default.
+    const family = userLang.split('-')[0]
+    const familyIdx = codes.indexOf(family)
+    if (familyIdx < 0) return codes
+    return [codes[familyIdx], ...codes.filter((_, i) => i !== familyIdx)]
+  }
+  return [codes[idx], ...codes.filter((_, i) => i !== idx)]
+}
+
+// --- Helpers ---------------------------------------------------------------
 
 export function isNamedLayoutId(id: LayoutId | undefined | null): id is NamedLayoutId {
   return typeof id === 'string' && id !== LAYOUT.CUSTOM && id in REGISTRY

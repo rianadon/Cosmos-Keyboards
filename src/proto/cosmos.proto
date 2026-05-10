@@ -24,15 +24,12 @@ message Keyboard {
   optional KeyboardExtra extra = 14;
   optional int64 wrist_rest_position = 15; // For easy movement of the wrist rest
 
-  // Field 33 was a serialized layout id (QWERTY/Colemak/etc.). Layout is now
-  // derived purely from the alpha-key labels via detectLayout(kbd) at read
-  // time, like clusterAngle/clusterSeparation. Reserve so the field number
-  // can't be repurposed; old URLs that include it are silently ignored on
-  // decode. The cosmetic fallout is acceptable: a kbd serialized as
-  // "Colemak" with QWERTY letters baked in (shouldn't happen, since
-  // applyLayoutToKeys writes the letters whenever the dropdown changes) will
-  // now show up as QWERTY — the dropdown was lying before.
-  reserved 33;
+  // The user's picked layout, indexed into LAYOUT_ENCODE (append-only). The
+  // 5 original layouts (QWERTY=0, Colemak=1, Colemak-DH=2, Dvorak=3,
+  // Workman=4) keep their previous indices so URLs from before the
+  // no-attribute interregnum decode unchanged. Unset on legacy/no-attribute
+  // URLs, which fall through to best-fit detection on the alpha letters.
+  optional uint32 layout_id = 33;
 
   oneof shell {
     BasicShell basic_shell = 30;

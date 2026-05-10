@@ -1,12 +1,28 @@
 import { expect, test } from 'bun:test'
-import { DEFAULT_LAYOUT, flipLetter, getLayout, isAlphaLetter, isLayoutId, isNamedLayoutId, LAYOUT, LAYOUT_IDS, LAYOUT_NAMES, NAMED_LAYOUT_IDS, rightSideLetter } from './index'
+import {
+  DEFAULT_LAYOUT,
+  flipLetter,
+  getLayout,
+  isAlphaLetter,
+  isLayoutId,
+  isNamedLayoutId,
+  LANGUAGES,
+  LAYOUT,
+  LAYOUT_ENCODE,
+  LAYOUT_IDS,
+  LAYOUT_NAMES,
+  NAMED_LAYOUT_IDS,
+  orderLanguages,
+  rightSideLetter,
+} from './index'
 
 test('DEFAULT_LAYOUT is QWERTY', () => {
   expect(DEFAULT_LAYOUT).toBe(LAYOUT.QWERTY)
 })
 
-test('NAMED_LAYOUT_IDS contains all five concrete layouts (no CUSTOM)', () => {
-  expect(NAMED_LAYOUT_IDS).toEqual([
+test('NAMED_LAYOUT_IDS includes the original 5 plus the new layouts (no CUSTOM)', () => {
+  expect(NAMED_LAYOUT_IDS.length).toBeGreaterThanOrEqual(5)
+  expect(NAMED_LAYOUT_IDS.slice(0, 5)).toEqual([
     LAYOUT.QWERTY,
     LAYOUT.COLEMAK,
     LAYOUT.COLEMAK_DH,
@@ -17,14 +33,43 @@ test('NAMED_LAYOUT_IDS contains all five concrete layouts (no CUSTOM)', () => {
 })
 
 test('LAYOUT_IDS includes CUSTOM as the last option', () => {
-  expect(LAYOUT_IDS).toEqual([
-    LAYOUT.QWERTY,
-    LAYOUT.COLEMAK,
-    LAYOUT.COLEMAK_DH,
-    LAYOUT.DVORAK,
-    LAYOUT.WORKMAN,
-    LAYOUT.CUSTOM,
-  ])
+  expect(LAYOUT_IDS[LAYOUT_IDS.length - 1]).toBe(LAYOUT.CUSTOM)
+  expect(LAYOUT_IDS.slice(0, -1)).toEqual([...NAMED_LAYOUT_IDS])
+})
+
+test('LAYOUT_ENCODE preserves original 5 layouts at indices 0..4', () => {
+  expect(LAYOUT_ENCODE[0]).toBe(LAYOUT.QWERTY)
+  expect(LAYOUT_ENCODE[1]).toBe(LAYOUT.COLEMAK)
+  expect(LAYOUT_ENCODE[2]).toBe(LAYOUT.COLEMAK_DH)
+  expect(LAYOUT_ENCODE[3]).toBe(LAYOUT.DVORAK)
+  expect(LAYOUT_ENCODE[4]).toBe(LAYOUT.WORKMAN)
+})
+
+test('LAYOUT_ENCODE covers every named layout', () => {
+  for (const id of NAMED_LAYOUT_IDS) {
+    expect(LAYOUT_ENCODE).toContain(id)
+  }
+})
+
+test('every named layout has languages and firmwareSafe metadata', () => {
+  for (const id of NAMED_LAYOUT_IDS) {
+    const layout = getLayout(id)
+    expect(layout.languages.length).toBeGreaterThan(0)
+    expect(typeof layout.firmwareSafe).toBe('boolean')
+    // Every language code on a layout must exist in the LANGUAGES registry.
+    for (const code of layout.languages) {
+      expect(LANGUAGES[code]).toBeTruthy()
+    }
+  }
+})
+
+test('orderLanguages puts the user language first', () => {
+  expect(orderLanguages(LANGUAGES, 'de')[0]).toBe('de')
+  expect(orderLanguages(LANGUAGES, 'fr')[0]).toBe('fr')
+  // Falls back to language family for region tags (e.g. en-GB → en).
+  expect(orderLanguages(LANGUAGES, 'en-GB')[0]).toBe('en')
+  // Unknown language → preserves registry order.
+  expect(orderLanguages(LANGUAGES, 'xx')[0]).toBe('en')
 })
 
 test('LAYOUT_NAMES has a label for every layout id', () => {

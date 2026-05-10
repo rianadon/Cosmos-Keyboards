@@ -20,15 +20,19 @@ function buildDefaultCosmos(): CosmosKeyboard {
   return cosmos
 }
 
-test('layout survives serialize/deserialize via the keys, not a stored field', () => {
-  // Layout is a function of the alpha-key labels — serialize/deserialize
-  // round-trips the letters in cluster.col.keys[].profile.letter, and
-  // detectLayout(decoded) re-derives the named layout from those letters.
+test('layout survives serialize/deserialize via stored layoutId + alpha letters', () => {
+  // Picking a layout via the editor writes both the alpha letters
+  // (applyLayoutToKeys) and the explicit `layoutId` on the kbd. Both
+  // round-trip through the URL. detectLayout returns the stored layoutId
+  // directly when present (covering locale-equivalent layouts that share
+  // an alpha block, e.g. Dutch QWERTY vs US QWERTY).
   for (const layoutId of LAYOUT_IDS) {
     if (layoutId === LAYOUT.CUSTOM) continue // CUSTOM has no canonical letters
     const cosmos = applyLayoutToKeys(buildDefaultCosmos(), layoutId)
+    cosmos.layoutId = layoutId as any
     const encoded = serializeCosmosConfig(encodeCosmosConfig(cosmos))
     const decoded = decodeConfigIdk(encoded)
+    expect(decoded.layoutId).toBe(layoutId as any)
     expect(detectLayout(decoded as unknown as CosmosKeyboard)).toBe(layoutId)
   }
 })

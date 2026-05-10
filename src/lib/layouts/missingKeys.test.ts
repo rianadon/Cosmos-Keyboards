@@ -202,3 +202,43 @@ test('empty kbd defaults to QWERTY via registry-order tiebreak', () => {
   // No contradictions → all named layouts pass → first registry entry wins.
   expect(detectLayout(kbd)).toBe(LAYOUT.QWERTY)
 })
+
+test('stored kbd.layoutId wins over best-fit detection', () => {
+  // The whole point of the stored-layoutId design: when the user picks a
+  // layout, detectLayout returns it directly even if the kbd's letters
+  // would best-fit something else (locale-equivalent layouts, drifted
+  // edits, etc.). Here: the kbd has US-QWERTY letters, but the user
+  // explicitly picked Polish Programmer's QWERTY (same alpha block).
+  const kbd = buildDefaultCosmos()
+  expect(detectLayout(kbd)).toBe(LAYOUT.QWERTY) // best-fit baseline
+  kbd.layoutId = LAYOUT.QWERTY_PL
+  expect(detectLayout(kbd)).toBe(LAYOUT.QWERTY_PL)
+})
+
+test('mirror-form Colemak preserves Colemak via stored layoutId across deletion', () => {
+  // The maintainer's original mirror-flip bug. With kbd.layoutId stored,
+  // mirrorCluster's detectLayout call returns Colemak directly — no
+  // best-fit ambiguity even after a key is deleted.
+  const kbd = applyLayoutToKeys(buildDefaultCosmos(), LAYOUT.COLEMAK)
+  kbd.layoutId = LAYOUT.COLEMAK
+  expect(detectLayout(kbd)).toBe(LAYOUT.COLEMAK)
+  expect(kbd.clusters.find((c) => c.name === 'fingers' && c.side === 'left')).toBeUndefined()
+
+  const cluster = rightCluster(kbd)
+  const lCol = cluster.clusters.find((c) => c.keys.some((k) => k.profile.letter === 'l'))!
+  lCol.keys = lCol.keys.filter((k) => k.profile.letter !== 'l')
+
+  expect(detectLayout(kbd)).toBe(LAYOUT.COLEMAK)
+  const synthesizedLeft = mirrorCluster(cluster, kbd)
+  const leftLetters = synthesizedLeft.clusters.flatMap((c) => c.keys.map((k) => k.profile.letter))
+  expect(leftLetters).toContain('f') // Colemak left has 'f' (mirrored from right 'u')
+})
+
+test('legacy URL with no layoutId falls back to best-fit detection', () => {
+  // Pre-feature URLs decode with kbd.layoutId === undefined. Detection
+  // should still return a sensible named layout via best-fit on the
+  // alpha letters — same UX as before this PR's stored-id work.
+  const kbd = buildDefaultCosmos()
+  expect(kbd.layoutId).toBeUndefined()
+  expect(detectLayout(kbd)).toBe(LAYOUT.QWERTY)
+})

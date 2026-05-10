@@ -9,7 +9,12 @@
     type NamedLayoutId,
   } from '$lib/layouts'
 
-  type Option = { key: LayoutId; label: string }
+  type Option = {
+    key: LayoutId
+    label: string
+    diff?: { missing: string[]; mismatched: string[] } | null
+    firmwareSafe?: boolean
+  }
 
   export let option: Option
 
@@ -18,6 +23,14 @@
 
   $: description = isNamedLayoutId(option.key) ? getLayout(option.key).description : CUSTOM_DESCRIPTION
   $: rightRows = isNamedLayoutId(option.key) ? getLayout(option.key).rightRows : null
+  $: diffSize = option.diff ? option.diff.missing.length + option.diff.mismatched.length : 0
+  $: diffSummary = (() => {
+    if (!option.diff) return null
+    const all = [...option.diff.missing, ...option.diff.mismatched]
+    if (all.length === 0) return { kind: 'match' as const }
+    if (all.length <= 5) return { kind: 'list' as const, letters: all }
+    return { kind: 'count' as const, count: all.length }
+  })()
 
   // Render exactly the canonical 5-column alpha block per side. Some layouts
   // include a 6th outer-pinky character on the right (`'` in QWERTY/Colemak/
@@ -90,6 +103,24 @@
         </div>
       {/if}
       <p>{description}</p>
+      {#if diffSummary}
+        <p
+          class="layout-match"
+          class:layout-match-ok={diffSummary.kind === 'match'}
+          class:layout-match-warn={diffSummary.kind !== 'match'}
+        >
+          {#if diffSummary.kind === 'match'}
+            ✓ Matches your keyboard
+          {:else if diffSummary.kind === 'list'}
+            Differs in: <span class="font-mono">{diffSummary.letters.join(' ')}</span>
+          {:else}
+            Differs in {diffSummary.count} keys
+          {/if}
+        </p>
+      {/if}
+      {#if option.firmwareSafe === false}
+        <p class="layout-firmware-warn">⚠ Firmware export of non-ASCII keys is not yet supported.</p>
+      {/if}
     </div>
   </div>
 {/if}
@@ -115,5 +146,17 @@
   }
   :global(.layoutinfo p) {
     --at-apply: 'mb-1';
+  }
+  .layout-match {
+    --at-apply: 'text-xs mt-1';
+  }
+  .layout-match-ok {
+    --at-apply: 'text-teal-700';
+  }
+  .layout-match-warn {
+    --at-apply: 'text-amber-700';
+  }
+  .layout-firmware-warn {
+    --at-apply: 'text-xs mt-1 text-pink-900 opacity-80';
   }
 </style>

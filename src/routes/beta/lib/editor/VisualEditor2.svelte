@@ -30,7 +30,7 @@
 
   import { createEventDispatcher } from 'svelte'
   import { fade } from 'svelte/transition'
-  import { protoConfig, tempConfig } from '$lib/store'
+  import { protoConfig, pushAlert, tempConfig } from '$lib/store'
   import { hasPro } from '@pro'
   import {
     BOARD_PROPERTIES,
@@ -83,9 +83,12 @@
   } from './visualEditorHelpers'
   import {
     DEFAULT_LAYOUT,
+    getLayout,
     isNamedLayoutId,
+    LANGUAGES,
     LAYOUT_NAMES,
     NAMED_LAYOUT_IDS,
+    orderLanguages,
     type LayoutId,
     type NamedLayoutId,
   } from '$lib/layouts'
@@ -247,31 +250,84 @@
     }
   }
 
-  // Layout is derived purely from the kbd's alpha labels — like clusterAngle
-  // / clusterSeparation. The dropdown displays detectLayout($protoConfig)
-  // (best-fit named layout); picking an option rewrites alpha letters via
-  // applyLayoutToKeys. Off-script edits stay on the closest named layout
-  // and surface in the indicator's mismatched/missing popover.
+  // Layout: `kbd.layoutId` is the user's stored pick; detectLayout returns
+  // it directly when set, else falls back to best-fit on the alpha letters
+  // (legacy URLs). Picking an option writes both the letters and layoutId.
+  // The indicator surfaces any divergence between the stored layout and the
+  // kbd's actual letters.
   $: currentLayout = $protoConfig ? detectLayout($protoConfig) : DEFAULT_LAYOUT
   $: currentDiff =
     $protoConfig && isNamedLayoutId(currentLayout)
       ? layoutDiff($protoConfig, currentLayout)
       : { missing: [], mismatched: [] }
   $: layoutComplete = currentDiff.missing.length === 0 && currentDiff.mismatched.length === 0
-  // Only the named layouts are user-selectable. CUSTOM isn't reachable via
-  // auto-detection (best-fit always returns a named layout), so it doesn't
-  // need to be in the dropdown either.
-  $: layoutOptions = NAMED_LAYOUT_IDS.map((id): { key: LayoutId; label: string } => ({
-    key: id,
-    label: LAYOUT_NAMES[id],
-  }))
+
+  // Group the dropdown by language. `navigator.language` (with SSR guard)
+  // puts the user's group at the top; remaining languages follow in registry
+  // order. Each option carries a precomputed diff against the current kbd so
+  // SelectLayoutInner can render a per-option match indicator without
+  // touching the store.
+  type LayoutOption = {
+    key: LayoutId
+    label: string
+    diff?: { missing: string[]; mismatched: string[] } | null
+    firmwareSafe?: boolean
+  }
+  $: userLang = typeof window !== 'undefined' ? navigator.language?.split('-')[0] ?? 'en' : 'en'
+  $: layoutOptions = (() => {
+    const ordered = orderLanguages(LANGUAGES, userLang)
+    const groups: Record<string, LayoutOption[]> = {}
+    for (const code of ordered) {
+      const opts = NAMED_LAYOUT_IDS.filter((id) => getLayout(id).languages.includes(code)).map(
+        (id): LayoutOption => ({
+          key: id,
+          label: LAYOUT_NAMES[id],
+          diff: $protoConfig ? layoutDiff($protoConfig, id) : null,
+          firmwareSafe: getLayout(id).firmwareSafe,
+        })
+      )
+      if (opts.length) groups[LANGUAGES[code].name] = opts
+    }
+    return groups
+  })()
   let indicatorEl: HTMLElement
+  let layoutSelectEl: HTMLElement
+  // Suppress the firmware-incomplete alert on subsequent picks of the same
+  // non-ASCII layout in this session. Persists only for the current page;
+  // a reload resets so users get reminded once per session.
+  const seenWarnings = new Set<NamedLayoutId>()
 
   function updateLayout(ev: CustomEvent<string>) {
     const next = ev.detail as LayoutId
     if (!isNamedLayoutId(next)) return
-    if (next === currentLayout) return
-    protoConfig.update((proto) => applyLayoutToKeys(proto, next))
+    if (next === currentLayout && $protoConfig?.layoutId === next) return
+    const layout = getLayout(next)
+    protoConfig.update((proto) => {
+      const updated = applyLayoutToKeys(proto, next)
+      updated.layoutId = next
+      return updated
+    })
+    if (!layout.firmwareSafe && !seenWarnings.has(next)) {
+      seenWarnings.add(next)
+      const sample = currentDiffSample(layout)
+      pushAlert({
+        message: `${layout.name} uses non-ASCII keys${
+          sample ? ` (${sample})` : ''
+        }. Firmware export for these is pending a follow-up — your keymap will have gaps until then.`,
+        anchor: layoutSelectEl,
+      })
+    }
+  }
+
+  function currentDiffSample(layout: ReturnType<typeof getLayout>): string {
+    const chars: string[] = []
+    for (const row of [2, 3, 4] as const) {
+      for (const ch of layout.rightRows[row]) {
+        if (ch.charCodeAt(0) > 127 && !chars.includes(ch)) chars.push(ch)
+        if (chars.length >= 2) return chars.join(', ')
+      }
+    }
+    return chars.join(', ')
   }
 
   function updateSwitch(ev: CustomEvent) {
@@ -640,13 +696,15 @@
         </div>
       </Popover>
     {/if}
-    <SelectThingy
-      value={currentLayout}
-      on:change={updateLayout}
-      options={layoutOptions}
-      component={SelectLayoutInner}
-      minWidth={320}
-    />
+    <div bind:this={layoutSelectEl}>
+      <SelectThingy
+        value={currentLayout}
+        on:change={updateLayout}
+        options={layoutOptions}
+        component={SelectLayoutInner}
+        minWidth={320}
+      />
+    </div>
   </Field>
   <Field name="Switches" icon="switch">
     <!-- <Select bind:value={$protoConfig.partType.type} on:change={updateSwitch}>

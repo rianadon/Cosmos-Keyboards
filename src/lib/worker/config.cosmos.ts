@@ -2,7 +2,7 @@ import ETrsf, { Constant, fullMirrorETrsf, type MatrixOptions, mirror } from '$l
 // import { deserialize } from 'src/routes/beta/lib/serialize'
 import { flippedKey } from '$lib/geometry/keycaps'
 import { decodeVariant, encodeVariant, PART_INFO, socketSize } from '$lib/geometry/socketsParts'
-import { DEFAULT_LAYOUT, flipLetter, getLayout, isAlphaLetter, LAYOUT, type LayoutId, NAMED_LAYOUT_IDS, type NamedLayoutId } from '$lib/layouts'
+import { DEFAULT_LAYOUT, flipLetter, getLayout, isAlphaLetter, isNamedLayoutId, LAYOUT, type LayoutId, NAMED_LAYOUT_IDS, type NamedLayoutId } from '$lib/layouts'
 import { type ClusterName, type ClusterSide, type ClusterType, type Connector, decodeClusterFlags, encodeClusterFlags, type PartVariant, type ScrewFlags } from '$target/cosmosStructs'
 import type { Curvature } from '$target/proto/cosmos'
 import { Matrix4, Vector3 } from 'three'
@@ -111,6 +111,12 @@ export type CosmosKeyboard =
     connectors: ConnectorMaybeCustom[]
     mirrorConnectors: boolean
     plate: Cuttleform['plate']
+    /** User's last layout pick. When set, `detectLayout` returns this directly
+     *  (the kbd's letters are still the source of truth for what's *rendered*,
+     *  but the dropdown reflects the user's intent — including disambiguating
+     *  locale-equivalent layouts whose alpha block matches another). Undefined
+     *  on legacy/pre-attribute URLs; `detectLayout` falls back to best-fit. */
+    layoutId?: NamedLayoutId
   }
   & ScrewFlags
 
@@ -1057,13 +1063,17 @@ function scoreClusterAgainst(
   return best
 }
 
-/** Best-fit layout detection: pick the named layout with the most matching
- *  alpha positions across every finger cluster. A single edited key keeps
- *  the kbd on its closest named layout (e.g., QWERTY with 1 mismatch rather
- *  than CUSTOM). CUSTOM is only returned when no named layout has any
- *  matching position at all — typically only a kbd with no alpha letters
- *  defaults via registry-order tiebreak to QWERTY. */
+/** Layout detection. When `kbd.layoutId` is set, returns it directly — the
+ *  user's explicit pick is the source of truth, even if their letters drift
+ *  away from the layout (e.g., they edited a key; the dropdown stays on the
+ *  picked layout and the indicator surfaces the diff). When unset (legacy/
+ *  pre-attribute URLs, or a fresh kbd before any layout pick), falls back to
+ *  best-fit by score across all named layouts. CUSTOM is only returned by
+ *  the fallback when no named layout has any matching position — empty
+ *  kbds default via registry-order tiebreak to QWERTY. */
 export function detectLayout(kbd: CosmosKeyboard): LayoutId {
+  if (kbd.layoutId && isNamedLayoutId(kbd.layoutId)) return kbd.layoutId
+
   const fingerClusters = kbd.clusters.filter(c => c.name === 'fingers')
   if (fingerClusters.length === 0) return DEFAULT_LAYOUT
 
