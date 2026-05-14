@@ -6,7 +6,6 @@ import {
   type CosmosKey,
   type CosmosKeyboard,
   fromCosmosConfig,
-  hasCenter,
   indexOfKey,
   mirrorCluster,
   type PartType,

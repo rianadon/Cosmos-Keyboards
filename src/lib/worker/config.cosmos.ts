@@ -2,11 +2,7 @@ import ETrsf, { Constant, fullMirrorETrsf, type MatrixOptions, mirror } from '$l
 // import { deserialize } from 'src/routes/beta/lib/serialize'
 import { flippedKey } from '$lib/geometry/keycaps'
 import { decodeVariant, encodeVariant, PART_INFO, socketSize } from '$lib/geometry/socketsParts'
-import { type ClusterName, type ClusterSide, type ClusterType, type Connector, decodeClusterFlags, encodeClusterFlags, type PartVariant, type ScrewFlags } from '$target/cosmosStructs'
-
-/** Runtime side type — extends generated ClusterSide with 'center'. The 'center'
- * value is never written to the bitfield; it rides on `name` instead. */
-export type CosmosClusterSide = ClusterSide | 'center'
+import { type ClusterName, type ClusterType, type Connector, decodeClusterFlags, encodeClusterFlags, type PartVariant, type ScrewFlags } from '$target/cosmosStructs'
 import type { Curvature } from '$target/proto/cosmos'
 import { Matrix4, Vector3 } from 'three'
 import { type AnyShell, curvature, type Cuttleform, type CuttleKey, decodeTuple, encodeTuple, type FullCuttleform, type Keycap, matrixToRPY, tupleToRot, tupleToXYZ } from './config'
@@ -14,6 +10,7 @@ import { decodePartType, encodePartType, KEYBOARD_DEFAULTS } from './config.seri
 import Trsf from './modeling/transformation'
 import { capitalize, DefaultMap, objEntries, objKeys, sum, TallyMap, trimUndefined } from './util'
 
+export type ClusterSide = 'left' | 'right' | 'center'
 export type CustomConnector = {
   preset?: undefined
   width: number
@@ -48,7 +45,7 @@ type CosmosCurvature = Curvature
 
 export type CosmosCluster = {
   name: ClusterName
-  side: CosmosClusterSide
+  side: ClusterSide
   type: ClusterType
   curvature: CosmosCurvature
   profile: Keycap['profile'] | undefined
@@ -160,12 +157,7 @@ export function sortClusters(clusters: CosmosCluster[]) {
   return clusters.sort((a, b) => val(a) - val(b))
 }
 
-/** True if the keyboard has a populated center cluster. */
-export function hasCenter(c: CosmosKeyboard): boolean {
-  return c.clusters.some(cl => cl.side === 'center' && cl.clusters.length > 0)
-}
-
-function toCosmosClusters(keys: CuttleKey[], side: CosmosClusterSide, globalProfile: Keycap['profile'], globalPartType: PartType, globalCurvature: Curvature, wrOriginInv: Trsf) {
+function toCosmosClusters(keys: CuttleKey[], side: ClusterSide, globalProfile: Keycap['profile'], globalPartType: PartType, globalCurvature: Curvature, wrOriginInv: Trsf) {
   const clusters: CosmosCluster[] = []
 
   for (const [name, trsfGrp] of collectByClusterName(keys).entries()) {
@@ -389,17 +381,11 @@ export function toCosmosConfig(conf: Cuttleform, side: 'left' | 'right' | 'cente
       },
     wristRestPosition: overrideWristRest ? KEYBOARD_DEFAULTS.wristRestPosition! : encodeTuple(wrOrigin.xyz().map(t => Math.round(t * 10))),
     clusters: side == 'unibody'
-      ? (() => {
-        const centerKeys = conf.keys.filter(k => k.cluster === 'center')
-        const result = [
-          ...toCosmosClusters(filterUnibodySide(conf.keys, 'right'), 'right', globalProfile, globalPartType, globalCurvature, wrOriginInv),
-          ...toCosmosClusters(filterUnibodySide(conf.keys, 'left'), 'left', globalProfile, globalPartType, globalCurvature, flippedWrOriginInv),
-        ]
-        if (centerKeys.length) {
-          result.push(...toCosmosClusters(centerKeys, 'center', globalProfile, globalPartType, globalCurvature, wrOriginInv))
-        }
-        return result
-      })()
+      ? [
+        ...toCosmosClusters(filterUnibodySide(conf.keys, 'right'), 'right', globalProfile, globalPartType, globalCurvature, wrOriginInv),
+        ...toCosmosClusters(filterUnibodySide(conf.keys, 'left'), 'left', globalProfile, globalPartType, globalCurvature, flippedWrOriginInv),
+        ...toCosmosClusters(conf.keys.filter(k => k.cluster === 'center'), 'center', globalProfile, globalPartType, globalCurvature, wrOriginInv),
+      ]
       : toCosmosClusters(conf.keys, side, globalProfile, globalPartType, globalCurvature, wrOriginInv),
   }
   if (flipLeft && side == 'left') keyboard.clusters = keyboard.clusters.map(c => mirrorCluster(c, false))
@@ -583,7 +569,9 @@ export function fromCosmosConfig(c: CosmosKeyboard, flipLeft = true): FullCuttle
     left: sideFromCosmosConfig(c, 'left', flipLeft),
     right: sideFromCosmosConfig(c, 'right', flipLeft),
   }
-  if (hasCenter(c)) result.center = sideFromCosmosConfig(c, 'center', flipLeft)
+  if (c.clusters.some(cl => cl.side === 'center' && cl.clusters.length > 0)) {
+    result.center = sideFromCosmosConfig(c, 'center', flipLeft)
+  }
   return result
 }
 
@@ -742,7 +730,7 @@ function rotateColumnStagger(stagger: Trsf, col: number, curvature: Curvature) {
   return stagger.premultiplied(columnRotation.inverted()).multiply(columnRotation)
 }
 
-function dominantClusterType(keys: CuttleKey[], side: CosmosClusterSide) {
+function dominantClusterType(keys: CuttleKey[], side: ClusterSide) {
   const clusterNames = new TallyMap<ClusterName>()
   const clusterTypes = new TallyMap<ClusterType>()
   for (const key of keys) {

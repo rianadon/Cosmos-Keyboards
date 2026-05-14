@@ -39,7 +39,6 @@
   } from '$lib/geometry/microcontrollers'
   import {
     fromCosmosConfig,
-    hasCenter,
     mirrorCluster,
     partVariant,
     toCosmosConfig,
@@ -456,7 +455,7 @@
   $: whichRight = getThumbN($protoConfig, 'right')
   $: whichLeft = getThumbN($protoConfig, 'left')
   $: whichCenter = getCenterClusterN($protoConfig)
-  $: hasCenterCl = hasCenter($protoConfig)
+  $: hasCenterCl = $protoConfig.clusters.some((cl) => cl.side === 'center' && cl.clusters.length > 0)
 
   const rotationStore = new TupleStore(-1n, 45, true)
   const [rotationX, rotationY, rotationZ, _] = rotationStore.components()
