@@ -1563,39 +1563,20 @@ export function fullEstimatedCenter(geo: FullGeometry | undefined, withWristRest
     const leftBB = estimatedBB(geo.left, withWristRest && !!geo.left?.c.wristRestRight)
     const rightBB = estimatedBB(geo.right, withWristRest && !!geo.right?.c.wristRestRight)
     const centerBB = geo.center ? estimatedBB(geo.center) : null
-    // sepDiff enforces VIEW_SEPARATION between every adjacent pair. With a center cluster between
-    // left and right, two gaps exist (left↔center and center↔right), so the budget is
-    // 2*VIEW_SEPARATION plus the center's own width.
-    const centerWidth = centerBB ? centerBB[1] - centerBB[0] : 0
-    const sepDiff = centerBB
-      ? (2 * VIEW_SEPARATION + centerWidth - (rightBB[0] + leftBB[0])) / 2
-      : (VIEW_SEPARATION - (rightBB[0] + leftBB[0])) / 2
-    const minY = Math.min(leftBB[2], rightBB[2], centerBB?.[2] ?? Infinity)
-    const maxY = Math.max(leftBB[3], rightBB[3], centerBB?.[3] ?? -Infinity)
-    const minZ = Math.min(leftBB[4], rightBB[4], centerBB?.[4] ?? Infinity)
-    const maxZ = Math.max(leftBB[5], rightBB[5], centerBB?.[5] ?? -Infinity)
-    const sharedY = (minY + maxY) / 2
-    const sharedZ = (minZ + maxZ) / 2
-    const both: Center = {
-      left: [(rightBB[1] - leftBB[1]) / 2 + sepDiff, sharedY, sharedZ],
-      right: [(rightBB[1] - leftBB[1]) / 2 - sepDiff, sharedY, sharedZ],
-    }
-    if (centerBB) {
-      // Center sits between left and right. Its X offset is the displayed midpoint of left-vs-right
-      // widths subtracted from the center's geometric midpoint.
-      const leftWidth = leftBB[1] - leftBB[0]
-      const rightWidth = rightBB[1] - rightBB[0]
-      both.center = [
-        (centerBB[0] + centerBB[1]) / 2 - (leftWidth - rightWidth) / 2,
-        sharedY,
-        sharedZ,
-      ]
-    }
+    let sepDiff = (VIEW_SEPARATION - (rightBB[0] + leftBB[0])) / 2
+    if (centerBB) sepDiff += VIEW_SEPARATION / 2 + (centerBB[1] - centerBB[0]) / 2
+
+    const centerY = (Math.min(leftBB[2], rightBB[2]) + Math.max(leftBB[3], rightBB[3])) / 2
+    const centerZ = (Math.min(leftBB[4], rightBB[4]) + Math.max(leftBB[5], rightBB[5])) / 2
     return {
       left: {
         left: [-(leftBB[0] + leftBB[1]) / 2, (leftBB[2] + leftBB[3]) / 2, (leftBB[4] + leftBB[5]) / 2],
       },
-      both,
+      both: {
+        left: [(rightBB[1] - leftBB[1]) / 2 + sepDiff, centerY, centerZ],
+        right: [(rightBB[1] - leftBB[1]) / 2 - sepDiff, centerY, centerZ],
+        center: [centerBB ? (centerBB[0] + centerBB[1] + rightBB[1] - leftBB[1]) / 2 : 0, centerY, centerZ],
+      },
       right: {
         right: [(rightBB[0] + rightBB[1]) / 2, (rightBB[2] + rightBB[3]) / 2, (rightBB[4] + rightBB[5]) / 2],
       },
@@ -1613,16 +1594,11 @@ export function fullEstimatedSize(geo: FullGeometry | undefined): Full<[number, 
   } else {
     const [lx1, lx2, ly1, ly2, lz1, lz2] = estimatedBB(geo.left)
     const [rx1, rx2, ry1, ry2, rz1, rz2] = estimatedBB(geo.right)
-    const cBB = geo.center ? estimatedBB(geo.center) : null
+    const [cx1, cx2, cy1, cy2, cz1, cz2] = geo.center ? estimatedBB(geo.center) : [0, 0, Infinity, -Infinity, Infinity, -Infinity]
     const sep = VIEW_SEPARATION - (rx1 + lx1)
-    const cWidth = cBB ? cBB[1] - cBB[0] : 0
     return {
       left: [lx2 - lx1, ly2 - ly1, lz2 - lz1],
-      both: [
-        sep + rx2 + lx2 + cWidth,
-        Math.max(ly2, ry2, cBB?.[3] ?? -Infinity) - Math.min(ly1, ry1, cBB?.[2] ?? Infinity),
-        Math.max(lz2, rz2, cBB?.[5] ?? -Infinity) - Math.min(lz1, rz1, cBB?.[4] ?? Infinity),
-      ],
+      both: [sep + rx2 + lx2 + cx2 - cx1, Math.max(ly2, ry2, cy2) - Math.min(ly1, ry1, cy1), Math.max(lz2, rz2, cz2) - Math.min(lz1, rz1, cz1)],
       right: [rx2 - rx1, ry2 - ry1, rz2 - rz1],
     }
   }
