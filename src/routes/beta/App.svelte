@@ -454,13 +454,9 @@
           }
           // size = boundingSize([...keyBufs!, webBuf!])
         })
-        if (kbdNames.includes('right')) delete meshes.unibody
-        else {
-          delete meshes.left
-          delete meshes.right
-          delete meshes.center
+        for (const key of objKeys(meshes)) {
+          if (!kbdNames.includes(key)) delete meshes[key]
         }
-        if (!kbdNames.includes('center')) delete meshes.center
       }
 
       if (!flags.fast && full) {

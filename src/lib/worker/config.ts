@@ -1595,10 +1595,11 @@ export function fullEstimatedSize(geo: FullGeometry | undefined): Full<[number, 
     const [lx1, lx2, ly1, ly2, lz1, lz2] = estimatedBB(geo.left)
     const [rx1, rx2, ry1, ry2, rz1, rz2] = estimatedBB(geo.right)
     const [cx1, cx2, cy1, cy2, cz1, cz2] = geo.center ? estimatedBB(geo.center) : [0, 0, Infinity, -Infinity, Infinity, -Infinity]
-    const sep = VIEW_SEPARATION - (rx1 + lx1)
+    let sep = VIEW_SEPARATION - (rx1 + lx1)
+    if (geo.center) sep += VIEW_SEPARATION + cx2 - cx1 // Extra width for center cluster
     return {
       left: [lx2 - lx1, ly2 - ly1, lz2 - lz1],
-      both: [sep + rx2 + lx2 + cx2 - cx1, Math.max(ly2, ry2, cy2) - Math.min(ly1, ry1, cy1), Math.max(lz2, rz2, cz2) - Math.min(lz1, rz1, cz1)],
+      both: [sep + rx2 + lx2, Math.max(ly2, ry2, cy2) - Math.min(ly1, ry1, cy1), Math.max(lz2, rz2, cz2) - Math.min(lz1, rz1, cz1)],
       right: [rx2 - rx1, ry2 - ry1, rz2 - rz1],
     }
   }
