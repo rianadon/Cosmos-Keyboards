@@ -23,7 +23,7 @@
   import { T } from '@threlte/core'
   import { variantURL, PART_INFO } from '$lib/geometry/socketsParts'
   import { DefaultMap } from '$lib/worker/util'
-  import { MeshStandardMaterial, Quaternion, Vector3, type Vector3Tuple, type Vector4Tuple } from 'three'
+  import { Quaternion, Vector3, type Vector3Tuple, type Vector4Tuple } from 'three'
 
   export let geometry: Geometry | null
   export let transparency: number = 100

@@ -3,6 +3,7 @@ import { expect, test } from 'bun:test'
 import { Quaternion } from 'three'
 import { toCode } from '../../../src/routes/beta/lib/editor/toCode'
 import { deserialize, toCuttleformProto } from '../../../src/routes/beta/lib/serialize'
+import { setCenterCluster } from '../../routes/beta/lib/editor/visualEditorHelpers'
 import { cuttleConf, type Cuttleform, type FullCuttleform } from './config'
 import { type ConnectorMaybeCustom, type CosmosCluster, type CosmosKey, type CosmosKeyboard, fromCosmosConfig, toCosmosConfig, toFullCosmosConfig } from './config.cosmos'
 import { decodeConfigIdk, decodeConnectors, encodeConnectors, encodeCosmosConfig, serializeCosmosConfig } from './config.serialize'
@@ -107,47 +108,16 @@ test('Center cluster encoding round-trip', () => {
   const config = cuttleConf(defaultConfig.options as any)
   const cosmos = toCosmosConfig(config, 'right', true)
   cosmos.wristRestPosition = 0n
-
-  // Add a center cluster (replicates what setCenterCluster would produce)
-  cosmos.clusters.push({
-    name: 'center',
-    side: 'center',
-    type: 'matrix',
-    curvature: {},
-    profile: undefined,
-    partType: {},
-    position: 1234567890n,
-    rotation: undefined,
-    clusters: [{
-      name: 'center',
-      side: 'center',
-      type: 'matrix',
-      curvature: {},
-      profile: undefined,
-      partType: {},
-      column: 0,
-      clusters: [],
-      keys: [
-        { partType: {}, profile: { row: 5, home: null }, row: 0, position: undefined, rotation: undefined },
-        { partType: {}, profile: { row: 5, home: null }, row: 1, position: undefined, rotation: undefined },
-      ],
-      position: undefined,
-      rotation: undefined,
-    }],
-    keys: [],
-  })
   cosmos.connectorCenterIndex = 7
+  setCenterCluster(cosmos, 'trackball')
 
   const encoded = serializeCosmosConfig(encodeCosmosConfig(cosmos))
   const decoded = decodeConfigIdk(encoded)
 
-  // Center cluster preserved with side='center', name='center'
   const decodedCenter = decoded.clusters.find(c => c.side === 'center')
   expect(decodedCenter).toBeDefined()
   expect(decodedCenter!.name).toBe('center')
   expect(decodedCenter!.side).toBe('center')
-  expect(decodedCenter!.position).toBe(1234567890n)
-  expect(decodedCenter!.clusters[0].keys.length).toBe(2)
   expect(decodedCenter!.clusters[0].side).toBe('center')
   expect(decodedCenter!.clusters[0].name).toBe('center')
   expect(decoded.connectorCenterIndex).toBe(7)

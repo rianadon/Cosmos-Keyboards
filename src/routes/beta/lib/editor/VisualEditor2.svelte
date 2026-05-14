@@ -41,6 +41,7 @@
     fromCosmosConfig,
     mirrorCluster,
     partVariant,
+    sortClusters,
     toCosmosConfig,
     type ConnectorMaybeCustom,
     type CosmosKey,
@@ -66,11 +67,9 @@
     hasInnerCol,
     hasKey,
     hasOuterCol,
-    isCenterCluster,
     isFnKey,
     isNumKey,
-    isThumb,
-    removeCenterCluster,
+    isPreset,
     setCenterCluster,
     setClusterAngle,
     setClusterSeparationFromCenter,
@@ -276,14 +275,17 @@
     protoConfig.update((proto) => {
       const secondCluster = proto.clusters.find((c) => c.side == 'left' && c.name == cluster)
       if (secondCluster) {
-        if (confirm('This will overwrite the left side of the keyboard with the right. Continue?'))
+        if (confirm('This will overwrite the left side of the keyboard with the right. Continue?')) {
           proto.clusters.splice(proto.clusters.indexOf(secondCluster), 1)
+          sortClusters(proto.clusters)
+        }
       } else {
         proto.clusters.splice(
           cluster == 'fingers' ? 2 : 3,
           0,
           mirrorCluster(proto.clusters.find((c) => c.side == 'right' && c.name == cluster)!)
         )
+        sortClusters(proto.clusters)
       }
       return proto
     })
@@ -397,6 +399,13 @@
     })
   }
 
+  function setNoCenter() {
+    protoConfig.update((p) => {
+      p.clusters = p.clusters.filter((cl) => cl.side !== 'center')
+      return p
+    })
+  }
+
   function setUnibody(ev: Event) {
     protoConfig.update((proto) => {
       proto.unibody = (ev.target as HTMLInputElement).checked
@@ -484,7 +493,7 @@
   const setClusterRightSep = (ev: CustomEvent) =>
     protoConfig.update((proto) => setClusterSeparationFromCenter(proto, ev.detail, 'right'))
 
-  function changeCenterCluster(which: 'manuform', e: Event) {
+  function changeCenterCluster(which: 'trackball', e: Event) {
     const n = Number((e.target as HTMLInputElement).value)
     protoConfig.update((p) => setCenterCluster(p, which, n))
   }
@@ -743,22 +752,22 @@
     <Preset
       name="Manuform"
       on:click={() => setThumb('manuform', 'left')}
-      selected={isThumb($protoConfig, 'manuform', 'left')}
+      selected={isPreset($protoConfig, 'thumbs', 'manuform', 'left')}
     />
     <Preset
       name="Carbonfet"
       on:click={() => setThumb('carbonfet', 'left')}
-      selected={isThumb($protoConfig, 'carbonfet', 'left')}
+      selected={isPreset($protoConfig, 'thumbs', 'carbonfet', 'left')}
     />
     <Preset
       name="Orbyl"
       on:click={() => setThumb('orbyl', 'left')}
-      selected={isThumb($protoConfig, 'orbyl', 'left')}
+      selected={isPreset($protoConfig, 'thumbs', 'orbyl', 'left')}
     />
     <Preset
       name="Curved"
       on:click={() => setThumb('curved', 'left')}
-      selected={isThumb($protoConfig, 'curved', 'left')}
+      selected={isPreset($protoConfig, 'thumbs', 'curved', 'left')}
     />
     <Preset on:click={() => setNoThumb('left')} selected={leftThumbCluster?.clusters.length == 0}
       ><span class="relative top-[-0.1em]">&empty;</span></Preset
@@ -805,22 +814,22 @@
   <Preset
     name="Manuform"
     on:click={() => setThumb('manuform', 'right')}
-    selected={isThumb($protoConfig, 'manuform', 'right')}
+    selected={isPreset($protoConfig, 'thumbs', 'manuform', 'right')}
   />
   <Preset
     name="Carbonfet"
     on:click={() => setThumb('carbonfet', 'right')}
-    selected={isThumb($protoConfig, 'carbonfet', 'right')}
+    selected={isPreset($protoConfig, 'thumbs', 'carbonfet', 'right')}
   />
   <Preset
     name="Orbyl"
     on:click={() => setThumb('orbyl', 'right')}
-    selected={isThumb($protoConfig, 'orbyl', 'right')}
+    selected={isPreset($protoConfig, 'thumbs', 'orbyl', 'right')}
   />
   <Preset
     name="Curved"
     on:click={() => setThumb('curved', 'right')}
-    selected={isThumb($protoConfig, 'curved', 'right')}
+    selected={isPreset($protoConfig, 'thumbs', 'curved', 'right')}
   />
   <Preset on:click={() => setNoThumb('right')} selected={rightThumbCluster?.clusters.length == 0}
     ><span class="relative top-[-0.1em]">&empty;</span></Preset
@@ -858,15 +867,13 @@
   {/if}
 </Section>
 <Section name="Center Cluster">
-  <Preset
-    on:click={() => protoConfig.update(removeCenterCluster)}
-    selected={!centerCl || centerCl.clusters.length == 0}
+  <Preset on:click={setNoCenter} selected={!centerCl || centerCl.clusters.length == 0}
     ><span class="relative top-[-0.1em]">&empty;</span></Preset
   >
   <Preset
-    name="Manuform"
-    on:click={() => protoConfig.update((p) => setCenterCluster(p, 'manuform'))}
-    selected={isCenterCluster($protoConfig, 'manuform')}
+    name="Trackball"
+    on:click={() => protoConfig.update((p) => setCenterCluster(p, 'trackball'))}
+    selected={isPreset($protoConfig, 'center', 'trackball', 'center')}
   />
   {#if whichCenter}
     {@const which = whichCenter.which}
