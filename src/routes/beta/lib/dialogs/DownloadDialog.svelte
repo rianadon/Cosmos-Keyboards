@@ -151,9 +151,13 @@
     generatingGLB = false
   }
 
+  const centerIcon =
+    'M8.5 0C7.4 0 6.5.7 6.2 1.6c-.2-.1-.5-.1-.7-.1C4.1 1.5 3 2.6 3 4v.5c-.2 0-.3 0-.5 0C1.1 4.5 0 5.6 0 7v9c0 4.4 3.6 8 8 8 1.4 0 2.8-.4 4-1 1.2.6 2.6 1 4 1 4.4 0 8-3.6 8-8V7c0-1.4-1.1-2.5-2.5-2.5-.2 0-.3 0-.5 0V4c0-1.4-1.1-2.5-2.5-2.5-.2 0-.5 0-.7.1C17.5.7 16.6 0 15.5 0 14.3 0 13.3.9 13 2.1c-.1-.1-.3-.1-.5-.1s-.3 0-.5 0-.3 0-.5 0-.4 0-.5.1C10.8.9 9.7 0 8.5 0Zm0 2c.3 0 .5.2.5.5V9.8c-.1 0-.2 0-.2-.1 0 0 0 0 0 0-.4-.1-.6.1-.8.4V2.5c0-.3.2-.5.5-.5Zm7 0c.3 0 .5.2.5.5v7.6c-.2-.3-.4-.5-.8-.4 0 .1-.1.1-.2.1V2.5c0-.3.2-.5.5-.5ZM5.5 3.5c.3 0 .5.2.5.5v8H7.5c-.2 2.2.2 5.4.7 6.7.5 1.1 1.1 2.1 2 2.9-.7.3-1.4.4-2.2.4-3 0-5.4-2.1-5.9-5-.1-.3-.1-.6-.1-1V7c0-.3.2-.5.5-.5s.5.2.5.5v5H5V4c0-.3.2-.5.5-.5Zm13 0c.3 0 .5.2.5.5v8h2V7c0-.3.2-.5.5-.5s.5.2.5.5v9c0 3.3-2.7 6-6 6-.7 0-1.5-.1-2.2-.4.9-.8 1.5-1.8 2-2.9.5-.9.7-3.4.6-5.5 0-.4 0-.8 0-1.2H18V4c0-.3.2-.5.5-.5Z'
+
   function iconPath(kbdName: 'left' | 'right' | 'center' | 'unibody') {
     if (kbdName == 'left') return mdiHandBackLeft
     if (kbdName == 'right') return mdiHandBackRight
+    if (kbdName == 'center') return centerIcon
     return mdiKeyboard
   }
 
@@ -186,7 +190,8 @@
     $emailMinimized = Date.now()
   }
 
-  $: configKeys = objKeys(config).sort()
+  const order = (s: string) => (s == 'center' ? Infinity : s.charCodeAt(0))
+  $: configKeys = objKeys(config).sort((a, b) => order(a) - order(b))
 </script>
 
 <Dialog on:close>
@@ -272,7 +277,7 @@
       <div class="columns-2">
         <div class="break-inside-avoid">
           <h3 class="mb-2 text-lg semibold text-black dark:text-white">Case/Shell</h3>
-          <div class="inline-flex items-center gap-2">
+          <div class="inline-flex items-center gap-2 flex-wrap justify-center">
             {#each configKeys as kbd}
               <button class="button flex items-center gap-2" on:click={() => downloadSTL('model', kbd)}
                 ><Icon path={iconPath(kbd)} />{kbdName(kbd)}</button
@@ -283,7 +288,7 @@
         <div class="break-inside-avoid">
           <h3 class="mb-2 mt-4 text-lg semibold text-black dark:text-white">Plate</h3>
           {#if Object.values(config).some((c) => c.shell.type == 'tilt' || c.shell.type == 'stilts')}
-            <div class="inline-flex items-center gap-2">
+            <div class="inline-flex items-center gap-2 flex-wrap justify-center">
               {#each configKeys as kbd}
                 <button
                   class="button flex items-center gap-2"
@@ -292,7 +297,7 @@
                 >
               {/each}
             </div>
-            <div class="inline-flex items-center gap-2 mt-2">
+            <div class="inline-flex items-center gap-2 flex-wrap justify-center mt-2">
               {#each configKeys as kbd}
                 <button
                   class="button flex items-center gap-2"
@@ -305,7 +310,7 @@
               Download both the Top and Bot models.
             </div>
           {:else}
-            <div class="inline-flex items-center gap-2">
+            <div class="inline-flex items-center gap-2 flex-wrap justify-center">
               {#each configKeys as kbd}
                 <button class="button flex items-center gap-2" on:click={() => downloadSTL('plate', kbd)}
                   ><Icon path={iconPath(kbd)} />{kbdName(kbd)}</button
@@ -317,7 +322,7 @@
         {#if Object.values(config).some((c) => c.microcontroller)}
           <div class="break-inside-avoid">
             <h3 class="mb-2 mt-4 text-lg semibold text-black dark:text-white">Microcontroller Holder</h3>
-            <div class="inline-flex items-center gap-2">
+            <div class="inline-flex items-center gap-2 flex-wrap justify-center">
               {#each configKeys as kbd}
                 <button
                   class="button flex items-center gap-2"
@@ -333,7 +338,7 @@
             <h3 class="mb-2 mt-4 text-lg semibold text-black dark:text-white">Wrist Rest</h3>
             {#if $user.success && $user.sponsor}
               {#if Object.values(config).some((c) => c.wristRestRight)}
-                <div class="inline-flex items-center gap-2">
+                <div class="inline-flex items-center gap-2 flex-wrap justify-center">
                   {#each configKeys as kbd}
                     <button
                       class="button flex items-center gap-2"
@@ -364,7 +369,7 @@
           href="docs/cad/">[Importing Guide]</a
         >
       </p>
-      <div class="inline-flex items-center gap-2">
+      <div class="inline-flex items-center gap-2 flex-wrap justify-center">
         {#each configKeys as kbd}
           <button class="button flex items-center gap-2" on:click={() => downloadSTEP(kbd)}>
             <Icon path={iconPath(kbd)} />{kbdName(kbd)}
@@ -394,7 +399,7 @@
         <div class="flex items-center justify-center mb-2 gap-1">
           <!-- svelte-ignore a11y-label-has-associated-control-->
         </div>
-        <div class="inline-flex items-center gap-2">
+        <div class="inline-flex items-center gap-2 flex-wrap justify-center">
           {#each configKeys as kbd}
             <button class="button flex items-center gap-2" on:click={() => downloadGLB(kbd)}>
               <Icon path={iconPath(kbd)} />{kbdName(kbd)}
