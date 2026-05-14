@@ -1,5 +1,5 @@
 import { PART_INFO } from '$lib/geometry/socketsParts'
-import { approximateCosmosThumbOrigin, cosmosFingers, type Cuttleform, decodeTuple, encodeTuple, type FullCuttleform, newGeometry } from '$lib/worker/config'
+import { approximateCosmosThumbOrigin, cosmosFingers, type Cuttleform, decodeTuple, encodeTuple, type FullCuttleform, type KeyboardSide, newGeometry } from '$lib/worker/config'
 import {
   type ConnectorMaybeCustom,
   type CosmosCluster,
@@ -49,9 +49,9 @@ export function setClusterSize(keyboard: CosmosKeyboard, side: 'left' | 'right',
   return keyboard
 }
 
-export function clusterSeparation(c: CosmosKeyboard) {
-  const rightSide = sideFromCosmosConfig(c, 'right', false)
-  const leftSide = sideFromCosmosConfig(c, 'left', false)
+export function clusterSeparation(c: CosmosKeyboard, left: KeyboardSide, right: KeyboardSide) {
+  const rightSide = sideFromCosmosConfig(c, right, false)
+  const leftSide = sideFromCosmosConfig(c, left, false)
   if (!leftSide || !rightSide) return 0
   const rightBB = estimatedBB(newGeometry(rightSide), false, false)
   const leftBB = estimatedBB(newGeometry(leftSide), false, false)
@@ -59,7 +59,7 @@ export function clusterSeparation(c: CosmosKeyboard) {
 }
 
 export function setClusterSeparation(c: CosmosKeyboard, desiredSeparation: number) {
-  const currentSeparation = clusterSeparation(c)
+  const currentSeparation = clusterSeparation(c, 'left', 'right')
   const separationToAdd = (desiredSeparation - currentSeparation) / 2
   for (const cluster of c.clusters) {
     if (cluster.side === 'center') continue // Center stays put; left/right move outward.
@@ -68,49 +68,16 @@ export function setClusterSeparation(c: CosmosKeyboard, desiredSeparation: numbe
     cluster.position = encodeTuple([x, y, z])
   }
   let [x, y, z] = decodeTuple(c.wristRestPosition)
-  x += 10 * separationToAdd
+  x += Math.round(10 * separationToAdd)
   c.wristRestPosition = encodeTuple([x, y, z])
   return c
 }
 
-/** Gap between the right edge of the left half and the left edge of the center cluster. */
-export function clusterLeftSeparation(c: CosmosKeyboard) {
-  const leftSide = sideFromCosmosConfig(c, 'left', false)
-  const centerSide = sideFromCosmosConfig(c, 'center', false)
-  if (!leftSide || !centerSide) return 0
-  const leftBB = estimatedBB(newGeometry(leftSide), false, false)
-  const centerBB = estimatedBB(newGeometry(centerSide), false, false)
-  return centerBB[0] - leftBB[1]
-}
-
-/** Gap between the right edge of the center cluster and the left edge of the right half. */
-export function clusterRightSeparation(c: CosmosKeyboard) {
-  const rightSide = sideFromCosmosConfig(c, 'right', false)
-  const centerSide = sideFromCosmosConfig(c, 'center', false)
-  if (!rightSide || !centerSide) return 0
-  const rightBB = estimatedBB(newGeometry(rightSide), false, false)
-  const centerBB = estimatedBB(newGeometry(centerSide), false, false)
-  return rightBB[0] - centerBB[1]
-}
-
-/** Translate left clusters outward (or inward) so the gap to the center reaches `desiredGap`. */
-export function setClusterLeftSeparation(c: CosmosKeyboard, desiredGap: number) {
-  const current = clusterLeftSeparation(c)
-  const delta = current - desiredGap // positive: move left clusters right (closer to center)
+/** Keeps center in place and adjusts the separation between center and one side of the keyboard */
+export function setClusterSeparationFromCenter(c: CosmosKeyboard, desiredGap: number, side: KeyboardSide) {
+  const delta = desiredGap - clusterSeparation(c, 'center', side)
   for (const cluster of c.clusters) {
-    if (cluster.side !== 'left') continue
-    const [x, y, z] = decodeTuple(cluster.position ?? 0n)
-    cluster.position = encodeTuple([x + Math.round(10 * delta), y, z])
-  }
-  return c
-}
-
-/** Translate right clusters outward (or inward) so the gap from the center reaches `desiredGap`. */
-export function setClusterRightSeparation(c: CosmosKeyboard, desiredGap: number) {
-  const current = clusterRightSeparation(c)
-  const delta = desiredGap - current // positive: push right clusters further right
-  for (const cluster of c.clusters) {
-    if (cluster.side !== 'right') continue
+    if (cluster.side !== side) continue
     const [x, y, z] = decodeTuple(cluster.position ?? 0n)
     cluster.position = encodeTuple([x + Math.round(10 * delta), y, z])
   }

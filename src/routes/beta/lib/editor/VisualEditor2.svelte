@@ -57,8 +57,6 @@
   import DecimalInputInherit from './DecimalInputInherit.svelte'
   import {
     clusterAngle,
-    clusterLeftSeparation,
-    clusterRightSeparation,
     clusterSeparation,
     connectorsString,
     getCenterClusterN,
@@ -75,8 +73,7 @@
     removeCenterCluster,
     setCenterCluster,
     setClusterAngle,
-    setClusterLeftSeparation,
-    setClusterRightSeparation,
+    setClusterSeparationFromCenter,
     setClusterSeparation,
     setClusterSize,
     setThumbCluster,
@@ -404,13 +401,18 @@
     protoConfig.update((proto) => {
       proto.unibody = (ev.target as HTMLInputElement).checked
       if (proto.unibody) {
-        setClusterSeparation(proto, 30)
+        if (proto.clusters.find((c) => c.side == 'center' && c.clusters.length)) {
+          setClusterSeparationFromCenter(proto, 5, 'left')
+          setClusterSeparationFromCenter(proto, 5, 'right')
+        } else {
+          setClusterSeparation(proto, 30)
+        }
         // Double the number of screw indices
         proto.screwIndices = proto.screwIndices.concat(new Array(proto.screwIndices.length).fill(-1))
       } else {
         // Move everything so wrist rest goes to position 10
         const wristRestMovement = 10 - decodeTuple(proto.wristRestPosition)[0] / 10
-        setClusterSeparation(proto, clusterSeparation(proto) + wristRestMovement * 2)
+        setClusterSeparation(proto, clusterSeparation(proto, 'left', 'right') + wristRestMovement * 2)
         // Halve the number of screw indices
         proto.screwIndices = proto.screwIndices.slice(0, Math.ceil(proto.screwIndices.length / 2))
       }
@@ -471,16 +473,16 @@
   wrPositionStore.tuple.subscribe((t) => updateWrPosition(t))
   $: wrPositionStore.update($protoConfig.wristRestPosition || 0n)
 
-  $: clusterSep = clusterSeparation($tempConfig)
+  $: clusterSep = clusterSeparation($tempConfig, 'left', 'right')
   const setClusterSep = (ev: CustomEvent) =>
     protoConfig.update((proto) => setClusterSeparation(proto, ev.detail))
 
-  $: clusterLeftSep = clusterLeftSeparation($tempConfig)
-  $: clusterRightSep = clusterRightSeparation($tempConfig)
+  $: clusterLeftSep = clusterSeparation($tempConfig, 'left', 'center')
+  $: clusterRightSep = clusterSeparation($tempConfig, 'center', 'right')
   const setClusterLeftSep = (ev: CustomEvent) =>
-    protoConfig.update((proto) => setClusterLeftSeparation(proto, ev.detail))
+    protoConfig.update((proto) => setClusterSeparationFromCenter(proto, ev.detail, 'left'))
   const setClusterRightSep = (ev: CustomEvent) =>
-    protoConfig.update((proto) => setClusterRightSeparation(proto, ev.detail))
+    protoConfig.update((proto) => setClusterSeparationFromCenter(proto, ev.detail, 'right'))
 
   function changeCenterCluster(which: 'manuform', e: Event) {
     const n = Number((e.target as HTMLInputElement).value)
