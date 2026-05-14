@@ -4,6 +4,7 @@
 
 import { BinaryReader, BinaryWriter } from '@protobuf-ts/runtime'
 import {
+  type ClusterFlags,
   decodeBasicShellFlags,
   decodeClusterFlags,
   decodeConnector,
@@ -121,6 +122,19 @@ function decodeConnectorsCompatible(connectors: Uint8Array, connector: number | 
     return convertToMaybeCustomConnectors(decodeConnector(connector) as any)
   }
   return decodeConnectors(connectors)
+}
+
+// Special handling for center cluster
+function decodeClusterFlagsCorrectly(idType: number) {
+  const flags = decodeClusterFlags(idType)
+  if (flags.name === 'center') return { ...flags, side: 'center' as const }
+  return flags
+}
+function encodeClusterFlagsCorrectly(c: ReturnType<typeof decodeClusterFlagsCorrectly>) {
+  return encodeClusterFlags({
+    ...c,
+    side: c.side == 'center' ? 'right' : c.side,
+  })
 }
 
 // ----------  PROFILES ----------
@@ -414,22 +428,11 @@ export function deserializeCosmosConfig(b64: string): FullKeyboard {
 //   return conf
 // }
 
-/** Map decoded ClusterFlags to runtime cluster identity. When the bit-name is
- * 'center', the runtime cluster has both side='center' and name='center'
- * (the bit-side is meaningless for center clusters). */
-function flagsToClusterIdentity(idType: number) {
-  const flags = decodeClusterFlags(idType)
-  if (flags.name === 'center') {
-    return { side: 'center' as const, name: 'center' as const, type: flags.type }
-  }
-  return flags
-}
-
 export function decodeCosmosCluster(clusterA: Cluster): CosmosCluster {
   let lastCluster: Cluster | null = null
 
   return {
-    ...flagsToClusterIdentity(clusterA.idType ?? 0),
+    ...decodeClusterFlagsCorrectly(clusterA.idType ?? 0),
     curvature: decodeCurvature(clusterA.curvature || {}),
     profile: decodeProfile(clusterA.keyProfile || 0).profile,
     partType: decodePartType(clusterA.partType || 0),
@@ -444,7 +447,7 @@ export function decodeCosmosCluster(clusterA: Cluster): CosmosCluster {
       let lastKey: Key | null = null
       let lastKeyRow = 0
       return {
-        ...flagsToClusterIdentity(clusterB.idType ?? clusterA.idType ?? 0),
+        ...decodeClusterFlagsCorrectly(clusterB.idType ?? clusterA.idType ?? 0),
         curvature: decodeCurvature(clusterB.curvature || {}),
         profile: decodeProfile(clusterB.keyProfile || 0).profile,
         partType: decodePartType(clusterB.partType || 0),
@@ -622,19 +625,9 @@ function decodeCurvature(c: Curvature): Curvature {
   return curv
 }
 
-/** Map a CosmosCluster (which may have side='center') to its bitfield representation.
- * Center clusters encode bit-name='center', bit-side='right' (side ignored on decode). */
-function clusterFlagsForEncoding(c: CosmosCluster) {
-  if (c.name === 'center' || c.side === 'center') {
-    return { side: 'right' as const, name: 'center' as const, type: c.type }
-  }
-  // Non-center clusters always have side='left' or 'right' at this point.
-  return { side: c.side as 'left' | 'right', name: c.name as 'fingers' | 'thumbs', type: c.type }
-}
-
 export function encodeCosmosCluster(clusterA: CosmosCluster): Cluster {
   const cluster: Cluster = {
-    idType: encodeClusterFlags(clusterFlagsForEncoding(clusterA)),
+    idType: encodeClusterFlagsCorrectly(clusterA),
     cluster: [],
     key: [],
     partType: diff(encodePartType(clusterA.partType), 0),
@@ -648,7 +641,7 @@ export function encodeCosmosCluster(clusterA: CosmosCluster): Cluster {
   for (const clusterB of clusterA.clusters) {
     const col = clusterB.column
     const column: Cluster = {
-      idType: diff(encodeClusterFlags(clusterFlagsForEncoding(clusterB)), cluster.idType),
+      idType: diff(encodeClusterFlagsCorrectly(clusterB), cluster.idType),
       cluster: [],
       key: [],
       partType: diff(encodePartType(clusterB.partType), 0),
