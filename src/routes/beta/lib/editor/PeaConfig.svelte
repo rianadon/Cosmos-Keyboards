@@ -43,15 +43,12 @@
 
   $: anyConfig = config.right || config.unibody || { microcontroller: undefined }
   $: truncated = anyConfig.microcontroller == 'lemon-wireless' && $modelName.length > 16
-  $: hasCenterPiece = !!config.center
-  $: isLemon = anyConfig.microcontroller?.startsWith('lemon')
-  $: warnCenterFirmware = hasCenterPiece && isLemon
 </script>
 
 <p class="mt-4 mb-2">Successfully made the matrix!</p>
 <p class="mb-2">Now you can download code for your microcontroller.</p>
 
-{#if warnCenterFirmware}
+{#if !!config.center}
   <InfoBox>
     Firmware will not be generated for the center cluster. The center cluster's keys must be wired
     manually.

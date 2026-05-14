@@ -8,7 +8,7 @@ import { Matrix4, Vector3 } from 'three'
 import { type AnyShell, curvature, type Cuttleform, type CuttleKey, decodeTuple, encodeTuple, type FullCuttleform, type Keycap, matrixToRPY, tupleToRot, tupleToXYZ } from './config'
 import { decodePartType, encodePartType, KEYBOARD_DEFAULTS } from './config.serialize'
 import Trsf from './modeling/transformation'
-import { capitalize, DefaultMap, objEntries, objKeys, sum, TallyMap, trimUndefined } from './util'
+import { capitalize, DefaultMap, match, objEntries, objKeys, sum, TallyMap, trimUndefined } from './util'
 
 export type ClusterSide = 'left' | 'right' | 'center'
 export type CustomConnector = {
@@ -444,12 +444,6 @@ function dominantCurvature(keys: CuttleKey[]): CosmosKeyboard['curvature'] {
 
 export function sideFromCosmosConfig(c: CosmosKeyboard, side: 'left' | 'right' | 'center' | 'unibody', flipLeft = true): Cuttleform | undefined {
   const wrPos = decodeTuple(c.wristRestPosition)
-  const isCenter = side == 'center'
-  const connectorIndex = side == 'left'
-    ? c.connectorLeftIndex
-    : side == 'center'
-    ? c.connectorCenterIndex
-    : c.connectorRightIndex
   const conf: Cuttleform = {
     wallThickness: c.wallThickness,
     wallShrouding: c.wallShrouding,
@@ -468,13 +462,13 @@ export function sideFromCosmosConfig(c: CosmosKeyboard, side: 'left' | 'right' |
     clearScrews: c.clearScrews,
     rounded: JSON.parse(JSON.stringify(c.rounded)),
     connectors: c.connectors,
-    connectorIndex,
+    connectorIndex: match(side, { left: c.connectorLeftIndex, center: c.connectorCenterIndex }, c.connectorRightIndex),
     microcontroller: c.microcontroller,
     microcontrollerAngle: c.microcontrollerAngle,
     fastenMicrocontroller: c.fastenMicrocontroller,
     flipConnectors: side == 'left' && !c.mirrorConnectors,
     // Center piece never has a wrist rest.
-    wristRestLeft: !isCenter && c.wristRestEnable
+    wristRestLeft: side != 'center' && c.wristRestEnable
       ? {
         angle: c.wristRestProps.angle,
         taper: c.wristRestProps.taper,
@@ -485,7 +479,7 @@ export function sideFromCosmosConfig(c: CosmosKeyboard, side: 'left' | 'right' |
         extension: c.wristRestProps.extensionLeft,
       }
       : undefined,
-    wristRestRight: !isCenter && c.wristRestEnable
+    wristRestRight: side != 'center' && c.wristRestEnable
       ? {
         angle: c.wristRestProps.angle,
         taper: c.wristRestProps.taper,
@@ -500,29 +494,15 @@ export function sideFromCosmosConfig(c: CosmosKeyboard, side: 'left' | 'right' |
     shell: c.shell,
     plate: c.plate,
   }
-  let clusters: CosmosCluster[]
-  if (side == 'center') {
-    // Center piece: only the center cluster's keys.
-    clusters = c.clusters.filter(cl => cl.side === 'center')
-  } else if (side == 'unibody') {
-    // Unibody: include both halves and center keys.
-    clusters = [...c.clusters]
-    if (!c.clusters.find(cl => cl.side == 'left' && cl.name == 'fingers')) {
-      clusters.splice(2, 0, mirrorCluster(c.clusters.find(cl => cl.side == 'right' && cl.name == 'fingers')!))
-    }
-    if (!c.clusters.find(cl => cl.side == 'left' && cl.name == 'thumbs')) {
-      clusters.push(mirrorCluster(c.clusters.find(cl => cl.side == 'right' && cl.name == 'thumbs')!))
-    }
-  } else {
-    // Split left or right.
-    clusters = c.clusters.filter(cl => cl.side == side)
-    if (side == 'left' && !c.clusters.find(cl => cl.side == 'left' && cl.name == 'fingers')) {
-      clusters.unshift(mirrorCluster(c.clusters.find(cl => cl.side == 'right' && cl.name == 'fingers')!))
-    }
-    if (side == 'left' && !c.clusters.find(cl => cl.side == 'left' && cl.name == 'thumbs')) {
-      clusters.push(mirrorCluster(c.clusters.find(cl => cl.side == 'right' && cl.name == 'thumbs')!))
-    }
+  const clusters: CosmosCluster[] = c.clusters.filter(c => side == 'unibody' || c.side == side)
+  // Add mirrored fingers
+  if (side == 'left' && !c.clusters.find(c => c.side == 'left' && c.name == 'fingers')) clusters.unshift(mirrorCluster(c.clusters.find(c => c.side == 'right' && c.name == 'fingers')!))
+  if (side == 'unibody' && !c.clusters.find(c => c.side == 'left' && c.name == 'fingers')) clusters.splice(2, 0, mirrorCluster(c.clusters.find(c => c.side == 'right' && c.name == 'fingers')!))
+  // Add mirrored thumbs
+  if ((side == 'left' || side == 'unibody') && !c.clusters.find(c => c.side == 'left' && c.name == 'thumbs')) {
+    clusters.push(mirrorCluster(c.clusters.find(c => c.side == 'right' && c.name == 'thumbs')!))
   }
+
   for (const clusterA of clusters) {
     for (const clusterB of clusterA.clusters) {
       for (const key of clusterB.keys) {
@@ -767,11 +747,7 @@ function collectByTransformBy(keys: CuttleKey[]) {
 function collectByClusterName(keys: CuttleKey[]) {
   const names = new DefaultMap<ClusterName, CuttleKey[]>(() => [])
   for (const key of keys) {
-    const cluster: ClusterName = key.cluster == 'thumbs'
-      ? 'thumbs'
-      : key.cluster == 'center'
-      ? 'center'
-      : 'fingers'
+    const cluster: ClusterName = match(key.cluster, { 'thumbs': 'thumbs', 'center': 'center' }, 'fingers')
     names.get(cluster).push(key)
   }
   return names
