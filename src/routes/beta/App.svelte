@@ -38,6 +38,7 @@
     type Cuttleform,
     type FullCenter,
     type FullCuttleform,
+    type KeyboardSide,
   } from '$lib/worker/config'
   import { checkConfig, type ConfErrors, isRenderable, isWarning, salientError } from '$lib/worker/check'
   import VisualEditor2 from './lib/editor/VisualEditor2.svelte'
@@ -291,7 +292,7 @@
     ]
   }
 
-  const calcOtherPromises = (conf: Cuttleform, side: 'left' | 'right' | 'center' | 'unibody') => ({
+  const calcOtherPromises = (conf: Cuttleform, side: KeyboardSide) => ({
     intersectionsPromise: pool.execute(
       (w) => w.intersections(conf, side) as Promise<ConfErrors>,
       'Intersections'

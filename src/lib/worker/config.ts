@@ -146,6 +146,7 @@ export type FullCuttleform = {
   center?: Cuttleform
   unibody?: Cuttleform
 }
+export type KeyboardSide = 'left' | 'right' | 'center' | 'unibody'
 
 export interface BasicShell {
   type: 'basic'

@@ -5,7 +5,7 @@ import { decodeVariant, encodeVariant, PART_INFO, socketSize } from '$lib/geomet
 import { type ClusterName, type ClusterType, type Connector, decodeClusterFlags, encodeClusterFlags, type PartVariant, type ScrewFlags } from '$target/cosmosStructs'
 import type { Curvature } from '$target/proto/cosmos'
 import { Matrix4, Vector3 } from 'three'
-import { type AnyShell, curvature, type Cuttleform, type CuttleKey, decodeTuple, encodeTuple, type FullCuttleform, type Keycap, matrixToRPY, tupleToRot, tupleToXYZ } from './config'
+import { type AnyShell, curvature, type Cuttleform, type CuttleKey, decodeTuple, encodeTuple, type FullCuttleform, type KeyboardSide, type Keycap, matrixToRPY, tupleToRot, tupleToXYZ } from './config'
 import { decodePartType, encodePartType, KEYBOARD_DEFAULTS } from './config.serialize'
 import Trsf from './modeling/transformation'
 import { capitalize, DefaultMap, match, objEntries, objKeys, sum, TallyMap, trimUndefined } from './util'
@@ -259,9 +259,7 @@ function toCosmosClusters(keys: CuttleKey[], side: ClusterSide, globalProfile: K
     position: undefined,
     rotation: undefined,
   }
-  if (side === 'center') {
-    if (!clusters.find(c => c.name == 'center')) clusters.push({ ...defaultCluster, name: 'center' })
-  } else {
+  if (side !== 'center') {
     if (!clusters.find(c => c.name == 'fingers')) clusters.push({ ...defaultCluster, name: 'fingers' })
     if (!clusters.find(c => c.name == 'thumbs')) clusters.push({ ...defaultCluster, name: 'thumbs' })
   }
@@ -320,7 +318,7 @@ export function toFullCosmosConfig(conf: FullCuttleform, flipLeft = false): Cosm
   return kbd
 }
 
-export function toCosmosConfig(conf: Cuttleform, side: 'left' | 'right' | 'center' | 'unibody', overrideWristRest: boolean, flipLeft = false): CosmosKeyboard {
+export function toCosmosConfig(conf: Cuttleform, side: KeyboardSide, overrideWristRest: boolean, flipLeft = false): CosmosKeyboard {
   const globalCurvature = dominantCurvature(conf.keys)
   const globalProfile = dominantProfile(conf.keys) ?? 'xda'
   const globalPartType = decodePartType(dominantPartType(conf.keys) ?? encodePartType({ type: 'mx-better', aspect: 1 }))
@@ -442,7 +440,7 @@ function dominantCurvature(keys: CuttleKey[]): CosmosKeyboard['curvature'] {
   }
 }
 
-export function sideFromCosmosConfig(c: CosmosKeyboard, side: 'left' | 'right' | 'center' | 'unibody', flipLeft = true): Cuttleform | undefined {
+export function sideFromCosmosConfig(c: CosmosKeyboard, side: KeyboardSide, flipLeft = true): Cuttleform | undefined {
   const wrPos = decodeTuple(c.wristRestPosition)
   const conf: Cuttleform = {
     wallThickness: c.wallThickness,

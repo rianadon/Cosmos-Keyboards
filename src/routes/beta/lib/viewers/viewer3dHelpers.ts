@@ -1,5 +1,5 @@
 import { adjacentKeycapLetter, UNIFORM } from '$lib/geometry/keycaps'
-import { decodeTuple, type Geometry } from '$lib/worker/config'
+import { decodeTuple, type Geometry, type KeyboardSide } from '$lib/worker/config'
 import { type CosmosCluster, type CosmosKey, type CosmosKeyboard, cosmosKeyPosition, nthKey } from '$lib/worker/config.cosmos'
 import type { ShapeMesh } from '$lib/worker/modeling'
 import Trsf, { Vector } from '$lib/worker/modeling/transformation'
@@ -237,7 +237,7 @@ export function formatHoming(key: CosmosKey) {
   return key.profile.home[0].toUpperCase() + key.profile.home.substring(1)
 }
 
-export function kbdOffset(kbd: 'left' | 'right' | 'center' | 'unibody') {
+export function kbdOffset(kbd: KeyboardSide) {
   return 0
   // if (kbd == 'left') return -90
   // if (kbd == 'right') return 90

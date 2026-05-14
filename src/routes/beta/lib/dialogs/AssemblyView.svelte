@@ -3,7 +3,7 @@
   import { mdiChevronLeft, mdiChevronRight, mdiInformationOutline } from '@mdi/js'
   import Icon from '$lib/presentation/Icon.svelte'
   import type { FullGeometry, KeyboardMeshes } from '../viewers/viewer3dHelpers'
-  import type { Center } from '$lib/worker/config'
+  import type { Center, KeyboardSide } from '$lib/worker/config'
   import * as THREE from 'three'
   import { renderedModelsAsScene } from '../modelGLTF'
   import { SORTED_VENDORS } from '@pro/assemblyService'
@@ -12,7 +12,7 @@
   import Dialog from '$lib/presentation/Dialog.svelte'
 
   export let center: Center
-  export let meshes: ['left' | 'right' | 'center' | 'unibody', KeyboardMeshes][]
+  export let meshes: [KeyboardSide, KeyboardMeshes][]
   export let geometry: FullGeometry
   export let size: [number, number, number]
 
