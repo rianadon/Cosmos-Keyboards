@@ -83,7 +83,9 @@ npm-install:
 fetch-assets:
 	src/scripts/fetch-assets.sh
 fetch-history:
-	git fetch origin main --depth=50
+	git fetch origin main:refs/remotes/origin/main \
+		$$VERCEL_GIT_COMMIT_REF:refs/remotes/origin/$$VERCEL_GIT_COMMIT_REF \
+		--depth=100
 ci-base: build keycaps-simple2 keycaps2 parts parts-simple
 ci: fetch-history fetch-assets ci-setup build parts vite-build docs-ci
 quickstart: npm-install ci-setup ci-base
