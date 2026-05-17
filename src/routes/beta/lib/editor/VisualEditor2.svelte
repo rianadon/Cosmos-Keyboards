@@ -60,26 +60,26 @@
     clusterAngle,
     clusterSeparation,
     connectorsString,
-    getCenterClusterN,
     getNKeys,
     getSize,
-    getThumbN,
+    getPresetN,
     hasInnerCol,
     hasKey,
     hasOuterCol,
     isFnKey,
     isNumKey,
     isPreset,
-    setCenterCluster,
     setClusterAngle,
     setClusterSeparationFromCenter,
     setClusterSeparation,
     setClusterSize,
-    setThumbCluster,
     toggleFnRow,
     toggleInnerCol,
     toggleNumRow,
     toggleOuterCol,
+    setPreset,
+    type ThumbPreset,
+    type CenterPreset,
   } from './visualEditorHelpers'
   import {
     mdiCodeJson,
@@ -113,6 +113,9 @@
 
   $: protoConfig.set(cosmosConf)
   $: conf = fromCosmosConfig($protoConfig)
+
+  const UNIBODY_SEPARATION = 30
+  const UNIBODY_CENTER_SEPARATION = 5
 
   const dispatch = createEventDispatcher()
 
@@ -271,6 +274,20 @@
     })
   }
 
+  function ensureClusters(c: CosmosKeyboard) {
+    const hasFingers = c.clusters.find((cl) => cl.side == 'left' && cl.name == 'fingers')
+    const hasThumbs = c.clusters.find((cl) => cl.side == 'left' && cl.name == 'thumbs')
+    if (!hasFingers) addNewCluster(c, 'fingers')
+    if (!hasThumbs) addNewCluster(c, 'thumbs')
+    return !hasFingers || !hasThumbs
+  }
+
+  function addNewCluster(c: CosmosKeyboard, cluster: 'fingers' | 'thumbs') {
+    const newCluster = mirrorCluster(c.clusters.find((cl) => cl.side == 'right' && cl.name == cluster)!)
+    c.clusters.splice(cluster == 'fingers' ? 2 : 3, 0, newCluster)
+    sortClusters(c.clusters)
+  }
+
   function editJointlySeparately(cluster: 'fingers' | 'thumbs') {
     protoConfig.update((proto) => {
       const secondCluster = proto.clusters.find((c) => c.side == 'left' && c.name == cluster)
@@ -280,12 +297,7 @@
           sortClusters(proto.clusters)
         }
       } else {
-        proto.clusters.splice(
-          cluster == 'fingers' ? 2 : 3,
-          0,
-          mirrorCluster(proto.clusters.find((c) => c.side == 'right' && c.name == cluster)!)
-        )
-        sortClusters(proto.clusters)
+        addNewCluster(proto, cluster)
       }
       return proto
     })
@@ -383,13 +395,23 @@
     }
   }
 
-  function setThumb(
-    type: 'carbonfet' | 'manuform' | 'orbyl' | 'curved',
-    side: 'left' | 'right',
-    e?: Event
-  ) {
+  function setThumb(type: ThumbPreset, side: 'left' | 'right', e?: Event) {
     const n = e ? Number((e.target as HTMLInputElement).value) : undefined
-    protoConfig.update((p) => setThumbCluster(p, type, side, n))
+    protoConfig.update((p) => setPreset(p, 'thumbs', type, side, n))
+  }
+
+  function setCenter(which: CenterPreset, e: Event) {
+    const n = Number((e.target as HTMLInputElement).value)
+    protoConfig.update((p) => setPreset(p, 'center', which, 'center', n))
+  }
+
+  function centerWithUnibody(p: CosmosKeyboard, which: CenterPreset) {
+    p = setPreset(p, 'center', which, 'center')
+    if (p.unibody) {
+      setClusterSeparationFromCenter(p, UNIBODY_CENTER_SEPARATION, 'left')
+      setClusterSeparationFromCenter(p, UNIBODY_CENTER_SEPARATION, 'right')
+    }
+    return p
   }
 
   function setNoThumb(side: 'left' | 'right') {
@@ -402,6 +424,7 @@
   function setNoCenter() {
     protoConfig.update((p) => {
       p.clusters = p.clusters.filter((cl) => cl.side !== 'center')
+      if (p.unibody) setClusterSeparation(p, UNIBODY_SEPARATION)
       return p
     })
   }
@@ -410,11 +433,15 @@
     protoConfig.update((proto) => {
       proto.unibody = (ev.target as HTMLInputElement).checked
       if (proto.unibody) {
-        if (proto.clusters.find((c) => c.side == 'center' && c.clusters.length)) {
-          setClusterSeparationFromCenter(proto, 5, 'left')
-          setClusterSeparationFromCenter(proto, 5, 'right')
+        const centerCluster = proto.clusters.find((c) => c.side == 'center' && c.clusters.length)
+        if (centerCluster) {
+          // Set center cluster to x=0 so it's centered
+          const [_cx, cy, cz] = decodeTuple(centerCluster.position ?? 0n)
+          centerCluster.position = encodeTuple([0, cy, cz])
+          setClusterSeparationFromCenter(proto, UNIBODY_CENTER_SEPARATION, 'left')
+          setClusterSeparationFromCenter(proto, UNIBODY_CENTER_SEPARATION, 'right')
         } else {
-          setClusterSeparation(proto, 30)
+          setClusterSeparation(proto, UNIBODY_SEPARATION)
         }
         // Double the number of screw indices
         proto.screwIndices = proto.screwIndices.concat(new Array(proto.screwIndices.length).fill(-1))
@@ -463,9 +490,9 @@
   $: centerCl = $protoConfig.clusters.find((c) => c.side == 'center')
   $: tempFingersCluster = $tempConfig.clusters.find((c) => c.name == 'fingers')!
 
-  $: whichRight = getThumbN($protoConfig, 'right')
-  $: whichLeft = getThumbN($protoConfig, 'left')
-  $: whichCenter = getCenterClusterN($protoConfig)
+  $: whichRight = getPresetN($protoConfig, 'thumbs', 'right')
+  $: whichLeft = getPresetN($protoConfig, 'thumbs', 'left')
+  $: whichCenter = getPresetN($protoConfig, 'center', 'center')
   $: hasCenterCl = $protoConfig.clusters.some((cl) => cl.side === 'center' && cl.clusters.length > 0)
 
   const rotationStore = new TupleStore(-1n, 45, true)
@@ -489,14 +516,15 @@
   $: clusterLeftSep = clusterSeparation($tempConfig, 'left', 'center')
   $: clusterRightSep = clusterSeparation($tempConfig, 'center', 'right')
   const setClusterLeftSep = (ev: CustomEvent) =>
-    protoConfig.update((proto) => setClusterSeparationFromCenter(proto, ev.detail, 'left'))
+    protoConfig.update((proto) => {
+      ensureClusters(proto)
+      return setClusterSeparationFromCenter(proto, ev.detail, 'left')
+    })
   const setClusterRightSep = (ev: CustomEvent) =>
-    protoConfig.update((proto) => setClusterSeparationFromCenter(proto, ev.detail, 'right'))
-
-  function changeCenterCluster(which: 'trackball', e: Event) {
-    const n = Number((e.target as HTMLInputElement).value)
-    protoConfig.update((p) => setCenterCluster(p, which, n))
-  }
+    protoConfig.update((proto) => {
+      ensureClusters(proto)
+      return setClusterSeparationFromCenter(proto, ev.detail, 'right')
+    })
 
   $: clusterAng = clusterAngle($tempConfig)
   const setClusterAng = (ev: CustomEvent) =>
@@ -872,13 +900,13 @@
   >
   <Preset
     name="Trackball"
-    on:click={() => protoConfig.update((p) => setCenterCluster(p, 'trackball'))}
+    on:click={() => protoConfig.update((p) => centerWithUnibody(p, 'trackball'))}
     selected={isPreset($protoConfig, 'center', 'trackball', 'center')}
   />
   {#if whichCenter}
     {@const which = whichCenter.which}
     <Field name="Number of Keys" icon="numeric">
-      <Select value={whichCenter.n} on:change={(e) => changeCenterCluster(which, e)}>
+      <Select value={whichCenter.n} on:change={(e) => setCenter(which, e)}>
         {#each whichCenter.options.toReversed() as opt}<option value={opt}>{opt}</option>{/each}
       </Select>
     </Field>
