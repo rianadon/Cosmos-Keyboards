@@ -3,7 +3,7 @@ import { expect, test } from 'bun:test'
 import { Quaternion } from 'three'
 import { toCode } from '../../../src/routes/beta/lib/editor/toCode'
 import { deserialize, toCuttleformProto } from '../../../src/routes/beta/lib/serialize'
-import { setCenterCluster } from '../../routes/beta/lib/editor/visualEditorHelpers'
+import { setPreset } from '../../routes/beta/lib/editor/visualEditorHelpers'
 import { cuttleConf, type Cuttleform, type FullCuttleform } from './config'
 import { type ConnectorMaybeCustom, type CosmosCluster, type CosmosKey, type CosmosKeyboard, fromCosmosConfig, toCosmosConfig, toFullCosmosConfig } from './config.cosmos'
 import { decodeConfigIdk, decodeConnectors, encodeConnectors, encodeCosmosConfig, serializeCosmosConfig } from './config.serialize'
@@ -109,7 +109,7 @@ test('Center cluster encoding round-trip', () => {
   const cosmos = toCosmosConfig(config, 'right', true)
   cosmos.wristRestPosition = 0n
   cosmos.connectorCenterIndex = 7
-  setCenterCluster(cosmos, 'trackball')
+  setPreset(cosmos, 'center', 'trackball', 'center')
 
   const encoded = serializeCosmosConfig(encodeCosmosConfig(cosmos))
   const decoded = decodeConfigIdk(encoded)
