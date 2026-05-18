@@ -1,6 +1,6 @@
 <script lang="ts">
   import { view, noBase, noWall } from '$lib/store'
-  import type { Geometry } from '$lib/worker/config'
+  import type { Geometry, KeyboardSide } from '$lib/worker/config'
   import GroupMatrix from './GroupMatrix.svelte'
   import Microcontroller from './Microcontroller.svelte'
   import KMesh from '$lib/3d/KeyboardMeshBetter.svelte'
@@ -10,7 +10,7 @@
   export let keebGeometry: Geometry | undefined = undefined
   export let meshes: KeyboardMeshes
   export let transparency: number = 100
-  export let side: 'left' | 'right' | 'unibody'
+  export let side: KeyboardSide
 
   export let noWeb = false
 

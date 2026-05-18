@@ -22,7 +22,7 @@
   function fixUnseparated() {
     protoConfig.update((p) => {
       const trsfs: Trsf[] = []
-      const sides: ('left' | 'right')[] = []
+      const sides: ('left' | 'right' | 'center')[] = []
       const cpts = mapKeys(p, (k, col, c) => {
         const trsf = cosmosKeyPosition(k, col, c, p).evaluate({ flat: true })
         trsfs.push(trsf)

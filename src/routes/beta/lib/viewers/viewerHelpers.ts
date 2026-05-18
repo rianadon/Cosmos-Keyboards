@@ -146,7 +146,7 @@ export function makeBox(cx: number, cy: number, cz: number, w: number, h: number
   return new THREE.BoxGeometry(w, h, d).translate(cx, cy, cz)
 }
 
-type Full<T> = { left?: T; right?: T; unibody?: T }
+type Full<T> = { left?: T; right?: T; unibody?: T; center?: T }
 
 const SEPARATION = 20
 export function fullSizes(geo: Full<THREE.BufferGeometry[]>) {
@@ -158,10 +158,12 @@ export function fullSizes(geo: Full<THREE.BufferGeometry[]>) {
       geo.left!.map((x) => ({ mesh: x, matrix: new THREE.Matrix4().makeScale(-1, 1, 1) })),
     )
     const rightBox = boundingBox(geo.right!.map((g) => g))
+    const centerBox = geo.center ? boundingBox(geo.center.map((g) => g)) : null
     const leftSize = leftBox.getSize(new THREE.Vector3())
     const rightSize = rightBox.getSize(new THREE.Vector3())
     const bothSize = leftBox.union(rightBox).getSize(new THREE.Vector3())
     bothSize.x += SEPARATION - (rightBox.min.x - leftBox.max.x)
+    if (centerBox) bothSize.x += SEPARATION + centerBox.max.x - centerBox.min.x
     return { left: leftSize, both: bothSize, right: rightSize }
   }
 }
