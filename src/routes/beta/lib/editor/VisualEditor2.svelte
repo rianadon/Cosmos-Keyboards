@@ -899,6 +899,11 @@
     ><span class="relative top-[-0.1em]">&empty;</span></Preset
   >
   <Preset
+    name="Display"
+    on:click={() => protoConfig.update((p) => centerWithUnibody(p, 'display'))}
+    selected={isPreset($protoConfig, 'center', 'display', 'center')}
+  />
+  <Preset
     name="Trackball"
     on:click={() => protoConfig.update((p) => centerWithUnibody(p, 'trackball'))}
     selected={isPreset($protoConfig, 'center', 'trackball', 'center')}

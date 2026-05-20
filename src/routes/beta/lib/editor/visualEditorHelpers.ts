@@ -42,10 +42,13 @@ const THUMB_CONFIG: Record<ThumbPreset, { b64: string; n?: number[]; defaultN?: 
   },
 }
 
-export type CenterPreset = 'trackball'
+export type CenterPreset = 'display' | 'trackball'
 const CENTER_CONFIG: Record<CenterPreset, { b64: string; n?: number[]; defaultN?: number }> = {
+  display: {
+    b64: 'CkwSFggIEDAgEyhkMPQDQIDmkBxIgICQ/QMSGAiRMBDAgAIgAECAvLgMSIC2qqH6B4gBUBILEEAgAECrhbyc8DgSCSAAQKyFvJzwODgAGAQiCgjIARDIARgAIABAgJAX',
+  },
   trackball: {
-    b64: 'CkcSFgiSMBDAgAIgAECA0JLgH0iA6tKg+gcSFQiWgBAQQCAAQICehugBSICGnqD6BxIJIABAq4Wcv/A4EgkgAECshZy/8Dg4AAoVEhEICBAwIAAoMjCgBkCsBUiEDzgUChUSEQgIEDAgACgyMKAGQKsFSIQPOBMYBCIKCMgBEMgBGAAgAECAkJegGg==',
+    b64: 'CkcSFgiSMBDAgAIgAECA0JLgH0iA6tKg+gcSFQiWgBIQQCAAQICehugBSICGnqD6BxIJIABAq4Wcv/A4EgkgAECshZy/8Dg4AAoVEhEICBAwIAAoMjCgBkCsBUiEDzgUChUSEQgIEDAgACgyMKAGQKsFSIQPOBMYBCIKCMgBEMgBGAAgAECAkJfwBQ==',
   },
 }
 
