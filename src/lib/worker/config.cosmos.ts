@@ -231,6 +231,7 @@ function toCosmosClusters(keys: CuttleKey[], side: ClusterSide, globalProfile: K
           partType: {
             type: diff(colKey.type, columnPartType.type),
             aspect: diff(colKey.aspect, columnPartType.aspect),
+            variant: colKey.variant ? encodeVariant(colKey.type, colKey.variant) : undefined,
           },
           profile: {
             profile: diff(keycap?.profile, columnProfile ?? clusterProfile ?? globalProfile),
@@ -290,7 +291,11 @@ export function toFullCosmosConfig(conf: FullCuttleform, flipLeft = false): Cosm
   for (const [side, config] of objEntries(conf)) {
     if (!kbd) kbd = toCosmosConfig(config!, side, false, flipLeft)
     else {
-      const c = toCosmosConfig(config!, side, false, flipLeft)
+      const c = toCosmosConfig(config!, side, false, flipLeft, {
+        globalCurvature: kbd.curvature,
+        globalPartType: kbd.partType,
+        globalProfile: kbd.profile,
+      })
       kbd.clusters.push(...c.clusters)
       if (side == 'left') kbd.connectorLeftIndex = c.connectorLeftIndex
       if (side == 'right') kbd.connectorRightIndex = c.connectorRightIndex
@@ -318,10 +323,16 @@ export function toFullCosmosConfig(conf: FullCuttleform, flipLeft = false): Cosm
   return kbd
 }
 
-export function toCosmosConfig(conf: Cuttleform, side: KeyboardSide, overrideWristRest: boolean, flipLeft = false): CosmosKeyboard {
-  const globalCurvature = dominantCurvature(conf.keys)
-  const globalProfile = dominantProfile(conf.keys) ?? 'xda'
-  const globalPartType = decodePartType(dominantPartType(conf.keys) ?? encodePartType({ type: 'mx-better', aspect: 1 }))
+type ToCosmosConfigOpts = {
+  globalCurvature: CosmosKeyboard['curvature']
+  globalProfile: CosmosKeyboard['profile']
+  globalPartType: Required<PartType>
+}
+
+export function toCosmosConfig(conf: Cuttleform, side: KeyboardSide, overrideWristRest: boolean, flipLeft = false, opts?: ToCosmosConfigOpts): CosmosKeyboard {
+  const globalCurvature = opts?.globalCurvature ?? dominantCurvature(conf.keys)
+  const globalProfile = opts?.globalProfile ?? dominantProfile(conf.keys) ?? 'xda'
+  const globalPartType = opts?.globalPartType ?? decodePartType(dominantPartType(conf.keys) ?? encodePartType({ type: 'mx-better', aspect: 1 }))
   const wrOrigin = new ETrsf(conf.wristRestOrigin.history).evaluate({ flat: false }, new Trsf())
   const wrOriginInv = overrideWristRest ? wrOrigin.inverted() : new Trsf()
   const flippedWrOriginInv = overrideWristRest ? fullMirrorETrsf(conf.wristRestOrigin).evaluate({ flat: false }).invert() : new Trsf()

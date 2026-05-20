@@ -112,7 +112,7 @@
   {:else if err.type == 'nokeys'}
     <p class="mb-2">
       You silly goose! You can't make a keyboard without keys. <br />That's like riding a snowboard
-      without snow.
+      without snow. (side={err.side})
       <button on:click={() => window.history.back()} class="underline">Undo.</button>
     </p>
   {:else if err.type == 'missing'}
