@@ -108,7 +108,10 @@ export function setClusterSeparation(c: CosmosKeyboard, desiredSeparation: numbe
 
 /** Keeps center in place and adjusts the separation between center and one side of the keyboard */
 export function setClusterSeparationFromCenter(c: CosmosKeyboard, desiredGap: number, side: KeyboardSide) {
-  let delta = desiredGap - (side == 'left' ? clusterSeparation(c, 'left', 'center') : clusterSeparation(c, 'center', 'right'))
+  const delta = side == 'left'
+    ? clusterSeparation(c, 'left', 'center') - desiredGap
+    : desiredGap - clusterSeparation(c, 'center', 'right')
+
   for (const cluster of c.clusters) {
     if (cluster.side !== side) continue
     const [x, y, z] = decodeTuple(cluster.position ?? 0n)
