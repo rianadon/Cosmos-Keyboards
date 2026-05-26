@@ -103,6 +103,8 @@ export interface SpecificCuttleform<S> {
   /* Angle at which microcontroller should be placed */
   microcontrollerAngle: number
   fastenMicrocontroller: boolean
+  /** Depth (mm) the pin/solder channels on the long sides carve down from the board plane. 0 = automatic. */
+  microcontrollerPinChannelDepth: number
   /** Flip connectors positions if true. */
   flipConnectors: boolean
   /** Additional height to add to the model. */
@@ -365,6 +367,7 @@ export function cuttleConf(c: DeepRequired<CuttleformProto>): Cuttleform {
     wristRestOrigin: thumbOrigin(c, true),
     microcontroller: MAP_MICROCONTROLLER[c.wall.microcontroller],
     fastenMicrocontroller: c.wall.fastenMicrocontroller,
+    microcontrollerPinChannelDepth: 0,
     verticalClearance: c.wall.verticalClearance / 10,
     clearScrews: c.wall.clearScrews,
     shell: cuttleConfShell(c),

@@ -1119,7 +1119,9 @@ export function boardHolder(c: Cuttleform, geo: Geometry): Solid {
     const maxx = elements[0].offset.x + elements[0].size.x / 2
     const miny = elements[0].offset.y - elements[0].size.y
     const maxy = Math.min(elements[0].offset.y + 100, boardProps.sidecutoutMaxY ?? Infinity) // Add extra material to clear everything in the holder
-    const depth = Math.max(-0.6, 1 - elements[0].offset.z) // Leave minimum 1mm material at bottom
+    // Depth of the channels carved under the pin rows. Default leaves min 1mm material at bottom;
+    // a configured value carves that many mm down from the board plane (large enough = cut fully through).
+    const depth = c.microcontrollerPinChannelDepth ? -c.microcontrollerPinChannelDepth : Math.max(-0.6, 1 - elements[0].offset.z)
 
     const leftCutout = Array.isArray(boardProps.sidecutout) ? boardProps.sidecutout[c.flipConnectors ? 1 : 0] : boardProps.sidecutout
     const rightCutout = Array.isArray(boardProps.sidecutout) ? boardProps.sidecutout[c.flipConnectors ? 0 : 1] : boardProps.sidecutout
