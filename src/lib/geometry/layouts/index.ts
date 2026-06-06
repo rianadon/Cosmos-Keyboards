@@ -883,3 +883,38 @@ export function flipLetter(letter: string | undefined, layoutId: LayoutId = DEFA
   }
   return letter
 }
+
+// Number-row and F-row mirror map (layout-independent for letter-swap layouts).
+// dprint-ignore
+const SHARED_FLIP: Record<string, string> = {
+  0: '1', 9: '2', 8: '3', 7: '4', 6: '5',
+  'F10': 'F1', 'F9': 'F2', 'F8': 'F3', 'F7': 'F4', 'F6': 'F5',
+}
+for (const k of Object.keys(SHARED_FLIP)) SHARED_FLIP[SHARED_FLIP[k]] = k
+
+export function flippedKey(letter: string | undefined, layout: LayoutId = DEFAULT_LAYOUT) {
+  if (!letter) return letter
+  if (letter in SHARED_FLIP) return SHARED_FLIP[letter]
+  return flipLetter(letter, layout) ?? letter
+}
+
+const KEY_MATRIX = [
+  '1234567890',
+  'qwertyuiop',
+  'asdfghjkl;',
+  'zxcvbnm,./',
+]
+
+export function adjacentKeycapLetter(letter: string | undefined, dx: number, dy: number) {
+  if (!letter) return undefined
+  if (letter.length > 1) return undefined
+  const row = KEY_MATRIX.findIndex(r => r.includes(letter))
+  if (row == -1) return undefined
+  const column = KEY_MATRIX[row].indexOf(letter)
+  const newRow = row + dy
+  if (newRow < 0 || newRow >= KEY_MATRIX.length) return undefined
+  const newColumn = column + dx
+  if (newColumn < 0 || newColumn >= KEY_MATRIX[newRow].length) return undefined
+  if ((column < 5) != (newColumn < 5)) return undefined
+  return KEY_MATRIX[newRow][newColumn]
+}

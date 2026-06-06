@@ -1,4 +1,5 @@
-import { adjacentKeycapLetter, UNIFORM } from '$lib/geometry/keycaps'
+import { UNIFORM } from '$lib/geometry/keycaps'
+import { adjacentKeycapLetter } from '$lib/geometry/layouts'
 import { decodeTuple, type Geometry } from '$lib/worker/config'
 import { type CosmosCluster, type CosmosKey, type CosmosKeyboard, cosmosKeyPosition, nthKey } from '$lib/worker/config.cosmos'
 import type { ShapeMesh } from '$lib/worker/modeling'

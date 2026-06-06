@@ -1,4 +1,5 @@
-import { flippedKey, keyInfo } from '$lib/geometry/keycaps'
+import { keyInfo } from '$lib/geometry/keycaps'
+import { flippedKey } from '$lib/geometry/layouts'
 import { switchInfo } from '$lib/geometry/switches'
 import type { Cuttleform, CuttleKey } from '../config'
 import Trsf, { Vector } from './transformation'

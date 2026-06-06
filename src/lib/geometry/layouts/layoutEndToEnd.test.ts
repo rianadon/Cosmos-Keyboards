@@ -5,12 +5,12 @@
 
 import defaultConfig from '$assets/cuttleform.json' assert { type: 'json' }
 import { expect, test } from 'bun:test'
-import { applyLayoutToKeys } from '../../routes/beta/lib/editor/visualEditorHelpers'
-import { keycode as qmkKeycode } from '../../routes/beta/lib/firmware/qmk'
-import { keycode as zmkKeycode } from '../../routes/beta/lib/firmware/zmk'
-import { cuttleConf } from '../worker/config'
-import { type CosmosKeyboard, detectLayout, toCosmosConfig } from '../worker/config.cosmos'
-import { decodeConfigIdk, encodeCosmosConfig, serializeCosmosConfig } from '../worker/config.serialize'
+import { applyLayoutToKeys } from '../../../routes/beta/lib/editor/visualEditorHelpers'
+import { keycode as qmkKeycode } from '../../../routes/beta/lib/firmware/qmk'
+import { keycode as zmkKeycode } from '../../../routes/beta/lib/firmware/zmk'
+import { cuttleConf } from '../../worker/config'
+import { type CosmosKeyboard, detectLayout, toCosmosConfig } from '../../worker/config.cosmos'
+import { decodeConfigIdk, encodeCosmosConfig, serializeCosmosConfig } from '../../worker/config.serialize'
 import { LAYOUT, LAYOUT_IDS, type LayoutId } from './index'
 
 function buildDefaultCosmos(): CosmosKeyboard {

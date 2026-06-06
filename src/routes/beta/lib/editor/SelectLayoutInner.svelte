@@ -7,7 +7,7 @@
     isNamedLayoutId,
     type LayoutId,
     type NamedLayoutId,
-  } from '$lib/layouts'
+  } from '$lib/geometry/layouts'
 
   type Option = {
     key: LayoutId

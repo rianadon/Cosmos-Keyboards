@@ -42,7 +42,7 @@
   import { componentBoxes, componentGeometry } from '$lib/worker/geometry'
   import * as mdi from '@mdi/js'
   import Icon from '$lib/presentation/Icon.svelte'
-  import { flipLetter } from '$lib/layouts'
+  import { flipLetter } from '$lib/geometry/layouts'
   import {
     diff,
     filterObj,

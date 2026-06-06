@@ -91,7 +91,7 @@
     orderLanguages,
     type LayoutId,
     type NamedLayoutId,
-  } from '$lib/layouts'
+  } from '$lib/geometry/layouts'
   import {
     mdiAlertCircleOutline,
     mdiCheckCircleOutline,

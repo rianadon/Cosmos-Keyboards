@@ -1,6 +1,6 @@
 import type manuform from '$assets/manuform.json'
+import { DEFAULT_LAYOUT, type LayoutId, rightSideLetter } from '$lib/geometry/layouts'
 import { socketSize } from '$lib/geometry/socketsParts'
-import { DEFAULT_LAYOUT, type LayoutId, rightSideLetter } from '$lib/layouts'
 import type { CuttleKey, CuttleTrackpadCirqueKey, MicrocontrollerName } from '$target/cosmosStructs'
 import {
   CONNECTOR,

@@ -1,5 +1,5 @@
+import { DEFAULT_LAYOUT, flipLetter, LAYOUT, type LayoutId, rightSideLetter } from '$lib/geometry/layouts'
 import { PART_INFO } from '$lib/geometry/socketsParts'
-import { DEFAULT_LAYOUT, flipLetter, LAYOUT, type LayoutId, rightSideLetter } from '$lib/layouts'
 import { approximateCosmosThumbOrigin, cosmosFingers, type Cuttleform, decodeTuple, encodeTuple, type FullCuttleform, newGeometry } from '$lib/worker/config'
 import {
   alphaColumns,
