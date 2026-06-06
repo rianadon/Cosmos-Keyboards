@@ -1,6 +1,6 @@
 <script lang="ts">
   import { T } from '@threlte/core'
-  import { hoveredKey, clickedKey, clickedVisualSide } from '$lib/store'
+  import { hoveredKey, clickedKey, clickedSide } from '$lib/store'
   import { getContext } from 'svelte'
   import type { interactivity } from '@threlte/extras'
 
@@ -9,22 +9,20 @@
 
   type InteractivityContext = ReturnType<typeof interactivity>
   const context: InteractivityContext = getContext('interactivity')
-
-  function onClick() {
-    $clickedKey = index
-    $clickedVisualSide = side
-  }
 </script>
 
 <T.Mesh
   {...$$restProps}
   on:pointerenter={() => ($hoveredKey = index)}
   on:pointerleave={() => ($hoveredKey = null)}
-  on:click={onClick}
+  on:click={() => {
+    $clickedKey = index
+    $clickedSide = side
+  }}
   on:pointermissed={() => {
     if (!context.initialHits.length) {
       $clickedKey = null
-      $clickedVisualSide = null
+      $clickedSide = null
     }
   }}
 >

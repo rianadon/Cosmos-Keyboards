@@ -72,6 +72,7 @@
       case 'debug': return mdi.mdiBugOutline
       case 'studio': return mdi.mdiPaletteAdvanced
       case 'version': return 'M18.5 18.8V16h-1v3.2l2.15 2.15.7-.7L18.5 18.8ZM12 4 6.075 7.425 12 10.85l5.925-3.425L12 4ZM3 15.975v-7.95q0-.55.263-1t.738-.725l7-4.025q.25-.125.488-.2t.513-.075.525.075.475.2l7 4.025q.475.275.738.725t.263 1V12h-2V9.1l-7.028 4.05L5 9.1v6.85l6 3.475v2.3L4 17.7q-.475-.275-.738-.725t-.262-1Zm11.463 6.562Q13 21.075 13 19t1.463-3.538Q15.925 14 18 14t3.538 1.463Q23 16.925 23 19t-1.462 3.537Q20.075 24 18 24t-3.537-1.463ZM12 11.725Z'
+      case 'layout': return 'M3 1A2 2 0 001 3V21a2 2 0 002 2H21a2 2 0 002-2V3A2 2 0 0021 1H3ZM13 3h8v8H13V3ZM6.5 3h1V4H11V5H9.5c-.34 1.19-.96 2.3-1.821 3.26l-.019.019 1.26 1.25-.369 1.01L7 9 4.5 11.5l-.689-.73L6.34 8.279C5.72 7.589 5.219 6.82 4.859 6H5.85c.31.6.69 1.17 1.15 1.68.72-.8 1.24-1.71 1.57-2.68H3V4H6.5V3Zm9.245 9h1.5l3.381 9h-1.5l-.852-2.25H14.715L13.875 21h-1.5l3.369-9ZM3 13h8v8H3V13Zm13.494 1-1.211 3.25h2.432L16.494 14Z'
     }
   }
 </script>
@@ -80,21 +81,6 @@
   <svg viewBox="0 0 24 24" width={size} height={size} class={clazz} aria-label={alt}>
     {#if alt} <title>{alt}</title>{/if}
     <path d={path} fill="currentColor" />
-  </svg>
-{:else if name == 'layout'}
-  <!-- 3 rows × 5 columns of mini-keys, mirroring the alpha block in the
-       layout dropdown's preview. Home row drawn at full opacity to read as
-       the visual centerpiece; top + bottom rows lightened. Fills the icon
-       area at sizes comparable to the neighboring Keycaps and Switches. -->
-  <svg viewBox="0 0 24 24" width={size} height={size} class={clazz} aria-label={alt}>
-    {#if alt}<title>{alt}</title>{/if}
-    <g fill="currentColor">
-      {#each [{ y: 6, op: 0.55 }, { y: 10.2, op: 1 }, { y: 14.4, op: 0.55 }] as row}
-        {#each [1.8, 6, 10.2, 14.4, 18.6] as x}
-          <rect {x} y={row.y} width="3.6" height="3.6" rx="0.6" opacity={row.op} />
-        {/each}
-      {/each}
-    </g>
   </svg>
 {:else if name == 'shrouding'}
   <!-- From IconPark -->

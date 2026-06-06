@@ -16,7 +16,7 @@
     protoConfig,
     transformMode,
     clickedKey,
-    clickedVisualSide,
+    clickedSide,
     selectMode,
     tempConfig,
     hoveredKey,
@@ -370,7 +370,7 @@
     return nthKey(config, n).cluster.side
   }
 
-  $: clickedSide = getClickedSide($protoConfig, $clickedKey)
+  $: clickedConfigSide = getClickedSide($protoConfig, $clickedKey)
 
   function kbdOffsetClicked(config: CosmosKeyboard, n: number | null) {
     if (n == null) return false
@@ -689,7 +689,7 @@
   // through the layout's flipMap on read AND write so the user sees and types
   // what's drawn rather than the right-side source-of-truth letter.
   $: needsLetterFlip =
-    $clickedVisualSide === 'left' && clusterIsClicked != null && clusterIsClicked.side === 'right'
+    $clickedSide === 'left' && clusterIsClicked != null && clusterIsClicked.side === 'right'
   // Re-derive the layout from the kbd's own labels — the layout dropdown is
   // a function of the keys, so the flip target follows the keys too.
   $: detectedFlipLayout = $protoConfig ? detectLayout($protoConfig) : undefined
@@ -1677,11 +1677,11 @@
       <!-- <AxesHelper size={100} matrix={debug} /> -->
     {/if}
   </T.Group>
-  {#if clickedSide != null}
-    {@const clickedC = center[clickedSide] || [0, 0, 0]}
+  {#if clickedConfigSide != null}
+    {@const clickedC = center[clickedConfigSide] || [0, 0, 0]}
     <T.Group position={[-clickedC[0], -clickedC[1], -clickedC[2]]}>
       {#if $transformMode == 'select' && !showSupports}
-        {#each adjacentPositions(geometry[clickedSide] ?? null, $clickedKey, $protoConfig, $selectMode) as adj}
+        {#each adjacentPositions(geometry[clickedConfigSide] ?? null, $clickedKey, $protoConfig, $selectMode) as adj}
           <GroupMatrix
             matrix={shouldFlipKey($view, $clickedKey, $protoConfig) ? flipMatrixX(adj.pos) : adj.pos}
           >

@@ -103,7 +103,7 @@
     mdiChevronDown,
   } from '@mdi/js'
   import Icon from '$lib/presentation/Icon.svelte'
-  import Popover from 'svelte-easy-popover'
+  import Tooltip from '$lib/presentation/Tooltip.svelte'
   import Dialog from '$lib/presentation/Dialog.svelte'
   import ConnectorsView from '../dialogs/ConnectorsView.svelte'
   import * as flags from '$lib/flags'
@@ -652,11 +652,7 @@
       minWidth={200}
     />
   </Field>
-  <Field
-    name="Layout"
-    icon="layout"
-    help="The keyboard layout printed on the keycaps and used for firmware (ZMK/QMK) keycodes."
-  >
+  <Field name="Layout" icon="layout">
     <span
       class="layout-indicator"
       class:layout-indicator-ok={layoutComplete}
@@ -668,12 +664,7 @@
       <Icon path={layoutComplete ? mdiCheckCircleOutline : mdiAlertCircleOutline} size="20px" />
     </span>
     {#if !layoutComplete}
-      <Popover
-        triggerEvents={['hover', 'focus']}
-        referenceElement={indicatorEl}
-        placement="left"
-        spaceAway={6}
-      >
+      <Tooltip referenceElement={indicatorEl} placement="left" spaceAway={6}>
         <div class="layout-indicator-popover" in:fade={{ duration: 100 }} out:fade={{ duration: 200 }}>
           <div class="font-semibold text-sm mb-1">
             {LAYOUT_NAMES[currentLayout]} — partial match
@@ -694,7 +685,7 @@
             Re-pick the layout to apply its letters where keys exist.
           </div>
         </div>
-      </Popover>
+      </Tooltip>
     {/if}
     <div bind:this={layoutSelectEl}>
       <SelectThingy
