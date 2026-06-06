@@ -14,7 +14,6 @@
   export let geometry: FullGeometry
   export let style: string = ''
   export let confError: ConfErrors
-  export let darkMode: boolean
 
   let activeIndex = 0
   $: possibleKeys = logicalKeys(geometry).filter(hasPinsInMatrix)

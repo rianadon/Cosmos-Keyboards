@@ -8,8 +8,7 @@
     mdiLightningBoltOutline,
   } from '@mdi/js'
   import Icon from '$lib/presentation/Icon.svelte'
-  import Popover from 'svelte-easy-popover/dist/ts/Popover.svelte'
-  import { fade } from 'svelte/transition'
+  import Tooltip from '$lib/presentation/Tooltip.svelte'
   import { browser } from '$app/environment'
   import {
     drawLinedCircleOutside,
@@ -102,28 +101,18 @@
     >
       <Icon path={mdiFileEyeOutline} size="24" />
     </a>
-    <Popover triggerEvents={['hover', 'focus']} referenceElement={ref} spaceAway={4}>
-      <div
-        class="bg-[#0F172A] shadow shadow-black py-1 px-2 rounded text-sm"
-        in:fade={{ duration: 50 }}
-        out:fade={{ duration: 150 }}
-      >
-        View Source on GitHub
-      </div>
-    </Popover>
+    <Tooltip referenceElement={ref} placement="bottom" spaceAway={4} inDuration={50} outDuration={150}>
+      <div class="bg-[#0F172A] shadow shadow-black py-1 px-2 rounded text-sm">View Source on GitHub</div>
+    </Tooltip>
   {:else}
     <div class="absolute top-[1.2em] right-[0.5em] color-gray-500 hover:color-teal-500" bind:this={ref}>
       <Icon path={mdiLightningBoltOutline} size="24" />
     </div>
-    <Popover triggerEvents={['hover', 'focus']} referenceElement={ref} spaceAway={4}>
-      <div
-        class="bg-[#0F172A] shadow shadow-black py-1 px-2 rounded text-sm"
-        in:fade={{ duration: 50 }}
-        out:fade={{ duration: 150 }}
-      >
+    <Tooltip referenceElement={ref} placement="bottom" spaceAway={4} inDuration={50} outDuration={150}>
+      <div class="bg-[#0F172A] shadow shadow-black py-1 px-2 rounded text-sm">
         Parametrically Generated
       </div>
-    </Popover>
+    </Tooltip>
   {/if}
   <div class="flex">
     <div class="aspect-1 relative w-full">

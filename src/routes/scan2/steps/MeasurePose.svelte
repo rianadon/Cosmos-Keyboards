@@ -249,7 +249,7 @@
 
     {#if nLeft == 0 && nRight == 0 && phase == 0}
       <div class="absolute left-0 right-0 mt-[calc(50vh-16rem)]">
-        <img src="{base}/hands.png" width={$mmToPx * 100} class="mx-auto" />
+        <img src="{base}/hands.png" width={$mmToPx * 100} class="mx-auto" alt="Hand pose reference" />
       </div>
     {/if}
 

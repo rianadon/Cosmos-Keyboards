@@ -44,7 +44,7 @@
   >
     <div use:melt={$arrow} />
     <div class="px-6 py-4 max-w-80 cosmosprofileinfo">
-      <img src={ucURL(option.key)} class="w-72 h-36 mx-auto" />
+      <img src={ucURL(option.key)} class="w-72 h-36 mx-auto" alt="" />
 
       {#if boardProps.soldByCosmos}
         <p
@@ -96,9 +96,5 @@
 
   .cosmos .requirements {
     --at-apply: 'bg-purple-300';
-  }
-
-  img.disable {
-    opacity: 40%;
   }
 </style>

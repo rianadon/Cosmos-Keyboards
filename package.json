@@ -8,8 +8,7 @@
     "dev:all": "concurrently npm:dev npm:doc",
     "build": "vite build",
     "preview": "vite preview",
-    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "check": "svelte-kit sync && node --import ./src/model_gen/register_loader.js src/scripts/check.ts",
     "test": "bun test",
     "prepare": "npx simple-git-hooks",
     "make": "bun src/scripts/mini-make.js",
@@ -32,7 +31,6 @@
     "siema": "^1.5.1",
     "simplicial-complex-boundary": "^1.0.1",
     "svd-js": "^1.1.1",
-    "svelte-easy-popover": "^1.0.0",
     "three": "^0.170.0"
   },
   "devDependencies": {

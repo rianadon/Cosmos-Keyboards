@@ -21,7 +21,7 @@ def on_page_content(html, page, config, files):
                 newtag = create_repl_tag(tag)
                 tag.getparent().replace(tag, newtag)
                 tag = newtag
-        if not src.startswith('http'):
+        if not src.startswith('http') and not 'no-lightbox' in tag.attrib:
             tag.getparent().replace(tag, create_lightbox_tag(tag))
     return lxml.html.tostring(content, encoding="unicode")
 

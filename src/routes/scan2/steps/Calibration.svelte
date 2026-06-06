@@ -119,7 +119,11 @@
           Drag Me →
         </div>
         <div
-          tabIndex="0"
+          tabindex="0"
+          role="slider"
+          aria-label="Drag to calibrate screen size"
+          aria-valuemin={0}
+          aria-valuenow={$mmToPx}
           class="absolute bottom-0 right-0 select-none resize-label p-2 bg-pink-400 rounded-tl-2 cursor-nwse-resize"
           on:mousedown={startDrag}
           on:keydown={keyDown}

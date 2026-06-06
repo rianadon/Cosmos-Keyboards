@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { fade } from 'svelte/transition'
   import Login from './lib/Login.svelte'
   import Viewer3D from './lib/viewers/Viewer3D.svelte'
   import Thick3D from './lib/viewers/ViewerThickness.svelte'
@@ -9,7 +8,8 @@
   import ViewerBottom from './lib/viewers/ViewerBottom.svelte'
   import ViewerTiming from './lib/viewers/ViewerTiming.svelte'
   import PeaConfig from './lib/editor/PeaConfig.svelte'
-  import Popover from 'svelte-easy-popover'
+  import Popover from '$lib/presentation/Popover.svelte'
+  import Tooltip from '$lib/presentation/Tooltip.svelte'
   import Icon from '$lib/presentation/Icon.svelte'
   import * as mdi from '@mdi/js'
   import { estimateFilament, SUPPORTS_DENSITY, type FilamentEstimate } from './lib/filament'
@@ -100,7 +100,8 @@
   let referenceElementTools: HTMLButtonElement
   let referenceElementPrefs: HTMLButtonElement
   let darkMode: boolean
-  let prefsOpen: boolean
+  let prefsOpen = false
+  let toolsOpen = false
   let assemblyOpen: boolean
   let lemonSwitch: boolean
 
@@ -700,7 +701,6 @@
             square
             class="relative z-10 !px-2"
             bind:button={referenceElementPrefs}
-            on:click={() => (prefsOpen = !prefsOpen)}
             selected={prefsOpen}><Icon path={mdi.mdiCogOutline} /></Preset
           >
         </div>
@@ -709,12 +709,10 @@
             referenceElement={referenceElementPrefs}
             placement="bottom-end"
             spaceAway={4}
-            bind:isOpen={prefsOpen}
+            bind:open={prefsOpen}
           >
             <div
               class="bg-[#f8f5ff]/80 dark:bg-gray-900/80 backdrop-blur-md px-2 py-1 mr-[-.5rem] rounded-2 text-small select-none"
-              in:fade={{ duration: 50 }}
-              out:fade={{ duration: 150 }}
             >
               <div>
                 <button
@@ -736,18 +734,23 @@
                   class:selected={$view == 'right'}><Icon name="kb-right" /></button
                 >
               </div>
+              <!-- svelte-ignore a11y-label-has-associated-control -->
               <label class="flex items-center mt-2 mb-4">
                 <Checkbox small purple basic bind:value={$showGrid} /> Show Grid
               </label>
+              <!-- svelte-ignore a11y-label-has-associated-control -->
               <label class="flex items-center my-2">
                 <Checkbox small purple basic bind:value={$noWall} /> Hide Wall
               </label>
+              <!-- svelte-ignore a11y-label-has-associated-control -->
               <label class="flex items-center my-2">
                 <Checkbox small purple basic bind:value={$noBase} /> Hide Base
               </label>
+              <!-- svelte-ignore a11y-label-has-associated-control -->
               <label class="flex items-center my-2">
                 <Checkbox small purple basic bind:value={$noLabels} /> Hide Labels
               </label>
+              <!-- svelte-ignore a11y-label-has-associated-control -->
               <label class="flex items-center my-2">
                 <Checkbox small purple basic bind:value={$noBlanks} /> Hide Shapers
               </label>
@@ -763,16 +766,12 @@
         </div>
         <div class="xl:hidden" style="--z-index: 50">
           <Popover
-            triggerEvents={['click']}
             referenceElement={referenceElementTools}
             placement="bottom-end"
             spaceAway={4}
+            bind:open={toolsOpen}
           >
-            <div
-              class="bg-white/50 dark:bg-gray-800/50 px-2 py-1 mr-[-.5rem] rounded"
-              in:fade={{ duration: 50 }}
-              out:fade={{ duration: 150 }}
-            >
+            <div class="bg-white/50 dark:bg-gray-800/50 px-2 py-1 mr-[-.5rem] rounded">
               <Preset
                 purple
                 class="!px-2"
@@ -863,7 +862,7 @@
           <ViewerLayout {geometry} {darkMode} conf={config} confError={$confError} />
         {:else if viewer == 'programming'}
           {#if hasLemon}
-            <ViewerPea {geometry} {darkMode} confError={$confError} bind:fullMatrix />
+            <ViewerPea {geometry} confError={$confError} bind:fullMatrix />
           {:else}
             <ViewerMatrix {geometry} {darkMode} confError={$confError} />
           {/if}
@@ -883,17 +882,9 @@
             <button class="s-help" bind:this={referenceElement}>
               <Icon path={mdi.mdiInformation} size="20px" />
             </button>
-            <Popover
-              triggerEvents={['hover', 'focus']}
-              {referenceElement}
-              placement="top"
-              spaceAway={4}
-              on:change={({ detail: { isOpen } }) => (showSupports = isOpen)}
-            >
+            <Tooltip {referenceElement} placement="top" spaceAway={4} bind:open={showSupports}>
               <div
                 class="flex gap-4 items-end rounded bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 px-2 py-1 mx-4 text-gray-600 dark:text-gray-100"
-                in:fade={{ duration: 100 }}
-                out:fade={{ duration: 250 }}
               >
                 <FilamentChart fractionKeyboard={filament.fractionKeyboard} />
                 <div>
@@ -916,7 +907,7 @@
                   </p>
                 </div>
               </div>
-            </Popover>
+            </Tooltip>
           </div>
         {/if}
         {#if $codeError && viewer == '3d'}
@@ -1165,7 +1156,7 @@
   <Dialog big on:close={() => (kleView = false)}>
     <span slot="title">KLE Export</span>
     <div slot="content">
-      <KleView conf={config} geo={geometry} />
+      <KleView geo={geometry} />
     </div>
   </Dialog>
 {/if}

@@ -279,7 +279,7 @@
     </p>
     <p class="font-system">Come see the unique keyboards we all are making on the Discord server.</p>
     <div class="bg-gray-800 inline-flex my-6 py-2 px-4 rounded items-center gap-4">
-      <img src="{base}/cosmos-icon.png" class="w-12 h-12 rounded-4" />
+      <img src="{base}/cosmos-icon.png" class="w-12 h-12 rounded-4" alt="" />
       <div class="text-left mr-8">
         <p class="text-lg">Cosmos Keyboards</p>
         <p class="text-gray-400 mt--1">
@@ -336,7 +336,7 @@
         Discord server will keep you up to date with the changes.
       </p>
       <div class="bg-gray-700 inline-flex my-6 py-2 px-4 rounded items-center gap-4">
-        <img src="{base}/cosmos-icon.png" class="w-12 h-12 rounded-4" />
+        <img src="{base}/cosmos-icon.png" class="w-12 h-12 rounded-4" alt="" />
         <div class="text-left mr-8">
           <p class="text-lg">Cosmos Keyboards</p>
           <p class="text-gray-400 mt--1">

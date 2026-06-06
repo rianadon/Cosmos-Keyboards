@@ -81,6 +81,8 @@
   {/if}
   <br />
   <div
+    role="region"
+    aria-label="File drop zone"
     class="bg-gray-100 w-full h-52 max-w-100 inline-flex flex-col items-center justify-center rounded-2 mb-4"
     class:bg-teal-200={dragging}
     on:drop|preventDefault={dropHandler}

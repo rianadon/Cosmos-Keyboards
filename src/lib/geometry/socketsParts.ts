@@ -302,7 +302,6 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     description: '...',
     icon: 'pumpkin',
     bomIcon: 'switch',
-    draft: true,
   },
   'choc-v1-amoeba-hillside': {
     partName: 'Choc V1 + Amoeba Hillside PCBs',
