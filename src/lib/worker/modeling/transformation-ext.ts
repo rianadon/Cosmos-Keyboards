@@ -1,6 +1,7 @@
 import { keyInfo } from '$lib/geometry/keycaps'
 import { DEFAULT_LAYOUT, flippedKey } from '$lib/geometry/layouts'
 import { switchInfo } from '$lib/geometry/switches'
+import type { Layout } from '$target/cosmosStructs'
 import type { Cuttleform, CuttleKey } from '../config'
 import Trsf, { Vector } from './transformation'
 
@@ -409,15 +410,15 @@ export function fullMirrorETrsf(e: ETrsf) {
   return new ETrsf(newHistory)
 }
 
-/** Mirror a set of keys and return the mirrored keys. */
-export function mirror(keys: CuttleKey[], layout = DEFAULT_LAYOUT, flipKeys = true): CuttleKey[] {
+/** Mirror a set of keys and return the mirrored keys. If flipKeysLayout is given, use that layout to flip the keys */
+export function mirror(keys: CuttleKey[], flipKeysLayout: Layout | false = DEFAULT_LAYOUT): CuttleKey[] {
   const mirroredKeys = keys.map(k => {
     const newK = {
       ...k,
       position: fullMirrorETrsf(k.position),
     }
-    if (flipKeys && 'keycap' in newK && newK.keycap && newK.keycap.letter) {
-      newK.keycap = { ...newK.keycap, letter: flippedKey(newK.keycap.letter, layout) }
+    if (flipKeysLayout && 'keycap' in newK && newK.keycap && newK.keycap.letter) {
+      newK.keycap = { ...newK.keycap, letter: flippedKey(newK.keycap.letter, flipKeysLayout) }
     }
     return newK
   })

@@ -225,9 +225,6 @@
     align-items: flex-end;
     gap: 0.35rem;
   }
-  .alert-body .text-sm {
-    align-self: stretch;
-  }
 
   .alert-dismiss {
     appearance: none;

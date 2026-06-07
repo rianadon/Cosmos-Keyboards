@@ -306,8 +306,8 @@ function cuttleConfShell(c: DeepRequired<CuttleformProto>): AnyShell {
   throw new Error('Unknown shell type')
 }
 
-function maybeMirror(c: DeepRequired<CuttleformProto>, keys: CuttleKey[]) {
-  if (c.wall.unibody) return unibody(keys, c.wall.unibodyGap / 10, c.wall.unibodyAngle / 45)
+function maybeMirror(c: DeepRequired<CuttleformProto>, layout: Layout, keys: CuttleKey[]) {
+  if (c.wall.unibody) return unibody(keys, layout, c.wall.unibodyGap / 10, c.wall.unibodyAngle / 45)
   return keys
 }
 
@@ -319,7 +319,7 @@ export function cuttleConf(c: DeepRequired<CuttleformProto>): Cuttleform {
     wallZOffset: 15,
     webThickness: c.wall.webThickness / 10,
     webMinThicknessFactor: DEFAULT_MWT_FACTOR,
-    keys: maybeMirror(c, [
+    keys: maybeMirror(c, DEFAULT_LAYOUT, [
       ...fingers(c),
       ...thumbs(c),
     ]),
