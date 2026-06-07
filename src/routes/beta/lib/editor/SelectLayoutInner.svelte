@@ -140,7 +140,12 @@
           {:else}
             Not enough keys for {impossibleSpots.count} keys
           {/if}
-        </p>{/if}
+        </p>
+        <p class="text-sm max-w-40ch opacity-70">
+          Typically designers of small keyboards will put overflowing symbols like these on an additional
+          layer so that they can still be typed with the existing keys.
+        </p>
+      {/if}
     </div>
   </div>
 {/if}
