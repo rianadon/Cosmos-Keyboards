@@ -10,6 +10,7 @@ import {
   decodeConnectorPreset,
   decodeKeyboardFlags,
   decodeKeycap,
+  decodeLayout,
   decodeMicrocontroller,
   decodePartVariant,
   decodePlateArt,
@@ -22,6 +23,7 @@ import {
   encodeConnectorPreset,
   encodeKeyboardFlags,
   encodeKeycap,
+  encodeLayout,
   encodeMicrocontroller,
   encodePartVariant,
   encodePlateArt,
@@ -215,7 +217,7 @@ export const KEYBOARD_DEFAULTS: Keyboard = {
   microcontroller: encodeMicrocontroller({ microcontroller: 'kb2040-adafruit', fastenMicrocontroller: true }),
   roundedFlags: encodeRoundedFlags({ side: false, top: false }),
   keyboardFlags: encodeKeyboardFlags({ wrEnable: true, unibody: false, noMirrorConnectors: false }),
-  wristRestPosition: encodeTuple([100, -1100, 0]),
+  wristRestPosition: 295109064n, // encodeTuple([100, -1100, 0]),
   cluster: [],
   shell: {
     oneofKind: 'basicShell',
@@ -223,6 +225,7 @@ export const KEYBOARD_DEFAULTS: Keyboard = {
       flags: encodeBasicShellFlags({ lip: false, embedded: false }),
     },
   },
+  layoutId: 0,
 }
 const KEYBOARD_EXTRA_DEFAULTS: KeyboardExtra = {
   webMinThicknessFactor: 10 * DEFAULT_MWT_FACTOR,
@@ -527,6 +530,7 @@ export function decodeConfigIdk(b64: string): CosmosKeyboard {
         footDiameter: keebExtra.footDiameter / 10,
       }
       : undefined,
+    layout: decodeLayout(keeb.layoutId),
   }
   return conf
 }
@@ -703,6 +707,7 @@ export function encodeCosmosConfig(conf: CosmosKeyboard): Keyboard {
     wristRestPosition: conf.wristRestPosition,
     cluster: conf.clusters.map(encodeCosmosCluster),
     shell: encodeShell(conf.shell),
+    layoutId: encodeLayout(conf.layout),
     extra: {
       verticalClearance: Math.round(conf.verticalClearance * 10),
       wristRestAngle: Math.round(conf.wristRestProps.angle * 45),

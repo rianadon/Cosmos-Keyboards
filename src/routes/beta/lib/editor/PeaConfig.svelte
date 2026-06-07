@@ -12,12 +12,21 @@
   import Checkbox from '$lib/presentation/Checkbox.svelte'
   import { encoderKeys, type Matrix } from '../firmware/firmwareHelpers'
   import InfoBox from '$lib/presentation/InfoBox.svelte'
+  import { DEFAULT_LAYOUT, detectLayout, LAYOUTS, partitionLanguages } from '$lib/geometry/layouts'
+  import { toCosmosConfig, toFullCosmosConfig } from '$lib/worker/config.cosmos'
+  import SelectLanguageInner from './SelectLanguageInner.svelte'
+  import SelectThingy from './SelectThingy.svelte'
 
   export let config: FullCuttleform
   export let geometry: FullGeometry
   export let matrix: Matrix
 
-  type OptionsType = Omit<QMKOptions & ZMKOptions, 'keyboardName' | 'folderName' | 'peripherals'>
+  let osLanguage: string = ''
+
+  type OptionsType = Omit<
+    QMKOptions & ZMKOptions,
+    'keyboardName' | 'folderName' | 'peripherals' | 'osLanguage'
+  >
   const options = storable<OptionsType>('programmingOptions', {
     vid: '0x0001',
     pid: '0x0001',
@@ -39,10 +48,30 @@
       cirque: c.keys.some((k) => k.type == 'trackpad-cirque'),
       encoder: !!encoderKeys(c).length,
     })),
+    osLanguage: Object.values(LAYOUTS)
+      .flatMap((l) => l.languages)
+      .find((l) => l.name == osLanguage)!,
   } satisfies Partial<QMKOptions | ZMKOptions>
 
-  $: anyConfig = config.right || config.unibody || { microcontroller: undefined }
+  $: anyConfig = config.right || config.unibody || { microcontroller: undefined, layout: undefined }
   $: truncated = anyConfig.microcontroller == 'lemon-wireless' && $modelName.length > 16
+
+  $: guessedLangauge = LAYOUTS[detectLayout(toFullCosmosConfig(config))].languages[0].name
+  $: osLanguage = guessedLangauge
+
+  const languageGroups = partitionLanguages(window?.navigator.languages)
+  const languageOptions = {
+    'Your browser language': languageGroups[0].map((l) => ({
+      key: l.name,
+      label: l.name,
+      language: l,
+    })),
+    'All languages': languageGroups[1].map((l) => ({
+      key: l.name,
+      label: l.name,
+      language: l,
+    })),
+  }
 </script>
 
 <p class="mt-4 mb-2">Successfully made the matrix!</p>
@@ -57,6 +86,19 @@
   </div>
 {/if}
 
+<Field
+  name="OS Keyboard Layout"
+  icon="layout"
+  help="This is the keyboard layout you have installed on your operating system. It can be different than your Cosmos keyboard."
+>
+  <SelectThingy
+    value={guessedLangauge}
+    on:change={(ev) => (osLanguage = ev.detail)}
+    options={languageOptions}
+    component={SelectLanguageInner}
+    minWidth={250}
+  />
+</Field>
 {#if anyConfig.microcontroller == 'lemon-wired'}
   <Field name="Diode Direction" icon="diode-direction">
     <Select bind:value={$options.diodeDirection}>

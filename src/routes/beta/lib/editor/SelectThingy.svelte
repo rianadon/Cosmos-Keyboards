@@ -26,6 +26,7 @@
   export let value: string
   export let clazz: string = ''
   export let pink = false
+  export let labelOverride: string | null = null
 
   const instanceId = Symbol()
   const onOpenChange: CreateSelectProps<string>['onOpenChange'] = ({ next }) => {
@@ -65,7 +66,13 @@
 
   function onValueChange(val: string) {
     syncing = true
-    sync.selected(toOption(allOptions.find((opt) => opt.key == val)), (v) => v && (value = v.value))
+    // Empty callback: the original wrote `value = v.value` back to the local
+    // prop, which made the dropdown un-controllable — when the parent rejects
+    // a change, the local `value` had already been overwritten by createSync's
+    // back-sync, so we couldn't tell that the parent disagreed. With no
+    // back-sync the local `value` only changes when the parent's prop
+    // expression changes.
+    sync.selected(toOption(allOptions.find((opt) => opt.key == val)), () => {})
     syncing = false
   }
   $: onValueChange(value)
@@ -83,6 +90,8 @@
   <button use:melt={$trigger} class={clazz || 's-input pl-2 pr-8 truncate text-start'}>
     {#if labelComponent && $selected}
       <svelte:component this={labelComponent} option={$selected} />
+    {:else if labelOverride !== null}
+      {labelOverride}
     {:else}
       {$selectedLabel || 'Choose One'}
     {/if}

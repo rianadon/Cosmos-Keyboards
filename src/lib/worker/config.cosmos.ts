@@ -1,12 +1,13 @@
 import ETrsf, { Constant, fullMirrorETrsf, type MatrixOptions, mirror } from '$lib/worker/modeling/transformation-ext'
 // import { deserialize } from 'src/routes/beta/lib/serialize'
-import { flippedKey } from '$lib/geometry/keycaps'
+import { DEFAULT_LAYOUT, flippedKey } from '$lib/geometry/layouts'
 import { decodeVariant, encodeVariant, PART_INFO, socketSize } from '$lib/geometry/socketsParts'
-import { type ClusterName, type ClusterSide, type ClusterType, type Connector, decodeClusterFlags, encodeClusterFlags, type PartVariant, type ScrewFlags } from '$target/cosmosStructs'
+import type { ClusterName, ClusterSide, ClusterType, Connector, Layout, PartVariant, ScrewFlags } from '$target/cosmosStructs'
+import { decodeClusterFlags, encodeClusterFlags } from '$target/cosmosStructs'
 import type { Curvature } from '$target/proto/cosmos'
 import { Matrix4, Vector3 } from 'three'
 import { type AnyShell, curvature, type Cuttleform, type CuttleKey, decodeTuple, encodeTuple, type FullCuttleform, type Keycap, matrixToRPY, tupleToRot, tupleToXYZ } from './config'
-import { decodePartType, encodePartType, KEYBOARD_DEFAULTS } from './config.serialize'
+import { decodePartType, encodePartType, KEYBOARD_DEFAULTS, LETTERS } from './config.serialize'
 import Trsf from './modeling/transformation'
 import { capitalize, DefaultMap, objEntries, objKeys, sum, TallyMap, trimUndefined } from './util'
 
@@ -110,6 +111,7 @@ export type CosmosKeyboard =
     connectors: ConnectorMaybeCustom[]
     mirrorConnectors: boolean
     plate: Cuttleform['plate']
+    layout: Layout
   }
   & ScrewFlags
 
@@ -297,12 +299,12 @@ export function toFullCosmosConfig(conf: FullCuttleform, flipLeft = false): Cosm
   // This halves the URL size and gives better editing experience
   const rightFingers = kbd.clusters.find(c => c.side == 'right' && c.name == 'fingers')
   const leftFingers = kbd.clusters.find(c => c.side == 'left' && c.name == 'fingers')
-  if (rightFingers && leftFingers && stringifyCluster(mirrorCluster(rightFingers)) == stringifyCluster(leftFingers)) {
+  if (rightFingers && leftFingers && stringifyCluster(mirrorCluster(rightFingers, kbd)) == stringifyCluster(leftFingers)) {
     kbd.clusters.splice(kbd.clusters.indexOf(leftFingers), 1)
   }
   const rightThumbs = kbd.clusters.find(c => c.side == 'right' && c.name == 'thumbs')
   const leftThumbs = kbd.clusters.find(c => c.side == 'left' && c.name == 'thumbs')
-  if (rightThumbs && leftThumbs && stringifyCluster(mirrorCluster(rightThumbs)) == stringifyCluster(leftThumbs)) {
+  if (rightThumbs && leftThumbs && stringifyCluster(mirrorCluster(rightThumbs, kbd)) == stringifyCluster(leftThumbs)) {
     kbd.clusters.splice(kbd.clusters.indexOf(leftThumbs), 1)
   }
   sortClusters(kbd.clusters)
@@ -346,6 +348,7 @@ export function toCosmosConfig(conf: Cuttleform, side: 'left' | 'right' | 'unibo
     connectorLeftIndex: conf.connectorIndex,
     connectorRightIndex: conf.connectorIndex,
     unibody: side == 'unibody',
+    layout: DEFAULT_LAYOUT,
     wristRestProps: conf.wristRestRight
       ? {
         angle: conf.wristRestRight.angle,
@@ -375,7 +378,7 @@ export function toCosmosConfig(conf: Cuttleform, side: 'left' | 'right' | 'unibo
       ]
       : toCosmosClusters(conf.keys, side, globalProfile, globalPartType, globalCurvature, wrOriginInv),
   }
-  if (flipLeft && side == 'left') keyboard.clusters = keyboard.clusters.map(c => mirrorCluster(c, false))
+  if (flipLeft && side == 'left') keyboard.clusters = keyboard.clusters.map(c => mirrorCluster(c, keyboard, false))
   sortClusters(keyboard.clusters)
   return keyboard
 }
@@ -480,9 +483,15 @@ export function sideFromCosmosConfig(c: CosmosKeyboard, side: 'left' | 'right' |
     plate: c.plate,
   }
   const clusters: CosmosCluster[] = c.clusters.filter(c => side == 'unibody' || c.side == side)
-  if (side == 'left' && !c.clusters.find(c => c.side == 'left' && c.name == 'fingers')) clusters.unshift(mirrorCluster(c.clusters.find(c => c.side == 'right' && c.name == 'fingers')!))
-  if (side == 'unibody' && !c.clusters.find(c => c.side == 'left' && c.name == 'fingers')) clusters.splice(2, 0, mirrorCluster(c.clusters.find(c => c.side == 'right' && c.name == 'fingers')!))
-  if (side != 'right' && !c.clusters.find(c => c.side == 'left' && c.name == 'thumbs')) clusters.push(mirrorCluster(c.clusters.find(c => c.side == 'right' && c.name == 'thumbs')!))
+  if (side == 'left' && !c.clusters.find(c => c.side == 'left' && c.name == 'fingers')) clusters.unshift(mirrorCluster(c.clusters.find(c => c.side == 'right' && c.name == 'fingers')!, c))
+  if (side == 'unibody' && !c.clusters.find(c => c.side == 'left' && c.name == 'fingers')) {
+    clusters.splice(
+      2,
+      0,
+      mirrorCluster(c.clusters.find(c => c.side == 'right' && c.name == 'fingers')!, c),
+    )
+  }
+  if (side != 'right' && !c.clusters.find(c => c.side == 'left' && c.name == 'thumbs')) clusters.push(mirrorCluster(c.clusters.find(c => c.side == 'right' && c.name == 'thumbs')!, c))
   // console.log('CLUSTERS', clusters)
   for (const clusterA of clusters) {
     for (const clusterB of clusterA.clusters) {
@@ -542,7 +551,7 @@ export function fromCosmosConfig(c: CosmosKeyboard, flipLeft = true): FullCuttle
 export function calcClusterTrsf(cluster: CosmosCluster, keeb: CosmosKeyboard) {
   if (cluster.name == 'fingers') return rotationPositionETrsf(cluster, false)
 
-  const fingerCluster = keeb.clusters.find(c => c.side == cluster.side && c.name == 'fingers') || mirrorCluster(keeb.clusters.find(c => c.name == 'fingers')!)
+  const fingerCluster = keeb.clusters.find(c => c.side == cluster.side && c.name == 'fingers') || mirrorCluster(keeb.clusters.find(c => c.name == 'fingers')!, keeb)
   const fingerPos = rotationPositionETrsf(fingerCluster, false) || new ETrsf()
   const fingerPosInv = rotationPositionInvETrsf(fingerCluster) || new ETrsf()
   return (rotationPositionETrsf(cluster) || new ETrsf()).transformBy(fingerPosInv).transformBy(fingerPos)
@@ -906,7 +915,7 @@ function mirrorRotationTuple(t: bigint | undefined) {
   return encodeTuple([x, -y, -z])
 }
 
-export function mirrorCluster(clr: CosmosCluster, flipLetters = true): CosmosCluster {
+export function mirrorCluster(clr: CosmosCluster, kbd: CosmosKeyboard | undefined, flipLetters = true): CosmosCluster {
   return {
     ...clr,
     curvature: { ...clr.curvature },
@@ -924,7 +933,7 @@ export function mirrorCluster(clr: CosmosCluster, flipLetters = true): CosmosClu
       column: typeof c.column != 'undefined' ? -c.column : undefined,
       keys: c.keys.map(k => ({
         ...k,
-        profile: { ...k.profile, letter: flipLetters ? flippedKey(k.profile.letter) : k.profile.letter },
+        profile: { ...k.profile, letter: flipLetters ? flippedKey(k.profile.letter, kbd?.layout) : k.profile.letter },
         partType: { ...k.partType },
         column: typeof k.column != 'undefined' ? -k.column : undefined,
         position: mirrorPositionTuple(k.position),
