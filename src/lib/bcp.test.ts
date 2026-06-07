@@ -27,10 +27,10 @@
  */
 
 import { expect, test } from 'bun:test'
-import { parse } from './bcp'
+import { parseBCP } from './bcp'
 
 test('.parse()', () => {
-  expect(parse('i-klingon')).toEqual({
+  expect(parseBCP('i-klingon')).toEqual({
     language: 'tlh',
     extendedLanguageSubtags: [],
     script: null,
@@ -42,7 +42,7 @@ test('.parse()', () => {
     regular: null,
   })
 
-  expect(parse('i-klingon', { normalize: false })).toEqual({
+  expect(parseBCP('i-klingon', { normalize: false })).toEqual({
     language: null,
     extendedLanguageSubtags: [],
     script: null,
@@ -54,7 +54,7 @@ test('.parse()', () => {
     regular: null,
   })
 
-  expect(parse('i-default')).toEqual({
+  expect(parseBCP('i-default')).toEqual({
     language: null,
     extendedLanguageSubtags: [],
     script: null,
@@ -66,7 +66,7 @@ test('.parse()', () => {
     regular: null,
   })
 
-  expect(parse('zh-min')).toEqual({
+  expect(parseBCP('zh-min')).toEqual({
     language: null,
     extendedLanguageSubtags: [],
     script: null,
@@ -82,7 +82,7 @@ test('.parse()', () => {
 test('Too long variant', () => {
   const fixture = 'en-GB-abcdefghi'
 
-  expect(parse(fixture, { warning })).toEqual({
+  expect(parseBCP(fixture, { warning })).toEqual({
     language: null,
     extendedLanguageSubtags: [],
     script: null,
@@ -103,7 +103,7 @@ test('Too long variant', () => {
     expect(arguments.length).toBe(3)
   }
 
-  expect(parse(fixture, { forgiving: true })).toEqual({
+  expect(parseBCP(fixture, { forgiving: true })).toEqual({
     language: 'en',
     extendedLanguageSubtags: [],
     script: null,
@@ -119,7 +119,7 @@ test('Too long variant', () => {
 test('Too many subtags', () => {
   const fixture = 'aa-bbb-ccc-ddd-eee'
 
-  expect(parse(fixture, { warning })).toEqual({
+  expect(parseBCP(fixture, { warning })).toEqual({
     language: null,
     extendedLanguageSubtags: [],
     script: null,
@@ -140,7 +140,7 @@ test('Too many subtags', () => {
     expect(arguments.length).toBe(3)
   }
 
-  expect(parse(fixture, { forgiving: true })).toEqual({
+  expect(parseBCP(fixture, { forgiving: true })).toEqual({
     language: 'aa',
     extendedLanguageSubtags: ['bbb', 'ccc', 'ddd'],
     script: null,
@@ -156,7 +156,7 @@ test('Too many subtags', () => {
 await test('Too long extension', () => {
   const fixture = 'en-i-abcdefghi'
 
-  expect(parse(fixture, { warning })).toEqual({
+  expect(parseBCP(fixture, { warning })).toEqual({
     language: null,
     extendedLanguageSubtags: [],
     script: null,
@@ -177,7 +177,7 @@ await test('Too long extension', () => {
     expect(arguments.length).toBe(3)
   }
 
-  expect(parse(fixture, { forgiving: true })).toEqual({
+  expect(parseBCP(fixture, { forgiving: true })).toEqual({
     language: 'en',
     extendedLanguageSubtags: [],
     script: null,
@@ -193,7 +193,7 @@ await test('Too long extension', () => {
 test('Empty extension', () => {
   const fixture = 'en-i-a'
 
-  expect(parse(fixture, { warning })).toEqual({
+  expect(parseBCP(fixture, { warning })).toEqual({
     language: null,
     extendedLanguageSubtags: [],
     script: null,
@@ -214,7 +214,7 @@ test('Empty extension', () => {
     expect(arguments.length).toBe(3)
   }
 
-  expect(parse(fixture, { forgiving: true })).toEqual({
+  expect(parseBCP(fixture, { forgiving: true })).toEqual({
     language: 'en',
     extendedLanguageSubtags: [],
     script: null,
@@ -230,7 +230,7 @@ test('Empty extension', () => {
 test('Too long private-use', () => {
   const fixture = 'en-x-abcdefghi'
 
-  expect(parse(fixture, { warning })).toEqual({
+  expect(parseBCP(fixture, { warning })).toEqual({
     language: null,
     extendedLanguageSubtags: [],
     script: null,
@@ -251,7 +251,7 @@ test('Too long private-use', () => {
     expect(arguments.length).toBe(3)
   }
 
-  expect(parse(fixture, { forgiving: true })).toEqual({
+  expect(parseBCP(fixture, { forgiving: true })).toEqual({
     language: 'en',
     extendedLanguageSubtags: [],
     script: null,
@@ -267,7 +267,7 @@ test('Too long private-use', () => {
 test('Extra content', () => {
   const fixture = 'abcdefghijklmnopqrstuvwxyz'
 
-  expect(parse(fixture, { warning })).toEqual({
+  expect(parseBCP(fixture, { warning })).toEqual({
     language: null,
     extendedLanguageSubtags: [],
     script: null,
@@ -286,7 +286,7 @@ test('Extra content', () => {
     expect(arguments.length).toBe(3)
   }
 
-  expect(parse(fixture, { forgiving: true })).toEqual({
+  expect(parseBCP(fixture, { forgiving: true })).toEqual({
     language: null,
     extendedLanguageSubtags: [],
     script: null,
