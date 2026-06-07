@@ -9,27 +9,20 @@
   type Option = {
     key: string
     label: string
-    language: Language | null
-    diff: { missing: string[]; mismatched: string[]; impossible: string[] } | null
+    language: Language
   }
 
   export let option: Option
 
   $: layout = objKeys(LAYOUTS).find((l) => LAYOUTS[l].languages.some((g) => g.name === option.key))
-
-  $: diffSummary = (() => {
-    if (!option.diff) return null
-    const all = [...option.diff.missing, ...option.diff.mismatched]
-    if (all.length === 0) return { kind: 'match' as const }
-    if (all.length <= 14) return { kind: 'list' as const, letters: all }
-    return { kind: 'count' as const, count: all.length }
-  })()
-  $: impossibleSpots = (() => {
-    if (!option.diff || !option.diff.impossible.length) return null
-    const { impossible } = option.diff
-    if (impossible.length <= 10) return { kind: 'list' as const, letters: impossible }
-    return { kind: 'count' as const, count: impossible.length }
-  })()
+  $: layoutRows = layout
+    ? [
+        LAYOUTS[layout].layout.substring(0, 26),
+        LAYOUTS[layout].layout.substring(26, 50),
+        LAYOUTS[layout].layout.substring(50, 74),
+        LAYOUTS[layout].layout.substring(74, 96),
+      ]
+    : []
 
   const {
     elements: { trigger, content, arrow },
@@ -75,28 +68,25 @@
           </p>
         </div>
       {/if}
-      {#if layout}
-        <div class="flex flex-col items-center gap-1 mb-3" aria-hidden="true">
-          {#each range(0, 5) as row}
+      {#if layout && layoutRows}
+        <div class="flex flex-col items-start gap-1 mb-3" aria-hidden="true">
+          {#each layoutRows as row, i}
             <div class="flex items-center">
               <div class="flex gap-1">
-                {#each leftCells(layout)[row] as ch, i}
+                {#if i == 1}<span class="scell w-9">tab</span>{/if}
+                {#if i == 2}<span class="scell w-11">caps</span>{/if}
+                {#if i == 3}<span class="scell w-7">sft</span>{/if}
+                {#each range(0, Math.ceil(row.length / 2)) as col}
+                  {@const ch = row.charAt(col * 2)}
                   {#if ch == ' '}
                     <span class="space" />
                   {:else}
-                    <span class="ocell" class:home={row === 2 && i > 0}>{ch}</span>
+                    <span class="ocell" class:home={i === 2 && col > 0}>{ch}</span>
                   {/if}
                 {/each}
-              </div>
-              <div class="w-4" />
-              <div class="flex gap-1">
-                {#each rightCells(layout)[row] as ch, i}
-                  {#if ch == ' '}
-                    <span class="space" />
-                  {:else}
-                    <span class="ocell" class:home={row === 2 && i < 5}>{ch}</span>
-                  {/if}
-                {/each}
+                {#if i == 0}<span class="scell w-12">bspc</span>{/if}
+                {#if i == 1}<span class="scell w-9 iso">ret</span>{/if}
+                {#if i == 3}<span class="scell w-18">sft</span>{/if}
               </div>
             </div>
           {/each}
@@ -122,25 +112,6 @@
           </div>
         </div>
       {/if}
-      {#if diffSummary}
-        <p class="text-sm mt-1" class:text-teal-700={diffSummary.kind === 'match'}>
-          {#if diffSummary.kind === 'match'}
-            ✓ Matches your keyboard
-          {:else if diffSummary.kind === 'list'}
-            Differs in: {#each diffSummary.letters as l}<span class="key">{l}</span>{/each}
-          {:else}
-            Differs in {diffSummary.count} keys
-          {/if}
-        </p>
-      {/if}
-      {#if impossibleSpots}
-        <p class="text-sm mt-1">
-          {#if impossibleSpots.kind === 'list'}
-            Not enough keys for: {#each impossibleSpots.letters as l}<span class="key">{l}</span>{/each}
-          {:else}
-            Not enough keys for {impossibleSpots.count} keys
-          {/if}
-        </p>{/if}
     </div>
   </div>
 {/if}
@@ -150,12 +121,23 @@
     --at-apply: 'inline-flex w-6';
   }
   .ocell {
-    --at-apply: 'inline-flex items-center justify-center w-6 h-6 rounded bg-pink-50 dark:bg-pink-100 text-pink-900 font-mono text-xs border border-pink-300';
+    --at-apply: 'inline-flex items-center justify-center w-6 h-6 rounded bg-pink-50 text-pink-900 font-mono text-xs border border-pink-300';
   }
   .ocell.home {
     --at-apply: 'bg-pink-200 border-pink-400';
   }
-  .key {
-    --at-apply: 'font-mono bg-pink-300 px-1 py-0.5 mx-0.5 rounded';
+  .scell {
+    --at-apply: 'inline-flex items-center justify-center h-6 rounded bg-pink-200 text-pink-900 font-mono text-xs border border-pink-100';
+  }
+  .iso {
+    position: relative;
+    border-bottom-right-radius: 0;
+    padding-top: 2px;
+  }
+  .iso::after {
+    content: ' ';
+    --at-apply: 'absolute w-7 h-7 right--1px top-[calc(1.5rem-2px)] rounded bg-pink-200 border border-pink-100 border-t-pink-200';
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
   }
 </style>

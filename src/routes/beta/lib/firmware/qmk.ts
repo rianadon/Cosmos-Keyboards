@@ -1,5 +1,6 @@
 import qmkVik from '$assets/qmk-vik.zip?url'
 import { download } from '$lib/browser'
+import type { Language } from '$lib/geometry/layouts'
 import { PART_INFO } from '$lib/geometry/socketsParts'
 import { hasKeyGeometry, hasPinsInMatrix } from '$lib/loaders/keycaps'
 import type { CuttleKey, Geometry } from '$lib/worker/config'
@@ -19,6 +20,7 @@ export interface QMKOptions {
   diodeDirection: 'COL2ROW' | 'ROW2COL'
   enableConsole: boolean
   wiredVersion: 'v0.4' | 'v0.5'
+  osLanguage: Language
 }
 
 export function validateConfig(options: QMKOptions) {

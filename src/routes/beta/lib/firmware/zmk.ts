@@ -1,4 +1,5 @@
 import { download } from '$lib/browser'
+import type { Language } from '$lib/geometry/layouts'
 import { hasPinsInMatrix } from '$lib/loaders/keycaps'
 import type { CuttleKey, Geometry } from '$lib/worker/config'
 import { filterObj, findIndexIter, mapObjNotNull, mapObjNotNullToObj, mapObjToObj, objEntries, objEntriesNotNull, objKeysOfNotNull, sum } from '$lib/worker/util'
@@ -31,6 +32,7 @@ export interface ZMKOptions {
   enableConsole: boolean
   enableStudio: boolean
   wirelessVersion: 'v0.3' | 'v0.4'
+  osLanguage: Language
 }
 
 export function validateConfig(options: ZMKOptions) {

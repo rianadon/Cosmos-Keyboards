@@ -32,10 +32,10 @@ export const LAYOUTS: Record<Layout, LayoutData> = {
   qwerty: {
     name: 'QWERTY',
     languages: [
+      { name: 'English (QWERTY)', qmk: '', zmk: '', tag: 'en' },
       { name: 'Bulgarian (QWERTY)', qmk: '', zmk: 'bg_latin', tag: 'bg' },
       { name: 'Chinese (QWERTY)', qmk: '', zmk: '', tag: 'zh' },
       { name: 'Czech (QWERTY)', qmk: '', zmk: 'cs_programmers', tag: 'cs' },
-      { name: 'English (QWERTY)', qmk: '', zmk: '', tag: 'en' },
       { name: 'Hausa (QWERTY)', qmk: '', zmk: 'ha', tag: 'ha' },
       { name: 'Igbo (QWERTY)', qmk: '', zmk: 'ig', tag: 'ig' },
       { name: 'Inuktitut (QWERTY)', qmk: '', zmk: 'iu_latin', tag: 'iu' },
@@ -666,14 +666,18 @@ export function detectLayout(kbd: CosmosKeyboard): Layout {
 
 /** Per-position diff between the kbd and a target named layout. Used by the
  *  layout-completeness indicator next to the dropdown.
- *    `missing`    — canonical position has no key (column or row deleted).
- *    `mismatched` — canonical position has a key whose letter differs from
- *                   the target's expected letter at that position.
+ *    `impossible` — the char's hypothetical position has no keycap socket on
+ *                   this keyboard (e.g. an outer column or number row the user
+ *                   removed), so the char can't be placed at all.
+ *    `missing`    — the position *does* have a keycap socket, but no key there
+ *                   carries the expected letter (it could be added).
+ *    `mismatched` — the expected letter exists somewhere on the keyboard, just
+ *                   not where this layout expects it.
  *  Mirror form synthesizes the left half so deleting one alpha key on a
  *  mirrored split surfaces both halves' letters. */
 export function layoutDiff(kbd: CosmosKeyboard, layout: Layout) {
   const fingerClusters = kbd.clusters.filter(c => c.name === 'fingers')
-  if (fingerClusters.length === 0) return { missing: [], mismatched: [] }
+  if (fingerClusters.length === 0) return { impossible: [], missing: [], mismatched: [] }
 
   const right = fingerClusters.find(c => c.side === 'right')
   const left = fingerClusters.find(c => c.side === 'left')
@@ -694,7 +698,7 @@ export function diffAllLayouts(kbd: CosmosKeyboard) {
   if (right && !left) halves.push(mirrorCluster(right, kbd))
 
   const alphas = halves.map(c => alphaColumns(kbd, c))
-  const results: Record<string, { missing: string[]; mismatched: string[] }> = {}
+  const results: Record<string, { impossible: string[]; missing: string[]; mismatched: string[] }> = {}
   for (const [layout, data] of objEntries(LAYOUTS)) {
     const result = layoutDiffImpl(kbd, halves, alphas, layout)
     for (const language of data.languages) {
@@ -704,7 +708,17 @@ export function diffAllLayouts(kbd: CosmosKeyboard) {
   return results
 }
 
-function layoutDiffImpl(kbd: CosmosKeyboard, halves: CosmosCluster[], alphas: Record<number, CosmosCluster>[], layout: Layout): { missing: string[]; mismatched: string[] } {
+/** Whether a keycap socket backs column-string position `idx` in `col`, given
+ *  the alignment offset (keys[j] ↔ column[j + offset], so row idx ↔ keys[idx - offset]). */
+function hasSocketAt(kbd: CosmosKeyboard, col: CosmosCluster | undefined, offset: number, idx: number): boolean {
+  if (!col) return false
+  const key = col.keys[idx - offset]
+  if (!key) return false
+  return !!PART_INFO[key.partType.type || col.partType.type || kbd.partType.type!].keycap
+}
+
+function layoutDiffImpl(kbd: CosmosKeyboard, halves: CosmosCluster[], alphas: Record<number, CosmosCluster>[], layout: Layout): { impossible: string[]; missing: string[]; mismatched: string[] } {
+  const impossible = new Set<string>()
   const missing = new Set<string>()
   const mismatched = new Set<string>()
 
@@ -721,23 +735,32 @@ function layoutDiffImpl(kbd: CosmosKeyboard, halves: CosmosCluster[], alphas: Re
         ) allChars.add(k.profile.letter)
       }
     }
+    // Align each physical column with its layout column and remember the offset
+    // so we can later tell whether a given row actually has a key behind it.
+    const offsets: Record<number, number> = {}
     for (const [i, col] of objEntries(alphas[clIndex])) {
-      const { matches } = bestColumnOffsetByChar(kbd, col, categories[i])
+      const { offset, matches } = bestColumnOffsetByChar(kbd, col, categories[i])
+      offsets[i] = offset
       allMatches = allMatches.concat(matches)
     }
 
-    for (const col of categories) {
-      for (const char of col) {
+    categories.forEach((col, i) => {
+      for (let idx = 0; idx < col.length; idx++) {
+        const char = col[idx]
         if (char == ' ') continue
-        if (!allMatches.includes(char)) {
-          if (allChars.has(char)) mismatched.add(char)
-          else missing.add(char)
+        if (allMatches.includes(char)) continue
+        if (allChars.has(char)) {
+          mismatched.add(char)
+        } else if (hasSocketAt(kbd, alphas[clIndex][i], offsets[i], idx)) {
+          missing.add(char)
+        } else {
+          impossible.add(char)
         }
       }
-    }
+    })
   })
 
-  return { missing: [...missing], mismatched: [...mismatched] }
+  return { impossible: [...impossible], missing: [...missing], mismatched: [...mismatched] }
 }
 
 function mapClusters<T extends CosmosCluster | CosmosKeyboard>(c: T, fn: (c: CosmosCluster, i: number) => CosmosCluster): T {
