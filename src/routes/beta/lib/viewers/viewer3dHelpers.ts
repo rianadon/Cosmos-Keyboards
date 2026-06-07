@@ -132,7 +132,7 @@ export function addKeyInPlace(keeb: CosmosKeyboard, n: number, dx: number, dy: n
   const oldRow = key.profile.row
   let newKey: CosmosKey = {
     profile: {
-      letter: adjacentKeycapLetter(key.profile.letter, dx, dy),
+      letter: adjacentKeycapLetter(key.profile.letter, dx, dy, keeb.layout),
       row: typeof oldRow != 'undefined' ? Math.max(0, Math.min(4, oldRow + dy)) : undefined,
       home: null,
     },
@@ -180,7 +180,7 @@ export function addColumnInPlace(keeb: CosmosKeyboard, n: number, dx: number): C
     rotation: k.rotation,
     profile: {
       ...k.profile,
-      letter: adjacentKeycapLetter(k.profile.letter, dx, 0),
+      letter: adjacentKeycapLetter(k.profile.letter, dx, 0, keeb.layout),
     },
   }))
   cluster.clusters.push({

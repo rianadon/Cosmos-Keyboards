@@ -1,13 +1,11 @@
-import { DEFAULT_LAYOUT, flipLetter, LAYOUT, type LayoutId, rightSideLetter } from '$lib/geometry/layouts'
+import { DEFAULT_LAYOUT, flipLetter, rightCells } from '$lib/geometry/layouts'
 import { PART_INFO } from '$lib/geometry/socketsParts'
 import { approximateCosmosThumbOrigin, cosmosFingers, type Cuttleform, decodeTuple, encodeTuple, type FullCuttleform, newGeometry } from '$lib/worker/config'
 import {
-  alphaColumns,
   type ConnectorMaybeCustom,
   type CosmosCluster,
   type CosmosKey,
   type CosmosKeyboard,
-  detectLayout,
   fromCosmosConfig,
   indexOfKey,
   mirrorCluster,
@@ -15,10 +13,11 @@ import {
   sideFromCosmosConfig,
   toCosmosConfig,
 } from '$lib/worker/config.cosmos'
-import { decodeCosmosCluster } from '$lib/worker/config.serialize'
+import { decodeCosmosCluster, LETTERS } from '$lib/worker/config.serialize'
 import { estimatedBB } from '$lib/worker/geometry'
 import { Vector } from '$lib/worker/modeling/transformation'
 import { mapObj, objKeys, sum } from '$lib/worker/util'
+import type { Layout } from '$target/cosmosStructs'
 import { Cluster } from '../../../../../target/proto/cosmos'
 import { addColumnInPlace } from '../viewers/viewer3dHelpers'
 
@@ -45,13 +44,7 @@ export function setClusterSize(keyboard: CosmosKeyboard, side: 'left' | 'right',
   if (side == 'left') newThumb.x *= -1
   const newPosition = originalPosition.add(originalThumb).sub(newThumb)
   const newTup = encodeTuple(newPosition.toArray().map((x) => Math.round(10 * x)))
-  // Detect the kbd's current layout BEFORE we replace the cluster — the new
-  // alpha keys get seeded with that layout's letters. CUSTOM has no rightRows,
-  // so fall back to QWERTY for the seeding (the user's existing letters
-  // outside the alpha block are preserved by the unchanged outer columns).
-  const detected = detectLayout(keyboard)
-  const seedLayout = detected === LAYOUT.CUSTOM ? DEFAULT_LAYOUT : detected
-  fingers.clusters = cosmosFingers(rows, cols, side, addExtraRow, seedLayout)
+  fingers.clusters = cosmosFingers(rows, cols, side, addExtraRow, keyboard.layout)
   fingers.position = newTup
 
   return keyboard
@@ -331,6 +324,23 @@ export function mapKeys<T>(kbd: CosmosKeyboard, predicate: (k: CosmosKey, col: C
   return kbd.clusters.flatMap(cluster => cluster.clusters.flatMap(col => col.keys.map(k => predicate(k, col, cluster, i++))))
 }
 
+/** Find the indices of the five alpha/letter columns.
+ * These are determined by finding the 5 columns with the largest number of letters.
+ * They are sorted by column position from smallest to largest
+ */
+function alphaColumns(kbd: CosmosKeyboard, cluster: CosmosCluster) {
+  const columns = cluster.clusters.map((col, index) => ({
+    index,
+    column: col.column ?? -1000,
+    nLetters: col.keys
+      .filter(k => PART_INFO[k.partType.type || col.partType.type || kbd.partType.type!].keycap && LETTERS.includes(k.profile.letter!))
+      .length,
+  })).filter(c => c.nLetters > 0)
+  columns.sort((a, b) => b.nLetters - a.nLetters)
+  const topColumns = columns.slice(0, 5)
+  return topColumns.sort((a, b) => a.column - b.column).map(c => c.index)
+}
+
 export function addRow(kbd: CosmosKeyboard, fn: (side: 'left' | 'right', alphas: number[], row: number, column: number) => string | null) {
   return mapClusters(kbd, cluster => {
     if (cluster.name !== 'fingers') return cluster // Only change fingers cluster
@@ -470,42 +480,4 @@ export function toggleInnerCol(kbd: CosmosKeyboard) {
     // Add the column
     return addCol(kbd, -1)
   }
-}
-
-/**
- * Update alpha-row letters across all finger clusters to match `layoutId`.
- * Non-alpha rows (numbers, F-row, outer punctuation) are layout-independent and
- * are left untouched. Alpha columns are identified by `alphaColumns()`, so user
- * geometry (extra inner/outer columns, splay) is preserved.
- */
-export function applyLayoutToKeys(kbd: CosmosKeyboard, layoutId: LayoutId): CosmosKeyboard {
-  return mapClusters(kbd, cluster => {
-    if (cluster.name !== 'fingers') return cluster
-    const alphas = alphaColumns(kbd, cluster)
-    const N = alphas.length
-    if (N === 0) return cluster
-    return mapClusters(cluster, (col, colIdx) => {
-      const alphaIdx = alphas.indexOf(colIdx)
-      if (alphaIdx < 0) return col
-      const letterCol = cluster.side === 'right' ? alphaIdx : (N - 1 - alphaIdx)
-      return {
-        ...col,
-        keys: col.keys.map(k => {
-          const row = k.profile.row
-          if (row !== 2 && row !== 3 && row !== 4) return k
-          // keycapInfo() collapses row 5 → 4 for MT3 keycap-profile reasons,
-          // so the row check alone wrongly catches row-5 outer punctuation
-          // (`{`, `}`, `[`, `]`, `\`). Skip just those characters; everything
-          // else in an alpha column at row 2/3/4 (including non-alpha edits
-          // like digits the user typed) gets overwritten with the layout's
-          // letter so picking a layout from Custom actually restores it.
-          if (k.profile.letter && '{}[]\\'.includes(k.profile.letter)) return k
-          let newLetter = rightSideLetter(row, letterCol, layoutId)
-          if (cluster.side === 'left') newLetter = flipLetter(newLetter, layoutId)
-          if (!newLetter) return k
-          return { ...k, profile: { ...k.profile, letter: newLetter } }
-        }),
-      }
-    })
-  })
 }

@@ -1,7 +1,7 @@
 import type manuform from '$assets/manuform.json'
-import { DEFAULT_LAYOUT, type LayoutId, rightSideLetter } from '$lib/geometry/layouts'
+import { DEFAULT_LAYOUT, rightCells } from '$lib/geometry/layouts'
 import { socketSize } from '$lib/geometry/socketsParts'
-import type { CuttleKey, CuttleTrackpadCirqueKey, MicrocontrollerName } from '$target/cosmosStructs'
+import type { CuttleKey, CuttleTrackpadCirqueKey, Layout, MicrocontrollerName } from '$target/cosmosStructs'
 import {
   CONNECTOR,
   CONNECTOR_SIZE,
@@ -514,14 +514,12 @@ function mergedCurvature(c: CuttleformProto, pinky: boolean, curv: any): any {
   }
 }
 
-function letterForKeycap(row: number, column: number, layout: LayoutId = DEFAULT_LAYOUT) {
+function letterForKeycap(row: number, column: number, layout: Layout) {
   if (row == 0) return ['F6', 'F7', 'F8', 'F9', 'F10'][column] || undefined
-  if (row == 1) return '67890'.charAt(column) || undefined
-  if (row == 5) return '{}[]\\'.charAt(column) || undefined
-  return rightSideLetter(row, column, layout)
+  return rightCells(layout)[row - 1][column]
 }
 
-function keycapInfo(c: CuttleformProto, row: number, column: number, layout: LayoutId = DEFAULT_LAYOUT): Keycap {
+function keycapInfo(c: CuttleformProto, row: number, column: number, layout: Layout): Keycap {
   let home: Keycap['home']
   if (row == 3) {
     home = ({
@@ -598,7 +596,7 @@ export function tupleToXYZ(tuple: bigint) {
   return [decoded[0] / 10, decoded[1] / 10, decoded[2] / 10] as Point
 }
 
-export function cosmosFingers(nRows: number, nCols: number, side: 'left' | 'right', addExtraRow = true, layout: LayoutId = DEFAULT_LAYOUT): CosmosCluster[] {
+export function cosmosFingers(nRows: number, nCols: number, side: 'left' | 'right', addExtraRow = true, layout: Layout = DEFAULT_LAYOUT): CosmosCluster[] {
   let columns = range(0, nCols)
   if (nCols <= 4) columns = range(1, nCols + 1)
   const rows = range(0, nRows)
@@ -788,7 +786,7 @@ export function fingers(c: DeepRequired<CuttleformProto>): CuttleKey[] {
           && row == lastRow && column == lastCol
         return {
           type: isBlank ? 'blank' : switchType(c),
-          keycap: keycapInfo(c, row2Row(row), column),
+          keycap: keycapInfo(c, row2Row(row), column, DEFAULT_LAYOUT),
           aspect: usesWidePinky(column, row) ? pinkySize : 1,
           size: isBlank ? { width: 18.5, height: 18.5 } : undefined,
           cluster: 'fingers',

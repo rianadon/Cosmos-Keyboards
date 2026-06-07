@@ -26,6 +26,7 @@
   export let value: string
   export let clazz: string = ''
   export let pink = false
+  export let labelOverride: string | null = null
 
   const instanceId = Symbol()
   const onOpenChange: CreateSelectProps<string>['onOpenChange'] = ({ next }) => {
@@ -38,14 +39,6 @@
   const onSelectedChange: CreateSelectProps<string>['onSelectedChange'] = ({ next }) => {
     if (syncing) return next
     dispatch('change', next!.value)
-    // melt-ui has already committed `next` internally. The parent may have
-    // updated the controlling `value` prop in response to the dispatch, or
-    // not. Re-sync from `value` after Svelte's reactive flush — if the parent
-    // accepted, value === next.value (no-op); if rejected, we revert melt-ui
-    // to the controlling value.
-    queueMicrotask(() => {
-      if (next!.value !== value) onValueChange(value)
-    })
     return next
   }
 
@@ -97,6 +90,8 @@
   <button use:melt={$trigger} class={clazz || 's-input pl-2 pr-8 truncate text-start'}>
     {#if labelComponent && $selected}
       <svelte:component this={labelComponent} option={$selected} />
+    {:else if labelOverride !== null}
+      {labelOverride}
     {:else}
       {$selectedLabel || 'Choose One'}
     {/if}

@@ -1,58 +1,29 @@
 <script lang="ts">
   import { createTooltip, melt } from '@melt-ui/svelte'
   import { fade } from 'svelte/transition'
-  import {
-    flipLetter,
-    getLayout,
-    isNamedLayoutId,
-    type LayoutId,
-    type NamedLayoutId,
-  } from '$lib/geometry/layouts'
+  import { LAYOUTS, leftCells, rightCells, type Language } from '$lib/geometry/layouts'
+  import { objKeys, range } from '$lib/worker/util'
+  import Icon from '$lib/presentation/Icon.svelte'
+  import { mdiAlertCircle, mdiCheckCircle, mdiCheckCircleOutline } from '@mdi/js'
 
   type Option = {
-    key: LayoutId
+    key: string
     label: string
-    diff?: { missing: string[]; mismatched: string[] } | null
-    firmwareSafe?: boolean
+    language: Language | null
+    diff: { missing: string[]; mismatched: string[] } | null
   }
 
   export let option: Option
 
-  const CUSTOM_DESCRIPTION =
-    "Your own layout — Cosmos won't auto-fill or overwrite key legends. Click a key in the 3D view and edit the Letter field to set custom legends per key."
+  $: layout = objKeys(LAYOUTS).find((l) => LAYOUTS[l].languages.some((g) => g.name === option.key))
 
-  $: description = isNamedLayoutId(option.key) ? getLayout(option.key).description : CUSTOM_DESCRIPTION
-  $: rightRows = isNamedLayoutId(option.key) ? getLayout(option.key).rightRows : null
-  $: diffSize = option.diff ? option.diff.missing.length + option.diff.mismatched.length : 0
   $: diffSummary = (() => {
     if (!option.diff) return null
     const all = [...option.diff.missing, ...option.diff.mismatched]
     if (all.length === 0) return { kind: 'match' as const }
-    if (all.length <= 5) return { kind: 'list' as const, letters: all }
+    if (all.length <= 14) return { kind: 'list' as const, letters: all }
     return { kind: 'count' as const, count: all.length }
   })()
-
-  // Render exactly the canonical 5-column alpha block per side. Some layouts
-  // include a 6th outer-pinky character on the right (`'` in QWERTY/Colemak/
-  // Workman, `/` and `-` in Dvorak) that has no symmetric left-side equivalent
-  // in the flipMap, so showing it on the left would produce stray glyphs.
-  const ALPHA_COLS = 5
-
-  // The three alpha rows the layout defines (top, home, bottom). Typed as the
-  // literal union the rightRows record actually has, so {#each} lookups index
-  // it without TS complaining about `number`.
-  const ALPHA_ROWS: (2 | 3 | 4)[] = [2, 3, 4]
-
-  // Right side: first 5 chars in column-position order (index inner → pinky outer).
-  function rightCells(row: string): string[] {
-    return [...row.slice(0, ALPHA_COLS)]
-  }
-
-  // Left side: same 5 columns mirrored. Physical order is pinky outer → index
-  // inner, i.e. the right row reversed and flipped through the layout's map.
-  function leftCells(row: string, layoutId: NamedLayoutId): string[] {
-    return [...row.slice(0, ALPHA_COLS)].reverse().map((ch) => flipLetter(ch, layoutId) ?? ch)
-  }
 
   const {
     elements: { trigger, content, arrow },
@@ -79,84 +50,102 @@
     class="z-100 rounded-md bg-pink-200 dark:text-pink-950 shadow"
   >
     <div use:melt={$arrow} />
-    <div class="px-6 py-4 max-w-80 layoutinfo">
-      {#if rightRows && isNamedLayoutId(option.key)}
-        <!-- Split-ortholinear render: left and right alpha blocks side-by-side
-             with a gap representing the split. Three rows shown (top alpha,
-             home, bottom alpha); home row highlighted. -->
-        <div class="ortho mb-3" aria-hidden="true">
-          {#each ALPHA_ROWS as row}
-            <div class="orow">
-              <div class="oside">
-                {#each leftCells(rightRows[row], option.key) as ch}
-                  <span class="ocell" class:home={row === 3}>{ch}</span>
+    <div class="px-6 py-4">
+      {#if option.key == 'custom'}
+        <div class="max-w-40ch">
+          <p class="mb-2">
+            Did you know you can make your own layout in Cosmos? Click a key in the 3D view and edit the
+            Letter field to set custom legends per key.
+          </p>
+          <p class="mb-2">
+            The language list is incomplete as it's limited to languages that are easy to set up in both
+            QMK and ZMK. However, even if your language has glyphs not represented in this set of
+            languages, you can still program your keyboard to type your alphabet with these firmwares.
+            See <a
+              class="text-pink-600 underline"
+              href="https://ryanis.cool/cosmos/blog/comparing-qmk-and-zmk-language-support/"
+              >this blog post</a
+            > for more on how the language set was chosen.
+          </p>
+        </div>
+      {/if}
+      {#if layout}
+        <div class="flex flex-col items-center gap-1 mb-3" aria-hidden="true">
+          {#each range(0, 5) as row}
+            <div class="flex items-center">
+              <div class="flex gap-1">
+                {#each leftCells(layout)[row] as ch, i}
+                  {#if ch == ' '}
+                    <span class="space" />
+                  {:else}
+                    <span class="ocell" class:home={row === 2 && i > 0}>{ch}</span>
+                  {/if}
                 {/each}
               </div>
-              <div class="ogap" />
-              <div class="oside">
-                {#each rightCells(rightRows[row]) as ch}
-                  <span class="ocell" class:home={row === 3}>{ch}</span>
+              <div class="w-4" />
+              <div class="flex gap-1">
+                {#each rightCells(layout)[row] as ch, i}
+                  {#if ch == ' '}
+                    <span class="space" />
+                  {:else}
+                    <span class="ocell" class:home={row === 2 && i < 5}>{ch}</span>
+                  {/if}
                 {/each}
               </div>
             </div>
           {/each}
         </div>
+        <div class="flex justify-between text-sm">
+          <div class="flex items-center">
+            {#if LAYOUTS[layout].languages.some((l) => l.qmk)}
+              <Icon class="text-teal-600 mr-2" path={mdiCheckCircle} size="20px" />
+              Supported in QMK
+            {:else}
+              <Icon class="text-amber-600 mr-2" path={mdiAlertCircle} size="20px" />
+              Not supported in QMK
+            {/if}
+          </div>
+          <div class="flex items-center">
+            {#if LAYOUTS[layout].languages.some((l) => l.zmk)}
+              <Icon class="text-teal-600 mr-2" path={mdiCheckCircle} size="20px" />
+              Supported in ZMK
+            {:else}
+              <Icon class="text-amber-600 mr-2" path={mdiAlertCircle} size="20px" />
+              Not supported in ZMK
+            {/if}
+          </div>
+        </div>
       {/if}
-      <p>{description}</p>
       {#if diffSummary}
         <p
-          class="layout-match"
-          class:layout-match-ok={diffSummary.kind === 'match'}
-          class:layout-match-warn={diffSummary.kind !== 'match'}
+          class="text-sm mt-1"
+          class:text-teal-700={diffSummary.kind === 'match'}
+          class:text-amber-700={diffSummary.kind !== 'match'}
         >
           {#if diffSummary.kind === 'match'}
             ✓ Matches your keyboard
           {:else if diffSummary.kind === 'list'}
-            Differs in: <span class="font-mono">{diffSummary.letters.join(' ')}</span>
+            Differs in: {#each diffSummary.letters as l}<span class="key">{l}</span>{/each}
           {:else}
             Differs in {diffSummary.count} keys
           {/if}
         </p>
-      {/if}
-      {#if option.firmwareSafe === false}
-        <p class="layout-firmware-warn">⚠ Firmware export of non-ASCII keys is not yet supported.</p>
       {/if}
     </div>
   </div>
 {/if}
 
 <style>
-  .ortho {
-    --at-apply: 'flex flex-col items-center gap-1';
-  }
-  .orow {
-    --at-apply: 'flex items-center';
-  }
-  .oside {
-    --at-apply: 'flex gap-1';
-  }
-  .ogap {
-    --at-apply: 'w-4';
+  .space {
+    --at-apply: 'inline-flex w-6';
   }
   .ocell {
     --at-apply: 'inline-flex items-center justify-center w-6 h-6 rounded bg-pink-50 dark:bg-pink-100 text-pink-900 font-mono text-xs border border-pink-300';
   }
   .ocell.home {
-    --at-apply: 'bg-pink-200 dark:bg-pink-200 border-pink-400';
+    --at-apply: 'bg-pink-200 border-pink-400';
   }
-  :global(.layoutinfo p) {
-    --at-apply: 'mb-1';
-  }
-  .layout-match {
-    --at-apply: 'text-xs mt-1';
-  }
-  .layout-match-ok {
-    --at-apply: 'text-teal-700';
-  }
-  .layout-match-warn {
-    --at-apply: 'text-amber-700';
-  }
-  .layout-firmware-warn {
-    --at-apply: 'text-xs mt-1 text-pink-900 opacity-80';
+  .key {
+    --at-apply: 'font-mono bg-pink-300 px-1 py-0.5 mx-0.5 rounded';
   }
 </style>

@@ -1,5 +1,5 @@
 import { keyInfo } from '$lib/geometry/keycaps'
-import { flippedKey } from '$lib/geometry/layouts'
+import { DEFAULT_LAYOUT, flippedKey } from '$lib/geometry/layouts'
 import { switchInfo } from '$lib/geometry/switches'
 import type { Cuttleform, CuttleKey } from '../config'
 import Trsf, { Vector } from './transformation'
@@ -410,14 +410,14 @@ export function fullMirrorETrsf(e: ETrsf) {
 }
 
 /** Mirror a set of keys and return the mirrored keys. */
-export function mirror(keys: CuttleKey[], flipKeys = true): CuttleKey[] {
+export function mirror(keys: CuttleKey[], layout = DEFAULT_LAYOUT, flipKeys = true): CuttleKey[] {
   const mirroredKeys = keys.map(k => {
     const newK = {
       ...k,
       position: fullMirrorETrsf(k.position),
     }
     if (flipKeys && 'keycap' in newK && newK.keycap && newK.keycap.letter) {
-      newK.keycap = { ...newK.keycap, letter: flippedKey(newK.keycap.letter) }
+      newK.keycap = { ...newK.keycap, letter: flippedKey(newK.keycap.letter, layout) }
     }
     return newK
   })
@@ -430,7 +430,7 @@ export function mirror(keys: CuttleKey[], flipKeys = true): CuttleKey[] {
  * Both the original keys and the mirrored keys will be returned.
  * This is useful for creating full keyboards instead of ones split in half.
  */
-export function unibody(keys: CuttleKey[], gap = 30, angle = 0): CuttleKey[] {
+export function unibody(keys: CuttleKey[], layout = DEFAULT_LAYOUT, gap = 30, angle = 0): CuttleKey[] {
   const minX = Math.min(...keys.map(k => keyPosition({} as any, k, false).origin().x))
   const axisX = minX - gap / 2 - 10
   const mirroredKeys = keys.map(k => {
@@ -439,7 +439,7 @@ export function unibody(keys: CuttleKey[], gap = 30, angle = 0): CuttleKey[] {
       position: k.position.mirrored([1, 0, 0], [axisX, 0, 0]),
     }
     if ('keycap' in newK && newK.keycap && newK.keycap.letter) {
-      newK.keycap = { ...newK.keycap, letter: flippedKey(newK.keycap.letter) }
+      newK.keycap = { ...newK.keycap, letter: flippedKey(newK.keycap.letter, layout) }
     }
     return newK
   })
@@ -451,14 +451,14 @@ export function unibody(keys: CuttleKey[], gap = 30, angle = 0): CuttleKey[] {
  *
  * This function returns copies of the keys that are passed in.
  */
-export function flipKeyLabels(keys: CuttleKey[]): CuttleKey[] {
+export function flipKeyLabels(keys: CuttleKey[], layout = DEFAULT_LAYOUT): CuttleKey[] {
   return keys.map(k => {
     const newK = {
       ...k,
       position: new ETrsf([...k.position.history]),
     }
     if ('keycap' in newK && newK.keycap && newK.keycap.letter) {
-      newK.keycap = { ...newK.keycap, letter: flippedKey(newK.keycap.letter) }
+      newK.keycap = { ...newK.keycap, letter: flippedKey(newK.keycap.letter, layout) }
     }
     return newK
   })

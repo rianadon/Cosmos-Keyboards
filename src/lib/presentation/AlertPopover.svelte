@@ -135,7 +135,7 @@
     role="status"
   >
     <div class="alert-body">
-      <div class="text-sm">{alert.message}</div>
+      <div>{alert.message}</div>
       <button class="alert-dismiss" on:click={() => dismissAlert(alert.id)}>Dismiss</button>
     </div>
     {#if duration > 0}
