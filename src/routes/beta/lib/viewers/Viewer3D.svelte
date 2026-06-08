@@ -9,6 +9,7 @@
     encodeTuple,
     tupleToXYZ,
     type Center,
+    type KeyboardSide,
   } from '$lib/worker/config'
   import Trsf from '$lib/worker/modeling/transformation'
   import {
@@ -358,10 +359,7 @@
     if (event.keyCode == 17) snapRotation = false
   }
 
-  function getClickedSide(
-    config: CosmosKeyboard,
-    n: number | null
-  ): 'unibody' | 'right' | 'left' | null {
+  function getClickedSide(config: CosmosKeyboard, n: number | null): KeyboardSide | null {
     if (config?.unibody) return 'unibody'
     if (n == null) return null
     return nthKey(config, n).cluster.side

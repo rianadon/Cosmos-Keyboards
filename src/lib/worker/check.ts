@@ -7,7 +7,7 @@ import type { Triangle } from 'three'
 import { Octree } from 'three/examples/jsm/math/Octree.js'
 import { Vector2 } from 'three/src/math/Vector2.js'
 import { calcTravel, ITriangle, simpleKey, simpleKeyPosition } from '../loaders/simplekeys'
-import type { Cuttleform, CuttleKey, Geometry } from './config'
+import type { Cuttleform, CuttleKey, Geometry, KeyboardSide } from './config'
 import { type CriticalPoints, keyHolesTrsfs2D } from './geometry'
 import { intersectPolyPoly } from './geometry.intersections'
 import Trsf, { Vector } from './modeling/transformation'
@@ -78,9 +78,7 @@ const PROPERTIES = ['aspect', 'type', 'position']
 
 export type ConfError =
   & (IntersectionError | MissingError | WrongError | OobError | InvalidError | ExceptionError | NanError | NoKeysError | WallBoundsError | WrongFormatError | SamePositionError | NotEnoughPinsError)
-  & {
-    side: 'left' | 'right' | 'unibody'
-  }
+  & { side: KeyboardSide }
 export type ConfErrors = ConfError[]
 
 export function isRenderableError(e: ConfError | undefined) {
@@ -98,7 +96,7 @@ export function salientError(e: ConfErrors): ConfError {
   return e[0]
 }
 
-export function checkConfig(conf: Cuttleform, geometry: Geometry | undefined, check3d = true, side: 'left' | 'right' | 'unibody'): ConfErrors {
+export function checkConfig(conf: Cuttleform, geometry: Geometry | undefined, check3d = true, side: KeyboardSide): ConfErrors {
   if (!conf.keys) return [{ type: 'wrongformat', side }]
   if (!conf.keys.length) return [{ type: 'nokeys', side }]
 
@@ -270,7 +268,7 @@ function prismTriangles(facePoints: Trsf[], center: Trsf, depth: number, index: 
   })
 }
 
-export function* keycapIntersections(conf: Cuttleform, trsfs: Trsf[], web: ITriangle[], side: 'left' | 'right' | 'unibody') {
+export function* keycapIntersections(conf: Cuttleform, trsfs: Trsf[], web: ITriangle[], side: KeyboardSide) {
   const tree = new Octree()
   for (const tri of web) {
     tree.addTriangle(tri)
@@ -288,7 +286,7 @@ export function* keycapIntersections(conf: Cuttleform, trsfs: Trsf[], web: ITria
   yield* treeIntersections(conf, tree, 'keycap', side)
 }
 
-export function* partIntersections(conf: Cuttleform, trsfs: Trsf[], side: 'left' | 'right' | 'unibody') {
+export function* partIntersections(conf: Cuttleform, trsfs: Trsf[], side: KeyboardSide) {
   const tree = new Octree()
   for (let i = 0; i < trsfs.length; i++) {
     const key = conf.keys[i]
@@ -302,7 +300,7 @@ export function* partIntersections(conf: Cuttleform, trsfs: Trsf[], side: 'left'
   yield* treeIntersections(conf, tree, 'part', side)
 }
 
-export function* unsortedSocketIntersections(conf: Cuttleform, trsfs: Trsf[], critPts: CriticalPoints[], web: ITriangle[], side: 'left' | 'right' | 'unibody') {
+export function* unsortedSocketIntersections(conf: Cuttleform, trsfs: Trsf[], critPts: CriticalPoints[], web: ITriangle[], side: KeyboardSide) {
   const tree = new Octree()
   for (const tri of web) {
     tree.addTriangle(tri)
@@ -324,7 +322,7 @@ export function* unsortedSocketIntersections(conf: Cuttleform, trsfs: Trsf[], cr
  * Every socket-socket intersection will generate a socket->wall intersection as well,
  * but the socket-socket intersections are easier to debug so they should get priority.
  */
-export function* socketIntersections(conf: Cuttleform, trsfs: Trsf[], critPts: CriticalPoints[], web: ITriangle[], side: 'left' | 'right' | 'unibody') {
+export function* socketIntersections(conf: Cuttleform, trsfs: Trsf[], critPts: CriticalPoints[], web: ITriangle[], side: KeyboardSide) {
   const socketSocketIntersections: ConfError[] = []
   const socketWallIntersections: ConfError[] = []
   for (const intersection of unsortedSocketIntersections(conf, trsfs, critPts, web, side)) {
@@ -343,7 +341,7 @@ function* treeIntersections(
   conf: Cuttleform,
   tree: Octree,
   what: 'keycap' | 'socket' | 'part',
-  side: 'left' | 'right' | 'unibody',
+  side: KeyboardSide,
   ignoreTouching = false,
   intersected?: DefaultMap<number, Map<number, boolean>> | undefined,
 ): Generator<ConfError> {

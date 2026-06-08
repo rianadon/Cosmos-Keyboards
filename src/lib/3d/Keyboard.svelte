@@ -4,7 +4,7 @@
   import KeyboardMaterial from './KeyboardMaterial.svelte'
   import KeyboardPartGeo from './KeyboardPartGeo.svelte'
   import KeyboardKeycapGeo from './KeyboardKeycapGeo.svelte'
-  import type { CuttleKey, Geometry } from '$lib/worker/config'
+  import type { CuttleKey, Geometry, KeyboardSide } from '$lib/worker/config'
   import * as flags from '$lib/flags'
   import { keyBrightness, type KeyStatus } from './keyboardKey'
   import { hasKeyGeometry, keyUrl } from '$lib/loaders/keycaps'
@@ -23,7 +23,7 @@
   import { T } from '@threlte/core'
   import { variantURL, PART_INFO } from '$lib/geometry/socketsParts'
   import { DefaultMap } from '$lib/worker/util'
-  import { MeshStandardMaterial, Quaternion, Vector3, type Vector3Tuple, type Vector4Tuple } from 'three'
+  import { Quaternion, Vector3, type Vector3Tuple, type Vector4Tuple } from 'three'
 
   export let geometry: Geometry | null
   export let transparency: number = 100
@@ -31,7 +31,7 @@
   export let translation: number = 0
   export let flip = true
   export let reachability: boolean[] | undefined = undefined
-  export let side: 'left' | 'right' | 'unibody'
+  export let side: KeyboardSide
   export let keyColor: [any, number] | undefined = undefined
   export let trackballColor: any | undefined = undefined
   export let switchColor: [any, number] | undefined = undefined

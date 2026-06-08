@@ -74,7 +74,7 @@ enumeration('SCREW_TYPE', ['screw insert', 'tapered screw insert', 'expanding sc
 enumeration('SCREW_SIZE', ['M3', 'M4', '#4-40', '#6-32'])
 
 enumeration('CLUSTER_TYPE', ['matrix', 'sphere'])
-enumeration('CLUSTER_NAME', ['fingers', 'thumbs'])
+enumeration('CLUSTER_NAME', ['fingers', 'thumbs', 'center'])
 enumeration('CLUSTER_SIDE', ['right', 'left'])
 
 enumeration('MICROCONTROLLER_NAME', [

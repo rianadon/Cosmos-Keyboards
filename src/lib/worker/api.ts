@@ -14,7 +14,7 @@ import type { BufferAttribute, BufferGeometry, Mesh } from 'three'
 import { getUser } from '../../routes/beta/lib/login'
 import { ITriangle } from '../loaders/simplekeys'
 import { type ConfError, type ConfErrors, isPro, keycapIntersections, partIntersections, socketIntersections } from './check'
-import { type Cuttleform, type CuttleKey, type Geometry, newGeometry } from './config'
+import { type Cuttleform, type CuttleKey, type Geometry, type KeyboardSide, newGeometry } from './config'
 import { boardHolder, cutWithConnector, keyHoles, makePlate, makePlateMesh, makerScrewInserts, makeWalls, type ScrewInsertTypes, webSolid } from './model'
 import { Assembly } from './modeling/assembly'
 import { blobSTL, combine, type ShapeMesh } from './modeling/index'
@@ -306,7 +306,7 @@ async function getModel(conf: Cuttleform, name: string, stitchWalls: boolean, fl
   }
 }
 
-export async function getSTL(conf: Cuttleform, name: string, side: 'left' | 'right' | 'unibody' | 'test', stitchWalls: boolean) {
+export async function getSTL(conf: Cuttleform, name: string, side: KeyboardSide | 'test', stitchWalls: boolean) {
   const flip = side == 'left'
   let model = await getModel(conf, name, stitchWalls, flip)
   if (name == 'wristrest' && side == 'unibody' && conf.wristRestRight && model) {
@@ -385,7 +385,7 @@ function meshWithVolumeAndSupport(solid: Solid, minZ: number) {
 //   return props.Mass()
 // }
 
-export async function intersections(conf: Cuttleform, side: 'left' | 'right' | 'unibody'): Promise<ConfErrors> {
+export async function intersections(conf: Cuttleform, side: KeyboardSide): Promise<ConfErrors> {
   const intersections: ConfErrors = []
   try {
     const geometry = newGeometry(conf)

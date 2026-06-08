@@ -3,6 +3,7 @@ import { expect, test } from 'bun:test'
 import { Quaternion } from 'three'
 import { toCode } from '../../../src/routes/beta/lib/editor/toCode'
 import { deserialize, toCuttleformProto } from '../../../src/routes/beta/lib/serialize'
+import { setPreset } from '../../routes/beta/lib/editor/visualEditorHelpers'
 import { cuttleConf, type Cuttleform, type FullCuttleform } from './config'
 import { type ConnectorMaybeCustom, type CosmosCluster, type CosmosKey, type CosmosKeyboard, fromCosmosConfig, toCosmosConfig, toFullCosmosConfig } from './config.cosmos'
 import { decodeConfigIdk, decodeConnectors, encodeConnectors, encodeCosmosConfig, serializeCosmosConfig } from './config.serialize'
@@ -101,6 +102,34 @@ test('Ensure long letters are saved', () => {
   const encoded = serializeCosmosConfig(encodeCosmosConfig(cosmos))
   const decoded = decodeConfigIdk(encoded)
   expect(decoded.clusters[0].clusters[0].keys[0].profile.letter).toEqual('LOOOONG')
+})
+
+test('Center cluster encoding round-trip', () => {
+  const config = cuttleConf(defaultConfig.options as any)
+  const cosmos = toCosmosConfig(config, 'right', true)
+  cosmos.wristRestPosition = 0n
+  cosmos.connectorCenterIndex = 7
+  setPreset(cosmos, 'center', 'trackball', 'center')
+
+  const encoded = serializeCosmosConfig(encodeCosmosConfig(cosmos))
+  const decoded = decodeConfigIdk(encoded)
+
+  const decodedCenter = decoded.clusters.find(c => c.side === 'center')
+  expect(decodedCenter).toBeDefined()
+  expect(decodedCenter!.name).toBe('center')
+  expect(decodedCenter!.side).toBe('center')
+  expect(decodedCenter!.clusters[0].side).toBe('center')
+  expect(decodedCenter!.clusters[0].name).toBe('center')
+  expect(decoded.connectorCenterIndex).toBe(7)
+})
+
+test('Old URL without center cluster decodes cleanly', () => {
+  // The default-config URL — does NOT contain a center cluster
+  const encoded =
+    'Cn8KDxIFEIA/ICcSABIAEgA4MQoPEgUQgEsgJxIAEgASADgdChwSBRCAVyAnEgASABIDELAvEgMQsF84CUCE8LwCChcSBRCAYyAnEgASABIDELA7EgMQsGs4CgoVEgUQgG8gJxIAEgASADgeQJCGirAHGABA6IWgrvBVSNzwoqABCpIBChcSExDAwAJAgICYAkjCmaCVkLwBUEM4CAoVEhAQQECAgCBI0JWA3ZD1A1ALUJ4CChYSEhBAQICAzAJIwpmglZC8AVCGAVA6ChQSEBBAQICA+AFI5pn8p5ALUFdQfwoVEhAQQECAgKQDSPCZzLXQMFB0UJUBGAIiCgjIARDIARgAIABAy4uEpNAxSK2R3I3BkwZyAA=='
+  const cosmos = decodeConfigIdk(encoded)
+  expect(cosmos.clusters.find(c => c.side === 'center')).toBeUndefined()
+  expect(cosmos.connectorCenterIndex).toBe(-1)
 })
 
 test('Encoding connectors', () => {

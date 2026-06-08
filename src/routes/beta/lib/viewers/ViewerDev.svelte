@@ -49,6 +49,12 @@
         $protoConfig.clusters.find((c) => c.side == 'right' && c.name == 'thumbs')
       ).substring(0, 290)}&hellip;
     </div>
+    {#if $protoConfig.clusters.some((c) => c.side == 'center' && c.clusters.length)}
+      <div class="mt-5">Encoded Center Cluster</div>
+      <div class="code">
+        {clusterToB64($protoConfig.clusters.find((c) => c.side == 'center'))}
+      </div>
+    {/if}
   {/if}
   {#if geometry}
     <div class="mt-5">Key and Connector Positions</div>
