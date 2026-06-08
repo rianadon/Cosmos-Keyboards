@@ -96,6 +96,7 @@ export type CosmosKeyboard =
     microcontroller: Cuttleform['microcontroller'] | null
     microcontrollerAngle: number
     fastenMicrocontroller: boolean
+    microcontrollerPinChannelDepth: number
     clusters: CosmosCluster[]
     verticalClearance: number
     rounded: Cuttleform['rounded']
@@ -337,6 +338,7 @@ export function toCosmosConfig(conf: Cuttleform, side: 'left' | 'right' | 'unibo
     microcontroller: conf.microcontroller,
     microcontrollerAngle: conf.microcontrollerAngle || 0,
     fastenMicrocontroller: conf.fastenMicrocontroller,
+    microcontrollerPinChannelDepth: conf.microcontrollerPinChannelDepth || 0,
     mirrorConnectors: true,
     verticalClearance: conf.verticalClearance,
     rounded: conf.rounded,
@@ -452,6 +454,7 @@ export function sideFromCosmosConfig(c: CosmosKeyboard, side: 'left' | 'right' |
     microcontroller: c.microcontroller,
     microcontrollerAngle: c.microcontrollerAngle,
     fastenMicrocontroller: c.fastenMicrocontroller,
+    microcontrollerPinChannelDepth: c.microcontrollerPinChannelDepth || 0,
     flipConnectors: side == 'left' && !c.mirrorConnectors,
     wristRestLeft: c.wristRestEnable
       ? {

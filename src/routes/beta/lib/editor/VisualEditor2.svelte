@@ -1185,6 +1185,12 @@
     >
       <Checkbox bind:value={$protoConfig.fastenMicrocontroller} />
     </Field>
+    <Field
+      name="Pin Channel Depth"
+      help="How deep the solder/pin channels on the long sides carve down from the board plane. 0 = automatic; large enough cuts fully through"
+    >
+      <DecimalInput bind:value={$protoConfig.microcontrollerPinChannelDepth} units="mm" />
+    </Field>
   {/if}
   <Field name="Fasten Base With Screws" icon="screw">
     <Checkbox value={$protoConfig.screwIndices.length > 0} on:change={setScrewsEnabled} />

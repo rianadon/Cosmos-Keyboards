@@ -37,6 +37,7 @@
     screwCountersink: true,
     clearScrews: false,
     fastenMicrocontroller: true,
+    microcontrollerPinChannelDepth: 0,
     verticalClearance: 0,
     rounded: {},
     shell: { type: 'basic', lip: false, embedded: false },

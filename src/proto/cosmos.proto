@@ -73,6 +73,7 @@ message KeyboardExtra {
   repeated uint32 foot_indices = 20;
   optional uint32 foot_diameter = 21;
   optional uint32 plate_art = 22;
+  optional int32 microcontroller_pin_channel_depth = 23;
 }
 
 message Curvature {
