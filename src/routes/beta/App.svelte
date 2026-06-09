@@ -68,7 +68,7 @@
   import DownloadDialog from './lib/dialogs/DownloadDialog.svelte'
   import { fromCosmosConfig, toFullCosmosConfig, type CosmosKeyboard } from '$lib/worker/config.cosmos'
   import KeyboardModel from '$lib/3d/KeyboardModel.svelte'
-  import type { FullKeyboardMeshes } from './lib/viewers/viewer3dHelpers'
+  import { updateReferenceModels, type FullKeyboardMeshes } from './lib/viewers/viewer3dHelpers'
   import { notNull, objEntriesNotNull, objKeys } from '$lib/worker/util'
   import { T } from '@threlte/core'
   import Checkbox from '$lib/presentation/Checkbox.svelte'
@@ -103,6 +103,7 @@
   let toolsOpen = false
   let assemblyOpen: boolean
   let lemonSwitch: boolean
+  let referenceModelInput: HTMLInputElement
 
   let proOpen = false
   let editorContent: string
@@ -763,7 +764,13 @@
                 <Checkbox small purple basic bind:value={$noBlanks} /> Hide Shapers
               </label>
               <button
-                class="text-center text-sm w-full opacity-70"
+                class="text-center text-sm w-full opacity-70 block mb-1"
+                on:click={() => {
+                  referenceModelInput.click()
+                }}>Import Model</button
+              >
+              <button
+                class="text-center text-sm w-full opacity-70 block mb-1"
                 on:click={() => {
                   $showHelp = true
                   prefsOpen = false
@@ -1182,6 +1189,15 @@
 
 <DarkTheme bind:darkMode />
 <Alert />
+
+<input
+  type="file"
+  class="hidden"
+  accept=".stl,model/stl,application/sla,application/vnd.ms-pki.stl,model/x.stl-binary,model/x.stl-ascii"
+  multiple
+  bind:this={referenceModelInput}
+  on:change={() => updateReferenceModels(referenceModelInput.files || [], geometry, center)}
+/>
 
 <style>
   @media (min-height: 480px) {

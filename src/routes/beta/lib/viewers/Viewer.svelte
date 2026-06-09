@@ -73,8 +73,17 @@
 
 <svelte:window on:resize={resize} />
 
-{#if WebGL.isWebGLAvailable()}
-  <div class="canvascont" bind:this={canvas} {style}>
+{#if WebGL.isWebGL2Available()}
+  <div
+    class="canvascont"
+    bind:this={canvas}
+    {style}
+    on:dragenter
+    on:dragover
+    on:dragleave
+    on:drop
+    role="application"
+  >
     <Canvas toneMapping={0} bind:ctx>
       <Interactivity>
         <T.Group scale={cameraScale}>

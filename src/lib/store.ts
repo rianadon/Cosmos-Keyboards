@@ -1,6 +1,7 @@
 import { browser } from '$app/environment'
 import type { CosmosKeyboard } from '$lib/worker/config.cosmos'
 import { derived, type Readable, type Writable, writable } from 'svelte/store'
+import type { BufferGeometry, Matrix4 } from 'three'
 import type { User } from '../routes/beta/lib/login'
 import type { ColorScheme } from './3d/materials'
 import type { ConfErrors } from './worker/check'
@@ -58,6 +59,7 @@ export const noWall = writable(false)
 export const noBase = writable(false)
 export const noBlanks = writable(false)
 export const noLabels = writable(false)
+export const referenceModels = writable<{ id: number; name: string; geometry: BufferGeometry; matrix: Matrix4 }[]>([])
 
 // Preferences
 export const theme = storable<ColorScheme>('theme', 'purple')

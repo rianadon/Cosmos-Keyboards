@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onDestroy } from 'svelte'
-  import { Euler, Matrix4, Quaternion, Vector3 } from 'three'
+  import { Euler, Matrix4, Quaternion, Vector3, type BufferGeometry } from 'three'
   import {
     type Cuttleform,
     type CuttleKey,
@@ -28,8 +28,11 @@
     enableUndo,
     showGrid,
     showHelp,
+    referenceModels,
   } from '$lib/store'
   import HandModel from '$lib/3d/HandModel.svelte'
+  import ImportedModel from '$lib/3d/ImportedModel.svelte'
+  import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
   import { type Finger, FINGERS, type Joints, SolvedHand } from '../hand'
   import { refine } from '../handoptim'
   import Keyboard from '$lib/3d/Keyboard.svelte'
@@ -102,6 +105,8 @@
     keyRot,
     AbsPositionStore,
     AbsRotationStore,
+    importModel,
+    updateReferenceModels,
   } from './viewer3dHelpers'
   import Field from '$lib/presentation/Field.svelte'
   import DecimalInput from '../editor/DecimalInput.svelte'
@@ -165,6 +170,7 @@
   }
 
   function removeKey() {
+    if ($clickedKey == null) return
     protoConfig.update((proto) => {
       const { key, column, cluster } = nthKey(proto, $clickedKey!)
       if ($selectMode == 'key') column.keys.splice(column.keys.indexOf(key), 1)
@@ -353,7 +359,10 @@
     else if (event.key == 'k') $selectMode = 'key'
     else if (event.key == 'l') $selectMode = 'column'
     else if (event.key == 'o') $selectMode = 'cluster'
-    else if (event.key == 'Delete') removeKey()
+    else if (event.key == 'Delete') {
+      if (selectedImportId != null) deleteImport(selectedImportId)
+      else removeKey()
+    }
   }
 
   function handleKeyUp(event: KeyboardEvent) {
@@ -376,6 +385,45 @@
   let popoutShown = false
   let pressedLetter: string | null = null
   let reachabilityArr = undefined
+
+  // Imported reference models (drag & drop STL files into the viewer)
+  let importedOpacity = 1
+  let selectedImportId: number | null = null
+  let hoveredImportId: number | null = null
+  let fileDragging = false
+  let importsIdCounter = 0
+  $: if ($clickedKey != null) selectedImportId = null
+
+  function deleteImport(id: number) {
+    referenceModels.update((r) => r.filter((m) => m.id != id))
+    if (selectedImportId == id) selectedImportId = null
+    if (hoveredImportId == id) hoveredImportId = null
+  }
+
+  // prettier-ignore
+  const STL_MIME_TYPES = ['', 'model/stl', 'application/sla', 'application/vnd.ms-pki.stl', 'model/x.stl-binary', 'model/x.stl-ascii']
+
+  function handleDragOver(e: DragEvent) {
+    if (!e.dataTransfer) return
+    // Only show the prompt when an STL-typed file is being dragged in
+    const isStl = Array.from(e.dataTransfer.items || []).some(
+      (i) => i.kind == 'file' && STL_MIME_TYPES.includes(i.type.toLowerCase())
+    )
+    if (isStl) {
+      e.preventDefault()
+      fileDragging = true
+    }
+  }
+  function handleDragLeave(e: DragEvent) {
+    // Ignore leave events bubbling from children
+    if (e.currentTarget == e.target) fileDragging = false
+  }
+
+  async function handleDrop(e: DragEvent) {
+    e.preventDefault()
+    fileDragging = false
+    updateReferenceModels(e.dataTransfer?.files || [], geometry, center)
+  }
 
   const positionStore = new TupleMux(
     useAbsolute,
@@ -1602,7 +1650,18 @@
   </div>
 {/if}
 
-<NewViewer {style} bind:cameraPosition {enableRotate} {enableZoom} enablePan={true} suggestedSize={size}>
+<NewViewer
+  {style}
+  bind:cameraPosition
+  {enableRotate}
+  {enableZoom}
+  enablePan={true}
+  suggestedSize={size}
+  on:dragenter={handleDragOver}
+  on:dragover={handleDragOver}
+  on:dragleave={handleDragLeave}
+  on:drop={handleDrop}
+>
   {#each objEntriesNotNull(geometry) as [kbd, geo] (kbd)}
     {@const cent = center[kbd]}
     {#if cent}
@@ -1642,6 +1701,27 @@
     {/if}
   {/each}
   <slot />
+  {#each $referenceModels as model (model.id)}
+    <ImportedModel
+      geometry={model.geometry}
+      matrix={model.matrix}
+      opacity={importedOpacity}
+      selected={selectedImportId == model.id}
+      hovered={hoveredImportId == model.id}
+      mode={$transformMode}
+      on:select={() => {
+        selectedImportId = model.id
+        $clickedKey = null
+      }}
+      on:deselect={() => (selectedImportId = null)}
+      on:hover={() => (hoveredImportId = model.id)}
+      on:unhover={() => (hoveredImportId = null)}
+      on:change={(e) => {
+        model.matrix = e.detail
+        referenceModels.update((r) => r)
+      }}
+    />
+  {/each}
   {@const bestC = center.unibody || center.right || center.left || [0, 0, 0]}
   <T.Group position={[-bestC[0], -bestC[1], -bestC[2]]}>
     {#if conf && flags.hand && showHand && jointsJSON && theHand}
@@ -1702,6 +1782,56 @@
   {/if}
   <!--  -->
 </NewViewer>
+{#if fileDragging}
+  <div
+    class="absolute inset-0 z-50 flex items-center justify-center pointer-events-none bg-white/40 dark:bg-gray-900/60 backdrop-blur-2 rounded-2"
+  >
+    <div class="text-lg rounded-3 bg-white/80 dark:bg-gray-900/80 px-6 py-4">
+      Drop the STL file to import it as a reference model
+    </div>
+  </div>
+{/if}
+{#if $referenceModels.length > 0}
+  <div class="absolute! bottom-10 left-4 z-20 select-none tab overflow-hidden">
+    <div class="tabhead gap-4 py-1!">
+      Imported Models
+      <input type="range" class="w-30" min="0" max="1" step="0.01" bind:value={importedOpacity} />
+    </div>
+    <div class="px-3 py-2">
+      <ul class="flex flex-col gap-0.5">
+        {#each $referenceModels as model (model.id)}
+          <li
+            class="flex items-center gap-1 rounded px-1"
+            class:bg-purple-200={selectedImportId == model.id}
+            class:dark:bg-pink-900={selectedImportId == model.id}
+            class:bg-purple-100={hoveredImportId == model.id && selectedImportId != model.id}
+            class:dark:bg-pink-950={hoveredImportId == model.id && selectedImportId != model.id}
+            on:mouseenter={() => (hoveredImportId = model.id)}
+            on:mouseleave={() => (hoveredImportId = null)}
+          >
+            <button
+              class="flex-1 text-left text-sm truncate py-1"
+              title={model.name}
+              on:click={() => {
+                selectedImportId = model.id
+                $clickedKey = null
+              }}>{model.name}</button
+            >
+            <button
+              class=" bg-purple-200 hover:bg-purple-300 dark:bg-pink-600 hover:dark:bg-pink-600 appearance-none p-1 rounded-full text-gray-800 dark:text-gray-200"
+              title="Delete"
+              on:click|stopPropagation={() => {
+                deleteImport(model.id)
+              }}
+            >
+              <Icon size="18px" path={mdi.mdiDelete} />
+            </button>
+          </li>
+        {/each}
+      </ul>
+    </div>
+  </div>
+{/if}
 {#if $debugViewport}
   <div
     class="absolute bottom-8 right-8 bg-gray-100/80 dark:bg-gray-800/80 backdrop-blur-md rounded px-4 py-2 text-xs font-mono w-76 text-end select-none"
@@ -1815,5 +1945,38 @@
   }
   .font-urbanist .text-xs {
     font-size: 0.8rem;
+  }
+
+  input[type='range'] {
+    --at-apply: 'appearance-none bg-transparent';
+  }
+
+  input[type='range']::-moz-range-track {
+    --at-apply: 'appearance-none bg-[#EFE8FF]/70 dark:bg-slate-900/50 h-2 rounded';
+  }
+
+  input[type='range']::-webkit-slider-runnable-track {
+    --at-apply: 'appearance-none bg-[#EFE8FF]/70 dark:bg-slate-900/50 h-2 rounded';
+  }
+
+  input[type='range']::-moz-range-thumb {
+    --at-apply: "appearance-none w-4.5 h-4.5 bg-white dark:bg-pink-200 rounded-full border-transparent bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggb3BhY2l0eT0iMC43IiBkPSJNMTIsMThWNkE2LDYgMCAwLDEgMTgsMTJBNiw2IDAgMCwxIDEyLDE4TTIwLDE1LjMxTDIzLjMxLDEyTDIwLDguNjlWNEgxNS4zMUwxMiwwLjY5TDguNjksNEg0VjguNjlMMC42OSwxMkw0LDE1LjMxVjIwSDguNjlMMTIsMjMuMzFMMTUuMzEsMjBIMjBWMTUuMzFaIiAvPjwvc3ZnPg==')]";
+    background-size: 1rem 1rem;
+    background-position: center 40%;
+    background-repeat: no-repeat;
+  }
+
+  input[type='range']::-webkit-slider-thumb {
+    --at-apply: "appearance-none w-5.3 h-5.3 bg-white dark:bg-pink-200 rounded-full border-transparent mt--2.4 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggb3BhY2l0eT0iMC43IiBkPSJNMTIsMThWNkE2LDYgMCAwLDEgMTgsMTJBNiw2IDAgMCwxIDEyLDE4TTIwLDE1LjMxTDIzLjMxLDEyTDIwLDguNjlWNEgxNS4zMUwxMiwwLjY5TDguNjksNEg0VjguNjlMMC42OSwxMkw0LDE1LjMxVjIwSDguNjlMMTIsMjMuMzFMMTUuMzEsMjBIMjBWMTUuMzFaIiAvPjwvc3ZnPg==')]";
+    background-size: 1rem 1rem;
+    background-position: center 40%;
+    background-repeat: no-repeat;
+  }
+
+  input[type='range']::-moz-range-thumb:hover {
+    --at-apply: 'bg-teal-200 dark:bg-white';
+  }
+  input[type='range']::-webkit-slider-thumb:hover {
+    --at-apply: 'bg-teal-200 dark:bg-white';
   }
 </style>
