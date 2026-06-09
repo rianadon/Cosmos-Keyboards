@@ -182,6 +182,12 @@ export const COLORCONFIG = {
     keyColor: new Vector3(0, 0, 0),
     keySaturation: new Vector3(1, 1, 1),
   },
+  white: {
+    caseColor: new Vector3(0, 0, 0.8),
+    caseSaturation: new Vector3(0.4, 0.5, 0.4),
+    keyColor: new Vector3(0, 0, 0.8),
+    keySaturation: new Vector3(0.5, 0.5, 0.5),
+  },
 }
 export type ColorScheme = keyof typeof COLORCONFIG
 

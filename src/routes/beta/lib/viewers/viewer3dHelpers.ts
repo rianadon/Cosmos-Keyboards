@@ -1,11 +1,11 @@
 import { adjacentKeycapLetter, UNIFORM } from '$lib/geometry/keycaps'
-import { decodeTuple, type Geometry } from '$lib/worker/config'
+import { type Center, decodeTuple, type Geometry } from '$lib/worker/config'
 import { type CosmosCluster, type CosmosKey, type CosmosKeyboard, cosmosKeyPosition, nthKey } from '$lib/worker/config.cosmos'
 import type { ShapeMesh } from '$lib/worker/modeling'
 import Trsf, { Vector } from '$lib/worker/modeling/transformation'
 import type { Profile } from '$target/cosmosStructs'
 import { type Readable } from 'svelte/store'
-import { Matrix4 } from 'three'
+import { BufferGeometry, Matrix4 } from 'three'
 import { TupleBaseStore } from '../editor/tuple'
 
 export type KeyboardMeshes = {
@@ -329,4 +329,18 @@ export class AbsRotationStore extends TupleBaseStore {
     const [x, y, z] = new Trsf().rotateEulerZYX(v0, v1, v2).multiply(parentTransform.invert()).eulerZYXDeg()
     return [x * 45, y * 45, z * 45, 0]
   }
+}
+
+export function importModel(geo: BufferGeometry, filename: string, center: Center, floorZ: number) {
+  geo.computeBoundingBox()
+  const bb = geo.boundingBox!
+  const zAdj = floorZ - (Object.values(center)[0] || [0, 0, 0])[2]
+  geo.translate(-(bb.min.x + bb.max.x) / 2, -(bb.min.y + bb.max.y) / 2, -(bb.min.z + bb.max.z) / 2)
+
+  const lower = filename.toLowerCase()
+  const side = lower.includes('left') ? 'left' : lower.includes('right') ? 'right' : null
+  const [cx, cy] = (side == null || !center[side]) ? [0, 0] : [-center[side][0], -center[side][1]]
+
+  const matrix = new Matrix4().makeTranslation(cx, cy, zAdj + (bb.max.z - bb.min.z) / 2)
+  return { geometry: geo, matrix }
 }
