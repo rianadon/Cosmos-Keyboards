@@ -35,9 +35,8 @@ export const lastKeycap = writable<number>(0)
 export interface AlertItem {
   id: symbol
   message: string
-  /** DOM element to anchor the popover next to (typically the Field that
-   *  triggered the alert). null disables anchoring (centered fallback). */
-  anchor: HTMLElement | null
+  /** DOM element to anchor the popover next to (typically the Field that *  triggered the alert). */
+  anchor: HTMLElement
   /** Auto-dismiss after this many ms. Default 10000. Pass 0 to disable. */
   durationMs?: number
 }
