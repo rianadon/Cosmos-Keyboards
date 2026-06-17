@@ -3,6 +3,7 @@
   import { type AlertItem, dismissAlert } from '$lib/store'
   import { fade } from 'svelte/transition'
   import { onDestroy, onMount } from 'svelte'
+  import { base } from '$app/paths'
 
   const DEFAULT_DURATION = 10000
 
@@ -77,7 +78,15 @@
 >
   <div use:melt={$arrow} />
   <div class="flex flex-col items-end gap-[0.35rem]">
-    <div>{alert.message}</div>
+    {#if alert.message == '<customlayout>'}
+      <p>
+        To make your own layout in Cosmos, click a key in the 3D view and edit the Letter field to set
+        custom legends per key.
+      </p>
+      <img src="{base}/help-letter.png" />
+    {:else}
+      <div>{alert.message}</div>
+    {/if}
     <button class="font-medium text-pink-700 hover:text-pink-950" on:click={dismiss}> Dismiss </button>
   </div>
   {#if duration > 0 && alive}

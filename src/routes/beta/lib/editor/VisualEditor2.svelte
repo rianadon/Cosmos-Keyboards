@@ -249,7 +249,7 @@
     const language = ev.detail
     if (language == 'custom') {
       pushAlert({
-        message: `To make your own layout in Cosmos, click a key in the 3D view and edit the Letter field to set custom legends per key.`,
+        message: '<customlayout>',
         anchor: layoutSelectEl,
       })
       return

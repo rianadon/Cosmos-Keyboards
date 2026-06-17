@@ -5,6 +5,7 @@
   import { objKeys, range } from '$lib/worker/util'
   import Icon from '$lib/presentation/Icon.svelte'
   import { mdiAlertCircle, mdiCheckCircle, mdiCheckCircleOutline } from '@mdi/js'
+  import { base } from '$app/paths'
 
   type Option = {
     key: string
@@ -59,10 +60,11 @@
     <div class="px-6 py-4">
       {#if option.key == 'custom'}
         <div class="max-w-40ch">
-          <p class="mb-2">
+          <p>
             Did you know you can make your own layout in Cosmos? Click a key in the 3D view and edit the
             Letter field to set custom legends per key.
           </p>
+          <img class="mb-2 w-80% mx-auto" src="{base}/help-letter.png" />
           <p class="mb-2">
             The language list is incomplete as it's limited to languages that are easy to set up in both
             QMK and ZMK. However, even if your language has glyphs not represented in this set of
