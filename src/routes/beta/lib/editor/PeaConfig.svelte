@@ -5,9 +5,9 @@
   import { modelName, storable } from '$lib/store'
   import type { FullCuttleform } from '$lib/worker/config'
   import { mapObjNotNull } from '$lib/worker/util'
-  import { downloadQMKCode, type QMKOptions } from '../firmware/qmk'
+  import { downloadQMKCode, type QMKOptions, unmappableKeys as qmkUnmappable } from '../firmware/qmk'
   import type { FullGeometry } from '../viewers/viewer3dHelpers'
-  import { downloadZMKCode, type ZMKOptions } from '../firmware/zmk'
+  import { downloadZMKCode, unmappableKeys as zmkUnmappable, type ZMKOptions } from '../firmware/zmk'
   import { downloadVia } from '../firmware/via'
   import Checkbox from '$lib/presentation/Checkbox.svelte'
   import { encoderKeys, type Matrix } from '../firmware/firmwareHelpers'
@@ -39,6 +39,11 @@
     wiredVersion: 'v0.4',
     wirelessVersion: 'v0.3',
   })
+  $: osLanguageObject =
+    Object.values(LAYOUTS)
+      .flatMap((l) => l.languages)
+      .find((l) => l.name == osLanguage) ?? LAYOUTS[DEFAULT_LAYOUT].languages[0]
+
   $: fullOptions = {
     ...$options,
     keyboardName: $modelName,
@@ -48,13 +53,18 @@
       cirque: c.keys.some((k) => k.type == 'trackpad-cirque'),
       encoder: !!encoderKeys(c).length,
     })),
-    osLanguage: Object.values(LAYOUTS)
-      .flatMap((l) => l.languages)
-      .find((l) => l.name == osLanguage)!,
+    osLanguage: osLanguageObject,
   } satisfies Partial<QMKOptions | ZMKOptions>
 
   $: anyConfig = config.right || config.unibody || { microcontroller: undefined, layout: undefined }
   $: truncated = anyConfig.microcontroller == 'lemon-wireless' && $modelName.length > 16
+
+  $: unmappable =
+    anyConfig.microcontroller == 'lemon-wireless'
+      ? zmkUnmappable(geometry, osLanguageObject)
+      : anyConfig.microcontroller == 'lemon-wired'
+      ? qmkUnmappable(geometry, osLanguageObject)
+      : []
 
   $: guessedLangauge = LAYOUTS[detectLayout(toFullCosmosConfig(config))].languages[0].name
   $: osLanguage = guessedLangauge
@@ -99,6 +109,14 @@
     minWidth={250}
   />
 </Field>
+{#if unmappable.length}
+  <div class="text-red-500 mb-4 text-sm">
+    These keys can't be typed with the {osLanguage} layout and will be left blank:
+    {#each unmappable as k}
+      <kbd class="key">{k}</kbd>
+    {/each}
+  </div>
+{/if}
 {#if anyConfig.microcontroller == 'lemon-wired'}
   <Field name="Diode Direction" icon="diode-direction">
     <Select bind:value={$options.diodeDirection}>
@@ -207,5 +225,9 @@
 
   .input {
     --at-apply: 'focus:border-teal-500 border border-transparent text-gray-700 focus:outline-none border-gray-200 dark:border-transparent bg-gray-100 dark:bg-gray-700 dark:text-gray-100 appearance-none w-44 rounded mx-2 text-ellipsis';
+  }
+
+  .key {
+    --at-apply: 'font-mono bg-red-100 px-1 py-0.5 mx-0.5 rounded';
   }
 </style>

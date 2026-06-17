@@ -5,7 +5,8 @@ import type { CuttleKey, Geometry } from '$lib/worker/config'
 import { filterObj, findIndexIter, mapObjNotNull, mapObjNotNullToObj, mapObjToObj, objEntries, objEntriesNotNull, objKeysOfNotNull, sum } from '$lib/worker/util'
 import { strToU8, zip } from 'fflate'
 import type { FullGeometry } from '../viewers/viewer3dHelpers'
-import { dtsFile, encoderKeys, fullLayout, logicalKeys, type Matrix, raw, yamlFile } from './firmwareHelpers'
+import { dtsFile, encoderKeys, fullLayout, isQWERTYKey, logicalKeys, type Matrix, raw, yamlFile } from './firmwareHelpers'
+import { ZMK_CODES } from './languageCodes'
 
 const RE_PID_VID = /^0x[0-9A-Fa-f]{4}$/
 
@@ -123,19 +124,58 @@ const SPECIALS = [
   'locking_num',
 ]
 
-/** Return the ZMK keycode for a letter */
-export function keycode(code: string | undefined) {
+/** The ZMK locale id (keys_<id>.h basename) to use for a language, or undefined for US/none. */
+function zmkLocale(language: Language | undefined): string | undefined {
+  const id = language?.zmk || language?.zmkCharset
+  if (!id) return undefined
+  const map = ZMK_CODES[id]
+  return map && Object.keys(map).length ? id : undefined
+}
+
+/**
+ * Resolve a keycap letter to its ZMK binding.
+ *
+ * `unmapped` is true when the letter is a real character that couldn't be represented (neither in
+ * the active locale table nor in the generic fallbacks) and so falls back to a blank `&kp SPACE`.
+ * Deliberately-blank keys are not unmapped.
+ */
+function resolveKeycode(code: string | undefined, language?: Language): { code: string; unmapped: boolean } {
   const c = code?.toLowerCase()
 
-  if (!c || !code) return '&kp SPACE'
-  if (/^[a-z]$/.test(c)) return '&kp ' + c.toUpperCase()
-  if (/^[0-9]$/.test(c)) return '&kp N' + String(c)
-  if (/^F[0-9]+$/.test(c)) return '&kp ' + c
-  if (CHARS.hasOwnProperty(c)) return '&kp ' + (CHARS as any)[c]
-  if (SPECIALS.includes(c)) return '&kp ' + c.toUpperCase()
-  if (c.startsWith('&')) return code
+  if (!c || !code) return { code: '&kp SPACE', unmapped: false }
 
-  return '&kp SPACE'
+  const locale = zmkLocale(language)
+  if (locale) {
+    const map = ZMK_CODES[locale]
+    const hit = map[code] ?? map[c] // exact case first, then lowercased
+    if (hit) return { code: '&kp ' + hit, unmapped: false }
+    if (isQWERTYKey(c)) return { code: '&kp SPACE', unmapped: true }
+  }
+
+  if (/^[a-z]$/.test(c)) return { code: '&kp ' + c.toUpperCase(), unmapped: false }
+  if (/^[0-9]$/.test(c)) return { code: '&kp N' + String(c), unmapped: false }
+  if (/^F[0-9]+$/.test(c)) return { code: '&kp ' + c, unmapped: false }
+  if (CHARS.hasOwnProperty(c)) return { code: '&kp ' + (CHARS as any)[c], unmapped: false }
+  if (SPECIALS.includes(c)) return { code: '&kp ' + c.toUpperCase(), unmapped: false }
+  if (c.startsWith('&')) return { code, unmapped: false }
+
+  return { code: '&kp SPACE', unmapped: true }
+}
+
+/** Return the ZMK keycode for a letter */
+export function keycode(code: string | undefined, language?: Language) {
+  return resolveKeycode(code, language).code
+}
+
+/** The distinct keycap letters that can't be mapped to a binding for the given language. */
+export function unmappableKeys(config: FullGeometry, language: Language): string[] {
+  const seen = new Set<string>()
+  for (const key of logicalKeys(config)) {
+    if (!hasPinsInMatrix(key)) continue
+    const letter = 'keycap' in key ? key.keycap?.letter : undefined
+    if (letter && resolveKeycode(letter, language).unmapped) seen.add(letter)
+  }
+  return [...seen]
 }
 
 /** Generates the keycodes for the ZMK keymap */
@@ -143,7 +183,7 @@ function generateKeycodes(config: FullGeometry, matrix: Matrix, options: ZMKOpti
   const keycodes: string[] = []
   for (const key of logicalKeys(config)) {
     if (!hasPinsInMatrix(key)) continue
-    let kc = keycode('keycap' in key ? key.keycap?.letter : undefined)
+    let kc = keycode('keycap' in key ? key.keycap?.letter : undefined, options.osLanguage)
     if (options.enableStudio) {
       const matrixPos = matrix.get(key)
       if (matrixPos && matrixPos[0] == 0 && matrixPos[1] % 7 == 0) kc = '&studio_unlock'
@@ -170,6 +210,9 @@ function generateKeymap(config: FullGeometry, matrix: Matrix, options: ZMKOption
   return dtsFile({
     [raw()]: '#include <behaviors.dtsi>',
     [raw()]: '#include <dt-bindings/zmk/keys.h>',
+    ...(zmkLocale(options.osLanguage)
+      ? { [raw()]: `#include <locale/keys_${zmkLocale(options.osLanguage)}.h>` }
+      : {}),
     '/': {
       keymap: {
         compatible: 'zmk,keymap',
@@ -269,15 +312,21 @@ function generateDepsYaml(): string {
   })
 }
 
-function generateWestYaml(): string {
+function generateWestYaml(options: ZMKOptions): string {
+  // zmk-locales (joelspadin) supplies the locale keycode headers (keys_<locale>.h). Its
+  // zephyr/module.yml sets dts_root: ., so listing it as a project is enough to put its include/
+  // dir on the DTS preprocessor path — no extra Kconfig/module.yml changes needed.
+  const useLocale = !!zmkLocale(options.osLanguage)
   return yamlFile({
     manifest: {
       remotes: [
         { name: 'zmkfirmware', 'url-base': 'https://github.com/zmkfirmware' },
         { name: 'rianadon', 'url-base': 'https://github.com/rianadon' },
+        ...(useLocale ? [{ name: 'joelspadin', 'url-base': 'https://github.com/joelspadin' }] : []),
       ],
       projects: [
         { name: 'zmk', remote: 'rianadon', revision: 'main', import: 'app/west.yml' },
+        ...(useLocale ? [{ name: 'zmk-locales', remote: 'joelspadin', revision: 'main' }] : []),
       ],
       self: { path: 'config', import: 'deps.yml' },
     },
@@ -597,7 +646,7 @@ export function downloadZMKCode(config: FullGeometry, matrix: Matrix, options: Z
       'build.yaml': strToU8(generateBuildYaml(config, options)),
       'zephyr/module.yml': strToU8(generateModuleYaml()),
       'config/deps.yml': strToU8(generateDepsYaml()),
-      'config/west.yml': strToU8(generateWestYaml()),
+      'config/west.yml': strToU8(generateWestYaml(options)),
       [`boards/shields/${folderName}`]: {
         [`boards/${boardName(options)}.overlay`]: strToU8(BOARD_OVERLAY),
         'Kconfig.defconfig': strToU8(generateDefconfig(config, options)),

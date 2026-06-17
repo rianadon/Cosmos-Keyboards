@@ -127,7 +127,7 @@
           {#if diffSummary.kind === 'match'}
             ✓ Matches your keyboard
           {:else if diffSummary.kind === 'list'}
-            Differs in: {#each diffSummary.letters as l}<span class="key">{l}</span>{/each}
+            Differs in: {#each diffSummary.letters as l}<kbd class="key">{l}</kbd>{/each}
           {:else}
             Differs in {diffSummary.count} keys
           {/if}

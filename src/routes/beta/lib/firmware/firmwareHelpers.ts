@@ -192,3 +192,9 @@ export function fullLayout(config: FullGeometry, matrix: Matrix) {
   const minY = Math.min(...layout.map(l => l.y))
   return layout.map(({ x, y, ...rest }) => ({ x: x - minX, y: y - minY, ...rest }))
 }
+
+/** Checks if the code is ` a-z , - . / 0-9 [ \ ] */
+export function isQWERTYKey(c: string) {
+  const cc = c.charCodeAt(0)
+  return (c.length == 1 && ((cc >= 96 && cc <= 122) || (cc >= 44 && cc <= 57) || (cc >= 91 && cc <= 93) || c == "'" || c == '='))
+}
