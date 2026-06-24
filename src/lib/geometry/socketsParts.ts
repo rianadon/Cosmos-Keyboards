@@ -158,7 +158,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     keycap: 'mx',
     extraBomItems: () => ({ ...BOM_MX_HOTSWAP, ...BOM_DIODE }),
     variants: {
-      led: ['North LED', 'South LED'],
+      led: ['North LED', 'North No LED', 'South LED', 'South No LED'],
       hotswap: ['Kailh', 'Gateron', 'Outemu'],
     },
     encodeVariant: makeEncodeVariant('mx-hotswap', { hotswap: 2, led: 2 }),

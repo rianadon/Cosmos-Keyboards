@@ -77,7 +77,7 @@
 
   function shouldFlipSwitch(key: CuttleKey) {
     if (key.type.startsWith('mx'))
-      return key.variant && 'led' in key.variant && key.variant.led == 'North LED'
+      return key.variant && 'led' in key.variant && key.variant.led.startsWith('North')
     if (key.type.startsWith('choc'))
       return key.variant && 'led' in key.variant && key.variant.led == 'South LED'
   }

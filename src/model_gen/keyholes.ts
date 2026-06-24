@@ -47,8 +47,6 @@ async function generateHotswapKey(name: string, ...options: any[]) {
   const extrude = basicFaceExtrusion(moveFace, new Vector([0, 0, -1.15]))
 
   const gen = await import('../../target/gen-keyholes.cjs')
-  const inst = gen.makeHotswapHolder(modeling, ...options)
-  const bottom = modeling.compute(inst).translateZ(-5)
 
   // Cylinders to provide a smooth transition to the diode hole
   const c1Top = drawCircle(0.45).translate(6.55, -1.5).sketchOnPlane('XY', -3.5) as Sketch
@@ -61,13 +59,27 @@ async function generateHotswapKey(name: string, ...options: any[]) {
   const lastDash = name.lastIndexOf('-')
   const [baseName, variantName] = [name.substring(0, lastDash), name.substring(lastDash + 1)]
 
-  const modelNorth = top.fuse(extrude).fuse(bottom).cut(c1).cut(c2)
+  const assemble = (includeLedCutout: boolean) => {
+    const inst = gen.makeHotswapHolder(modeling, ...options, includeLedCutout)
+    const bottom = modeling.compute(inst).translateZ(-5)
+    return top.fuse(extrude).fuse(bottom).cut(c1).cut(c2)
+  }
+
+  const modelNorth = assemble(true)
   const fileNorth = modeling.serialize(name, modelNorth)
   await writeFile(`target/key-${baseName}-north-led-${variantName}.step`, fileNorth)
+
+  const modelNoLedNorth = assemble(false)
+  const fileNoLedNorth = modeling.serialize(name, modelNoLedNorth)
+  await writeFile(`target/key-${baseName}-north-no-led-${variantName}.step`, fileNoLedNorth)
 
   const modelSouth = modelNorth.rotate(180, [0, 0, 1])
   const fileSouth = modeling.serialize(name, modelSouth)
   await writeFile(`target/key-${baseName}-south-led-${variantName}.step`, fileSouth)
+
+  const modelNoLedSouth = modelNoLedNorth.rotate(180, [0, 0, 1])
+  const fileNoLedSouth = modeling.serialize(name, modelNoLedSouth)
+  await writeFile(`target/key-${baseName}-south-no-led-${variantName}.step`, fileNoLedSouth)
 }
 
 async function main() {

@@ -224,7 +224,8 @@
 (defn make-hotswap-holder [hotswap-y1
                            hotswap-cutout-1-y-offset
                            hotswap-y2
-                           hotswap-cutout-2-y-offset]
+                           hotswap-cutout-2-y-offset
+                           & [include-led-cutout?]]
   ;irregularly shaped hot swap holder
   ;    ____________
   ;  |  _|_______|    |  hotswap offset from out edge of holder with room to solder
@@ -235,7 +236,7 @@
   ;    |    |_|    |  space for LED under SMD or transparent switches
   ;
   ; can be described as having two sizes in the y dimension depending on the x coordinate
-  (let [
+  (let [include-led-cutout? (if (nil? include-led-cutout?) true include-led-cutout?)
         swap-x              holder-x
         swap-y              holder-y
 
@@ -345,31 +346,27 @@
         friction-hole-right (translate [ 5 0 0] friction-hole)
         friction-hole-left  (translate [-5 0 0] friction-hole)
         hotswap-shape
-            (difference
-                       ; (union
-                               swap-holder
-                               ; (debug diode-channel-wire))
-                        main-axis-hole
-                        plus-hole
-                        minus-hole
-                        friction-hole-left
-                        friction-hole-right
-                        (if hotswap-diode-cutout
-                             (union diode-cutout
-                                    diode-socket-hole-left
-                                    diode-channel-pin-left
-                                    ;; (mirror [1 0 0] diode-cutout)
-                                    ;; diode-socket-hole-right
-                                    ;; diode-channel-pin-right
-                             )
-                        )
-
-                        hotswap-cutout-1
-                        hotswap-cutout-2
-                        hotswap-cutout-3
-                        hotswap-cutout-4
-
-                        hotswap-led-cutout)
+            (apply difference
+                   (concat [swap-holder
+                            main-axis-hole
+                            plus-hole
+                            minus-hole
+                            friction-hole-left
+                            friction-hole-right]
+                           (if hotswap-diode-cutout
+                                [(union diode-cutout
+                                        diode-socket-hole-left
+                                        diode-channel-pin-left
+                                        ;; (mirror [1 0 0] diode-cutout)
+                                        ;; diode-socket-hole-right
+                                        ;; diode-channel-pin-right
+                                 )]
+                                [])
+                           [hotswap-cutout-1
+                            hotswap-cutout-2
+                            hotswap-cutout-3
+                            hotswap-cutout-4]
+                           (if include-led-cutout? [hotswap-led-cutout] [])))
        ]
        (if north_facing
            (->> hotswap-shape
@@ -682,13 +679,15 @@
                    hotswap-y1
                    hotswap-cutout-1-y-offset
                    hotswap-y2
-                   hotswap-cutout-2-y-offset]
+                   hotswap-cutout-2-y-offset
+                   & [include-led-cutout?]]
   (binding [tk toolkit
             cylinder (. toolkit -cylinder)]
-    (make-hotswap-holder hotswap-y1
-                         hotswap-cutout-1-y-offset
-                         hotswap-y2
-                         hotswap-cutout-2-y-offset)))
+    (apply make-hotswap-holder hotswap-y1
+           hotswap-cutout-1-y-offset
+           hotswap-y2
+           hotswap-cutout-2-y-offset
+           (when (some? include-led-cutout?) [include-led-cutout?]))))
 
 (set! (. js/exports -singlePlate) (jsify single-plate))
 (set! (. js/exports -makeHotswapHolder) hotswaperoo)
