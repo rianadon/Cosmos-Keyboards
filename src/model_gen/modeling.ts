@@ -1,9 +1,9 @@
 import type { gp_Trsf, OpenCascadeInstance, TDataStd_Name } from '$assets/replicad_single'
 import { buildSewnSolid, makeTriangle } from '$lib/worker/modeling/index'
 import Trsf from '$lib/worker/modeling/transformation'
+import loadMF from '@rianadon/manifold-3d'
+import type { Manifold, ManifoldToplevel } from '@rianadon/manifold-3d'
 import { stat } from 'fs/promises'
-import loadMF from 'manifold-3d'
-import type { Manifold, ManifoldToplevel } from 'manifold-3d'
 import {
   type AnyShape,
   cast,

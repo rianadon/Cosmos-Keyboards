@@ -68,6 +68,38 @@ export function* intersectLineCircle(pa: Vector, pb: Vector, porigin: Vector, ra
   }
 }
 
+/** Intersection of a 3D line and sphere centered at the origin. */
+export function* intersectLineSphereTs(o: Vector, d: Vector, radius: number) {
+  const a = d.dot(d)
+  const b = 2 * o.dot(d)
+  const c = o.dot(o) - radius * radius
+
+  const discriminant = b * b - 4 * a * c
+  if (discriminant < 0) return // no intersection
+
+  const sqrtD = Math.sqrt(discriminant)
+  const t1 = (-b - sqrtD) / (2 * a)
+  const t2 = (-b + sqrtD) / (2 * a)
+
+  yield t1
+  yield t2
+}
+
+/** Intersection of a 3d line and cylinder (curved surface only) */
+export function* intersectLineCylinderTs(pt: Vector, direction: Vector, cylinderA: Vector, cylinderB: Vector, radius: number) {
+  const n = new Vector().subVectors(cylinderB, cylinderA)
+  const length = n.length()
+  n.divideScalar(length)
+  const origin = new Vector().subVectors(pt, cylinderA)
+  const ptNoAxis = origin.addScaledVector(n, -n.dot(origin))
+  const directionNoAxis = direction.clone().addScaledVector(n, -n.dot(direction))
+  for (const t of intersectLineSphereTs(ptNoAxis, directionNoAxis, radius)) {
+    const intersection = new Vector().subVectors(pt, cylinderA).addScaledVector(direction, t)
+    const interN = intersection.dot(n)
+    if (interN >= 0 && interN <= length) yield t
+  }
+}
+
 export function* intersectTriCircle(a: Vector, b: Vector, c: Vector, origin: Vector, radius: number) {
   yield* intersectLineCircle(a, b, origin, radius)
   yield* intersectLineCircle(b, c, origin, radius)
@@ -139,4 +171,50 @@ export function pointInPolygon(point: Vector, polygon: Vector[]): boolean {
     }
   }
   return windingNumber !== 0
+}
+
+/** Returns the point on the line at a given z position */
+function lineAtZ(a: Vector, b: Vector, z: number) {
+  const direction = b.clone().sub(a)
+  const t = (z - a.z) / direction.z
+  return direction.multiplyScalar(t).add(a)
+}
+
+/**
+ * Intersects a triangle with a downwards-facing half-cylinder-space on the z axis.
+ * That is, a cylinder extruded infinitely downwards from a circle at the given origin and with given radius.
+ *
+ * Algorithm is a simplified version of https://www.geometrictools.com/Documentation/IntersectionTriangleCylinder.pdf.
+ * I consider 5 cases based on sorting the z coordinates: 3a, 3e, 3d, 4f, and 0b. "Touching" as in 2b and 1b is not counted as an intersection.
+ *
+ * Cases where the triangle is fully contained within the cylinder or the cylinder is fully contained within the triangle will result in false negative.
+ */
+export function* intersectTriangleHalfCylinder(a: Vector, b: Vector, c: Vector, origin: Vector, radius: number) {
+  const points = [a, b, c].sort((a, b) => a.z - b.z)
+  if (points[0].z > origin.z) {
+    // Case 0b
+    // console.log('0b')
+    return
+  } else if (points[2].z < origin.z) {
+    // Case 3a: Triangle is fuly contained within cylinder
+    // console.log('3a')
+    yield* intersectTriCircle(points[0], points[1], points[2], origin, radius)
+  } else if (points[1].z >= origin.z) {
+    // Case 3e / 3d
+    // console.log('3e/d')
+    const pa = lineAtZ(points[0], points[1], origin.z)
+    const pb = lineAtZ(points[0], points[2], origin.z)
+    yield* intersectTriCircle(points[0], pa, pb, origin, radius)
+  } else {
+    // Case 4f
+    // console.log('4f')
+    const pa = lineAtZ(points[0], points[2], origin.z)
+    const pb = lineAtZ(points[1], points[2], origin.z)
+    yield* intersectTriCircle(points[0], pa, pb, origin, radius)
+  }
+}
+
+export function* intersectQuadHalfCylinder(a: Vector, b: Vector, c: Vector, d: Vector, origin: Vector, radius: number) {
+  yield* intersectTriangleHalfCylinder(a, b, c, origin, radius)
+  yield* intersectTriangleHalfCylinder(a, c, d, origin, radius)
 }

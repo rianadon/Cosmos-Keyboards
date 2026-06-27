@@ -6,6 +6,7 @@ import {
   blockWallCriticalPoints,
   boardIndices,
   bottomByNormal,
+  connectorErrorFn,
   connectorIndex,
   flattenKeyCriticalPoints,
   footIndices,
@@ -16,10 +17,10 @@ import {
   type LabeledBoardInd,
   originForConnector,
   plateArtOrigin,
-  positionsImpl,
   positionsImplMap,
   reinforceTriangles,
   screwIndices,
+  screwOriginTrsf,
   separateSockets2D,
   solveTriangularization,
   wallCriticalPoints,
@@ -100,15 +101,31 @@ export class BaseGeometry<C extends Cuttleform = SpecificCuttleform<BasicShell>>
   }
 
   @Memoize()
+  get possibleScrewIndices() {
+    const pos: number[] = []
+    for (let i = 0; i < this.screwWalls.length; i++) {
+      pos.push(i + 0.5)
+    }
+    return pos
+  }
+
+  get screwWalls() {
+    return this.allWallCriticalPoints()
+  }
+  get boardWalls() {
+    return this.allWallCriticalPoints()
+  }
+  @Memoize()
   get justScrewIndices() {
-    return screwIndices(this.c, this.allWallCriticalPoints(), this.connectorOrigin, this.boardIndices, this.boardIndicesThatAreScrewsToo, this.worldZ, this.bottomZ)
+    return screwIndices(this.c, this.screwWalls, this.boardWalls, this.possibleScrewIndices, this.connectorOrigin, this.boardIndices, this.boardIndicesThatAreScrewsToo, this.worldZ, this.bottomZ)
   }
   get screwIndices() {
     return this.boardIndicesThatAreScrewsToo.map((i) => this.boardIndices[i as keyof LabeledBoardInd]!).concat(this.justScrewIndices)
   }
   @Memoize()
   get justScrewPositions() {
-    return positionsImpl(this.c, this.allWallCriticalPoints(), this.worldZ, this.justScrewIndices)
+    const walls = this.screwWalls
+    return this.justScrewIndices.map(i => screwOriginTrsf(this.c, i, walls, this.worldZ))
   }
   @Memoize()
   get screwPositions() {
@@ -118,14 +135,14 @@ export class BaseGeometry<C extends Cuttleform = SpecificCuttleform<BasicShell>>
   @Memoize()
   get boardIndices() {
     if (!this.c.microcontroller) return {}
-    return boardIndices(this.c, this.connectorOrigin, this.allWallCriticalPoints(), this.worldZ, this.bottomZ, this.selectedBoardIndices)
+    return boardIndices(this.c, this.connectorOrigin, this.boardWalls, this.worldZ, this.bottomZ, this.selectedBoardIndices)
   }
   get boardIndicesThatAreScrewsToo(): (keyof LabeledBoardInd)[] {
     return this.c.microcontroller ? ['topLeft'] : []
   }
   @Memoize()
   get boardPositions() {
-    return positionsImplMap(this.c, this.allWallCriticalPoints(), this.worldZ, this.boardIndices as any)
+    return positionsImplMap(this.c, this.boardWalls, this.worldZ, this.boardIndices as any)
   }
 
   @Memoize()
@@ -135,7 +152,7 @@ export class BaseGeometry<C extends Cuttleform = SpecificCuttleform<BasicShell>>
 
   @Memoize()
   get footIndices() {
-    return footIndices(this.c, this.screwIndices, this.footWalls, this.allWallCriticalPoints(), this.worldZ)
+    return footIndices(this.c, this.screwIndices, this.footWalls, this.screwWalls, this.worldZ)
   }
 
   @Memoize()
@@ -145,8 +162,10 @@ export class BaseGeometry<C extends Cuttleform = SpecificCuttleform<BasicShell>>
 
   @Memoize()
   get autoConnectorIndex() {
-    const innerSurfaces = this.allWallCriticalPoints().map(w => wallSurfacesInner(this.c, w))
-    return connectorIndex(this.c, this.allWallCriticalPoints(), innerSurfaces, this.worldZ, this.bottomZ, this.selectedBoardIndices)
+    const walls = this.allWallCriticalPoints()
+    const innerSurfaces = walls.map(w => wallSurfacesInner(this.c, w))
+    const errorFn = connectorErrorFn(this.c, walls, innerSurfaces, this.worldZ, this.bottomZ, this.selectedBoardIndices)
+    return connectorIndex(this.c, walls, errorFn)
   }
 
   get connectorIndex() {
@@ -173,6 +192,9 @@ export class BaseGeometry<C extends Cuttleform = SpecificCuttleform<BasicShell>>
   @Memoize()
   get bottomZ() {
     return this.c.bottomZ ?? -additionalHeight(this.c, new Trsf())
+  }
+  get bottomZFast() {
+    return this.bottomZ
   }
   get floorZ() {
     return this.bottomZ - this.c.plateThickness
@@ -226,15 +248,19 @@ export class TiltGeometry extends BaseGeometry<SpecificCuttleform<TiltShell>> {
 
   @Memoize()
   get plateScrewPositions() {
-    return positionsImpl(this.c, this.allWallCriticalPoints(), this.worldZ.clone().negate(), this.screwIndices)
+    const walls = this.allWallCriticalPoints()
+    return this.screwIndices.map(i => screwOriginTrsf(this.c, i, walls, this.worldZ.clone().negate()))
   }
   @Memoize()
   get bottomScrewIndices() {
-    return screwIndices(this.c, this.allWallCriticalPoints(), null, this.screwIndices as any, [], new Vector(0, 0, 1), this.floorZ)
+    return screwIndices(this.c, this.screwWalls, this.boardWalls, this.possibleScrewIndices, null, this.screwIndices as any, [], new Vector(0, 0, 1), this.floorZ)
   }
   @Memoize()
   get bottomScrewPositions() {
-    return positionsImpl(this.c, this.allWallCriticalPoints(), new Vector(0, 0, 1), this.bottomScrewIndices).map(t => t.translate(0, 0, -t.origin().z + this.floorZ + this.c.plateThickness))
+    const walls = this.allWallCriticalPoints()
+    return this.bottomScrewIndices
+      .map(i => screwOriginTrsf(this.c, i, walls, new Vector(0, 0, 1)))
+      .map(t => t.translate(0, 0, -t.origin().z + this.floorZ + this.c.plateThickness))
   }
 
   @Memoize()

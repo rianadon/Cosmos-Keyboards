@@ -51,11 +51,13 @@ export default class Trsf {
   public wrapped: Matrix4
   private _vertex: TopoDS_Vertex | null
   private _point: gp_Pnt | null
+  private _origin: Vector | null
 
   constructor(transform?: Matrix4) {
     this.wrapped = transform ?? new Matrix4()
     this._vertex = null
     this._point = null
+    this._origin = null
   }
 
   translate(xDist: number, yDist: number, zDist: number): Trsf
@@ -231,6 +233,13 @@ export default class Trsf {
 
   origin() {
     return new Vector().setFromMatrixPosition(this.wrapped)
+  }
+
+  constorigin() {
+    if (this._origin == null) {
+      this._origin = this.origin()
+    }
+    return this._origin
   }
 
   xyz(): Point {

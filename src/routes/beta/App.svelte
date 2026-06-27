@@ -5,7 +5,6 @@
   import ViewerLayout from './lib/viewers/ViewerLayout.svelte'
   import ViewerMatrix from './lib/viewers/ViewerMatrix.svelte'
   import ViewerPea from './lib/viewers/ViewerPea.svelte'
-  import ViewerBottom from './lib/viewers/ViewerBottom.svelte'
   import ViewerTiming from './lib/viewers/ViewerTiming.svelte'
   import PeaConfig from './lib/editor/PeaConfig.svelte'
   import Popover from '$lib/presentation/Popover.svelte'
@@ -48,7 +47,6 @@
     codeError,
     protoConfig,
     showHand,
-    stiltsMsg,
     developer,
     showTiming,
     noWall,
@@ -73,7 +71,6 @@
   import { notNull, objEntriesNotNull, objKeys } from '$lib/worker/util'
   import { T } from '@threlte/core'
   import Checkbox from '$lib/presentation/Checkbox.svelte'
-  import type { unibody } from '$lib/worker/modeling/transformation-ext'
   import ConfError from './lib/ConfError.svelte'
   import { SORTED_VENDORS } from '@pro/assemblyService'
   import { microcontrollerConnectors } from '$lib/geometry/microcontrollers'
@@ -164,7 +161,7 @@
   const pool = new WorkerPool<typeof import('$lib/worker/api')>(4, () => {
     return new Worker(new URL('$lib/worker?worker', import.meta.url), { type: 'module' })
   })
-  const tempPool = new WorkerPool<typeof import('$lib/worker/api')>(1, () => {
+  const tempPool = new WorkerPool<typeof import('$lib/worker/api')>(2, () => {
     return new Worker(new URL('$lib/worker?worker', import.meta.url), { type: 'module' })
   })
   onDestroy(() => {
@@ -397,8 +394,9 @@
     const renderNumber = ++lastRenderNumber
     console.log('PROCESSING', renderNumber)
     try {
-      setBottomZ(conf)
+      setBottomZ(conf, !full)
     } catch (e) {
+      console.error(e)
       confError.set([
         {
           type: 'exception',
@@ -428,7 +426,9 @@
     const pl = full ? pool : tempPool
     if (full) pool.reset()
     try {
-      const quickPromises = kbdNames.map((k) => pl.execute((w) => w.generateQuick(conf[k]!), 'Preview'))
+      const quickPromises = kbdNames.map((k) =>
+        pl.execute((w) => w.generateQuick(conf[k]!, full), 'Preview')
+      )
       const otherPromises =
         !flags.fast && full ? kbdNames.map((k) => calcOtherPromises(conf[k]!, k)) : []
 
@@ -662,12 +662,12 @@
             selected={viewer == 'programming'}>Program</Preset
           >
           <div class="preset-overflow <xl:hidden">
-            <Preset
+            <!-- <Preset
               purple
               class="relative z-10 !px-2"
               on:click={() => (viewer = 'board')}
               selected={viewer == 'board'}>Base</Preset
-            >
+            > -->
             <Preset
               purple
               class="relative z-10 !px-2"
@@ -779,12 +779,12 @@
             bind:open={toolsOpen}
           >
             <div class="bg-white/50 dark:bg-gray-800/50 px-2 py-1 mr-[-.5rem] rounded">
-              <Preset
+              <!-- <Preset
                 purple
                 class="!px-2"
                 on:click={() => (viewer = 'board')}
                 selected={viewer == 'board'}>Base</Preset
-              >
+              > -->
               <Preset
                 purple
                 class="!px-2"
@@ -832,7 +832,6 @@
                     {hideWall}
                     {transparency}
                     {showSupports}
-                    keebGeometry={geometry[kbd]}
                     microcontrollerGeometry={microcontrollerGeometry[kbd]}
                     meshes={mesh}
                   />
@@ -873,8 +872,8 @@
           {:else}
             <ViewerMatrix {geometry} {darkMode} confError={$confError} />
           {/if}
-        {:else if viewer == 'board'}
-          <ViewerBottom {geometry} {darkMode} confError={$confError} />
+          <!-- {:else if viewer == 'board'}
+          <ViewerBottom {geometry} {darkMode} confError={$confError} /> -->
         {:else if viewer == 'timing'}
           <ViewerTiming {pool} {darkMode} />
         {:else if viewer == 'dev'}
@@ -922,55 +921,23 @@
             <h3 class="font-bold">There is an error with your code.</h3>
             <p class="mb-2">{$codeError.message}</p>
           </div>
-        {:else if $confError.length && viewer == '3d'}
-          <ConfError {config} {mode} />
-        {:else if ocError && viewer == '3d'}
-          <div class="absolute text-white m-4 left-0 right-0 rounded p-4 top-[10%] bg-red-700">
-            <p>There are some rough edges in this tool, and you've found one of them.</p>
-            <p class="mb-2">The set of options you've chosen cannot be previewed.</p>
-            <p class="mb-2">Here's some technical information:</p>
-            <p class="text-sm"><code>During processing of <b>{ocError.task}</b></code></p>
-            <p class="text-sm">
-              <code
-                >{ocError}<br />{ocError.stack
-                  ? ocError.stack.split('\n').slice(0, 5).join('\n')
-                  : ''}</code
-              >
-            </p>
-          </div>
-        {:else if (config?.right ?? config?.unibody)?.shell?.type == 'stilts'}
-          {#if $stiltsMsg}
-            <div class="absolute text-white m-4 left-0 right-0 rounded p-4 top-[5%] bg-yellow-700 flex">
-              <div>
-                <p>
-                  Stilts mode is <b>very</b> tempermental. Not every model will work with it. Try to keep
-                  very smooth curves between keys, and
-                  <button class="underline" on:click={() => (hideWall = !hideWall)}
-                    >{hideWall ? 'show' : 'hide'} the walls</button
-                  > to check for bad geometry.
-                </p>
-                <p class="text-sm mt-2">
-                  While I like hearing what kind of bugs you find, please don't tell be about bugs in
-                  stilts mode. There are too many to keep track of and countless weeks to be spent trying
-                  to fix them.
-                </p>
-              </div>
-              <div class="flex-0 pl-2">
-                <button on:click={() => ($stiltsMsg = !$stiltsMsg)}
-                  ><Icon path={mdi.mdiArrowCollapseUp} /></button
+        {:else}
+          {#if $confError.length && viewer == '3d'}
+            <ConfError {config} {mode} />
+          {/if}
+          {#if ocError && viewer == '3d'}
+            <div class="absolute text-white m-4 left-0 right-0 rounded p-4 top-[10%] bg-red-700">
+              <p>There are some rough edges in this tool, and you've found one of them.</p>
+              <p class="mb-2">The set of options you've chosen cannot be previewed.</p>
+              <p class="mb-2">Here's some technical information:</p>
+              <p class="text-sm"><code>During processing of <b>{ocError.task}</b></code></p>
+              <p class="text-sm">
+                <code
+                  >{ocError}<br />{ocError.stack
+                    ? ocError.stack.split('\n').slice(0, 5).join('\n')
+                    : ''}</code
                 >
-              </div>
-            </div>
-          {:else}
-            <div class="absolute text-white m-4 right-[80px] rounded p-4 top-[10%] bg-yellow-700 flex">
-              <div>
-                <p>Stilts mode is <b>very</b> tempermental.</p>
-              </div>
-              <div class="flex-0 pl-2">
-                <button on:click={() => ($stiltsMsg = !$stiltsMsg)}
-                  ><Icon path={mdi.mdiArrowExpandDown} /></button
-                >
-              </div>
+              </p>
             </div>
           {/if}
         {/if}

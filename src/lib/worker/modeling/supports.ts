@@ -17,7 +17,7 @@ export function supportMesh(mesh: ShapeMesh, minZ: number): ShapeMeshWithVolume 
   }
 
   const boundary = new Set<string>()
-  const faces: Uint16Array[] = []
+  const faces: (Uint16Array | Uint32Array)[] = []
   const faceNorms: Vector3[] = []
   let volume = 0
 

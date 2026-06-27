@@ -10,6 +10,7 @@
     possibleFootIndices,
     possibleScrewIndices,
     screwOrigin,
+    type LabeledBoardInd,
   } from '$lib/worker/geometry'
   import { rectangle, drawWall, drawLinedWall, drawBezierWall, fullSizes } from './viewerHelpers'
   import { localHolderBounds } from '$lib/geometry/microcontrollers'
@@ -170,6 +171,8 @@
       ...allScrewIndices(
         config,
         walls2,
+        walls2,
+        geo.possibleScrewIndices,
         geo.connectorOrigin,
         boardInd,
         initialPos,

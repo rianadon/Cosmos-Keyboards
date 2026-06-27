@@ -6,8 +6,11 @@
   import KMesh from '$lib/3d/KeyboardMeshBetter.svelte'
   import type { KeyboardMeshes } from '../../routes/beta/lib/viewers/viewer3dHelpers'
 
+  // import { T } from '@threlte/core'
+  // import { BufferAttribute, BufferGeometry, Float32BufferAttribute } from 'three'
+  // export let keebGeometry: Geometry | undefined = undefined
+
   export let microcontrollerGeometry: Geometry | undefined = undefined
-  export let keebGeometry: Geometry | undefined = undefined
   export let meshes: KeyboardMeshes
   export let transparency: number = 100
   export let side: KeyboardSide
@@ -31,6 +34,15 @@
     meshes.plateBotBuf ? Math.min(cTransparency / 50, 1) : cTransparency / 100,
     2
   )
+
+  // let stiltThing: BufferGeometry | null = null
+  // $: {
+  //   stiltThing = new BufferGeometry()
+  //   const { vertices, triangles } = keebGeometry.stiltsSurfaceTrianglesVertices(true)
+  //   stiltThing.setAttribute('position', new Float32BufferAttribute(vertices, 3))
+  //   stiltThing.setIndex(new BufferAttribute(triangles, 1))
+  //   stiltThing.computeVertexNormals()
+  // }
 </script>
 
 {#if !$noBase}<Microcontroller
@@ -63,7 +75,6 @@
     opacity={plateTopOpacity}
     renderOrder="10"
     color={plateColor}
-    cutoff={(keebGeometry?.floorZ ?? Infinity) + 0.1}
     useColors
   />
   <KMesh
@@ -84,6 +95,11 @@
     opacity={0.9}
     visible={!showSupports}
   />
+  <!-- {#if stiltThing}
+    <T.Mesh geometry={stiltThing} renderOrder={-1}>
+      <T.MeshNormalMaterial side={2} />
+    </T.Mesh>
+  {/if} -->
 {/if}
 {#if showSupports}
   {#each meshes.supportGeometries || [] as geo}

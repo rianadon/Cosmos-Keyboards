@@ -9,6 +9,7 @@ import { dtsFile, encoderKeys, fullLayout, isQWERTYKey, logicalKeys, type Matrix
 import { ZMK_CODES } from './languageCodes'
 
 const RE_PID_VID = /^0x[0-9A-Fa-f]{4}$/
+export const ZMK_NAME_MAX_LEN = 15
 
 interface ZMKPeripherals {
   pmw3610: boolean
@@ -340,7 +341,7 @@ function generateDefconfig(config: FullGeometry, options: ZMKOptions) {
 if SHIELD_${folderName}_${centralSide}
 
 config ZMK_KEYBOARD_NAME
-    default "${options.keyboardName.substring(0, 16)}"
+    default "${options.keyboardName.substring(0, ZMK_NAME_MAX_LEN)}"
 
 config ZMK_SPLIT_ROLE_CENTRAL
     default y

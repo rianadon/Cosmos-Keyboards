@@ -6,7 +6,7 @@ jobs:
     name: Ensure the code is formatted
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install dprint
         run: |
@@ -20,7 +20,7 @@ jobs:
     name: Run Bun Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
@@ -41,7 +41,7 @@ jobs:
     name: Check Typescript
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
