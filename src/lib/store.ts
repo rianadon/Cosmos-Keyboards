@@ -20,7 +20,7 @@ export const openSelect = writable<symbol | null>(null)
 
 export const hoveredKey = writable<number | null>(null)
 export const clickedKey = writable<number | null>(null)
-export const clickedSide = writable<'left' | 'right' | 'unibody' | null>(null)
+export const clickedSide = writable<'left' | 'right' | 'unibody' | 'center' | null>(null)
 export const lastKeycap = writable<number>(0)
 
 // --- Alerts -----------------------------------------------------------------

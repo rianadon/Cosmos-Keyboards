@@ -196,7 +196,7 @@ function generateMCUConfH(options: QMKOptions) {
 function generateRulesMK(config: FullGeometry) {
   const driver = Object.values(config).flatMap(c => pointingDevices(c))[0]
   const driverSide = objKeys(config).filter(c => pointingDevices(config[c]!).length)[0]
-  const driverSuffix = { right: '_RIGHT', left: '', unibody: '' }[driverSide] || ''
+  const driverSuffix = { right: '_RIGHT', left: '', unibody: '', center: '' }[driverSide] || ''
 
   const display = Object.values(config).flatMap(c => displays(c))[0]
 

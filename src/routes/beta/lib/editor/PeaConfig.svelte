@@ -87,6 +87,13 @@
 <p class="mt-4 mb-2">Successfully made the matrix!</p>
 <p class="mb-2">Now you can download code for your microcontroller.</p>
 
+{#if !!config.center}
+  <InfoBox>
+    Firmware will not be generated for the center cluster. The center cluster's keys must be wired
+    manually.
+  </InfoBox>
+{/if}
+
 <div class="mt-8 text-gray-500 dark:text-gray-200" class:mb-4={!truncated}>
   Keyboard / File Name: <input class="input px-2" bind:value={$modelName} />
 </div>

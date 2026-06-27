@@ -5,7 +5,7 @@
   import type { interactivity } from '@threlte/extras'
 
   export let index: number | null
-  export let side: 'left' | 'right' | 'unibody' = 'right'
+  export let side: 'left' | 'right' | 'unibody' | 'center' = 'right'
 
   type InteractivityContext = ReturnType<typeof interactivity>
   const context: InteractivityContext = getContext('interactivity')

@@ -4,6 +4,7 @@
 
 import { BinaryReader, BinaryWriter } from '@protobuf-ts/runtime'
 import {
+  type ClusterFlags,
   decodeBasicShellFlags,
   decodeClusterFlags,
   decodeConnector,
@@ -125,6 +126,19 @@ function decodeConnectorsCompatible(connectors: Uint8Array, connector: number | 
   return decodeConnectors(connectors)
 }
 
+// Special handling for center cluster
+function decodeClusterFlagsCorrectly(idType: number) {
+  const flags = decodeClusterFlags(idType)
+  if (flags.name === 'center') return { ...flags, side: 'center' as const }
+  return flags
+}
+function encodeClusterFlagsCorrectly(c: ReturnType<typeof decodeClusterFlagsCorrectly>) {
+  return encodeClusterFlags({
+    ...c,
+    side: c.side == 'center' ? 'right' : c.side,
+  })
+}
+
 // ----------  PROFILES ----------
 // dprint-ignore
 export const LETTERS = [
@@ -244,6 +258,7 @@ const KEYBOARD_EXTRA_DEFAULTS: KeyboardExtra = {
   wristRestRightExtension: 80,
   connectorLeftIndex: -10,
   connectorRightIndex: -10,
+  connectorCenterIndex: -10,
   screwIndices: [],
   microcontrollerAngle: 0,
   plateThickness: 30,
@@ -420,7 +435,7 @@ export function decodeCosmosCluster(clusterA: Cluster): CosmosCluster {
   let lastCluster: Cluster | null = null
 
   return {
-    ...decodeClusterFlags(clusterA.idType ?? 0),
+    ...decodeClusterFlagsCorrectly(clusterA.idType ?? 0),
     curvature: decodeCurvature(clusterA.curvature || {}),
     profile: decodeProfile(clusterA.keyProfile || 0).profile,
     partType: decodePartType(clusterA.partType || 0),
@@ -435,7 +450,7 @@ export function decodeCosmosCluster(clusterA: Cluster): CosmosCluster {
       let lastKey: Key | null = null
       let lastKeyRow = 0
       return {
-        ...decodeClusterFlags(clusterB.idType ?? clusterA.idType ?? 0),
+        ...decodeClusterFlagsCorrectly(clusterB.idType ?? clusterA.idType ?? 0),
         curvature: decodeCurvature(clusterB.curvature || {}),
         profile: decodeProfile(clusterB.keyProfile || 0).profile,
         partType: decodePartType(clusterB.partType || 0),
@@ -522,6 +537,7 @@ export function decodeConfigIdk(b64: string): CosmosKeyboard {
     wristRestPosition: keeb.wristRestPosition,
     connectorLeftIndex: keebExtra.connectorLeftIndex / 10,
     connectorRightIndex: keebExtra.connectorRightIndex / 10,
+    connectorCenterIndex: keebExtra.connectorCenterIndex / 10,
     clusters: keeb.cluster.map(decodeCosmosCluster),
     plate: hasSpecialPlate
       ? {
@@ -615,7 +631,7 @@ function decodeCurvature(c: Curvature): Curvature {
 
 export function encodeCosmosCluster(clusterA: CosmosCluster): Cluster {
   const cluster: Cluster = {
-    idType: encodeClusterFlags(clusterA),
+    idType: encodeClusterFlagsCorrectly(clusterA),
     cluster: [],
     key: [],
     partType: diff(encodePartType(clusterA.partType), 0),
@@ -629,7 +645,7 @@ export function encodeCosmosCluster(clusterA: CosmosCluster): Cluster {
   for (const clusterB of clusterA.clusters) {
     const col = clusterB.column
     const column: Cluster = {
-      idType: diff(encodeClusterFlags(clusterB), cluster.idType),
+      idType: diff(encodeClusterFlagsCorrectly(clusterB), cluster.idType),
       cluster: [],
       key: [],
       partType: diff(encodePartType(clusterB.partType), 0),
@@ -720,6 +736,7 @@ export function encodeCosmosConfig(conf: CosmosKeyboard): Keyboard {
       wristRestRightExtension: Math.round(conf.wristRestProps.extensionRight * 10),
       connectorLeftIndex: Math.round(conf.connectorLeftIndex * 10),
       connectorRightIndex: Math.round(conf.connectorRightIndex * 10),
+      connectorCenterIndex: Math.round(conf.connectorCenterIndex * 10),
       screwIndices: conf.screwIndices.some(c => c >= 0) ? conf.screwIndices.map(i => Math.round(i * 10) + 10) : [],
       roundedSideConcavity: conf.rounded.side ? Math.round(conf.rounded.side.concavity * 10) : undefined,
       roundedSideDivisor: conf.rounded.side ? Math.round(conf.rounded.side.divisor * 10) : undefined,
