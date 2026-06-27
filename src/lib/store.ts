@@ -20,7 +20,38 @@ export const openSelect = writable<symbol | null>(null)
 
 export const hoveredKey = writable<number | null>(null)
 export const clickedKey = writable<number | null>(null)
+export const clickedSide = writable<'left' | 'right' | 'unibody' | null>(null)
 export const lastKeycap = writable<number>(0)
+
+// --- Alerts -----------------------------------------------------------------
+//
+// A lightweight popover-alert system: callers `pushAlert({ message, anchor })`
+// from anywhere; `Alert.svelte` (mounted once in App.svelte) renders a
+// dismissible popover next to the anchor element with a 10s auto-dismiss
+// timer and a progress bar. Used by the layout dropdown to surface "missing
+// keys" warnings and "you've switched to Custom" hints without blocking the
+// page with a modal dialog.
+
+export interface AlertItem {
+  id: symbol
+  message: string
+  /** DOM element to anchor the popover next to (typically the Field that *  triggered the alert). */
+  anchor: HTMLElement
+  /** Auto-dismiss after this many ms. Default 10000. Pass 0 to disable. */
+  durationMs?: number
+}
+
+export const alerts = writable<AlertItem[]>([])
+
+export function pushAlert(a: Omit<AlertItem, 'id'>): symbol {
+  const id = Symbol()
+  alerts.update(xs => [...xs, { id, durationMs: 10000, ...a }])
+  return id
+}
+
+export function dismissAlert(id: symbol) {
+  alerts.update(xs => xs.filter(a => a.id !== id))
+}
 
 export const showGrid = writable(false)
 export const noWall = writable(false)

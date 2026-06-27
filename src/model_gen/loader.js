@@ -5,6 +5,7 @@
  * as well as getting the extensions correct.
  */
 
+import { statSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 import * as tsConfigPaths from 'tsconfig-paths'
 // @ts-ignore: Tyescript doesn't recognize @swc-node/register/esm
@@ -24,7 +25,10 @@ export function resolve(specifier, context, defaultResolver) {
   if (mappedSpecifier) {
     // On Windows, Node.js expects absolute paths to be file:// urls
     // mappedSpecifier is an absolute path
-    const url = pathToFileURL(mappedSpecifier).href
+    // tsconfig-paths returns directory paths verbatim, so resolve `foo` →
+    // `foo/index` when `foo` is a directory before appending the extension.
+    const resolvedPath = isDirectory(mappedSpecifier) ? `${mappedSpecifier}/index` : mappedSpecifier
+    const url = pathToFileURL(resolvedPath).href
     specifier = url.endsWith('.json') ? url : `${url}.js`
   } else if (
     !specifier.endsWith('.ts') && !specifier.endsWith('.js')
@@ -36,6 +40,15 @@ export function resolve(specifier, context, defaultResolver) {
   }
   if (specifier.includes('$assets')) throw new Error(matchPath(specifier.replace('?url', '')))
   return resolveTs(specifier, context, defaultResolver)
+}
+
+/** @param {string} absPath */
+function isDirectory(absPath) {
+  try {
+    return statSync(absPath).isDirectory()
+  } catch {
+    return false
+  }
 }
 
 /** Load a file

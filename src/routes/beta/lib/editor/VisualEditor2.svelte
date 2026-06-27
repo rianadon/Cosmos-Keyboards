@@ -1,35 +1,22 @@
 <script lang="ts">
-  import {
-    cuttleConf,
-    type CuttleformProto,
-    type Geometry,
-    cScrewHeight,
-    cosmosFingers,
-    approximateCosmosThumbOrigin,
-    decodeTuple,
-    encodeTuple,
-    type FullCuttleform,
-    newFullGeometry,
-  } from '$lib/worker/config'
+  import { cScrewHeight, decodeTuple, encodeTuple, type FullCuttleform } from '$lib/worker/config'
   import {
     MICROCONTROLLER_NAME,
     PLATE_ART,
     PROFILE,
     SCREW_SIZE,
-    type ConnectorType,
     type MicrocontrollerName,
     type Profile,
   } from '../../../../../target/cosmosStructs'
   import Section from './Section.svelte'
   import DecimalInput from './DecimalInput.svelte'
   import AngleInput from './AngleInput.svelte'
-  import cuttleform from '$assets/cuttleform.json'
   import Preset from '$lib/presentation/Preset.svelte'
   import InfoBox from '$lib/presentation/InfoBox.svelte'
   import { TupleStore } from './tuple'
 
   import { createEventDispatcher } from 'svelte'
-  import { protoConfig, tempConfig } from '$lib/store'
+  import { protoConfig, pushAlert, tempConfig } from '$lib/store'
   import { hasPro } from '@pro'
   import {
     BOARD_PROPERTIES,
@@ -41,9 +28,7 @@
     fromCosmosConfig,
     mirrorCluster,
     partVariant,
-    toCosmosConfig,
     type ConnectorMaybeCustom,
-    type CosmosKey,
     type CosmosKeyboard,
     type PartType,
   } from '$lib/worker/config.cosmos'
@@ -78,13 +63,14 @@
     toggleOuterCol,
   } from './visualEditorHelpers'
   import {
-    mdiCodeJson,
-    mdiPencil,
-    mdiArrowLeft,
-    mdiArrowRight,
-    mdiDotsVertical,
-    mdiChevronDown,
-  } from '@mdi/js'
+    DEFAULT_LAYOUT,
+    diffAllLayouts,
+    LAYOUTS,
+    partitionLanguages,
+    applyLayoutToKeys,
+    detectLayout,
+  } from '$lib/geometry/layouts'
+  import { mdiCodeJson, mdiPencil, mdiArrowLeft, mdiArrowRight } from '@mdi/js'
   import Icon from '$lib/presentation/Icon.svelte'
   import Dialog from '$lib/presentation/Dialog.svelte'
   import ConnectorsView from '../dialogs/ConnectorsView.svelte'
@@ -96,8 +82,8 @@
   import SelectProfileInner from './SelectProfileInner.svelte'
   import SelectProfileLabel from './SelectProfileLabel.svelte'
   import SelectMicrocontrollerInner from './SelectMicrocontrollerInner.svelte'
+  import SelectLayoutInner from './SelectLayoutInner.svelte'
   import { trackEvent } from '$lib/telemetry'
-  import { footIndices } from '$lib/worker/geometry'
 
   export let cosmosConf: CosmosKeyboard
   export let conf: FullCuttleform
@@ -231,6 +217,49 @@
     }
   }
 
+  $: layoutGroups = partitionLanguages(window?.navigator.languages)
+  $: diffs = diffAllLayouts($protoConfig)
+  $: layoutOptions = {
+    'Your browser language': layoutGroups[0].map((l) => ({
+      key: l.name,
+      label: l.name,
+      language: l,
+      diff: diffs[l.name],
+    })),
+    'All languages': layoutGroups[1].map((l) => ({
+      key: l.name,
+      label: l.name,
+      language: l,
+      diff: diffs[l.name],
+    })),
+    'Something else': [
+      {
+        key: 'custom',
+        label: 'Custom',
+        language: null,
+        diff: null,
+      },
+    ],
+  }
+
+  let layoutSelectEl: HTMLElement
+  export let layoutValue = ''
+
+  function updateLayout(ev: CustomEvent<string>) {
+    const language = ev.detail
+    if (language == 'custom') {
+      pushAlert({
+        message: '<customlayout>',
+        anchor: layoutSelectEl,
+      })
+      return
+    }
+
+    const layout = objKeys(LAYOUTS).find((l) => LAYOUTS[l].languages.some((g) => g.name === language))
+    if (!layout) return
+    protoConfig.update((proto) => applyLayoutToKeys(proto, layout))
+  }
+
   function updateSwitch(ev: CustomEvent) {
     $protoConfig.partType.type = ev.detail
     const switchType = PART_INFO[$protoConfig.partType.type].keycap
@@ -277,7 +306,7 @@
         proto.clusters.splice(
           cluster == 'fingers' ? 2 : 3,
           0,
-          mirrorCluster(proto.clusters.find((c) => c.side == 'right' && c.name == cluster)!)
+          mirrorCluster(proto.clusters.find((c) => c.side == 'right' && c.name == cluster)!, proto)
         )
       }
       return proto
@@ -552,6 +581,18 @@
       labelComponent={SelectProfileLabel}
       minWidth={200}
     />
+  </Field>
+  <Field name="Layout" icon="layout">
+    <div bind:this={layoutSelectEl}>
+      <SelectThingy
+        bind:value={layoutValue}
+        options={layoutOptions}
+        on:change={updateLayout}
+        component={SelectLayoutInner}
+        labelOverride={LAYOUTS[detectLayout($protoConfig)].name}
+        minWidth={250}
+      />
+    </div>
   </Field>
   <Field name="Switches" icon="switch">
     <!-- <Select bind:value={$protoConfig.partType.type} on:change={updateSwitch}>

@@ -1,3 +1,4 @@
+import { DEFAULT_LAYOUT, flipLetter, rightCells } from '$lib/geometry/layouts'
 import { PART_INFO } from '$lib/geometry/socketsParts'
 import { approximateCosmosThumbOrigin, cosmosFingers, type Cuttleform, decodeTuple, encodeTuple, type FullCuttleform, newGeometry } from '$lib/worker/config'
 import {
@@ -16,6 +17,7 @@ import { decodeCosmosCluster, LETTERS } from '$lib/worker/config.serialize'
 import { estimatedBB } from '$lib/worker/geometry'
 import { Vector } from '$lib/worker/modeling/transformation'
 import { mapObj, objKeys, sum } from '$lib/worker/util'
+import type { Layout } from '$target/cosmosStructs'
 import { Cluster } from '../../../../../target/proto/cosmos'
 import { addColumnInPlace } from '../viewers/viewer3dHelpers'
 
@@ -42,7 +44,7 @@ export function setClusterSize(keyboard: CosmosKeyboard, side: 'left' | 'right',
   if (side == 'left') newThumb.x *= -1
   const newPosition = originalPosition.add(originalThumb).sub(newThumb)
   const newTup = encodeTuple(newPosition.toArray().map((x) => Math.round(10 * x)))
-  fingers.clusters = cosmosFingers(rows, cols, side, addExtraRow)
+  fingers.clusters = cosmosFingers(rows, cols, side, addExtraRow, keyboard.layout)
   fingers.position = newTup
 
   return keyboard
@@ -196,7 +198,7 @@ export function setThumbCluster(c: CosmosKeyboard, type: Thumb, side: 'left' | '
   }
   // Erase all key labels
   cluster.clusters.forEach(c => c.keys.forEach(k => k.profile.letter = undefined))
-  if (side == 'left') cluster = mirrorCluster(cluster)
+  if (side == 'left') cluster = mirrorCluster(cluster, c)
 
   const thumb = c.clusters.find((c) => c.name == 'thumbs' && c.side == side)
   if (!thumb) return c
@@ -209,7 +211,7 @@ export function setThumbCluster(c: CosmosKeyboard, type: Thumb, side: 'left' | '
 }
 
 const decodedClusters = mapObj(THUMB_CONFIG, ({ b64 }) => decodeCosmosCluster(Cluster.fromBinary(Uint8Array.from(atob(b64), c => c.charCodeAt(0)))))
-const mirroredDecodedClusters = mapObj(decodedClusters, c => mirrorCluster(c))
+const mirroredDecodedClusters = mapObj(decodedClusters, c => mirrorCluster(c, undefined))
 
 export function getThumbN(c: CosmosKeyboard, side: 'left' | 'right') {
   const thumb = c.clusters.find((c) => c.name == 'thumbs' && c.side == side)

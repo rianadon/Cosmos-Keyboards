@@ -1,12 +1,14 @@
 import qmkVik from '$assets/qmk-vik.zip?url'
 import { download } from '$lib/browser'
+import type { Language } from '$lib/geometry/layouts'
 import { PART_INFO } from '$lib/geometry/socketsParts'
 import { hasKeyGeometry, hasPinsInMatrix } from '$lib/loaders/keycaps'
 import type { CuttleKey, Geometry } from '$lib/worker/config'
 import { mapObjNotNull, objKeys, sum } from '$lib/worker/util'
 import { strToU8, zip } from 'fflate'
 import type { FullGeometry } from '../viewers/viewer3dHelpers'
-import { encoderKeys, fullLayout, jsonFile, logicalKeys, type Matrix, unzipURL, yamlFile, zipPromise } from './firmwareHelpers'
+import { encoderKeys, fullLayout, isQWERTYKey, jsonFile, logicalKeys, type Matrix, unzipURL, yamlFile, zipPromise } from './firmwareHelpers'
+import { QMK_CODES } from './languageCodes'
 
 const RE_PID_VID = /^0x[0-9A-Fa-f]{4}$/
 
@@ -19,6 +21,7 @@ export interface QMKOptions {
   diodeDirection: 'COL2ROW' | 'ROW2COL'
   enableConsole: boolean
   wiredVersion: 'v0.4' | 'v0.5'
+  osLanguage: Language
 }
 
 export function validateConfig(options: QMKOptions) {
@@ -54,7 +57,7 @@ function generateInfoJSON(config: FullGeometry, matrix: Matrix, options: QMKOpti
       console: options.enableConsole,
       encoder: hasEncoders,
       encoder_map: hasEncoders,
-      extrakey: hasEncoders || !!EXTRAKEY_REQUIRED.intersection(new Set(generateKeycodes(config))).size,
+      extrakey: hasEncoders || !!EXTRAKEY_REQUIRED.intersection(new Set(generateKeycodes(config, options.osLanguage))).size,
       // Not needed since VIK sets it up?
       // pointing_device: Object.values(config).some(c => pointingDevices(c).length > 0),
       oled: Object.values(config).some(c => displays(c).length > 0),
@@ -358,28 +361,67 @@ const EXTRAKEY_REQUIRED = new Set([
   'KC_BRIGHTNESS_DOWN', 'KC_BRID',
 ])
 
-/** Return the QMK keycode for a letter */
-function keycode(code: string | undefined) {
+/** The QMK locale id (keymap_<id>.h basename) to use for a language, or undefined for US/none. */
+function qmkLocale(language: Language | undefined): string | undefined {
+  const id = language?.qmk || language?.qmkCharset
+  if (!id) return undefined
+  const map = QMK_CODES[id]
+  return map && Object.keys(map).length ? id : undefined
+}
+
+/**
+ * Resolve a keycap letter to its QMK keycode.
+ *
+ * `unmapped` is true when the letter is a real character that couldn't be represented (neither in
+ * the active locale table nor in the generic fallbacks) and so falls back to a blank `KC_SPACE`.
+ * Deliberately-blank keys are not unmapped.
+ */
+function resolveKeycode(code: string | undefined, language?: Language): { code: string; unmapped: boolean } {
   const c = code?.toLowerCase()
 
-  if (!c || !code) return 'KC_SPACE'
-  if (/^[a-z]$/.test(c)) return 'KC_' + c.toUpperCase()
-  if (/^[0-9]$/.test(c)) return 'KC_' + c
-  if (/^F[0-9]+$/.test(c)) return 'KC_' + c
-  if (CHARS.hasOwnProperty(c)) return 'KC_' + (CHARS as any)[c]
-  if (SPECIALS.includes(c)) return 'KC_' + c.toUpperCase()
-  if (/^(KC|QK|RGB)_/.test(code)) return code
-  if (c.includes('(') && c.includes(')')) return code
+  if (!c || !code) return { code: 'KC_SPACE', unmapped: false }
 
-  return 'KC_SPACE'
+  const locale = qmkLocale(language)
+  if (locale) {
+    const map = QMK_CODES[locale]
+    const hit = map[code] ?? map[c] // exact case first, then lowercased
+    if (hit) return { code: hit, unmapped: false }
+    if (isQWERTYKey(c)) return { code: 'KP_SPACE', unmapped: true }
+  }
+
+  if (/^[a-z]$/.test(c)) return { code: 'KC_' + c.toUpperCase(), unmapped: false }
+  if (/^[0-9]$/.test(c)) return { code: 'KC_' + c, unmapped: false }
+  if (/^F[0-9]+$/.test(c)) return { code: 'KC_' + c, unmapped: false }
+  if (CHARS.hasOwnProperty(c)) return { code: 'KC_' + (CHARS as any)[c], unmapped: false }
+  if (SPECIALS.includes(c)) return { code: 'KC_' + c.toUpperCase(), unmapped: false }
+  if (/^(KC|QK|RGB)_/.test(code)) return { code, unmapped: false }
+  if (c.includes('(') && c.includes(')')) return { code, unmapped: false }
+
+  return { code: 'KC_SPACE', unmapped: true }
+}
+
+/** Return the QMK keycode for a letter */
+export function keycode(code: string | undefined, language?: Language) {
+  return resolveKeycode(code, language).code
+}
+
+/** The distinct keycap letters that can't be mapped to a keycode for the given language. */
+export function unmappableKeys(config: FullGeometry, language: Language): string[] {
+  const seen = new Set<string>()
+  for (const key of logicalKeys(config)) {
+    if (!hasPinsInMatrix(key)) continue
+    const letter = 'keycap' in key ? key.keycap?.letter : undefined
+    if (letter && resolveKeycode(letter, language).unmapped) seen.add(letter)
+  }
+  return [...seen]
 }
 
 /** Generates the keycodes for the QMK keymap */
-function generateKeycodes(config: FullGeometry) {
+function generateKeycodes(config: FullGeometry, language?: Language) {
   const keycodes: string[] = []
   for (const key of logicalKeys(config)) {
     if (!hasPinsInMatrix(key)) continue
-    keycodes.push(keycode('keycap' in key ? key.keycap?.letter : undefined))
+    keycodes.push(keycode('keycap' in key ? key.keycap?.letter : undefined, language))
   }
   return keycodes
 }
@@ -396,6 +438,7 @@ function generateKeymap(config: FullGeometry, matrix: Matrix, options: QMKOption
   return [
     '#include QMK_KEYBOARD_H\n',
     '#include "rgblight.h"',
+    ...(qmkLocale(options.osLanguage) ? [`#include "keymap_${qmkLocale(options.osLanguage)}.h"`] : []),
     '',
     '#define RELAY_PIN 11',
     ...(
@@ -413,7 +456,7 @@ function generateKeymap(config: FullGeometry, matrix: Matrix, options: QMKOption
     'bool last_led_state;',
     '',
     'const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {',
-    `    [0] = LAYOUT(${generateKeycodes(config).join(', ')}),`,
+    `    [0] = LAYOUT(${generateKeycodes(config, options.osLanguage).join(', ')}),`,
     '};',
     ...(
       hasEncoders
@@ -437,17 +480,17 @@ function generateKeymap(config: FullGeometry, matrix: Matrix, options: QMKOption
         ]
         : []
     ),
-    '  last_led_state = rgblight_get_val() > 0 ? RELAY_ON : RELAY_OFF;',
-    '  gpio_set_pin_output(RELAY_PIN);',
-    '  gpio_write_pin(RELAY_PIN, last_led_state);',
+    '    last_led_state = rgblight_get_val() > 0 ? RELAY_ON : RELAY_OFF;',
+    '    gpio_set_pin_output(RELAY_PIN);',
+    '    gpio_write_pin(RELAY_PIN, last_led_state);',
     '}',
     '',
     'void housekeeping_task_user(void) {',
-    '  bool leds_on = rgblight_get_val() > 0 ? RELAY_ON : RELAY_OFF;',
-    '  if (leds_on != last_led_state) {',
-    '    last_led_state = leds_on;',
-    '    gpio_write_pin(RELAY_PIN, leds_on);',
-    '  }',
+    '    bool leds_on = rgblight_get_val() > 0 ? RELAY_ON : RELAY_OFF;',
+    '    if (leds_on != last_led_state) {',
+    '        last_led_state = leds_on;',
+    '        gpio_write_pin(RELAY_PIN, leds_on);',
+    '    }',
     '}',
     ...(
       display
