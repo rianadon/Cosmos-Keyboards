@@ -1,15 +1,16 @@
 <script lang="ts">
-  import { T } from '@threlte/core'
   import { view, noBase, noWall } from '$lib/store'
   import type { Geometry } from '$lib/worker/config'
   import GroupMatrix from './GroupMatrix.svelte'
   import Microcontroller from './Microcontroller.svelte'
   import KMesh from '$lib/3d/KeyboardMeshBetter.svelte'
   import type { KeyboardMeshes } from '../../routes/beta/lib/viewers/viewer3dHelpers'
-  import { BufferAttribute, BufferGeometry, Float32BufferAttribute } from 'three'
+
+  // import { T } from '@threlte/core'
+  // import { BufferAttribute, BufferGeometry, Float32BufferAttribute } from 'three'
+  // export let keebGeometry: Geometry | undefined = undefined
 
   export let microcontrollerGeometry: Geometry | undefined = undefined
-  export let keebGeometry: Geometry | undefined = undefined
   export let meshes: KeyboardMeshes
   export let transparency: number = 100
   export let side: 'left' | 'right' | 'unibody'

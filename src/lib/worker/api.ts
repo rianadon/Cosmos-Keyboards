@@ -8,15 +8,10 @@ import wasmUrl from '$assets/replicad_single.wasm?url'
 // import wasmUrl from 'replicad-opencascadejs/src/replicad_single.wasm?url';
 // import loadOC from 'opencascade/dist/opencascade.full';
 // import wasmUrl from 'opencascade/dist/opencascade.full.wasm?url';
-import loadManifold, { type ManifoldToplevel } from '$assets/manifold'
-import manifoldUrl from '$assets/manifold.wasm?url'
 import { combinedKeyHoleMesh, keyHoleMeshes } from '$lib/loaders/sockets'
-import { setManifold } from '@pro/fourdutil'
-import type { InitOutput } from '@pro/rust_offset'
-import __wbg_init from '@pro/rust_offset'
+import { ensureDeps } from '@pro'
 import { makeStiltsWalls, makeStiltsWallsQuick } from '@pro/stiltsModel'
 import { wristRest } from '@pro/wristRest'
-// import manifoldUrl from 'manifold-3d/manifold.wasm?url'
 import type { BufferAttribute, BufferGeometry, Mesh } from 'three'
 import { getUser } from '../../routes/beta/lib/login'
 import { ITriangle } from '../loaders/simplekeys'
@@ -30,13 +25,10 @@ import Trsf, { Vector } from './modeling/transformation'
 import ETrsf from './modeling/transformation-ext'
 
 let oc: OpenCascadeInstance
-let rust: InitOutput
-let manifold: ManifoldToplevel
-let model: Solid
 let ocTime = 0
 
 const NULL: { mesh: ShapeMesh | null; mass: number } = { mesh: null, mass: 0 }
-const NULLVOLUME: ShapeMesh & { volume: number } = { vertices: new Float32Array(), normals: new Float32Array(), volume: 0 }
+const NULLVOLUME: ShapeMesh & { volume: number } = { vertices: new Float32Array(), normals: new Float32Array(), triangles: new Uint16Array(), faceGroups: [], volume: 0 }
 
 async function ensureOC() {
   if (!oc) {
@@ -49,15 +41,6 @@ async function ensureOC() {
     ocTime = performance.now() - start
   } // @ts-ignore
   else console.debug('OC memory', oc.asm.oa.buffer.byteLength / 1e6 + ' MB')
-}
-
-async function ensureRust() {
-  if (!rust) {
-    rust = await __wbg_init({} as any)
-    manifold = await loadManifold({ locateFile: () => manifoldUrl })
-    manifold.setup()
-    setManifold(manifold)
-  }
 }
 
 const toMesh = (mesh: BufferGeometry) =>
@@ -131,7 +114,7 @@ export async function generatePlateQuick(config: Cuttleform, geo: Geometry, with
 
 export async function generatePlate(config: Cuttleform, cut = false) {
   await ensureOC()
-  await ensureRust()
+  await ensureDeps()
   const geo = newGeometry(config)
   const { top, bottom } = makePlate(config, geo, cut)
   const topMesh = colorPlate(geo, meshWithVolume(await top()), true)
@@ -143,7 +126,7 @@ export async function generatePlate(config: Cuttleform, cut = false) {
 }
 
 export async function generateQuick(config: Cuttleform, withSupports: boolean) {
-  await ensureRust()
+  await ensureDeps()
   const geo = newGeometry(config)
   const platePromise = generatePlateQuick(config, geo, withSupports)
   const webPromise = generateWebQuick(config, geo, withSupports)
@@ -163,7 +146,7 @@ export async function* generate(config: Cuttleform, geo: Geometry, stitchWalls: 
     throw new Error('No pro account')
   }
   await ensureOC()
-  await ensureRust()
+  await ensureDeps()
   const assembly = new Assembly()
 
   console.time('Calculating geometry')
@@ -252,7 +235,7 @@ export async function* generate(config: Cuttleform, geo: Geometry, stitchWalls: 
 
 export async function generateScrewInserts(config: Cuttleform) {
   await ensureOC()
-  await ensureRust()
+  await ensureDeps()
   const geo = newGeometry(config)
   if (!geo.screwIndices.length) return { baseInserts: NULL, plateInserts: NULL }
   let baseInsertsM = makerScrewInserts(config, geo, ['base'])
@@ -303,7 +286,7 @@ export async function generateMirroredWristRest(config: Cuttleform) {
 
 export async function cutWall(config: Cuttleform) {
   await ensureOC()
-  await ensureRust()
+  await ensureDeps()
   const geo = newGeometry(config)
   let walls = config.shell.type == 'stilts'
     ? makeStiltsWalls(geo)

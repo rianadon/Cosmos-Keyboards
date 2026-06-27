@@ -913,7 +913,8 @@ export function minWallYAlongVector(c: Cuttleform, surfaces: Line[][], idx: numb
 
 /** The connector origin is right after the leftmost wall segment on the back of the model. */
 export function connectorOrigin(c: Cuttleform, walls: WallCriticalPoints[], innerSurfaces: Line[][], selectB: string[], worldZ: Vector, bottomZ: number) {
-  const wall = c.connectorIndex < 0 ? connectorIndex(c, walls, innerSurfaces, worldZ, bottomZ, selectB) : c.connectorIndex
+  const errorFn = connectorErrorFn(c, walls, innerSurfaces, worldZ, bottomZ, selectB)
+  const wall = c.connectorIndex < 0 ? connectorIndex(c, walls, errorFn) : c.connectorIndex
   return originForConnector(c, walls, innerSurfaces, wall)
 }
 

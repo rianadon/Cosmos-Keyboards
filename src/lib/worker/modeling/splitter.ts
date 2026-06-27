@@ -113,16 +113,16 @@ export class Splitter {
   }
 }
 
-export function splitShell(face: Face) {
-  const oc = getOC() as OpenCascadeInstance
-  const splitter = new oc.BOPAlgo_ShellSplitter_1()
-  splitter.AddStartElement(face.wrapped)
-  console.log('performing')
-  splitter.Perform(new oc.Message_ProgressRange_1())
-  console.log('done performing', splitter.HasErrors(), splitter.HasWarnings())
-  const shells = splitter.Shells()
-  console.log('Shells', shells.Size())
-  const shell = splitter.Shells().First_1()
-  splitter.delete()
-  return new Shell(shell)
-}
+// export function splitShell(face: Face) {
+//   const oc = getOC() as OpenCascadeInstance
+//   const splitter = new oc.BOPAlgo_ShellSplitter_1()
+//   splitter.AddStartElement(face.wrapped)
+//   console.log('performing')
+//   splitter.Perform(new oc.Message_ProgressRange_1())
+//   console.log('done performing', splitter.HasErrors(), splitter.HasWarnings())
+//   const shells = splitter.Shells()
+//   console.log('Shells', shells.Size())
+//   const shell = splitter.Shells().First_1()
+//   splitter.delete()
+//   return new Shell(shell)
+// }

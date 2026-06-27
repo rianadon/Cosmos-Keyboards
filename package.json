@@ -25,7 +25,7 @@
     "comlink": "^4.4.2",
     "cytoscape": "^3.32.1",
     "fflate": "^0.8.2",
-    "manifold-3d": "^3.3.2",
+    "@rianadon/manifold-3d": "^3.5.2",
     "monaco-editor": "^0.37.1",
     "path-data-parser": "^0.1.0",
     "qrious": "^4.0.2",

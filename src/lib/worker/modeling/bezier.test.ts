@@ -1,5 +1,5 @@
+import getManifold, { ManifoldToplevel } from '@rianadon/manifold-3d'
 import { beforeAll, describe, expect, test } from 'bun:test'
-import getManifold, { ManifoldToplevel } from 'manifold-3d'
 import { calcNewP, CompBezierSurface as Surface } from './bezier'
 import { ShapeMesh } from './index'
 import { Vector } from './transformation'

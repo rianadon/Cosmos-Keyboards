@@ -15,3 +15,11 @@ export function makeStiltsPlate(_c: Cuttleform, _geo: Geometry, _cut = false): {
 export function makeStiltsPlateSimpleMesh(_c: Cuttleform, _geo: Geometry, _cut = false): ShapeMesh {
   throw new Error(errorMsg)
 }
+
+export function makeStiltsWalls(geo: Geometry): Solid {
+  throw new Error(errorMsg)
+}
+
+export function makeStiltsWallsQuick(geo: Geometry): ShapeMesh {
+  throw new Error(errorMsg)
+}

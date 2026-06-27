@@ -11,10 +11,10 @@
  */
 
 import { notNull } from '$lib/worker/util'
+import type { CrossSection, Manifold, ManifoldToplevel, Mat4, Polygons, Vec2, Vec3 } from '@rianadon/manifold-3d'
+import loadMF from '@rianadon/manifold-3d'
 import { readdirSync, readFileSync } from 'fs'
 import { readFile } from 'fs/promises'
-import type { CrossSection, Manifold, ManifoldToplevel, Mat4, Polygons, Vec2, Vec3 } from 'manifold-3d'
-import loadMF from 'manifold-3d'
 import * as parser from 'openscad-parser'
 import { join, resolve } from 'path'
 import { BufferAttribute, BufferGeometry, Vector2, Vector3 } from 'three'

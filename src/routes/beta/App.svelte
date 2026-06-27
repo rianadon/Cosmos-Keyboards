@@ -821,7 +821,6 @@
                     {hideWall}
                     {transparency}
                     {showSupports}
-                    keebGeometry={geometry[kbd]}
                     microcontrollerGeometry={microcontrollerGeometry[kbd]}
                     meshes={mesh}
                   />
