@@ -64,7 +64,11 @@
             Did you know you can make your own layout in Cosmos? Click a key in the 3D view and edit the
             Letter field to set custom legends per key.
           </p>
-          <img class="mb-2 w-80% mx-auto" src="{base}/help-letter.png" />
+          <img
+            class="mb-2 w-80% mx-auto"
+            alt="How to access the letter field: 1) Click a key. 2) CLick Edit key. 3) Click the letter field in the popup"
+            src="{base}/help-letter.png"
+          />
           <p class="mb-2">
             The language list is incomplete as it's limited to languages that are easy to set up in both
             QMK and ZMK. However, even if your language has glyphs not represented in this set of

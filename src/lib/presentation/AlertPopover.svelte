@@ -83,7 +83,10 @@
         To make your own layout in Cosmos, click a key in the 3D view and edit the Letter field to set
         custom legends per key.
       </p>
-      <img src="{base}/help-letter.png" />
+      <img
+        alt="How to access the letter field: 1) Click a key. 2) CLick Edit key. 3) Click the letter field in the popup"
+        src="{base}/help-letter.png"
+      />
     {:else}
       <div>{alert.message}</div>
     {/if}
