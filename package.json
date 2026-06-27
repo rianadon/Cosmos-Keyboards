@@ -60,7 +60,7 @@
     "ml-matrix": "^6.10.4",
     "node-three-gltf": "^2.1.0",
     "openscad-parser": "^0.6.3",
-    "playwright": "^1.59.1",
+    "playwright": "^1.61.1",
     "shelljs": "^0.10.0",
     "simple-git-hooks": "^2.13.1",
     "svelte": "^4.2.17",
