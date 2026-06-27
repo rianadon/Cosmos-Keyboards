@@ -1,5 +1,6 @@
+import { DEFAULT_LAYOUT, flipLetter, rightCells } from '$lib/geometry/layouts'
 import { PART_INFO } from '$lib/geometry/socketsParts'
-import { approximateCosmosThumbOrigin, cosmosFingers, type Cuttleform, decodeTuple, encodeTuple, type FullCuttleform, newGeometry } from '$lib/worker/config'
+import { approximateCosmosThumbOrigin, type Center, cosmosFingers, type Cuttleform, decodeTuple, encodeTuple, type FullCuttleform, type KeyboardSide, newGeometry } from '$lib/worker/config'
 import {
   type ConnectorMaybeCustom,
   type CosmosCluster,
@@ -10,14 +11,52 @@ import {
   mirrorCluster,
   type PartType,
   sideFromCosmosConfig,
+  sortClusters,
   toCosmosConfig,
 } from '$lib/worker/config.cosmos'
 import { decodeCosmosCluster, LETTERS } from '$lib/worker/config.serialize'
 import { estimatedBB } from '$lib/worker/geometry'
 import { Vector } from '$lib/worker/modeling/transformation'
-import { mapObj, objKeys, sum } from '$lib/worker/util'
+import { mapObj, objEntries, objKeys, sum } from '$lib/worker/util'
+import type { Layout } from '$target/cosmosStructs'
 import { Cluster } from '../../../../../target/proto/cosmos'
 import { addColumnInPlace } from '../viewers/viewer3dHelpers'
+
+export type ThumbPreset = 'curved' | 'carbonfet' | 'manuform' | 'orbyl'
+const THUMB_CONFIG: Record<ThumbPreset, { b64: string; n?: number[]; defaultN?: number }> = {
+  curved: {
+    b64:
+      'Ci8SExDAjwJAgICYAkjCmaCVkLwBUEMSFhDApwJAgIDMAkjCmaCVkLwBUIYBWDo4CAoWEhEQwANAgIAgSNCVgN2Q9QNQC1CeAgorEhEQwBtAgID4AUjmmfynkAtQVxIUEMAzQICApANI8JnEtdAwUHRYlQFQfwoYEhMQgD9AkrbtDEj6mejs8PwCUIYBUIICGAIiCgjIARDIARgAIABAy4v8n9AxSK2R3I3BkwY=',
+    n: [2, 3, 4, 5, 6],
+    defaultN: 5,
+  },
+  carbonfet: {
+    b64: 'ChASBhBAIA5AARIEIAVAATgTCiESEQiAMBDAgAJAAUiAgIz9A1ByEgoIgCAQQEABUIUBOAAKHBIPCIAwEEBAAUiAgIz9A1BaEgcIgCAgD0ABOBQYAiIKCMgBEMgBGAAgAEDXicymkDZIqY2AtvGXHA==',
+  },
+  manuform: {
+    b64:
+      'CoMBEhYIgDAQwMACIABAi4XYlhBIjYWAwN0NEhQIgDAQwAMgAECaxJYISI2FgMDdDRISEMAbIABArYXcA0iZiYSe4NwQEhMQwCcgAEDig9jQAUjpk5yXoPAREhIQwDMgAEDP4o84SIOPnJegvRISFBDAPyAAQPCFvJewAUjhncyNwNgSOAAYAiIKCMgBEMgBGAAgAECdjcys8DNIpqngxvCzCA==',
+    n: [2, 3, 4, 6],
+    defaultN: 6,
+  },
+  orbyl: {
+    b64: 'CgoSBRBAUPICOMAMCgsSBhDAgAIgKDioFAoJEgQQQCAoOJAcCgsSBhBAIChAADj4IwoYEhIQQCAAMMgBQICAgA1IgICwrAEwFjgAGAoiCgjIARDIARgAIABA25GknPA3SISPlNageA==',
+  },
+}
+
+export type CenterPreset = 'display' | 'trackball'
+const CENTER_CONFIG: Record<CenterPreset, { b64: string; n?: number[]; defaultN?: number }> = {
+  display: {
+    b64: 'CkwSFggIEDAgEyhkMPQDQIDmkBxIgICQ/QMSGAiRMBDAgAIgAECAvLgMSIC2qqH6B4gBUBILEEAgAECrhbyc8DgSCSAAQKyFvJzwODgAGAQiCgjIARDIARgAIABAgJAX',
+  },
+  trackball: {
+    b64: 'CkcSFgiSMBDAgAIgAECA0JLgH0iA6tKg+gcSFQiWgBIQQCAAQICehugBSICGnqD6BxIJIABAq4Wcv/A4EgkgAECshZy/8Dg4AAoVEhEICBAwIAAoMjCgBkCsBUiEDzgUChUSEQgIEDAgACgyMKAGQKsFSIQPOBMYBCIKCMgBEMgBGAAgAECAkJfwBQ==',
+  },
+}
+
+const decodedClusters = mapObj(THUMB_CONFIG, ({ b64 }) => decodeCosmosCluster(Cluster.fromBinary(Uint8Array.from(atob(b64), c => c.charCodeAt(0)))))
+const mirroredDecodedClusters = mapObj(decodedClusters, c => mirrorCluster(c, undefined))
+const decodedCenterClusters = mapObj(CENTER_CONFIG, ({ b64 }) => decodeCosmosCluster(Cluster.fromBinary(Uint8Array.from(atob(b64), c => c.charCodeAt(0)))))
 
 export function getSize(c: CosmosKeyboard, side: 'left' | 'right') {
   const fingers = c.clusters.find((c) => c.name == 'fingers' && c.side == side)
@@ -42,15 +81,15 @@ export function setClusterSize(keyboard: CosmosKeyboard, side: 'left' | 'right',
   if (side == 'left') newThumb.x *= -1
   const newPosition = originalPosition.add(originalThumb).sub(newThumb)
   const newTup = encodeTuple(newPosition.toArray().map((x) => Math.round(10 * x)))
-  fingers.clusters = cosmosFingers(rows, cols, side, addExtraRow)
+  fingers.clusters = cosmosFingers(rows, cols, side, addExtraRow, keyboard.layout)
   fingers.position = newTup
 
   return keyboard
 }
 
-export function clusterSeparation(c: CosmosKeyboard) {
-  const rightSide = sideFromCosmosConfig(c, 'right', false)
-  const leftSide = sideFromCosmosConfig(c, 'left', false)
+export function clusterSeparation(c: CosmosKeyboard, left: KeyboardSide, right: KeyboardSide) {
+  const rightSide = sideFromCosmosConfig(c, right, false)
+  const leftSide = sideFromCosmosConfig(c, left, false)
   if (!leftSide || !rightSide) return 0
   const rightBB = estimatedBB(newGeometry(rightSide), false, false)
   const leftBB = estimatedBB(newGeometry(leftSide), false, false)
@@ -58,16 +97,31 @@ export function clusterSeparation(c: CosmosKeyboard) {
 }
 
 export function setClusterSeparation(c: CosmosKeyboard, desiredSeparation: number) {
-  const currentSeparation = clusterSeparation(c)
+  const currentSeparation = clusterSeparation(c, 'left', 'right')
   const separationToAdd = (desiredSeparation - currentSeparation) / 2
   for (const cluster of c.clusters) {
+    if (cluster.side === 'center') continue // Center stays put; left/right move outward.
     let [x, y, z] = decodeTuple(cluster.position ?? 0n)
     x += Math.round(10 * (cluster.side == 'left' ? -separationToAdd : separationToAdd))
     cluster.position = encodeTuple([x, y, z])
   }
   let [x, y, z] = decodeTuple(c.wristRestPosition)
-  x += 10 * separationToAdd
+  x += Math.round(10 * separationToAdd)
   c.wristRestPosition = encodeTuple([x, y, z])
+  return c
+}
+
+/** Keeps center in place and adjusts the separation between center and one side of the keyboard */
+export function setClusterSeparationFromCenter(c: CosmosKeyboard, desiredGap: number, side: KeyboardSide) {
+  const delta = side == 'left'
+    ? clusterSeparation(c, 'left', 'center') - desiredGap
+    : desiredGap - clusterSeparation(c, 'center', 'right')
+
+  for (const cluster of c.clusters) {
+    if (cluster.side !== side) continue
+    const [x, y, z] = decodeTuple(cluster.position ?? 0n)
+    cluster.position = encodeTuple([x + Math.round(10 * delta), y, z])
+  }
   return c
 }
 
@@ -111,84 +165,10 @@ export function setClusterAngle(c: CosmosKeyboard, desiredAngle: number) {
   return c
 }
 
-// export function setThumbCluster(c: CosmosKeyboard, type: 'carbonfet' | 'manuform' | 'orbyl' | 'curved', side: 'left' | 'right') {
-//   // @ts-ignore
-//   let cc: CuttleformProto = { ...cuttleform.options }
-
-//   if (type == 'manuform') {
-//     cc.thumbCluster = {
-//       oneofKind: 'defaultThumb',
-//       defaultThumb: {
-//         thumbCount: Cuttleform_DefaultThumb_KEY_COUNT.SIX,
-//         encoder: false,
-//         encoderType: ENCODER.EC11,
-//       },
-//     }
-//   } else if (type == 'curved') {
-//     cc.thumbCluster = {
-//       oneofKind: 'curvedThumb',
-//       curvedThumb: {
-//         thumbCount: Cuttleform_CurvedThumb_KEY_COUNT.FIVE,
-//         rowCurve: 0,
-//         columnCurve: 0,
-//         horizontalSpacing: 200,
-//         verticalSpacing: 200,
-//         encoder: false,
-//         encoderType: ENCODER.EC11,
-//       },
-//     }
-//   } else if (type == 'orbyl') {
-//     cc.thumbCluster = {
-//       oneofKind: 'orbylThumb',
-//       orbylThumb: {
-//         curvature: 0,
-//       },
-//     }
-//   } else if (type == 'carbonfet') {
-//     cc.thumbCluster = {
-//       oneofKind: 'carbonfetThumb',
-//       carbonfetThumb: {
-//         rowCurve: -225,
-//         columnCurve: -450,
-//         horizontalSpacing: 200,
-//         verticalSpacing: 205,
-//       },
-//     }
-//   }
-//   const cosc = toCosmosConfig(cuttleConf(cc), side)
-//   const coscthumb = cosc.clusters.find((c) => c.name == 'thumbs')!
-
-//   const thumb = c.clusters.find((c) => c.name == 'thumbs' && c.side == side)!
-//   thumb.clusters = coscthumb.clusters
-//   thumb.rotation = coscthumb.rotation
-//   thumb.position = coscthumb.position
-//   return c
-// }
-
-type Thumb = 'curved' | 'carbonfet' | 'manuform' | 'orbyl'
-const THUMB_CONFIG: Record<Thumb, { b64: string; n?: number[]; defaultN?: number }> = {
-  curved: {
-    b64:
-      'Ci8SExDAjwJAgICYAkjCmaCVkLwBUEMSFhDApwJAgIDMAkjCmaCVkLwBUIYBWDo4CAoWEhEQwANAgIAgSNCVgN2Q9QNQC1CeAgorEhEQwBtAgID4AUjmmfynkAtQVxIUEMAzQICApANI8JnEtdAwUHRYlQFQfwoYEhMQgD9AkrbtDEj6mejs8PwCUIYBUIICGAIiCgjIARDIARgAIABAy4v8n9AxSK2R3I3BkwY=',
-    n: [2, 3, 4, 5, 6],
-    defaultN: 5,
-  },
-  carbonfet: {
-    b64: 'ChASBhBAIA5AARIEIAVAATgTCiESEQiAMBDAgAJAAUiAgIz9A1ByEgoIgCAQQEABUIUBOAAKHBIPCIAwEEBAAUiAgIz9A1BaEgcIgCAgD0ABOBQYAiIKCMgBEMgBGAAgAEDXicymkDZIqY2AtvGXHA==',
-  },
-  manuform: {
-    b64:
-      'CoMBEhYIgDAQwMACIABAi4XYlhBIjYWAwN0NEhQIgDAQwAMgAECaxJYISI2FgMDdDRISEMAbIABArYXcA0iZiYSe4NwQEhMQwCcgAEDig9jQAUjpk5yXoPAREhIQwDMgAEDP4o84SIOPnJegvRISFBDAPyAAQPCFvJewAUjhncyNwNgSOAAYAiIKCMgBEMgBGAAgAECdjcys8DNIpqngxvCzCA==',
-    n: [2, 3, 4, 6],
-    defaultN: 6,
-  },
-  orbyl: {
-    b64: 'CgoSBRBAUPICOMAMCgsSBhDAgAIgKDioFAoJEgQQQCAoOJAcCgsSBhBAIChAADj4IwoYEhIQQCAAMMgBQICAgA1IgICwrAEwFjgAGAoiCgjIARDIARgAIABA25GknPA3SISPlNageA==',
-  },
-}
-
-export function setThumbCluster(c: CosmosKeyboard, type: Thumb, side: 'left' | 'right', howMany?: number) {
-  const { b64, n, defaultN } = THUMB_CONFIG[type]
+export function setPreset(c: CosmosKeyboard, name: 'center', type: CenterPreset, side: 'center', howMany?: number): CosmosKeyboard
+export function setPreset(c: CosmosKeyboard, name: 'thumbs', type: ThumbPreset, side: 'left' | 'right', howMany?: number): CosmosKeyboard
+export function setPreset(c: CosmosKeyboard, name: 'thumbs' | 'center', type: ThumbPreset | CenterPreset, side: 'left' | 'right' | 'center', howMany?: number) {
+  const { b64, n, defaultN } = name == 'thumbs' ? THUMB_CONFIG[type as ThumbPreset] : CENTER_CONFIG[type as CenterPreset]
   let cluster = decodeCosmosCluster(Cluster.fromBinary(Uint8Array.from(atob(b64), c => c.charCodeAt(0))))
   if (n) {
     const limit = howMany ?? defaultN ?? Infinity
@@ -196,37 +176,46 @@ export function setThumbCluster(c: CosmosKeyboard, type: Thumb, side: 'left' | '
   }
   // Erase all key labels
   cluster.clusters.forEach(c => c.keys.forEach(k => k.profile.letter = undefined))
-  if (side == 'left') cluster = mirrorCluster(cluster)
+  if (side == 'left') cluster = mirrorCluster(cluster, c)
 
-  const thumb = c.clusters.find((c) => c.name == 'thumbs' && c.side == side)
-  if (!thumb) return c
-  if (thumb.type != cluster.type) thumb.curvature = cluster.curvature
-  thumb.type = cluster.type
-  thumb.clusters = cluster.clusters
-  thumb.rotation = cluster.rotation
-  thumb.position = cluster.position
+  const thumb = c.clusters.find((c) => c.name == name && c.side == side)
+  if (thumb) {
+    if (thumb.type != cluster.type) thumb.curvature = cluster.curvature
+    thumb.type = cluster.type
+    thumb.clusters = cluster.clusters
+    thumb.rotation = cluster.rotation
+    thumb.position = cluster.position
+  } else if (side == 'center') {
+    // Center clusters aren't included by default, so it needs to be added
+    c.clusters.push(cluster)
+    sortClusters(c.clusters)
+  }
   return c
 }
 
-const decodedClusters = mapObj(THUMB_CONFIG, ({ b64 }) => decodeCosmosCluster(Cluster.fromBinary(Uint8Array.from(atob(b64), c => c.charCodeAt(0)))))
-const mirroredDecodedClusters = mapObj(decodedClusters, c => mirrorCluster(c))
-
-export function getThumbN(c: CosmosKeyboard, side: 'left' | 'right') {
-  const thumb = c.clusters.find((c) => c.name == 'thumbs' && c.side == side)
+export function getPresetN(c: CosmosKeyboard, name: 'center', side: 'center'): { which: CenterPreset; options: number[]; n: number } | undefined
+export function getPresetN(c: CosmosKeyboard, name: 'thumbs', side: 'left' | 'right'): { which: ThumbPreset; options: number[]; n: number } | undefined
+export function getPresetN(c: CosmosKeyboard, name: 'thumbs' | 'center', side: 'left' | 'right' | 'center') {
+  const thumb = c.clusters.find((c) => c.name == name && c.side == side)
   if (!thumb) return
-  const whichThumb = objKeys(THUMB_CONFIG).find(k => THUMB_CONFIG[k].n && isThumb(c, k, side))
+  const whichThumb = Object.entries(name == 'thumbs' ? THUMB_CONFIG : CENTER_CONFIG) // @ts-ignore next line
+    .find(([k, v]) => v.n && isPreset(c, name, k, side))
+
   if (whichThumb) {
     return {
-      which: whichThumb,
-      options: THUMB_CONFIG[whichThumb].n!,
+      which: whichThumb[0] as CenterPreset | ThumbPreset,
+      options: whichThumb[1].n!,
       n: sum(thumb?.clusters.map(c => c.keys.length)),
     }
   }
 }
 
-export function isThumb(c: CosmosKeyboard, type: Thumb, side: 'left' | 'right') {
-  const cluster = (side == 'left' ? mirroredDecodedClusters : decodedClusters)[type]
-  const thumb = c.clusters.find((c) => c.name == 'thumbs' && c.side == side)
+export function isPreset(c: CosmosKeyboard, name: 'center', type: CenterPreset, side: 'center'): boolean
+export function isPreset(c: CosmosKeyboard, name: 'thumbs', type: ThumbPreset, side: 'left' | 'right'): boolean
+export function isPreset(c: CosmosKeyboard, name: 'thumbs' | 'center', type: ThumbPreset | CenterPreset, side: 'left' | 'right' | 'center') {
+  // @ts-ignore
+  const cluster: CosmosCluster = { left: mirroredDecodedClusters, right: decodedClusters, center: decodedCenterClusters }[side][type]
+  const thumb = c.clusters.find((c) => c.name == name && c.side == side)
   if (!thumb || thumb.clusters.length == 0) return false
 
   return thumb.clusters.every(c =>
@@ -254,7 +243,7 @@ export function testPrint(c: FullCuttleform) {
   }
   const cosmosBoard = toCosmosConfig(keyboard, 'right', false)
   cosmosBoard.clusters.forEach(c => c.clusters.length = 0)
-  setThumbCluster(cosmosBoard, 'curved', 'right', 1)
+  setPreset(cosmosBoard, 'thumbs', 'curved', 'right', 1)
   return fromCosmosConfig(cosmosBoard).right!
 }
 
@@ -284,6 +273,11 @@ export function getNKeys(kbd: CosmosKeyboard, type: PartType['type']) {
       ? sum(rightSide!.clusters.map(c => c.keys.filter(k => !type || (k.partType.type || c.partType.type || kbd.partType.type) == type).length))
       : nRight
     nKeys += nRight + nLeft
+  }
+  // Center cluster: counted once (no mirror).
+  const centerSide = kbd.clusters.find(c => c.side == 'center')
+  if (centerSide) {
+    nKeys += sum(centerSide.clusters.map(c => c.keys.filter(k => !type || (k.partType.type || c.partType.type || kbd.partType.type) == type).length))
   }
   return nKeys
 }
@@ -342,6 +336,7 @@ function alphaColumns(kbd: CosmosKeyboard, cluster: CosmosCluster) {
 export function addRow(kbd: CosmosKeyboard, fn: (side: 'left' | 'right', alphas: number[], row: number, column: number) => string | null) {
   return mapClusters(kbd, cluster => {
     if (cluster.name !== 'fingers') return cluster // Only change fingers cluster
+    if (cluster.side === 'center') return cluster // No num/fn rows on center cluster
     const alphas = alphaColumns(kbd, cluster)
     return mapClusters(cluster, (col, i) => {
       const firstKey = col.keys.filter(a => !!a.row).sort((a, b) => a.row! - b.row!)[0]
@@ -349,7 +344,7 @@ export function addRow(kbd: CosmosKeyboard, fn: (side: 'left' | 'right', alphas:
       if (!PART_INFO[firstKey.partType.type || col.partType.type || kbd.partType.type!].keycap) return col // Skip if first key not a keycap
       const oldRow = firstKey?.profile.row
       const row = (firstKey?.row || 0) - 1
-      const letter = fn(cluster.side, alphas, i, cluster.clusters.length)
+      const letter = fn(cluster.side as 'left' | 'right', alphas, i, cluster.clusters.length)
       if (letter === null) return col // Skip adding key if fn returns null
       const key: CosmosKey = {
         profile: {

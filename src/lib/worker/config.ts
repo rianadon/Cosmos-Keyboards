@@ -1,6 +1,7 @@
 import type manuform from '$assets/manuform.json'
+import { DEFAULT_LAYOUT, rightCells } from '$lib/geometry/layouts'
 import { socketSize } from '$lib/geometry/socketsParts'
-import type { CuttleKey, CuttleTrackpadCirqueKey, MicrocontrollerName } from '$target/cosmosStructs'
+import type { CuttleKey, CuttleTrackpadCirqueKey, Layout, MicrocontrollerName } from '$target/cosmosStructs'
 import {
   CONNECTOR,
   CONNECTOR_SIZE,
@@ -143,8 +144,10 @@ export type Cuttleform = SpecificCuttleform<AnyShell>
 export type FullCuttleform = {
   left?: Cuttleform
   right?: Cuttleform
+  center?: Cuttleform
   unibody?: Cuttleform
 }
+export type KeyboardSide = 'left' | 'right' | 'center' | 'unibody'
 
 export interface BasicShell {
   type: 'basic'
@@ -305,8 +308,8 @@ function cuttleConfShell(c: DeepRequired<CuttleformProto>): AnyShell {
   throw new Error('Unknown shell type')
 }
 
-function maybeMirror(c: DeepRequired<CuttleformProto>, keys: CuttleKey[]) {
-  if (c.wall.unibody) return unibody(keys, c.wall.unibodyGap / 10, c.wall.unibodyAngle / 45)
+function maybeMirror(c: DeepRequired<CuttleformProto>, layout: Layout, keys: CuttleKey[]) {
+  if (c.wall.unibody) return unibody(keys, layout, c.wall.unibodyGap / 10, c.wall.unibodyAngle / 45)
   return keys
 }
 
@@ -318,7 +321,7 @@ export function cuttleConf(c: DeepRequired<CuttleformProto>): Cuttleform {
     wallZOffset: 15,
     webThickness: c.wall.webThickness / 10,
     webMinThicknessFactor: DEFAULT_MWT_FACTOR,
-    keys: maybeMirror(c, [
+    keys: maybeMirror(c, DEFAULT_LAYOUT, [
       ...fingers(c),
       ...thumbs(c),
     ]),
@@ -513,19 +516,12 @@ function mergedCurvature(c: CuttleformProto, pinky: boolean, curv: any): any {
   }
 }
 
-function letterForKeycap(row: number, column: number) {
-  let letter = {
-    1: '67890',
-    2: 'yuiop',
-    3: "hjkl;'",
-    4: 'nm,./',
-    5: '{}[]\\',
-  }[row]?.charAt(column) || undefined
-  if (row == 0) letter = ['F6', 'F7', 'F8', 'F9', 'F10'][column] || undefined
-  return letter
+function letterForKeycap(row: number, column: number, layout: Layout) {
+  if (row == 0) return ['F6', 'F7', 'F8', 'F9', 'F10'][column] || undefined
+  return rightCells(layout)[row - 1][column]
 }
 
-function keycapInfo(c: CuttleformProto, row: number, column: number): Keycap {
+function keycapInfo(c: CuttleformProto, row: number, column: number, layout: Layout): Keycap {
   let home: Keycap['home']
   if (row == 3) {
     home = ({
@@ -539,7 +535,7 @@ function keycapInfo(c: CuttleformProto, row: number, column: number): Keycap {
   // Row 5 is used for thumb keys (in MT3, the 5th row key has zero tilt)
   // So don't use it for the non-thumb keys since it is special!
   // (hence the Math.min(x, 4)
-  return { profile: keycapType(c), row: Math.min(row, 4), home, letter: letterForKeycap(row, column) }
+  return { profile: keycapType(c), row: Math.min(row, 4), home, letter: letterForKeycap(row, column, layout) }
 }
 
 export function decodeTuple(tuple: bigint): [number, number, number, number] {
@@ -602,7 +598,7 @@ export function tupleToXYZ(tuple: bigint) {
   return [decoded[0] / 10, decoded[1] / 10, decoded[2] / 10] as Point
 }
 
-export function cosmosFingers(nRows: number, nCols: number, side: 'left' | 'right', addExtraRow = true): CosmosCluster[] {
+export function cosmosFingers(nRows: number, nCols: number, side: 'left' | 'right', addExtraRow = true, layout: Layout = DEFAULT_LAYOUT): CosmosCluster[] {
   let columns = range(0, nCols)
   if (nCols <= 4) columns = range(1, nCols + 1)
   const rows = range(0, nRows)
@@ -650,7 +646,7 @@ export function cosmosFingers(nRows: number, nCols: number, side: 'left' | 'righ
             4: 'pinky',
           } as Record<number, Keycap['home']>)[column] ?? null
           : null,
-        letter: letterForKeycap(row2Row(row), column),
+        letter: letterForKeycap(row2Row(row), column, layout),
       },
       row: row - centerRow,
       position: undefined,
@@ -792,7 +788,7 @@ export function fingers(c: DeepRequired<CuttleformProto>): CuttleKey[] {
           && row == lastRow && column == lastCol
         return {
           type: isBlank ? 'blank' : switchType(c),
-          keycap: keycapInfo(c, row2Row(row), column),
+          keycap: keycapInfo(c, row2Row(row), column, DEFAULT_LAYOUT),
           aspect: usesWidePinky(column, row) ? pinkySize : 1,
           size: isBlank ? { width: 18.5, height: 18.5 } : undefined,
           cluster: 'fingers',
@@ -1524,6 +1520,7 @@ export function newFullGeometry(c: FullCuttleform): FullGeometry {
   const geo: FullGeometry = {}
   if (c.left) geo.left = newGeometry(c.left)
   if (c.right) geo.right = newGeometry(c.right)
+  if (c.center) geo.center = newGeometry(c.center)
   if (c.unibody) geo.unibody = newGeometry(c.unibody)
   return geo
 }
@@ -1533,13 +1530,17 @@ export function setBottomZ(conf: FullCuttleform, fast: boolean = false) {
   if (conf.left && conf.right) {
     const botLeft = newGeometry(conf.left)[prop]
     const botRight = newGeometry(conf.right)[prop]
-    conf.left.bottomZ = conf.right.bottomZ = Math.min(botLeft, botRight)
+    const botCenter = conf.center ? newGeometry(conf.center)[prop] : Infinity
+    const bot = Math.min(botLeft, botRight, botCenter)
+    conf.left.bottomZ = conf.right.bottomZ = bot
+    if (conf.center) conf.center.bottomZ = bot
   }
 }
 
 export type Center = {
   left?: Point
   right?: Point
+  center?: Point
   unibody?: Point
 }
 export type FullCenter = Full<Center>
@@ -1556,22 +1557,20 @@ export function fullEstimatedCenter(geo: FullGeometry | undefined, withWristRest
   } else {
     const leftBB = estimatedBB(geo.left, withWristRest && !!geo.left?.c.wristRestRight)
     const rightBB = estimatedBB(geo.right, withWristRest && !!geo.right?.c.wristRestRight)
-    const sepDiff = (VIEW_SEPARATION - (rightBB[0] + leftBB[0])) / 2
+    const centerBB = geo.center ? estimatedBB(geo.center) : null
+    let sepDiff = (VIEW_SEPARATION - (rightBB[0] + leftBB[0])) / 2
+    if (centerBB) sepDiff += VIEW_SEPARATION / 2 + (centerBB[1] - centerBB[0]) / 2
+
+    const centerY = (Math.min(leftBB[2], rightBB[2]) + Math.max(leftBB[3], rightBB[3])) / 2
+    const centerZ = (Math.min(leftBB[4], rightBB[4]) + Math.max(leftBB[5], rightBB[5])) / 2
     return {
       left: {
         left: [-(leftBB[0] + leftBB[1]) / 2, (leftBB[2] + leftBB[3]) / 2, (leftBB[4] + leftBB[5]) / 2],
       },
       both: {
-        left: [
-          (rightBB[1] - leftBB[1]) / 2 + sepDiff,
-          (Math.min(leftBB[2], rightBB[2]) + Math.max(leftBB[3], rightBB[3])) / 2,
-          (Math.min(leftBB[4], rightBB[4]) + Math.max(leftBB[5], rightBB[5])) / 2,
-        ],
-        right: [
-          (rightBB[1] - leftBB[1]) / 2 - sepDiff,
-          (Math.min(leftBB[2], rightBB[2]) + Math.max(leftBB[3], rightBB[3])) / 2,
-          (Math.min(leftBB[4], rightBB[4]) + Math.max(leftBB[5], rightBB[5])) / 2,
-        ],
+        left: [(rightBB[1] - leftBB[1]) / 2 + sepDiff, centerY, centerZ],
+        right: [(rightBB[1] - leftBB[1]) / 2 - sepDiff, centerY, centerZ],
+        center: [centerBB ? (centerBB[0] + centerBB[1] + rightBB[1] - leftBB[1]) / 2 : 0, centerY, centerZ],
       },
       right: {
         right: [(rightBB[0] + rightBB[1]) / 2, (rightBB[2] + rightBB[3]) / 2, (rightBB[4] + rightBB[5]) / 2],
@@ -1590,10 +1589,12 @@ export function fullEstimatedSize(geo: FullGeometry | undefined): Full<[number, 
   } else {
     const [lx1, lx2, ly1, ly2, lz1, lz2] = estimatedBB(geo.left)
     const [rx1, rx2, ry1, ry2, rz1, rz2] = estimatedBB(geo.right)
-    const sep = VIEW_SEPARATION - (rx1 + lx1)
+    const [cx1, cx2, cy1, cy2, cz1, cz2] = geo.center ? estimatedBB(geo.center) : [0, 0, Infinity, -Infinity, Infinity, -Infinity]
+    let sep = VIEW_SEPARATION - (rx1 + lx1)
+    if (geo.center) sep += VIEW_SEPARATION + cx2 - cx1 // Extra width for center cluster
     return {
       left: [lx2 - lx1, ly2 - ly1, lz2 - lz1],
-      both: [sep + rx2 + lx2, Math.max(ly2, ry2) - Math.min(ly1, ry1), Math.max(lz2, rz2) - Math.min(lz1, rz1)],
+      both: [sep + rx2 + lx2, Math.max(ly2, ry2, cy2) - Math.min(ly1, ry1, cy1), Math.max(lz2, rz2, cz2) - Math.min(lz1, rz1, cz1)],
       right: [rx2 - rx1, ry2 - ry1, rz2 - rz1],
     }
   }

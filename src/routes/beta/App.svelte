@@ -23,6 +23,7 @@
   import HandFitView from './lib/dialogs/HandFitView.svelte'
   import Dialog from '$lib/presentation/Dialog.svelte'
   import Footer from './lib/Footer.svelte'
+  import Alert from '$lib/presentation/Alerts.svelte'
   import Editor from './lib/editor/CodeEditor.svelte'
   import Preset from '$lib/presentation/Preset.svelte'
   import FilamentChart from './lib/FilamentChart.svelte'
@@ -37,6 +38,7 @@
     type Cuttleform,
     type FullCenter,
     type FullCuttleform,
+    type KeyboardSide,
   } from '$lib/worker/config'
   import { checkConfig, type ConfErrors, isRenderable, isWarning, salientError } from '$lib/worker/check'
   import VisualEditor2 from './lib/editor/VisualEditor2.svelte'
@@ -247,6 +249,13 @@
             plate: c.right.plate ? { ...c.right.plate } : undefined,
           }
         : undefined,
+      center: c.center
+        ? {
+            ...c.center,
+            shell: { ...c.center.shell },
+            plate: c.center.plate ? { ...c.center.plate } : undefined,
+          }
+        : undefined,
       unibody: c.unibody
         ? {
             ...c.unibody,
@@ -275,12 +284,13 @@
       ...new Set([
         ...areDifferent(c1.left, c2.left),
         ...areDifferent(c1.right, c2.right),
+        ...areDifferent(c1.center, c2.center),
         ...areDifferent(c1.unibody, c2.unibody),
       ]),
     ]
   }
 
-  const calcOtherPromises = (conf: Cuttleform, side: 'left' | 'right' | 'unibody') => ({
+  const calcOtherPromises = (conf: Cuttleform, side: KeyboardSide) => ({
     intersectionsPromise: pool.execute(
       (w) => w.intersections(conf, side) as Promise<ConfErrors>,
       'Intersections'
@@ -445,10 +455,8 @@
           }
           // size = boundingSize([...keyBufs!, webBuf!])
         })
-        if (kbdNames.includes('right')) delete meshes.unibody
-        else {
-          delete meshes.left
-          delete meshes.right
+        for (const key of objKeys(meshes)) {
+          if (!kbdNames.includes(key)) delete meshes[key]
         }
       }
 
@@ -537,7 +545,16 @@
     if (mode === 'advanced' && newMode !== 'advanced') {
       // if (!confirm('Are you sure you wish to exit expert mode? Your work will not be saved.')) return
       try {
-        state.options = toFullCosmosConfig(config, true)
+        const next = toFullCosmosConfig(config, true)
+        state.options = next
+        // Push into the proto store too — the basic-mode editor binds to
+        // $protoConfig, not state.options, so without this the dropdown and
+        // 3D view keep showing whatever was loaded before the expert edits.
+        // The layout dropdown re-derives its value from $protoConfig via
+        // detectLayout() at render time, so no explicit field write is
+        // needed here.
+        protoConfig.set(next)
+        config = fromCosmosConfig(next)
         initialEditorContent = undefined // So the editor resets
       } catch (e) {
         console.error(e)
@@ -712,7 +729,7 @@
                   class:selected={$view == 'left'}><Icon name="kb-left" /></button
                 >
                 <button
-                  title="View Both Sides"
+                  title="View All Sides"
                   class="basicbutton px-2"
                   on:click={() => ($view = 'both')}
                   class:selected={$view == 'both'}><Icon name="kbs" /></button
@@ -1163,6 +1180,7 @@
 {/if} -->
 
 <DarkTheme bind:darkMode />
+<Alert />
 
 <style>
   @media (min-height: 480px) {

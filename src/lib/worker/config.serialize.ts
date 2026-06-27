@@ -4,12 +4,14 @@
 
 import { BinaryReader, BinaryWriter } from '@protobuf-ts/runtime'
 import {
+  type ClusterFlags,
   decodeBasicShellFlags,
   decodeClusterFlags,
   decodeConnector,
   decodeConnectorPreset,
   decodeKeyboardFlags,
   decodeKeycap,
+  decodeLayout,
   decodeMicrocontroller,
   decodePartVariant,
   decodePlateArt,
@@ -22,6 +24,7 @@ import {
   encodeConnectorPreset,
   encodeKeyboardFlags,
   encodeKeycap,
+  encodeLayout,
   encodeMicrocontroller,
   encodePartVariant,
   encodePlateArt,
@@ -123,6 +126,19 @@ function decodeConnectorsCompatible(connectors: Uint8Array, connector: number | 
   return decodeConnectors(connectors)
 }
 
+// Special handling for center cluster
+function decodeClusterFlagsCorrectly(idType: number) {
+  const flags = decodeClusterFlags(idType)
+  if (flags.name === 'center') return { ...flags, side: 'center' as const }
+  return flags
+}
+function encodeClusterFlagsCorrectly(c: ReturnType<typeof decodeClusterFlagsCorrectly>) {
+  return encodeClusterFlags({
+    ...c,
+    side: c.side == 'center' ? 'right' : c.side,
+  })
+}
+
 // ----------  PROFILES ----------
 // dprint-ignore
 export const LETTERS = [
@@ -215,7 +231,7 @@ export const KEYBOARD_DEFAULTS: Keyboard = {
   microcontroller: encodeMicrocontroller({ microcontroller: 'kb2040-adafruit', fastenMicrocontroller: true }),
   roundedFlags: encodeRoundedFlags({ side: false, top: false }),
   keyboardFlags: encodeKeyboardFlags({ wrEnable: true, unibody: false, noMirrorConnectors: false }),
-  wristRestPosition: encodeTuple([100, -1100, 0]),
+  wristRestPosition: 295109064n, // encodeTuple([100, -1100, 0]),
   cluster: [],
   shell: {
     oneofKind: 'basicShell',
@@ -223,6 +239,7 @@ export const KEYBOARD_DEFAULTS: Keyboard = {
       flags: encodeBasicShellFlags({ lip: false, embedded: false }),
     },
   },
+  layoutId: 0,
 }
 const KEYBOARD_EXTRA_DEFAULTS: KeyboardExtra = {
   webMinThicknessFactor: 10 * DEFAULT_MWT_FACTOR,
@@ -241,6 +258,7 @@ const KEYBOARD_EXTRA_DEFAULTS: KeyboardExtra = {
   wristRestRightExtension: 80,
   connectorLeftIndex: -10,
   connectorRightIndex: -10,
+  connectorCenterIndex: -10,
   screwIndices: [],
   microcontrollerAngle: 0,
   plateThickness: 30,
@@ -417,7 +435,7 @@ export function decodeCosmosCluster(clusterA: Cluster): CosmosCluster {
   let lastCluster: Cluster | null = null
 
   return {
-    ...decodeClusterFlags(clusterA.idType ?? 0),
+    ...decodeClusterFlagsCorrectly(clusterA.idType ?? 0),
     curvature: decodeCurvature(clusterA.curvature || {}),
     profile: decodeProfile(clusterA.keyProfile || 0).profile,
     partType: decodePartType(clusterA.partType || 0),
@@ -432,7 +450,7 @@ export function decodeCosmosCluster(clusterA: Cluster): CosmosCluster {
       let lastKey: Key | null = null
       let lastKeyRow = 0
       return {
-        ...decodeClusterFlags(clusterB.idType ?? clusterA.idType ?? 0),
+        ...decodeClusterFlagsCorrectly(clusterB.idType ?? clusterA.idType ?? 0),
         curvature: decodeCurvature(clusterB.curvature || {}),
         profile: decodeProfile(clusterB.keyProfile || 0).profile,
         partType: decodePartType(clusterB.partType || 0),
@@ -519,6 +537,7 @@ export function decodeConfigIdk(b64: string): CosmosKeyboard {
     wristRestPosition: keeb.wristRestPosition,
     connectorLeftIndex: keebExtra.connectorLeftIndex / 10,
     connectorRightIndex: keebExtra.connectorRightIndex / 10,
+    connectorCenterIndex: keebExtra.connectorCenterIndex / 10,
     clusters: keeb.cluster.map(decodeCosmosCluster),
     plate: hasSpecialPlate
       ? {
@@ -527,6 +546,7 @@ export function decodeConfigIdk(b64: string): CosmosKeyboard {
         footDiameter: keebExtra.footDiameter / 10,
       }
       : undefined,
+    layout: decodeLayout(keeb.layoutId),
   }
   return conf
 }
@@ -611,7 +631,7 @@ function decodeCurvature(c: Curvature): Curvature {
 
 export function encodeCosmosCluster(clusterA: CosmosCluster): Cluster {
   const cluster: Cluster = {
-    idType: encodeClusterFlags(clusterA),
+    idType: encodeClusterFlagsCorrectly(clusterA),
     cluster: [],
     key: [],
     partType: diff(encodePartType(clusterA.partType), 0),
@@ -625,7 +645,7 @@ export function encodeCosmosCluster(clusterA: CosmosCluster): Cluster {
   for (const clusterB of clusterA.clusters) {
     const col = clusterB.column
     const column: Cluster = {
-      idType: diff(encodeClusterFlags(clusterB), cluster.idType),
+      idType: diff(encodeClusterFlagsCorrectly(clusterB), cluster.idType),
       cluster: [],
       key: [],
       partType: diff(encodePartType(clusterB.partType), 0),
@@ -703,6 +723,7 @@ export function encodeCosmosConfig(conf: CosmosKeyboard): Keyboard {
     wristRestPosition: conf.wristRestPosition,
     cluster: conf.clusters.map(encodeCosmosCluster),
     shell: encodeShell(conf.shell),
+    layoutId: encodeLayout(conf.layout),
     extra: {
       verticalClearance: Math.round(conf.verticalClearance * 10),
       wristRestAngle: Math.round(conf.wristRestProps.angle * 45),
@@ -715,6 +736,7 @@ export function encodeCosmosConfig(conf: CosmosKeyboard): Keyboard {
       wristRestRightExtension: Math.round(conf.wristRestProps.extensionRight * 10),
       connectorLeftIndex: Math.round(conf.connectorLeftIndex * 10),
       connectorRightIndex: Math.round(conf.connectorRightIndex * 10),
+      connectorCenterIndex: Math.round(conf.connectorCenterIndex * 10),
       screwIndices: conf.screwIndices.some(c => c >= 0) ? conf.screwIndices.map(i => Math.round(i * 10) + 10) : [],
       roundedSideConcavity: conf.rounded.side ? Math.round(conf.rounded.side.concavity * 10) : undefined,
       roundedSideDivisor: conf.rounded.side ? Math.round(conf.rounded.side.divisor * 10) : undefined,
@@ -752,8 +774,8 @@ export function serializeCosmosConfig(trimmed: Keyboard) {
 
 // const test =
 // 'cf:ChYIBRAFWAAYBCAFKL4BMLkBUAJAAEgAEhAIwgMYxgogowU4LihaMJAcWnsKEQjzkdyf8DMQkpPYjrGTiuQBEg8Ii4XQlhAQjYWAwN2NqwESDgjIkJYIEI2FvKC6jasBEg8IrYXkAxCbiYSe4NyQ5AESEAjig9DQARDrk5yXoPCR5AESDwjP5o84EIOPnJegvZLkARIRCPCFxJewARDhncyNwNiS5AFCUwgD4AEBeAbYAQEQAUgASABIAEgASABIAEgAYABoAHABGAAgASgAmAH0A6gB6AegAcgBsAEAkAGEB7gBAIABADAAOChYAYgBAcABAMgB2ATQAYQH'
-const test =
-  'expert:eJzlWt1P4zgQf+9fYfFyLGrcJukH9LQvcHcSOnGcFvYJ8eAmLvWRJpHt0HYR//vN2Gmaj3YpEnsbdBEKyXhsz/zmN5MwIUhipUmSagEXE3JtL8hn8twhZMmi6HYugseYKxj0u7nsZi6TLBTxw4T0jYxPS2ob0ZWIC+kfLNCJhDF6iqOPfH3OlADlo1XIjlCkAsmXl3EoAg7iO9ejwy7xfDwP8XSKpz6eXHMJ4/fFvNt1ymEtc01ErLjU20VvxDccvPK3ooskizWXSsSPE6JlxnEEfIpDHk7I8wveBkkcc2v1kZZSHVWEuOjXm3MYY09csgdeHQZH+GqCpo5QvhCBTGBQyySKOK6YysQInUxNncBMnjGleXxVV92YB9toEbDoIuJMsjgAn1yzJ97foFdqq6zmPIrAE6ItMlNAG3YhkUgnsFGkOHnpvHR6PfLX9e3vE2Lnkx7Rc771giyFnqNSzB+YFk8csDUBIkxykkYs4CFhmU4WzJgWrSlqX8ZmGbNnj4VPaGxINJt2UQ5bP7Eog0WWXPIJTqjHflCLvTc2ca9FH2fWAfd9Ou50AkPqIJNPTGdgqWVzcX89u0iibBEDgMNudeBLspwQI1QpC4DhRgRGuWcVoV0A5J5hO5MBcBsA7fROTjrkhHxVfJZFZAYYKq41zCGMhGI2A5fjkmmoi0qIVwpsXGNqKAriXu6FkV7UXKGUFkt097lWMud2bsIVc5IpDEVC0kQJTHWzc5amXBY7k0v9i4Js0EyD7nRtVICZ1os4JCs7CLNRG0ZhFWCkisoTvpFkNgPfjS8kd8Zs9Cfs87cx5jMQa0lupZodf0Kv7J7HEBVy14dsh597e+naS8PcimpV0y0ut5qFace5YjGI6JDf+EzEwla9TSRKeGwDAWoPUDImBOy/uwfb72B1DAbZJNli5Uwh2FyadDZVLmCQb1aJEMj5mYh4qejhIZFy3uYuMguAyvrISF7sAFMp0DzPeMz5TFm13Kp8tU1UJ1Vg8aAmXa/jK6alWB1vbGpyyR5BTiMH63AhNbY6bn7/UqzdwLg6ArguztfH1eijivHuvTD0GxjOW4thv50QDhoQxq2FsKUsbGZy1hII3Y+XyfNkgQoCH+5HDWD/aS2wHya9F62FsKXUbKa3aAmE/Tentwd/jBFn0IYMX4gwjHgzxR9bC+4rKf4TsW1mebe1KLaXoc1ET9qB4tvzvC2PcQnINFM8aiusH+YhTtuKYEt52Uzt9D9EsNrQacL49td0BxsmozZkuPGtmeK/threV/L856HbzPReq4F8V5p27g/tXup5tpiWOpchdvRAL1O27RpzJqemsVrM6xaNS9ukxKalAgoTtsAvA+X+q1n9WooHEe/rVzquS0/Lx9nurmRljjfAd5tdbc6ymj+gg8rRmIKz7muNTscfmhcnb0jH8GtM3aoCIF6jwh4i7Cr4NtSbu/JfcJ1S8F8Jb8XcUzoGZjj2l3kilCHoH+QyAOPA7EHe1UXKbPv/yWxLlE2a0FqI6y32+kcB0+ff0Wc38n3fBWofETzziaC06Vu6yXuz3a50QLLngHoeHe0naFnT8emoeuzpzDcmun16Ni4fTa4XUayxYYTWmeTw6XBntSil5KdaUa2XU8vWIZSTXbUZFg0epyyK3htiKAjegQWhEpkh7VfxPgzuM3paKRLNKO0D27cVwvXx1Ld14gC8lfmk+kwkC0VmiE3BRSVCbm72wP3jGN3/Pm57+f06cDvx7lPfrR4HA+64UKlG9lv27mfhu7H7h8Ht+9SvHIfCPaLj6sQDq8mg+nitp9P34B5SD6ltGwljevqukOM7iq3mSymU/sKV3vOm8D959PJVmkiNb2Asi/TmU3X+3yVodw0nFOFn1gm5A738tbWLcywn77udl38BMPpjNA=='
+// const test =
+// 'expert:eJzlWt1P4zgQf+9fYfFyLGrcJukH9LQvcHcSOnGcFvYJ8eAmLvWRJpHt0HYR//vN2Gmaj3YpEnsbdBEKyXhsz/zmN5MwIUhipUmSagEXE3JtL8hn8twhZMmi6HYugseYKxj0u7nsZi6TLBTxw4T0jYxPS2ob0ZWIC+kfLNCJhDF6iqOPfH3OlADlo1XIjlCkAsmXl3EoAg7iO9ejwy7xfDwP8XSKpz6eXHMJ4/fFvNt1ymEtc01ErLjU20VvxDccvPK3ooskizWXSsSPE6JlxnEEfIpDHk7I8wveBkkcc2v1kZZSHVWEuOjXm3MYY09csgdeHQZH+GqCpo5QvhCBTGBQyySKOK6YysQInUxNncBMnjGleXxVV92YB9toEbDoIuJMsjgAn1yzJ97foFdqq6zmPIrAE6ItMlNAG3YhkUgnsFGkOHnpvHR6PfLX9e3vE2Lnkx7Rc771giyFnqNSzB+YFk8csDUBIkxykkYs4CFhmU4WzJgWrSlqX8ZmGbNnj4VPaGxINJt2UQ5bP7Eog0WWXPIJTqjHflCLvTc2ca9FH2fWAfd9Ou50AkPqIJNPTGdgqWVzcX89u0iibBEDgMNudeBLspwQI1QpC4DhRgRGuWcVoV0A5J5hO5MBcBsA7fROTjrkhHxVfJZFZAYYKq41zCGMhGI2A5fjkmmoi0qIVwpsXGNqKAriXu6FkV7UXKGUFkt097lWMud2bsIVc5IpDEVC0kQJTHWzc5amXBY7k0v9i4Js0EyD7nRtVICZ1os4JCs7CLNRG0ZhFWCkisoTvpFkNgPfjS8kd8Zs9Cfs87cx5jMQa0lupZodf0Kv7J7HEBVy14dsh597e+naS8PcimpV0y0ut5qFace5YjGI6JDf+EzEwla9TSRKeGwDAWoPUDImBOy/uwfb72B1DAbZJNli5Uwh2FyadDZVLmCQb1aJEMj5mYh4qejhIZFy3uYuMguAyvrISF7sAFMp0DzPeMz5TFm13Kp8tU1UJ1Vg8aAmXa/jK6alWB1vbGpyyR5BTiMH63AhNbY6bn7/UqzdwLg6ArguztfH1eijivHuvTD0GxjOW4thv50QDhoQxq2FsKUsbGZy1hII3Y+XyfNkgQoCH+5HDWD/aS2wHya9F62FsKXUbKa3aAmE/Tentwd/jBFn0IYMX4gwjHgzxR9bC+4rKf4TsW1mebe1KLaXoc1ET9qB4tvzvC2PcQnINFM8aiusH+YhTtuKYEt52Uzt9D9EsNrQacL49td0BxsmozZkuPGtmeK/threV/L856HbzPReq4F8V5p27g/tXup5tpiWOpchdvRAL1O27RpzJqemsVrM6xaNS9ukxKalAgoTtsAvA+X+q1n9WooHEe/rVzquS0/Lx9nurmRljjfAd5tdbc6ymj+gg8rRmIKz7muNTscfmhcnb0jH8GtM3aoCIF6jwh4i7Cr4NtSbu/JfcJ1S8F8Jb8XcUzoGZjj2l3kilCHoH+QyAOPA7EHe1UXKbPv/yWxLlE2a0FqI6y32+kcB0+ff0Wc38n3fBWofETzziaC06Vu6yXuz3a50QLLngHoeHe0naFnT8emoeuzpzDcmun16Ni4fTa4XUayxYYTWmeTw6XBntSil5KdaUa2XU8vWIZSTXbUZFg0epyyK3htiKAjegQWhEpkh7VfxPgzuM3paKRLNKO0D27cVwvXx1Ld14gC8lfmk+kwkC0VmiE3BRSVCbm72wP3jGN3/Pm57+f06cDvx7lPfrR4HA+64UKlG9lv27mfhu7H7h8Ht+9SvHIfCPaLj6sQDq8mg+nitp9P34B5SD6ltGwljevqukOM7iq3mSymU/sKV3vOm8D959PJVmkiNb2Asi/TmU3X+3yVodw0nFOFn1gm5A738tbWLcywn77udl38BMPpjNA=='
 // 'expert:eJzlW91zmzgQf/dfseOX5joGGxwSh5u+NHcPnZs2N036lPGDDCLWBQMjiThux//7rQTGfDjxpZPG8lwmwbC7SLu//ZAwmyBNhIQ0kwxPfLgqTuAD/OgBLEkc38xZcJ9QgczTQUm7nvM0D1ly58NI0+isJqZJIuB0+SkJWUCRdGs5A9j8uWPbU2fTSu5mlVEf+vocWCIol/2Kec2+K+bn8ZZ0meaJpFyw5N4HyXOqOKhSEtLQhx8gWEjVZ8gemEi5D67twRrWSixIk4QGUlH7knPRbxDVZN+uPyKPPFBO7miTjQbRRx/GE3us6AsW8BSZkqdxTNWIGU810crFzAr0zRERkiaf26IRiYXWG+eRLCDxZUwJJ0mAmp/rSdX1tTJXbI0UcxrHyjRZQDYjguE0ELOsHBLWvXVvOIQvVzd/+lDcD0OQc7o1A5ZMzpVQQu+IZA8UQdeeAsIpZDEJaAgkl+mCaNXila2kPyV6GD3nkIQPStkQJJkNFB2nfiBxjoMsKae+uqEVBM65crw+uMXRVcexY3tTJd6G2bHdXi/QARrk/IHIHLUrIrO6voou0zhfJOhjd9BkfE2XPngatYwEGK2ahIo4F3aTXAyBHFfHLuEBRrGSWfd6w/fve/Aevgka5TFECJ6gUuJtQDC+oghtTWr6KVklpIDKMD5XcE9XwkbysDRFUy9b9ti2XQ0xeMq+mjo3c+2nhEIulA9SyFLBVO7qmfMso7yaGT7JdwLzQxKJsrOVFsGYLKxIQngsmHi3kkYujoKhKOL6Dd8hjSK0XdsCpTF6or9wnr+1Mh8wopZww0V08puyqpjzxJkM4HY0APU7LU6d4lSHbF3Ua0o61elWslLtpBSsmAod+INGLGFFGdt4oobH1hEododFxAfU/3aKut/i6MoZsMmuxaM1Q2dTrhMZ1AABwUQrhAAw2yMWK8nHkJQyqhBh3Dmbq1gPgCJnfU1ZFwwiMgz1Si6Ic1GIlVqVo2286jeBVT+2ztOr5DORnD2ebHTqxlLxE5RhZI23NK2p5ZbX62rkDsJNDqK6+Lg6afpeiWjbXgtBt4PgylQEHTMRHHcQnBuK4MhMAE87ACaGAmhoBHar4LkhALrtHD6aKpibiqChMVilyjxdKAGmNpf9Dqz/GArr0ZTGhaEAGhqW3dI4MQRAp53Y+0ujdWpGbWSmQrg/CA8DYbs4LlgYxrRbHe8NBXZ/dTwMrt3yODAUQVMj83gQNLU8dleYCzMQHL18gXHMWF9SQwHcn8QHAbC9unDEpbu2xGaCun9pOQim3bpom4mfoTF5NPgZWhS7q8roDfFrvjzpgviyZxf7TL2HHA/AkMeXzGQkn83nwyLZXme0bd2F5neD4X12tTksut2KOTQYSIPD9LiAPFjlbENY+tUMlF723uDtYXINhcngtOy+Jn1nUFq+6H3A28fbqZkoHSzcjgqlV65dvel/7U+S83wxq/UmhapnB+VyUTRWJZTwmW6dqu4bVK1JRRuSaksSuN0DslDdgPUOKz36FWd3LHmqI2nUaUhSz1PTuoh1sbsVqS4zdnc3NjXGcc6em22LuOWe2Tie5U7wMLEvmmyEvBULT0TCrqfM5pPb9lVZr+b9Pd5tqDqxzz2tpPrQr89atpwi19Oho3uyVDhsW/jSaBsEmxSwW+5rN8i1+/os3cG3o03Ocor+0yd6+1qtgO7I9lRbXW3mn2oI25323ibtt3leTNHfWQ1+MuubeHWzvvvSxD7fnfil82v58yrVz1AYrJE9/kU47N90eK1HVj1XY9uxDyzb2w9XVcpGr4Fg5xtS2zv3/oeR1Pn6HddKU4F4+yjpVptTQ7H5pUGyo9pMXgSD2k0Vy9KSMyG/UiF/fk9z/NsI+pilXKqdIsljuWmaL/9xRanUQkmRVMO3D7coV26vB5XnxHTQW/8LpL3jWg=='
 
 // const state = deserialize(test, { options: {} })

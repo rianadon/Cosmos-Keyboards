@@ -1,7 +1,7 @@
 <script lang="ts">
   import { protoConfig } from '$lib/store'
   import { serialize } from '../serialize'
-  import type { CosmosKeyboard } from '$lib/worker/config.cosmos'
+  import type { CosmosCluster, CosmosKeyboard } from '$lib/worker/config.cosmos'
   import { encodeCosmosConfig, serializeCosmosConfig } from '$lib/worker/config.serialize'
   import { Cluster, type Keyboard } from '../../../../../target/proto/cosmos'
 
@@ -82,6 +82,12 @@
     return allParts
   }
 
+  function clusterLabel(cluster: CosmosCluster): string {
+    if (cluster.name == 'center' || cluster.side == 'center') return 'Center Keys'
+    const side = cluster.side == 'left' ? 'Left' : 'Right'
+    return cluster.name == 'thumbs' ? `${side} Thumb Keys` : `${side} Upper Keys`
+  }
+
   function calcParts(mode: string, url: string, conf: CosmosKeyboard) {
     if (mode == 'advanced') {
       if (!url) return []
@@ -98,15 +104,11 @@
     const rawHash = Uint8Array.from(window.atob(url), (c) => c.charCodeAt(0))
 
     const keeb = encodeCosmosConfig(conf)
-    const parts: Part[] = [
-      createPartCluster(rawHash, 'Right Upper Keys', keeb.cluster[0]),
-      createPartCluster(rawHash, 'Right Thumb Keys', keeb.cluster[1]),
-    ]
-    let i = 2
-    if (conf.clusters.find((c) => c.side == 'left' && c.name == 'fingers'))
-      parts.push(createPartCluster(rawHash, 'Left Upper Keys', keeb.cluster[i++]))
-    if (conf.clusters.find((c) => c.side == 'left' && c.name == 'thumbs'))
-      parts.push(createPartCluster(rawHash, 'Left Thumb Keys', keeb.cluster[i++]))
+    // encodeCosmosConfig maps conf.clusters 1:1 onto keeb.cluster, so the
+    // indices line up regardless of how many sides/center clusters exist.
+    const parts: Part[] = conf.clusters.map((cluster, i) =>
+      createPartCluster(rawHash, clusterLabel(cluster), keeb.cluster[i])
+    )
     parts.push(
       createPart(rawHash, 'Keyboard', {
         ...keeb,

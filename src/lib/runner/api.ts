@@ -1,3 +1,4 @@
+import { DEFAULT_LAYOUT } from '$lib/geometry/layouts'
 import type { FullCuttleform } from '$lib/worker/config'
 import ETrsf, { mirror, unibody } from '$lib/worker/modeling/transformation-ext'
 

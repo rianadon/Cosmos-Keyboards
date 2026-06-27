@@ -40,10 +40,13 @@ function allClustersFlipped(conf: CosmosKeyboard) {
   const newClusters = [...conf.clusters]
   for (const name of ['fingers', 'thumbs'] as ClusterName[]) {
     if (!newClusters.find(c => c.side == 'left' && c.name == name)) {
-      newClusters.push(mirrorCluster({
-        ...newClusters.find(c => c.side == 'right' && c.name == name)!,
-        side: 'left',
-      }))
+      newClusters.push(mirrorCluster(
+        {
+          ...newClusters.find(c => c.side == 'right' && c.name == name)!,
+          side: 'left',
+        },
+        conf,
+      ))
     }
   }
   sortClusters(newClusters)
@@ -63,16 +66,19 @@ export function toCode(proto: CosmosKeyboard) {
   const fingerDefinitions: string[] = []
   const fingerReferences: string[] = []
   const screwStuff: string[] = []
+
   for (const [name, kbd] of objEntries(cosmosConf)) {
+    const sides = name == 'center' ? ['center'] : ['fingers', 'thumbs']
+
     fingerReferences.push(
       `  ${name}: {`,
       '    ...options,',
       ...(kbd!.connectorIndex != -1 ? [`    connectorIndex: ${kbd!.connectorIndex},`] : []),
-      `    keys: [...fingers${capitalize(name)}, ...thumbs${capitalize(name)}],`,
+      `    keys: [${sides.map(s => '...' + s + capitalize(name)).join(', ')}],`,
       ...(name == 'left' && !proto.mirrorConnectors ? ['    flipConnectors: true'] : []),
       '  },',
     )
-    for (const side of ['fingers', 'thumbs']) {
+    for (const side of sides) {
       const keys = kbd!.keys.filter(k => k.cluster == side)
       fingerDefinitions.push(
         'const ' + side + capitalize(name) + ': Key[] = ' + jsonToCode(keys) + '\n',

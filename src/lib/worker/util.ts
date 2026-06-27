@@ -1,6 +1,8 @@
-export function match<A extends string | number, R>(x: A, cases: Record<A, R>, fallback?: R) {
+export function match<A extends string | number, R>(x: A, cases: Record<A, R>): R
+export function match<A extends string | number, R>(x: A, cases: Partial<Record<A, R>>, fallback: R): R
+export function match<A extends string | number, R>(x: A, cases: Partial<Record<A, R>>, fallback?: R): R {
   if (cases.hasOwnProperty(x)) {
-    return cases[x]
+    return cases[x]!
   }
   if (typeof fallback === 'undefined') throw new Error(`${x} does not match one of ${Object.keys(cases)}`)
   return fallback
