@@ -5,7 +5,6 @@
   import ViewerLayout from './lib/viewers/ViewerLayout.svelte'
   import ViewerMatrix from './lib/viewers/ViewerMatrix.svelte'
   import ViewerPea from './lib/viewers/ViewerPea.svelte'
-  // import ViewerBottom from './lib/viewers/ViewerBottom.svelte'
   import ViewerTiming from './lib/viewers/ViewerTiming.svelte'
   import PeaConfig from './lib/editor/PeaConfig.svelte'
   import Popover from '$lib/presentation/Popover.svelte'
@@ -46,7 +45,6 @@
     codeError,
     protoConfig,
     showHand,
-    stiltsMsg,
     developer,
     showTiming,
     noWall,
@@ -71,14 +69,10 @@
   import { notNull, objEntriesNotNull, objKeys } from '$lib/worker/util'
   import { T } from '@threlte/core'
   import Checkbox from '$lib/presentation/Checkbox.svelte'
-  import type { unibody } from '$lib/worker/modeling/transformation-ext'
   import ConfError from './lib/ConfError.svelte'
   import { SORTED_VENDORS } from '@pro/assemblyService'
   import { microcontrollerConnectors } from '$lib/geometry/microcontrollers'
   import PeaWarnings from './lib/editor/PeaWarnings.svelte'
-  import __wbg_init from '@pro/rust_offset'
-
-  __wbg_init({} as any)
 
   const DEF_CENTER = [-35.510501861572266, -17.58449935913086, 35.66889877319336] as [
     number,
