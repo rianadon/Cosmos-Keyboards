@@ -1137,6 +1137,7 @@
       on:change={updateMicrocontroller}
       options={microcontrollerOptions}
       component={SelectMicrocontrollerInner}
+      minWidth={420}
     />
     <!-- <Select bind:value={$protoConfig.microcontroller} on:change={updateMicrocontroller}>
       {#each MICROCONTROLLER_SIZES as size}

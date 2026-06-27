@@ -107,7 +107,7 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
   },
   'rp2040-lite-black-usb-c-aliexpress': {
     name: 'RP2040 Lite Black USB-C (Aliexpress)',
-    extraName: '(USB-C) ☆',
+    extraName: '(USB-C)',
     size: new Vector(20.9, 53.8, 1.57),
     sizeName: 'Large',
     boundingBoxZ: 5,
@@ -319,13 +319,14 @@ export const BOARD_PROPERTIES: Record<Microcontroller, BoardProperties> = {
     cutouts: [{ origin: new Vector(-4.538, -15.418, 0), size: new Vector(4.5, 2.5, 0) }],
     sidecutout: 2,
     sidecutoutMaxY: -13,
-    leftSidePins: ['R1', 'R2', 'R3', 'R4', 'R5', 'R6'],
-    rightSidePins: ['C1', 'C2', 'C3', 'C4', 'C5', 'C6'],
-    isGPIO: /(R|C)\d+/,
+    leftSidePins: ['IO1', 'IO2', 'IO3', 'IO4', 'IO5', '3V3', 'GND', 'GND', '5V', 'LED'],
+    rightSidePins: [],
+    rearPins: ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8'],
+    isGPIO: /(R|C|IO)\d+|LED/,
     backstopHeight: 0,
     dontCount: true,
     description:
-      "For use with Cyboard's Dactyl Flex PCBs. The Microcontroller has one native USB-C port and one fake one (good for connecting halves but not for plugging in).\nSupports both wired and wireless (longer) versions.",
+      "For use with Cyboard's Dactyl Flex PCBs. The Microcontroller has one native USB-C port and one fake one (good for connecting halves but not for plugging in).\nSupports both wired and wireless (longer) versions. Select MX Direct Solder switches in Cosmos.",
   },
   'lemon-wired': {
     name: 'Lemon Wired',
@@ -386,6 +387,7 @@ export function sortMicrocontrollers(a: Microcontroller, b: Microcontroller) {
   const score = (m: Microcontroller) => {
     let s = 0
     if (BOARD_PROPERTIES[m].extraName?.includes('☆')) s += 100
+    if (BOARD_PROPERTIES[m].name.includes('Black')) s += 20
     if (BOARD_PROPERTIES[m].extraName?.includes('Low Storage')) s -= 10
     if (BOARD_PROPERTIES[m].extraName?.includes('USB-C')) s += 1
     if (BOARD_PROPERTIES[m].extraName?.includes('Flex PCB')) s += 1
