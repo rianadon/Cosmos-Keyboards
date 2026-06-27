@@ -1,6 +1,7 @@
 import type manuform from '$assets/manuform.json'
+import { DEFAULT_LAYOUT, rightCells } from '$lib/geometry/layouts'
 import { socketSize } from '$lib/geometry/socketsParts'
-import type { CuttleKey, CuttleTrackpadCirqueKey, MicrocontrollerName } from '$target/cosmosStructs'
+import type { CuttleKey, CuttleTrackpadCirqueKey, Layout, MicrocontrollerName } from '$target/cosmosStructs'
 import {
   CONNECTOR,
   CONNECTOR_SIZE,
@@ -307,8 +308,8 @@ function cuttleConfShell(c: DeepRequired<CuttleformProto>): AnyShell {
   throw new Error('Unknown shell type')
 }
 
-function maybeMirror(c: DeepRequired<CuttleformProto>, keys: CuttleKey[]) {
-  if (c.wall.unibody) return unibody(keys, c.wall.unibodyGap / 10, c.wall.unibodyAngle / 45)
+function maybeMirror(c: DeepRequired<CuttleformProto>, layout: Layout, keys: CuttleKey[]) {
+  if (c.wall.unibody) return unibody(keys, layout, c.wall.unibodyGap / 10, c.wall.unibodyAngle / 45)
   return keys
 }
 
@@ -320,7 +321,7 @@ export function cuttleConf(c: DeepRequired<CuttleformProto>): Cuttleform {
     wallZOffset: 15,
     webThickness: c.wall.webThickness / 10,
     webMinThicknessFactor: DEFAULT_MWT_FACTOR,
-    keys: maybeMirror(c, [
+    keys: maybeMirror(c, DEFAULT_LAYOUT, [
       ...fingers(c),
       ...thumbs(c),
     ]),
@@ -515,19 +516,12 @@ function mergedCurvature(c: CuttleformProto, pinky: boolean, curv: any): any {
   }
 }
 
-function letterForKeycap(row: number, column: number) {
-  let letter = {
-    1: '67890',
-    2: 'yuiop',
-    3: "hjkl;'",
-    4: 'nm,./',
-    5: '{}[]\\',
-  }[row]?.charAt(column) || undefined
-  if (row == 0) letter = ['F6', 'F7', 'F8', 'F9', 'F10'][column] || undefined
-  return letter
+function letterForKeycap(row: number, column: number, layout: Layout) {
+  if (row == 0) return ['F6', 'F7', 'F8', 'F9', 'F10'][column] || undefined
+  return rightCells(layout)[row - 1][column]
 }
 
-function keycapInfo(c: CuttleformProto, row: number, column: number): Keycap {
+function keycapInfo(c: CuttleformProto, row: number, column: number, layout: Layout): Keycap {
   let home: Keycap['home']
   if (row == 3) {
     home = ({
@@ -541,7 +535,7 @@ function keycapInfo(c: CuttleformProto, row: number, column: number): Keycap {
   // Row 5 is used for thumb keys (in MT3, the 5th row key has zero tilt)
   // So don't use it for the non-thumb keys since it is special!
   // (hence the Math.min(x, 4)
-  return { profile: keycapType(c), row: Math.min(row, 4), home, letter: letterForKeycap(row, column) }
+  return { profile: keycapType(c), row: Math.min(row, 4), home, letter: letterForKeycap(row, column, layout) }
 }
 
 export function decodeTuple(tuple: bigint): [number, number, number, number] {
@@ -604,7 +598,7 @@ export function tupleToXYZ(tuple: bigint) {
   return [decoded[0] / 10, decoded[1] / 10, decoded[2] / 10] as Point
 }
 
-export function cosmosFingers(nRows: number, nCols: number, side: 'left' | 'right', addExtraRow = true): CosmosCluster[] {
+export function cosmosFingers(nRows: number, nCols: number, side: 'left' | 'right', addExtraRow = true, layout: Layout = DEFAULT_LAYOUT): CosmosCluster[] {
   let columns = range(0, nCols)
   if (nCols <= 4) columns = range(1, nCols + 1)
   const rows = range(0, nRows)
@@ -652,7 +646,7 @@ export function cosmosFingers(nRows: number, nCols: number, side: 'left' | 'righ
             4: 'pinky',
           } as Record<number, Keycap['home']>)[column] ?? null
           : null,
-        letter: letterForKeycap(row2Row(row), column),
+        letter: letterForKeycap(row2Row(row), column, layout),
       },
       row: row - centerRow,
       position: undefined,
@@ -794,7 +788,7 @@ export function fingers(c: DeepRequired<CuttleformProto>): CuttleKey[] {
           && row == lastRow && column == lastCol
         return {
           type: isBlank ? 'blank' : switchType(c),
-          keycap: keycapInfo(c, row2Row(row), column),
+          keycap: keycapInfo(c, row2Row(row), column, DEFAULT_LAYOUT),
           aspect: usesWidePinky(column, row) ? pinkySize : 1,
           size: isBlank ? { width: 18.5, height: 18.5 } : undefined,
           cluster: 'fingers',

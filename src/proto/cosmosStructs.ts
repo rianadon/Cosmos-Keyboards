@@ -148,6 +148,44 @@ enumeration('PLATE_ART', [
   'circle',
 ], true)
 
+enumeration('LAYOUT', [
+  'qwerty',
+  'qwerty_uk',
+  'serbian',
+  'qwerty_can_fr',
+  'azerty_fr',
+  'qwertz_czech',
+  'qwerty_danish',
+  'azerty_dutch',
+  'dvorak',
+  'qwerty_estonian',
+  'qwerty_nordic',
+  'qwerty_can_ml',
+  'qwertz_ch_fr',
+  'qwertz_ch_de',
+  'qwertz_de',
+  'qwerty_es_latam',
+  'hebrew',
+  'qwertz_hu',
+  'qwerty_is',
+  'qwerty_it',
+  'jcuken_ru',
+  'qwerty_lt',
+  'azerty_lt',
+  'greek',
+  'qwerty_no',
+  'farsi',
+  'qwerty_pt',
+  'qwerty_ro',
+  'qwertz_sr',
+  'qwertz_sk',
+  'qwertz_sl',
+  'qwerty_es',
+  'turkish_q',
+  'turkish_f',
+  'ukrainian',
+], true)
+
 // ----------------------------------------------------------------------------
 //                      UTILITIES FOR CODE GEN
 //                    no need to edit this stuff

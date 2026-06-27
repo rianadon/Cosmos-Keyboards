@@ -42,6 +42,7 @@
   import { componentBoxes, componentGeometry } from '$lib/worker/geometry'
   import * as mdi from '@mdi/js'
   import Icon from '$lib/presentation/Icon.svelte'
+  import { flipLetter } from '$lib/geometry/layouts'
   import {
     diff,
     filterObj,
@@ -365,7 +366,7 @@
     return nthKey(config, n).cluster.side
   }
 
-  $: clickedSide = getClickedSide($protoConfig, $clickedKey)
+  $: clickedConfigSide = getClickedSide($protoConfig, $clickedKey)
 
   function kbdOffsetClicked(config: CosmosKeyboard, n: number | null) {
     if (n == null) return false
@@ -677,8 +678,24 @@
       $protoConfig.wristRestPosition = encodeTuple(wrOrigin.map((w) => Math.round(w * 10)))
   }
 
+  // Logic for making letter editing a little nicer
+  // Also still confusing...
+  // $: needsLetterFlip =
+  //   $clickedSide === 'left' && clusterIsClicked != null && clusterIsClicked.side === 'right'
+  // // Re-derive the layout from the kbd's own labels — the layout dropdown is
+  // // a function of the keys, so the flip target follows the keys too.
+  // $: detectedFlipLayout = $protoConfig ? $protoConfig.layout : undefined
+  // $: displayedLetter = keyIsClicked
+  //   ? needsLetterFlip && detectedFlipLayout
+  //     ? flipLetter(keyIsClicked.profile.letter, detectedFlipLayout) ?? keyIsClicked.profile.letter ?? ''
+  //     : keyIsClicked.profile.letter ?? ''
+  //   : ''
+
   function setLetter(e: Event) {
     if (!keyIsClicked) return
+    // const typed = (e.target as HTMLInputElement).value
+    // const stored =
+    //   needsLetterFlip && detectedFlipLayout ? flipLetter(typed, detectedFlipLayout) ?? typed : typed
     protoConfig.update((p) => {
       keyIsClicked.profile.letter = (e.target as HTMLInputElement).value
       return p
@@ -1652,11 +1669,11 @@
       <!-- <AxesHelper size={100} matrix={debug} /> -->
     {/if}
   </T.Group>
-  {#if clickedSide != null}
-    {@const clickedC = center[clickedSide] || [0, 0, 0]}
+  {#if clickedConfigSide != null}
+    {@const clickedC = center[clickedConfigSide] || [0, 0, 0]}
     <T.Group position={[-clickedC[0], -clickedC[1], -clickedC[2]]}>
       {#if $transformMode == 'select' && !showSupports}
-        {#each adjacentPositions(geometry[clickedSide] ?? null, $clickedKey, $protoConfig, $selectMode) as adj}
+        {#each adjacentPositions(geometry[clickedConfigSide] ?? null, $clickedKey, $protoConfig, $selectMode) as adj}
           <GroupMatrix
             matrix={shouldFlipKey($view, $clickedKey, $protoConfig) ? flipMatrixX(adj.pos) : adj.pos}
           >
