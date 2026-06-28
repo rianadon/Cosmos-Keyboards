@@ -14,7 +14,7 @@ import { makeStiltsWalls, makeStiltsWallsQuick } from '@pro/stiltsModel'
 import { wristRest } from '@pro/wristRest'
 import type { BufferAttribute, BufferGeometry, Mesh } from 'three'
 import { getUser } from '../../routes/beta/lib/login'
-import { ITriangle } from '../loaders/simplekeys'
+import { ITriangle, TriType } from '../loaders/simplekeys'
 import { type ConfError, type ConfErrors, isPro, keycapIntersections, partIntersections, socketIntersections } from './check'
 import { type Cuttleform, type CuttleKey, type Geometry, type KeyboardSide, newGeometry } from './config'
 import { boardHolder, cutWithConnector, keyHoles, makePlate, makePlateMesh, makerScrewInserts, makeWalls, type ScrewInsertTypes, webSolid } from './model'
@@ -436,6 +436,7 @@ export async function intersections(conf: Cuttleform, side: KeyboardSide): Promi
           r.allPts[a].origin(),
           r.allPts[b].origin(),
           r.allPts[c].origin(),
+          TriType.WEB,
           -1,
         )
       )

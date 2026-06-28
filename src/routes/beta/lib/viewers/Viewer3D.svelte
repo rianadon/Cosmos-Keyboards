@@ -58,7 +58,7 @@
     objKeys,
   } from '$lib/worker/util'
   import { readHands, type HandData } from '$lib/handhelpers'
-  import { simpleSocketGeos } from '$lib/loaders/simpleparts'
+  import { simplePartGeos, simpleSocketGeos } from '$lib/loaders/simpleparts'
   import GroupMatrix from '$lib/3d/GroupMatrix.svelte'
   import { simpleKeyGeo, simpleKeyPosition } from '$lib/loaders/simplekeys'
   import { T } from '@threlte/core'
@@ -1685,8 +1685,13 @@
         {#if $showKeyInts}
           {#each geo.c.keys as k, i}
             <GroupMatrix matrix={geo.keyHolesTrsfs[i].Matrix4()}>
-              {#each simpleSocketGeos(k.type) as g}
+              {#each simplePartGeos(k.type, k.variant || {}) as g}
                 <T.Mesh geometry={g}><KeyboardMaterial status="error" kind="key" /></T.Mesh>
+              {/each}
+              {#each simpleSocketGeos(k.type, k.variant || {}) as g}
+                <T.Mesh geometry={g}
+                  ><KeyboardMaterial status="warning" kind="key" opacity={0.5} /></T.Mesh
+                >
               {/each}
               {@const skey = simpleKeyGeo(k, true)}
               {#if skey}

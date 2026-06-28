@@ -2,11 +2,11 @@ import { BOARD_PROPERTIES, numGPIO } from '$lib/geometry/microcontrollers'
 import { SCREWS } from '$lib/geometry/screws'
 import { PART_INFO, socketHeight } from '$lib/geometry/socketsParts'
 import { switchInfo } from '$lib/geometry/switches'
-import { simpleSocketTris } from '$lib/loaders/simpleparts'
+import { simplePartGeos, simpleSocketGeos, simpleTris } from '$lib/loaders/simpleparts'
 import type { Triangle } from 'three'
 import { Octree } from 'three/examples/jsm/math/Octree.js'
 import { Vector2 } from 'three/src/math/Vector2.js'
-import { calcTravel, ITriangle, simpleKey, simpleKeyPosition } from '../loaders/simplekeys'
+import { calcTravel, ITriangle, simpleKey, simpleKeyPosition, TriType } from '../loaders/simplekeys'
 import type { Cuttleform, CuttleKey, Geometry, KeyboardSide } from './config'
 import { type CriticalPoints, keyHolesTrsfs2D } from './geometry'
 import { intersectPolyPoly } from './geometry.intersections'
@@ -19,6 +19,8 @@ interface IntersectionError {
   what: 'keycap' | 'socket' | 'part'
   i: number
   j: number
+  typei: TriType
+  typej: TriType
   travel?: number[]
 }
 interface MissingError {
@@ -252,7 +254,7 @@ export function minPinsNeeded(conf: Cuttleform, includeMatrix = true) {
 
 /** Return triangles covering a prism defined by its top face & depth.
  * The triangle is centered at XY and extrudes down, like a socket */
-function prismTriangles(facePoints: Trsf[], center: Trsf, depth: number, index: number) {
+function prismTriangles(facePoints: Trsf[], center: Trsf, depth: number, type: TriType, index: number) {
   const topCenter = center.origin()
   const botCenter = center.pretranslated(0, 0, -depth).origin()
   const topPts = facePoints.map(p => p.origin())
@@ -260,10 +262,10 @@ function prismTriangles(facePoints: Trsf[], center: Trsf, depth: number, index: 
   return facePoints.flatMap((_, i) => {
     const j = (i + 1) % facePoints.length
     return [
-      new ITriangle(topPts[i], topPts[j], topCenter, index), // Top
-      new ITriangle(botPts[j], botPts[i], botCenter, index), // Bottom
-      new ITriangle(topPts[i], botPts[i], topPts[j], index), // First side
-      new ITriangle(botPts[i], botPts[j], topPts[j], index), // Second side
+      new ITriangle(topPts[i], topPts[j], topCenter, type, index), // Top
+      new ITriangle(botPts[j], botPts[i], botCenter, type, index), // Bottom
+      new ITriangle(topPts[i], botPts[i], topPts[j], type, index), // First side
+      new ITriangle(botPts[i], botPts[j], topPts[j], type, index), // Second side
     ]
   })
 }
@@ -290,14 +292,19 @@ export function* partIntersections(conf: Cuttleform, trsfs: Trsf[], side: Keyboa
   const tree = new Octree()
   for (let i = 0; i < trsfs.length; i++) {
     const key = conf.keys[i]
-    const skey = simpleSocketTris(key.type, trsfs[i].Matrix4(), i)
+    const skey = simpleTris(simplePartGeos(key.type, key.variant || {}), trsfs[i].Matrix4(), TriType.PART, i)
     for (const triangle of skey) {
+      tree.addTriangle(triangle)
+    }
+    const ssock = simpleTris(simpleSocketGeos(key.type, key.variant || {}), trsfs[i].Matrix4(), TriType.SOCKET, i)
+    for (const triangle of ssock) {
       tree.addTriangle(triangle)
     }
   }
   if (tree.triangles.length == 0) return
   tree.build()
-  yield* treeIntersections(conf, tree, 'part', side)
+  // Look for part-part intersections, part-socket, and socket-part. Socket-socket is not useful.
+  yield* treeIntersections(conf, tree, 'part', side, false, (ti, tj) => !(ti.type == TriType.SOCKET && tj.type == TriType.SOCKET))
 }
 
 export function* unsortedSocketIntersections(conf: Cuttleform, trsfs: Trsf[], critPts: CriticalPoints[], web: ITriangle[], side: KeyboardSide) {
@@ -307,7 +314,7 @@ export function* unsortedSocketIntersections(conf: Cuttleform, trsfs: Trsf[], cr
   }
   for (let i = 0; i < trsfs.length; i++) {
     const height = socketHeight(conf.keys[i])
-    const prism = prismTriangles(critPts[i], trsfs[i], height, i)
+    const prism = prismTriangles(critPts[i], trsfs[i], height, TriType.SOCKET, i)
     for (const triangle of prism) {
       tree.addTriangle(triangle)
     }
@@ -343,6 +350,7 @@ function* treeIntersections(
   what: 'keycap' | 'socket' | 'part',
   side: KeyboardSide,
   ignoreTouching = false,
+  filter?: (a: ITriangle, b: ITriangle) => boolean,
   intersected?: DefaultMap<number, Map<number, boolean>> | undefined,
 ): Generator<ConfError> {
   const triangles = tree.triangles as ITriangle[]
@@ -352,6 +360,7 @@ function* treeIntersections(
       const ti = triangles[i].i, tj = triangles[j].i
       if (tj == ti) continue
       if (intersected.get(ti).get(tj)) return false
+      if (filter && !filter(triangles[i], triangles[j])) return false
       if (doTrianglesIntersect(triangles[i], triangles[j], ignoreTouching)) {
         let trvl: number[] = []
         if (ti >= 0) trvl.push(calcTravel(conf.keys[ti]))
@@ -363,6 +372,8 @@ function* treeIntersections(
           what,
           i: ti,
           j: tj,
+          typei: triangles[i].type,
+          typej: triangles[j].type,
           travel: trvl,
           side,
         }
@@ -370,7 +381,7 @@ function* treeIntersections(
     }
   }
   for (const sub of tree.subTrees) {
-    yield* treeIntersections(conf, sub, what, side, ignoreTouching, intersected)
+    yield* treeIntersections(conf, sub, what, side, ignoreTouching, filter, intersected)
   }
 }
 

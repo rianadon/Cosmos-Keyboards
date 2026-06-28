@@ -10,6 +10,7 @@
   import { intersectPolyPoly } from '$lib/worker/geometry.intersections'
   import { Vector2 } from 'three/src/math/Vector2.js'
   import type Trsf from '$lib/worker/modeling/transformation'
+  import { TriType } from '$lib/loaders/simplekeys'
 
   export let config: FullCuttleform
   export let mode: string
@@ -166,7 +167,11 @@ wristRestOrigin,
               </p>
             {:else if err.what == 'part'}
               <p class="mb-2">
-                Two of the parts
+                {#if err.typei == TriType.PART && err.typej == TriType.PART}
+                  Two of the parts
+                {:else}
+                  A socket and a part
+                {/if}
                 {#if config && (assert(config[err.side]).keys[err.i].type == 'mx-pcb' || assert(config[err.side]).keys[err.j].type == 'mx-pcb')}
                   (switches or PCBs)
                 {:else}

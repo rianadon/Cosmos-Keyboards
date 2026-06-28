@@ -68,6 +68,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     encodeVariant: makeEncodeVariant('mx-pcb-plum', { led: 2 }),
     decodeVariant: makeDecodeVariant('mx-pcb-plum', { led: 2 }),
     numPins: () => ({ matrix: 1 }),
+    flipPart: (v: Variant) => v.led == 'North LED',
     description:
       'The only PCB here that stays in without glue or screws. These PCBs twist into their socket.\n<a href="https://ryanis.cool/cosmos/plum-twist">Plum Twist PCBs</a> are sold from the <a href="https://cosmos-store.ryanis.cool">Cosmos Store</a> and shipped from the US. They are <a href="https://github.com/rianadon/Cosmos-Keyboard-PCBs">open source</a> too.'
       + DESC_MX,
@@ -94,6 +95,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     encodeVariant: makeEncodeVariant('mx-pumpkin', { led: 2, guides: 2 }),
     decodeVariant: makeDecodeVariant('mx-pumpkin', { led: 2, guides: 2 }),
     numPins: () => ({ matrix: 1 }),
+    flipPart: (v: Variant) => v.led == 'North LED',
     description:
       `It's the easiest way to wire your keyboard. Save hours of wiring and soldering and save the frustration with a PCB that gives you hotswap sockets, diodes, RGB LEDs, and flexible connections between every key. Compared to even the Plum Twists, the Pumpkins are a giant step up in terms of speed and accessibility.\n<a href="https://ryanis.cool/cosmos/pumpkin">Pumpkin Patch PCBs</a> are sold from the <a href="https://cosmos-store.ryanis.cool">Cosmos Store</a> and shipped from the US.`
       + DESC_MX,
@@ -118,6 +120,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     encodeVariant: makeEncodeVariant('mx-skree', { led: 2 }),
     decodeVariant: makeDecodeVariant('mx-skree', { led: 2 }),
     numPins: () => ({ matrix: 1 }),
+    flipPart: (v: Variant) => v.led == 'North LED',
     description:
       'Flex PCBs eliminate needing to carefully solder wires to every switch, saving you hours of time. These PCBs are sold by TheBigSkree, and the socket in Cosmos has alignment guides designed to line up and help hold in the flex PCBs.'
       + DESC_MX,
@@ -164,6 +167,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     encodeVariant: makeEncodeVariant('mx-hotswap', { hotswap: 2, led: 2 }),
     decodeVariant: makeDecodeVariant('mx-hotswap', { hotswap: 2, led: 2 }),
     numPins: () => ({ matrix: 1 }),
+    flipPart: (v: Variant) => v.led == 'North LED',
     description: 'This socket integrates a 3D-printed diode and hotswap socket holder. Useful if you have a great 3D printer, want hotswap, but cannot buy PCBs.' + DESC_MX,
     icon: 'mx',
     bomIcon: 'switch',
@@ -173,10 +177,10 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     bomName: () => 'MX-Compatible Switch',
     category: 'Sockets',
     stepFile: '/target/key-mx-klavgen.step',
-    partOverride: MX_PART,
+    partOverride: '/target/switch-mx-klavgen.glb',
     singlePartForVariants: true,
     socketSize: () => [18.75, 18.75, 2.2] as [number, number, number],
-    partBottom: () => [MX_BOTTOM, box(18.55, 18.55, 8)],
+    partBottom: () => [MX_BOTTOM, box(18.55, 18.55, 9)],
     keycap: 'mx',
     extraBomItems: () => ({ ...BOM_MX_HOTSWAP, ...BOM_DIODE }),
     variants: {
@@ -185,6 +189,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     encodeVariant: makeEncodeVariant('mx-klavgen', { led: 2 }),
     decodeVariant: makeDecodeVariant('mx-klavgen', { led: 2 }),
     numPins: () => ({ matrix: 1 }),
+    flipPart: (v: Variant) => v.led == 'North LED',
     description:
       'This socket integrates a 3D-printed diode and hotswap socket holder, but you print the <a href="https://github.com/klavgen/klavgen/blob/main/example_stls/switch_holder.stl">holders</a> separately! This prints more reliably, but your keyboard is going to come in 20 different pieces. Great if you want hotswap but cannot buy PCBs.'
       + DESC_MX,
@@ -256,6 +261,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     encodeVariant: makeEncodeVariant('choc-v1-hotswap', { led: 2 }),
     decodeVariant: makeDecodeVariant('choc-v1-hotswap', { led: 2 }),
     numPins: () => ({ matrix: 1 }),
+    flipPart: (v: Variant) => v.led == 'South LED',
     description:
       'For the lowest profile boards! This thin socket supports the thin Kailh Choc switches and gives you a low-to-the-ground keyboard. It also has a nifty 3D-printed mount for hotswap sockets. \nYou can tell Choc V1 switches by their special stem design that looks like a pair of eyes.',
     icon: 'choc',
@@ -278,6 +284,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     encodeVariant: makeEncodeVariant('choc-v2-hotswap', { led: 2 }),
     decodeVariant: makeDecodeVariant('choc-v2-hotswap', { led: 2 }),
     numPins: () => ({ matrix: 1 }),
+    flipPart: (v: Variant) => v.led == 'South LED',
     description:
       "Choc V2 is quite similar to Kailh Choc V1 except for the fact that it uses taller MX-style keycaps instead of the smaller Choc-style keycaps. This socket is dimensionally equivalent to the Choc&nbsp;V1 socket but includes more clearance around the hole. It also has a 3D-printed mount for Choc hotswap sockets.\nIf your Choc Switches have the MX '+'-shaped stem, then they're V2.",
     icon: 'choc',
@@ -300,6 +307,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     encodeVariant: makeEncodeVariant('choc-v2-hotswap', { led: 2 }),
     decodeVariant: makeDecodeVariant('choc-v2-hotswap', { led: 2 }),
     numPins: () => ({ matrix: 1 }),
+    flipPart: (v: Variant) => v.led == 'South LED',
     description: '...',
     icon: 'pumpkin',
     bomIcon: 'switch',
@@ -805,6 +813,7 @@ type PartInfoVariant = {
   encodeVariant: (v: Variant) => number
   extraBomItems?: (v: Variant) => Record<string, BomItem>
   numPins?: (v: Variant) => Pins
+  flipPart?: (v: Variant) => boolean
 }
 export type PartInfo = (PartInfoNonVariant | PartInfoVariant) & {
   partName: string

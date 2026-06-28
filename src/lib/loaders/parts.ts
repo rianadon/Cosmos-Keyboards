@@ -22,7 +22,6 @@ export async function partGeometry(type: Switch, variant: Record<string, any> = 
     return await loadGLTF(url.replace('.glb', (PART_INFO[type].singlePartForVariants ? '' : varurl) + '.glb'))
   } else {
     const splitUrl = '/target/splitpart-' + type + (PART_INFO[type].singlePartForVariants ? '' : varurl) + '.glb'
-    console.log(splitUrl)
     return await loadGLTF(splitUrl)
   }
 }

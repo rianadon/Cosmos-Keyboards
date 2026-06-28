@@ -6,8 +6,14 @@ import { type BufferAttribute, BufferGeometry, Matrix4, Triangle, Vector3 } from
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
 import keys from '../../../target/keys-simple.json'
 
+export enum TriType {
+  PART,
+  KEY,
+  SOCKET,
+  WEB,
+}
 export class ITriangle extends Triangle {
-  constructor(a: Vector3, b: Vector3, c: Vector3, public i: number) {
+  constructor(a: Vector3, b: Vector3, c: Vector3, public type: TriType, public i: number) {
     super(a, b, c)
   }
 }
@@ -57,6 +63,7 @@ export function simpleKey(key: CuttleKey, position: Matrix4, index: number, addT
         new Vector3().fromArray(positions.array, i).applyMatrix4(position),
         new Vector3().fromArray(positions.array, i + 3).applyMatrix4(position),
         new Vector3().fromArray(positions.array, i + 6).applyMatrix4(position),
+        TriType.KEY,
         index,
       ),
     )

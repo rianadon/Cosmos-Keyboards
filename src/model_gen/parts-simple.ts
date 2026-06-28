@@ -1,8 +1,9 @@
 import { fromGeometry } from '$lib/loaders/geometry'
+import { range } from '$lib/worker/util'
 import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { Sketcher } from 'replicad'
+import { type Shape3D, Sketcher } from 'replicad'
 import { Mesh } from 'three'
 import { STLExporter } from 'three/examples/jsm/exporters/STLExporter.js'
 import { setup } from './node-model'
@@ -33,36 +34,75 @@ function AmoebaPCB() {
   return sketcher.close().extrude(1.9)
 }
 
-async function genPCB() {
-  const model = AmoebaPCB()
-  const mesh = model.mesh({ tolerance: 0.1, angularTolerance: 10 })
-  const geometry = fromGeometry(mesh)
-  const exporter = new STLExporter()
-  const binary = exporter.parse(new Mesh(geometry), { binary: true }) as any
-  // await writeFile(join(targetDir, 'pcb.stl'), binary)
-  return { key: 'amoeba-king', result: Buffer.from(binary.buffer).toString('base64') }
+function PlumTwist() {
+  const N_POINTS = 12
+  const radius = 17.9 / 2
+  const points: Point[] = range(0, N_POINTS).map(i => [
+    radius * Math.cos(i * 2 * Math.PI / N_POINTS),
+    radius * Math.sin(i * 2 * Math.PI / N_POINTS),
+  ])
+  const sketcher = new Sketcher('XY', -5.95).movePointerTo(points[0])
+  points.slice(1).forEach(p => sketcher.lineTo(p))
+  return sketcher.close().extrude(1.2)
 }
 
-async function genMX() {
-  const binary = await readFile(join(assetsDir, 'switch-mx-simple.stl'))
-  return { key: 'mx', result: binary.toString('base64') }
+function AmoebaChoc() {
+  const points: Point[] = [
+    [-6.85, 8],
+    [6.85, 8],
+    [6.85, -8],
+    [-6.85, -8],
+  ]
+  const sketcher = new Sketcher('XY', -3.8).movePointerTo(points[0])
+  points.slice(1).forEach(p => sketcher.lineTo(p))
+  return sketcher.close().extrude(1.2)
 }
 
-async function genChoc() {
-  const binary = await readFile(join(assetsDir, 'switch-choc-simple.stl'))
-  return { key: 'choc', result: binary.toString('base64') }
+function genPCB(id: string, fn: () => Shape3D) {
+  return async () => {
+    const model = fn()
+    const mesh = model.mesh({ tolerance: 0.1, angularTolerance: 10 })
+    const geometry = fromGeometry(mesh)
+    const exporter = new STLExporter()
+    const binary = exporter.parse(new Mesh(geometry), { binary: true }) as any
+    // await writeFile(join(targetDir, 'pcb.stl'), binary)
+    return { key: id, result: Buffer.from(binary.buffer).toString('base64') }
+  }
+}
+
+function genPart(key: string, name: string) {
+  return async () => {
+    const binary = await readFile(join(assetsDir, name))
+    return { key: key, result: binary.toString('base64') }
+  }
 }
 
 async function genKeys() {
   await setup()
-  await genPCB()
 
   const pool = new ProcessPool()
   if (pool.isWorker) await setup()
 
-  pool.add('PCB', genPCB)
-  pool.add('MX', genMX)
-  pool.add('Choc', genChoc)
+  pool.add('MX Amoeba', genPCB('amoeba-king', AmoebaPCB))
+  pool.add('Plum Twist', genPCB('plum-twist', PlumTwist))
+  pool.add('Plum Twist Socket', genPart('socket-mx-plum', 'socket-mx-plum-simple.stl'))
+  pool.add('Choc Amoeba', genPCB('choc-amoeba', AmoebaChoc))
+  pool.add('MX', genPart('mx', 'switch-mx-simple.stl'))
+  pool.add('MX Hotswap', genPart('mx-hotswap', 'switch-mx-hotswap-simple.stl'))
+  pool.add('MX Pumpkin', genPart('mx-pumpkin', 'switch-mx-pumpkin-simple.stl'))
+  pool.add('Klavgen', genPart('mx-klavgen', 'switch-mx-klavgen-simple.stl'))
+  pool.add('Choc', genPart('choc', 'switch-choc-simple.stl'))
+  pool.add('Choc Hotswap', genPart('choc-hotswap', 'switch-choc-hotswap-simple.stl'))
+  pool.add('EC11', genPart('ec11', 'switch-ec11-simple.stl'))
+  pool.add('EC11 Socket', genPart('socket-ec11', 'socket-ec11-simple.stl'))
+  pool.add('EVQWGD001', genPart('evqwgd001', 'switch-evqwgd001-simple.stl'))
+  pool.add('THQWGD001', genPart('thqwgd001', 'switch-thqwgd001-simple.stl'))
+  pool.add('MEH01', genPart('meh01', 'switch-meh01-simple.stl'))
+  pool.add('RKJXT1F42001', genPart('rkjxt1f42001', 'switch-rkjxt1f42001-simple.stl'))
+  pool.add('Joycon Adafruit', genPart('joycon-adafruit', 'switch-joycon-adafruit-simple.stl'))
+  pool.add('PS2', genPart('ps2', 'switch-ps2-simple.stl'))
+  pool.add('PS2 Socket', genPart('socket-ps2', 'socket-ps2-simple.stl'))
+  pool.add('Joycon Nintendo', genPart('joycon-nintendo', 'switch-joycon-nintendo-simple.stl'))
   await pool.run()
 
   const filename = join(targetDir, `sockets-simple.json`)

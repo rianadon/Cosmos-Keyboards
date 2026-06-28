@@ -31,6 +31,7 @@
   import { pluralizeLastWord, trim } from '$lib/worker/util'
   import { createEventDispatcher } from 'svelte'
   import Description from './Description.svelte'
+  import { simplePartGeos, simpleSocketGeos } from '$lib/loaders/simpleparts'
 
   export let name: string
   export let part: CuttleKey['type']
@@ -64,6 +65,8 @@
     () => (loading = false),
     (e) => console.error('Error loading ' + part, e)
   )
+
+  $: shouldFlip = 'flipPart' in info && info.flipPart?.(variant)
 
   $: trimmedDesc = trim(info.description || '', 200) || ''
   $: trimmed = true
@@ -118,7 +121,9 @@
     <div class="aspect-1 relative w-full">
       <CoopCanvas>
         {#await partPromise then partMesh}
-          <T.Mesh geometry={partMesh}><KeyboardMaterial kind="key" brightness={0.7} /></T.Mesh>
+          <T.Mesh geometry={partMesh} rotation.z={shouldFlip ? Math.PI : 0}
+            ><KeyboardMaterial kind="key" brightness={0.7} /></T.Mesh
+          >
         {/await}
         {#await socketPromise then socketMesh}
           <T.Mesh geometry={socketMesh} kind="case"><KeyboardMaterial kind="case" /></T.Mesh>
@@ -163,6 +168,41 @@
       </CoopCanvas>
     </div>
   </div>
+  {#if dev}
+    <div class="flex justify-center">
+      <div class="aspect-2 relative w-70% overflow-hidden items-center justify-center text-center flex">
+        {#if simpleSocketGeos(part, variant).length || simplePartGeos(part, variant).length}
+          <div class="aspect-1 absolute w-full left-0 top-[-50%]">
+            <CoopCanvas>
+              {#await partPromise then partMesh}
+                <T.Mesh geometry={partMesh} rotation.z={shouldFlip ? Math.PI : 0}
+                  ><KeyboardMaterial kind="key" brightness={0.7} opacity={0.5} /></T.Mesh
+                >
+              {/await}
+              {#await socketPromise then socketMesh}
+                <T.Mesh geometry={socketMesh} kind="case"
+                  ><KeyboardMaterial kind="case" opacity={0.3} /></T.Mesh
+                >
+              {/await}
+              {#each simpleSocketGeos(part, variant) as g}
+                <T.Mesh geometry={g}
+                  ><KeyboardMaterial kind="key" status="warning" opacity={0.7} /></T.Mesh
+                >
+              {/each}
+              {#each simplePartGeos(part, variant) as g}
+                <T.Mesh geometry={g}><KeyboardMaterial kind="key" status="error" /></T.Mesh>
+              {/each}
+              <T.OrthographicCamera makeDefault position={[0, -50, -30]} zoom={0.034}>
+                <OrbitControls enableZoom={false} enablePan={false} />
+              </T.OrthographicCamera>
+            </CoopCanvas>
+          </div>
+        {:else}
+          <span class="text-pink-400/70">No Intersection Geometry Defined</span>
+        {/if}
+      </div>
+    </div>
+  {/if}
   {#if editable && 'variants' in info}
     <div class="flex justify-around flex-wrap">
       {#each Object.entries(info.variants) as [key, opt]}

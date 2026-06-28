@@ -55,7 +55,11 @@
     let status: KeyStatus = undefined
     errors.forEach((error) => {
       if (!error || error.side != side) return
-      if (error.type == 'intersection' && error.what == 'socket' && (error.i == i || error.j == i))
+      if (
+        error.type == 'intersection' &&
+        (error.what == 'socket' || error.what == 'part') &&
+        (error.i == i || error.j == i)
+      )
         status = isWarningError(error) && status != 'error' ? 'warning' : 'error'
       if (error.type == 'wallBounds' && error.i == i && status != 'error') status = 'warning'
       if (error.type == 'samePosition' && (error.i == i || error.j == i)) status = 'error'
@@ -75,18 +79,13 @@
   const rot = new Quaternion()
   const pos = new Vector3()
 
-  function shouldFlipSwitch(key: CuttleKey) {
-    if (key.type.startsWith('mx'))
-      return key.variant && 'led' in key.variant && key.variant.led == 'North LED'
-    if (key.type.startsWith('choc'))
-      return key.variant && 'led' in key.variant && key.variant.led == 'South LED'
-  }
-
   function gatherPartsAndVariants(geo: Geometry) {
     const ids = new DefaultMap<string, PartInfo[]>(() => [])
     geo.c.keys.forEach((key, i) => {
+      const info = PART_INFO[key.type]
       let position = geo.keyHolesTrsfs[i]
-      if (shouldFlipSwitch(key)) position = position.prerotated(180, [0, 0, 0], [0, 0, 1])
+      if ('flipPart' in info && info.flipPart?.(key.variant || {}))
+        position = position.prerotated(180, [0, 0, 0], [0, 0, 1])
       position.Matrix4().decompose(pos, rot, scale)
       const id = key.type + variantURL(key)
       ids.get(id).push({ key, pos: pos.toArray(), rot: rot.toArray() as Vector4Tuple, i })

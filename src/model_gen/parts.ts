@@ -7,6 +7,7 @@ import type { TrackballVariant } from '$target/cosmosStructs'
 import { readFile, writeFile } from 'fs/promises'
 import { basename, join } from 'path'
 import { type AnyShape, drawRectangle, getOC, importSTEP, makeBaseBox, Solid } from 'replicad'
+import { BufferAttribute, type BufferGeometry, type NormalBufferAttributes } from 'three'
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
 import { fileURLToPath } from 'url'
 import { allVariants, decodeVariant, PART_INFO, variantURL, variantURLs } from '../lib/geometry/socketsParts'
@@ -23,13 +24,34 @@ import { ProcessPool } from './processPool'
 const assetsDir = fileURLToPath(new URL('../assets', import.meta.url))
 const targetDir = fileURLToPath(new URL('../../target', import.meta.url))
 
-async function genPart(name: string) {
+async function genPart(name: string, ...others: string[]) {
   const stlName = join(assetsDir, name + '.stl')
   const glbName = join(targetDir, name + '.glb')
 
   const loader = new STLLoader()
   const stl = await readFile(stlName)
-  const geometry = loader.parse(stl.buffer as ArrayBuffer)
+  let geometry = loader.parse(stl.buffer as ArrayBuffer) as BufferGeometry<NormalBufferAttributes>
+
+  if (others.length) {
+    let vertices = geometry.getAttribute('position').array
+    let normals = geometry.getAttribute('normal').array
+    for (const other of others) {
+      const stl = await readFile(join(assetsDir, other + '.stl'))
+      const otherGeometry = loader.parse(stl.buffer as ArrayBuffer) as BufferGeometry<NormalBufferAttributes>
+      const otherVertices = otherGeometry.getAttribute('position').array
+      const otherNormals = otherGeometry.getAttribute('normal').array
+      const newVert = new Float32Array(vertices.length + otherVertices.length)
+      const newNorm = new Float32Array(normals.length + otherNormals.length)
+      newVert.set(vertices, 0)
+      newVert.set(otherVertices, vertices.length)
+      newNorm.set(normals, 0)
+      newNorm.set(otherNormals, normals.length)
+      vertices = newVert
+      normals = newNorm
+    }
+    geometry.setAttribute('position', new BufferAttribute(vertices, 3))
+    geometry.setAttribute('normal', new BufferAttribute(normals, 3))
+  }
   await exportGLTF(glbName, geometry)
 }
 
@@ -189,6 +211,7 @@ async function main() {
   pool.add('ECQWGD001 Encoder', () => genPart('switch-evqwgd001'))
   pool.add('Joycon Joystick', () => genPart('switch-joystick-joycon-adafruit'))
   pool.add('PS2 Joystick', () => genPart('switch-joystick-ps2-40x45'))
+  pool.add('Klavgen Switch', () => genPart('switch-mx-klavgen', 'switch-cherry-mx'))
 
   poolChocV1('choc', 'choc-v1', 'choc-v2')
   poolChocV1('choc-hotswap', 'choc-v1-hotswap', 'choc-v2-hotswap', true)
