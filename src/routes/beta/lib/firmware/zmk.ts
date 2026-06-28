@@ -126,10 +126,12 @@ const SPECIALS = [
 
 /** The ZMK locale id (keys_<id>.h basename) to use for a language, or undefined for US/none. */
 function zmkLocale(language: Language | undefined): string | undefined {
-  const id = language?.zmk || language?.zmkCharset
-  if (!id) return undefined
-  const map = ZMK_CODES[id]
-  return map && Object.keys(map).length ? id : undefined
+  for (const id of [language?.zmk, language?.zmkCharset]) {
+    if (!id) continue
+    const map = ZMK_CODES[id]
+    if (map && Object.keys(map).length) return id
+  }
+  return undefined
 }
 
 /**

@@ -362,10 +362,12 @@ const EXTRAKEY_REQUIRED = new Set([
 
 /** The QMK locale id (keymap_<id>.h basename) to use for a language, or undefined for US/none. */
 function qmkLocale(language: Language | undefined): string | undefined {
-  const id = language?.qmk || language?.qmkCharset
-  if (!id) return undefined
-  const map = QMK_CODES[id]
-  return map && Object.keys(map).length ? id : undefined
+  for (const id of [language?.qmk, language?.qmkCharset]) {
+    if (!id) continue
+    const map = QMK_CODES[id]
+    if (map && Object.keys(map).length) return id
+  }
+  return undefined
 }
 
 /**
@@ -385,7 +387,7 @@ function resolveKeycode(code: string | undefined, language?: Language): { code: 
     const map = QMK_CODES[locale]
     const hit = map[code] ?? map[c] // exact case first, then lowercased
     if (hit) return { code: hit, unmapped: false }
-    if (isQWERTYKey(c)) return { code: 'KP_SPACE', unmapped: true }
+    if (isQWERTYKey(c)) return { code: 'KC_SPACE', unmapped: true }
   }
 
   if (/^[a-z]$/.test(c)) return { code: 'KC_' + c.toUpperCase(), unmapped: false }
