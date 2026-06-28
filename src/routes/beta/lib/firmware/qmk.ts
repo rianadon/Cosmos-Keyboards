@@ -385,7 +385,7 @@ function resolveKeycode(code: string | undefined, language?: Language): { code: 
     const map = QMK_CODES[locale]
     const hit = map[code] ?? map[c] // exact case first, then lowercased
     if (hit) return { code: hit, unmapped: false }
-    if (isQWERTYKey(c)) return { code: 'KP_SPACE', unmapped: true }
+    if (isQWERTYKey(c)) return { code: 'KC_SPACE', unmapped: true }
   }
 
   if (/^[a-z]$/.test(c)) return { code: 'KC_' + c.toUpperCase(), unmapped: false }
