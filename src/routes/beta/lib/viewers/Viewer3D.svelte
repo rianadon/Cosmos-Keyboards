@@ -10,6 +10,7 @@
     tupleToXYZ,
     type Center,
     type KeyboardSide,
+    type FullGeometry,
   } from '$lib/worker/config'
   import Trsf from '$lib/worker/modeling/transformation'
   import {
@@ -94,7 +95,6 @@
     transformationCenter,
     profileName,
     sortProfiles,
-    type FullGeometry,
     kbdOffset,
     flipMatrixX,
     shouldFlipKey,

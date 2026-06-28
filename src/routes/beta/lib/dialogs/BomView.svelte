@@ -1,5 +1,10 @@
 <script lang="ts">
-  import { convertToMaybeCustomConnectors, type Cuttleform, type CuttleKey } from '$lib/worker/config'
+  import {
+    convertToMaybeCustomConnectors,
+    type Cuttleform,
+    type CuttleKey,
+    type FullGeometry,
+  } from '$lib/worker/config'
   import Icon from '$lib/presentation/Icon.svelte'
   import { closestAspect, KEY_DESC, UNIFORM } from '$lib/geometry/keycaps'
   import { bomName, extraBomItems, PART_INFO, type BomItem } from '$lib/geometry/socketsParts'
@@ -10,7 +15,6 @@
   } from '$lib/geometry/microcontrollers'
   import { screwInsertHeight } from '$lib/geometry/screws'
   import * as mdi from '@mdi/js'
-  import type { FullGeometry } from '../viewers/viewer3dHelpers'
   import { objEntries, objKeys, pluralize, pluralizeLastWord } from '$lib/worker/util'
   import type { Profile } from '$target/cosmosStructs'
   import { hasKeyGeometry } from '$lib/loaders/keycaps'

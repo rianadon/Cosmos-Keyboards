@@ -17,12 +17,16 @@
 
   import { isRenderable, type ConfErrors } from '$lib/worker/check'
   import Trsf from '$lib/worker/modeling/transformation'
-  import { fullEstimatedCenter, type Cuttleform, type Geometry } from '$lib/worker/config'
+  import {
+    fullEstimatedCenter,
+    type Cuttleform,
+    type FullGeometry,
+    type Geometry,
+  } from '$lib/worker/config'
   import { Vector } from '$lib/worker/modeling/transformation'
   import { CanvasTexture, Color, NearestFilter } from 'three'
   import { view } from '$lib/store'
   import { mapObj, objEntries } from '$lib/worker/util'
-  import type { FullGeometry } from './viewer3dHelpers'
   import { T } from '@threlte/core'
 
   export let geometry: FullGeometry | null

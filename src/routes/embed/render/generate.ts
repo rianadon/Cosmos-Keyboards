@@ -1,8 +1,8 @@
-import { type FullCuttleform, fullEstimatedCenter, fullEstimatedSize, newFullGeometry } from '$lib/worker/config'
+import { type FullCuttleform, fullEstimatedCenter, fullEstimatedSize, type FullGeometry, newFullGeometry } from '$lib/worker/config'
 import { objEntriesNotNull, objKeys } from '$lib/worker/util'
 import { Matrix4 } from 'three/src/math/Matrix4.js'
 import { renderedModelsAsScene } from '../../beta/lib/modelGLTF'
-import type { FullGeometry, FullKeyboardMeshes } from '../../beta/lib/viewers/viewer3dHelpers'
+import type { FullKeyboardMeshes } from '../../beta/lib/viewers/viewer3dHelpers'
 import type { WorkerPool } from '../../beta/lib/workerPool'
 
 export async function generateScene(pool: WorkerPool<typeof import('$lib/worker/api')>, conf: FullCuttleform, geometry: FullGeometry) {

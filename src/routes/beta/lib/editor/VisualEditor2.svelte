@@ -1,5 +1,11 @@
 <script lang="ts">
-  import { cScrewHeight, decodeTuple, encodeTuple, type FullCuttleform } from '$lib/worker/config'
+  import {
+    cScrewHeight,
+    decodeTuple,
+    encodeTuple,
+    type FullCuttleform,
+    type FullGeometry,
+  } from '$lib/worker/config'
   import {
     MICROCONTROLLER_NAME,
     PLATE_ART,
@@ -39,7 +45,7 @@
   import CheckboxOpt from '$lib/presentation/CheckboxOptDef.svelte'
   import Select from '$lib/presentation/Select.svelte'
   import { capitalize, mapObj, mapObjNotNull, notNull, objEntries, objKeys } from '$lib/worker/util'
-  import { profileName, sortProfiles, type FullGeometry } from '../viewers/viewer3dHelpers'
+  import { profileName, sortProfiles } from '../viewers/viewer3dHelpers'
   import { encodeVariant, PART_INFO } from '$lib/geometry/socketsParts'
   import DecimalInputInherit from './DecimalInputInherit.svelte'
   import {

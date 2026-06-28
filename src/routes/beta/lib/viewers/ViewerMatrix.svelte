@@ -8,12 +8,12 @@
     fullEstimatedCenter,
     type Cuttleform,
     type CuttleKey,
+    type FullGeometry,
     type Geometry,
   } from '$lib/worker/config'
   import { isRenderable, type ConfErrors } from '$lib/worker/check'
   import { keyLine } from '../matrixLayout'
   import { view } from '$lib/store'
-  import type { FullGeometry } from './viewer3dHelpers'
   import { mapObj, objEntries } from '$lib/worker/util'
   import { T } from '@threlte/core'
 

@@ -3,10 +3,9 @@
   import Field from '$lib/presentation/Field.svelte'
   import Select from '$lib/presentation/Select.svelte'
   import { modelName, storable } from '$lib/store'
-  import type { FullCuttleform } from '$lib/worker/config'
+  import type { FullCuttleform, FullGeometry } from '$lib/worker/config'
   import { mapObjNotNull } from '$lib/worker/util'
   import { downloadQMKCode, type QMKOptions, unmappableKeys as qmkUnmappable } from '../firmware/qmk'
-  import type { FullGeometry } from '../viewers/viewer3dHelpers'
   import {
     downloadZMKCode,
     unmappableKeys as zmkUnmappable,

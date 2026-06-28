@@ -1,6 +1,6 @@
 import type { Language } from '$lib/geometry/layouts'
+import type { FullGeometry } from '$lib/worker/config'
 import { describe, expect, test } from 'bun:test'
-import type { FullGeometry } from '../viewers/viewer3dHelpers'
 import { keycode as qmkKeycode, unmappableKeys as qmkUnmappable } from './qmk'
 
 const english: Language = { name: 'English', qmk: '', zmk: '', tag: 'en' }

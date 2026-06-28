@@ -25,7 +25,6 @@ import {
 } from '$target/proto/cuttleform'
 import { StiltsGeometry } from '@pro/stiltsGeo'
 import { Matrix4, Vector3 } from 'three'
-import type { FullGeometry } from '../../routes/beta/lib/viewers/viewer3dHelpers'
 import { BaseGeometry, BlockGeometry, TiltGeometry } from './cachedGeometry'
 import type { ConnectorMaybeCustom, CosmosCluster } from './config.cosmos'
 import { estimatedBB, estimatedCenter } from './geometry'
@@ -141,12 +140,12 @@ export interface SpecificCuttleform<S> {
 
 export type Cuttleform = SpecificCuttleform<AnyShell>
 
-export type FullCuttleform = {
-  left?: Cuttleform
-  right?: Cuttleform
-  center?: Cuttleform
-  unibody?: Cuttleform
-}
+export type Geometry = BaseGeometry<Cuttleform>
+
+export type Full<T> = { left?: T; right?: T; center?: T; unibody?: T }
+export type FullGeometry = Full<Geometry>
+export type FullCuttleform = Full<Cuttleform>
+
 export type KeyboardSide = 'left' | 'right' | 'center' | 'unibody'
 
 export interface BasicShell {
@@ -1501,8 +1500,6 @@ export function findKeyByAttr(config: Cuttleform, attr: 'home' | 'letter', value
   return config.keys.find(k => 'keycap' in k && k.keycap && k.keycap[attr] == value)
 }
 
-export type Geometry = BaseGeometry<Cuttleform>
-
 export function newGeometry(c: Cuttleform): Geometry {
   if (c.shell.type == 'stilts') {
     return new StiltsGeometry(c as SpecificCuttleform<StiltsShell>)
@@ -1537,13 +1534,9 @@ export function setBottomZ(conf: FullCuttleform, fast: boolean = false) {
   }
 }
 
-export type Center = {
-  left?: Point
-  right?: Point
-  center?: Point
-  unibody?: Point
-}
-export type FullCenter = Full<Center>
+export type Center = Full<Point>
+type View<T> = { left: T; both: T; right: T }
+export type FullCenter = View<Center>
 
 const VIEW_SEPARATION = 40
 
@@ -1579,8 +1572,7 @@ export function fullEstimatedCenter(geo: FullGeometry | undefined, withWristRest
   }
 }
 
-type Full<T> = { left: T; both: T; right: T }
-export function fullEstimatedSize(geo: FullGeometry | undefined): Full<[number, number, number]> {
+export function fullEstimatedSize(geo: FullGeometry | undefined): View<[number, number, number]> {
   if (!geo) return { left: [100, 100, 100], both: [300, 100, 100], right: [100, 100, 100] }
   if (geo.unibody) {
     const [x1, x2, y1, y2, z1, z2] = estimatedBB(geo.unibody)

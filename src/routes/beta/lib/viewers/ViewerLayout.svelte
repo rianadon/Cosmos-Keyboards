@@ -9,10 +9,10 @@
     fullEstimatedCenter,
     type Cuttleform,
     type FullCuttleform,
+    type FullGeometry,
     type Geometry,
   } from '$lib/worker/config'
   import { isRenderable, type ConfErrors } from '$lib/worker/check'
-  import type { FullGeometry } from './viewer3dHelpers'
   import { mapObj, objEntries, objKeys } from '$lib/worker/util'
   import { view } from '$lib/store'
   import { T } from '@threlte/core'

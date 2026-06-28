@@ -1,5 +1,5 @@
 import { download } from '$lib/browser'
-import type { FullGeometry } from '../viewers/viewer3dHelpers'
+import type { FullGeometry } from '$lib/worker/config'
 import type { Matrix } from './firmwareHelpers'
 import { toKLE } from './kle'
 import type { QMKOptions } from './qmk'

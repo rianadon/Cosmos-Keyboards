@@ -2,12 +2,8 @@
   import { OrbitControls, Gizmo } from '@threlte/extras'
   import { T, useThrelte } from '@threlte/core'
   import KeyboardModel from '$lib/3d/KeyboardModel.svelte'
-  import type { Center } from '$lib/worker/config'
-  import type {
-    FullGeometry,
-    FullKeyboardMeshes,
-    KeyboardMeshes,
-  } from '../../beta/lib/viewers/viewer3dHelpers'
+  import type { Center, FullGeometry } from '$lib/worker/config'
+  import type { FullKeyboardMeshes, KeyboardMeshes } from '../../beta/lib/viewers/viewer3dHelpers'
   import Keyboard from '$lib/3d/Keyboard.svelte'
   import { CASE_COLOR, KEY_COLOR, PLATE_COLOR, TRACKBALL_COLOR, SWITCH_COLOR } from './defaults'
   import { SoftShadows } from '@threlte/extras'

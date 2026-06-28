@@ -1,11 +1,10 @@
 import { PART_INFO } from '$lib/geometry/socketsParts'
 import { hasPinsInMatrix } from '$lib/loaders/keycaps'
-import { type Cuttleform, fullEstimatedCenter, type Geometry } from '$lib/worker/config'
+import { type Cuttleform, fullEstimatedCenter, type FullGeometry, type Geometry } from '$lib/worker/config'
 import { getRowColumn } from '$lib/worker/config.cosmos'
 import { DefaultMap, objEntries, objEntriesNotNull } from '$lib/worker/util'
 import type { CuttleKey } from '$target/cosmosStructs'
 import { type AsyncZippable, unzip, type Unzipped, zip } from 'fflate'
-import type { FullGeometry } from '../viewers/viewer3dHelpers'
 
 export type Matrix = Map<CuttleKey, [number, number]>
 

@@ -8,9 +8,13 @@
   import { WorkerPool } from '../../beta/lib/workerPool'
   import { fromCosmosConfig } from '$lib/worker/config.cosmos'
   import { generateScene } from './generate'
-  import { fullEstimatedCenter, fullEstimatedSize, newFullGeometry } from '$lib/worker/config'
+  import {
+    fullEstimatedCenter,
+    fullEstimatedSize,
+    newFullGeometry,
+    type FullGeometry,
+  } from '$lib/worker/config'
   import { Vector3 } from 'three'
-  import type { FullGeometry } from '../../beta/lib/viewers/viewer3dHelpers'
 
   const urlParams = new URLSearchParams(window.location.search)
   const configStr = urlParams.get('config')!

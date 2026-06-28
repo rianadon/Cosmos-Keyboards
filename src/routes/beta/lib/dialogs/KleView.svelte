@@ -1,7 +1,7 @@
 <script lang="ts">
   import { download } from '$lib/browser'
+  import type { FullGeometry } from '$lib/worker/config'
   import { toKLE } from '../firmware/kle'
-  import type { FullGeometry } from '../viewers/viewer3dHelpers'
 
   export let geo: FullGeometry
 

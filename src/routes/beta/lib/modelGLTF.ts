@@ -8,9 +8,9 @@ import { boardGeometries } from '$lib/loaders/boardElement'
 import { fromGeometry } from '$lib/loaders/geometry'
 import { keyGeometries } from '$lib/loaders/keycaps'
 import { partGeometries } from '$lib/loaders/parts'
-import type { Center, Geometry, KeyboardSide } from '$lib/worker/config'
+import type { Center, FullGeometry, Geometry, KeyboardSide } from '$lib/worker/config'
 import * as THREE from 'three'
-import type { FullGeometry, KeyboardMeshes } from './viewers/viewer3dHelpers'
+import type { KeyboardMeshes } from './viewers/viewer3dHelpers'
 import type { WorkerPool } from './workerPool'
 
 export async function modelAsScene(pool: WorkerPool<typeof import('$lib/worker/api')>, geometry: FullGeometry, side: KeyboardSide) {

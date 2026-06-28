@@ -38,6 +38,7 @@
     type Cuttleform,
     type FullCenter,
     type FullCuttleform,
+    type FullGeometry,
     type KeyboardSide,
   } from '$lib/worker/config'
   import { checkConfig, type ConfErrors, isRenderable, isWarning, salientError } from '$lib/worker/check'
@@ -67,7 +68,7 @@
   import DownloadDialog from './lib/dialogs/DownloadDialog.svelte'
   import { fromCosmosConfig, toFullCosmosConfig, type CosmosKeyboard } from '$lib/worker/config.cosmos'
   import KeyboardModel from '$lib/3d/KeyboardModel.svelte'
-  import { type FullGeometry, type FullKeyboardMeshes } from './lib/viewers/viewer3dHelpers'
+  import type { FullKeyboardMeshes } from './lib/viewers/viewer3dHelpers'
   import { notNull, objEntriesNotNull, objKeys } from '$lib/worker/util'
   import { T } from '@threlte/core'
   import Checkbox from '$lib/presentation/Checkbox.svelte'

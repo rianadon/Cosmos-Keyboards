@@ -1,9 +1,8 @@
 import { hasKeyGeometry } from '$lib/loaders/keycaps'
-import { fullEstimatedCenter } from '$lib/worker/config'
+import { fullEstimatedCenter, type FullGeometry } from '$lib/worker/config'
 import Trsf from '$lib/worker/modeling/transformation'
 import { Vector } from '$lib/worker/modeling/transformation'
 import { objEntries } from '$lib/worker/util'
-import type { FullGeometry } from '../viewers/viewer3dHelpers'
 import type { Matrix } from './firmwareHelpers'
 
 const TRANSFORM = new Vector(1 / 19, -1 / 19, 0)

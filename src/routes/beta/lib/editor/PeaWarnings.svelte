@@ -1,10 +1,9 @@
 <script lang="ts">
   import InfoBox from '$lib/presentation/InfoBox.svelte'
-  import type { FullCuttleform } from '$lib/worker/config'
+  import type { FullCuttleform, FullGeometry } from '$lib/worker/config'
   import { groupBy, objEntriesNotNull } from '$lib/worker/util'
   import { qmkErrors, qmkInfo } from '../firmware/qmk'
   import { zmkErrors, zmkInfo } from '../firmware/zmk'
-  import type { FullGeometry } from '../viewers/viewer3dHelpers'
 
   export let config: FullCuttleform
   export let geometry: FullGeometry

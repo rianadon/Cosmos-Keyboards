@@ -1,10 +1,9 @@
 import { download } from '$lib/browser'
 import type { Language } from '$lib/geometry/layouts'
 import { hasPinsInMatrix } from '$lib/loaders/keycaps'
-import type { CuttleKey, Geometry } from '$lib/worker/config'
+import type { FullGeometry, Geometry } from '$lib/worker/config'
 import { filterObj, findIndexIter, mapObjNotNull, mapObjNotNullToObj, mapObjToObj, objEntries, objEntriesNotNull, objKeysOfNotNull, sum } from '$lib/worker/util'
 import { strToU8, zip } from 'fflate'
-import type { FullGeometry } from '../viewers/viewer3dHelpers'
 import { dtsFile, encoderKeys, fullLayout, isQWERTYKey, logicalKeys, type Matrix, raw, yamlFile } from './firmwareHelpers'
 import { ZMK_CODES } from './languageCodes'
 

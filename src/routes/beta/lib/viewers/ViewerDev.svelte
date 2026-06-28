@@ -1,11 +1,11 @@
 <script lang="ts">
   import Checkbox from '$lib/presentation/Checkbox.svelte'
   import { debugViewport, showTiming, showKeyInts, showGizmo, protoConfig, noStitch } from '$lib/store'
+  import type { FullGeometry } from '$lib/worker/config'
   import { stringifyCluster, type CosmosCluster } from '$lib/worker/config.cosmos'
   import { encodeCosmosCluster } from '$lib/worker/config.serialize'
   import { capitalize } from '$lib/worker/util'
   import { Cluster } from '../../../../../target/proto/cosmos'
-  import type { FullGeometry } from './viewer3dHelpers'
 
   export let geometry: FullGeometry | null
 

@@ -1,9 +1,8 @@
 <script lang="ts">
   import { BufferAttribute, Mesh, MeshBasicMaterial, Color } from 'three'
-  import type { Center, Geometry } from '$lib/worker/config'
+  import type { Center, FullGeometry, Geometry } from '$lib/worker/config'
   import Viewer from './Viewer.svelte'
   import { T } from '@threlte/core'
-  import type { FullGeometry } from './viewer3dHelpers'
   import { objEntries } from '$lib/worker/util'
   import { fromGeometry } from '$lib/loaders/geometry'
   import { webSolid } from '$lib/worker/model'
