@@ -54,13 +54,11 @@
     connectorsString,
     getNKeys,
     getSize,
-    getPresetN,
     hasInnerCol,
     hasKey,
     hasOuterCol,
     isFnKey,
     isNumKey,
-    isPreset,
     setClusterAngle,
     setClusterSeparationFromCenter,
     setClusterSeparation,
@@ -69,10 +67,14 @@
     toggleInnerCol,
     toggleNumRow,
     toggleOuterCol,
+  } from './visualEditorHelpers'
+  import {
     setPreset,
+    getPresetN,
+    isPreset,
     type ThumbPreset,
     type CenterPreset,
-  } from './visualEditorHelpers'
+  } from '$lib/geometry/presets'
   import {
     DEFAULT_LAYOUT,
     diffAllLayouts,
