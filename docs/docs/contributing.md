@@ -137,6 +137,8 @@ Here's how to add a new socket to the codebase:
 
 5. Edit `src/proto/cosmosStructs.ts` and add your socket/part to the `enumeration('PART', {` declaration. You'll need to give your part a unique number used to identify it in the URL. Switches get numbers from 1–15, and everything else uses 16–109.
 
+6. Follow the [Intersection Geometry](#intersection-geometry) section to add intersection geometry so that your part can be included in collission detection.
+
 #### Previewing Locally
 
 Assuming you've already cloned the repository and ran `make quickstart` and have just made your part changes:
@@ -208,6 +210,8 @@ There is one new property here, `variants`, that describes the types of trackpad
 
 The `bomName`, `socketSize`, `partBottom`, and `pinsNeeded` fields are all functions of the variant information so that you can customize them for each variation. In this example some TypeScript casting, using the types generated after re-running `make`, are used to make the compiler happy.
 
+There's also the optional `#!typescript flipPart: (v: Variant) => boolean` function, which determines under which conditions the part should be rotated 180 degrees about the Z axis to match the socket. This is really only useful for switches with North/South facing LED variants.
+
 The `encodeVariant` and `decodeVariant` functions determine how to map between the variant configurations and nonnegative integers. This mapping should be 1:1. If the part has two configurable variables in its variants and each variable has three possible values, then you'll need to map to 2 × 3 = 6 integers, `0`–`5`. By convention `0` is mapped to the default configuration.
 
 !!! tip "Helper Functions"
@@ -240,6 +244,26 @@ In the BOM, this item will appear as:
 The keys are sorted alphabetically, so the `x` in `xdiodes` places this item at the end of the list. PCB-relelated things have keys starting with `pcb-` so they are grouped together.<p></p>
 
 If you need to add any more icons, the file to edit is `src/lib/presentation/Icon.svelte`.
+
+#### Intersection Geometry
+
+Cosmos is very thorough in checking for collisions because finding out your keyboard can't fit a switch after waiting hours for it to print is such a disappointing yet easily detectable issue. Therefore, the onus is on you as the part designer to ensure that your part works with the collission detection system.
+
+Every part/socket pair is assigned intersection geometry for its part and socket individually. That said, there are many times when it is ok to omit one or both of these geometries. The general rule of thumb is that if your socket has geometry sticking out below the web, it needs intersection geometry for the socket. Likewise, if the part sticks out below the web, or if the part sticks out above the web (with the exception of any switches, for the separate keycap intersection geometry covers this case), you need part intersection geometry. Here's a few examples:
+
+![Explanations of intersection geometry for trackball, encoder, switch, and joystick](../../assets/intersection-geometry.svg)
+
+Intersection geometry is saved as STL files then compiled into JSON by the code by `src/model_gen/parts-simple.ts` and loaded by `src/lib/loaders/simpleparts.ts`. Some geometry that can be completely parametric, such as that for trackballs, is directly generated inside `simpleparts.ts`.
+
+Here's a few tips for creating intersection geometry:
+
+1. Use as few faces as possible. The more faces you have, the longer it will take to check for intersections.
+2. Small details like holes or grooves should be removed.
+3. For large cylinders that need detail (such as joystick nubs), use cylinders with 12 faces. For small cylinders providing detail (such as on switches), use 4 faces.
+4. Faces which face the interior of the part should be deleted. There is no need for the intersecton geometry to be manifold. Instead, creating non-manifold geometry with as few faces as possible is preferred.
+5. I recommend editing by hand in Blender. It's difficult for a computer to figure out how to optimize. Many times I can throw together geometry for simple objects by composing cubes and cylinders.
+6. For more complex objects, I start from the STEP/GLB file itself then simplify the geometry. Primarily, I work inside edit mode and use Delete Face, Dissolve Edges, New Edge/Eace from Vertices, and Fill commands. The decimate modifier in planar mode is also handy.
+7. I recommend taking a look at [switch-mx-simple.stl](https://github.com/rianadon/Cosmos-Keyboards/blob/main/src/assets/switch-mx-simple.stl) as an example. You'll notice faces disappear in the GitHub viewer; this is because I've deleted these faces (see tip #4).
 
 #### OLED/LCD Displays
 

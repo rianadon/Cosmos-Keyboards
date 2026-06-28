@@ -813,6 +813,7 @@ type PartInfoVariant = {
   encodeVariant: (v: Variant) => number
   extraBomItems?: (v: Variant) => Record<string, BomItem>
   numPins?: (v: Variant) => Pins
+  /** If true, flip the part 180 degrees about the z axis. */
   flipPart?: (v: Variant) => boolean
 }
 export type PartInfo = (PartInfoNonVariant | PartInfoVariant) & {
