@@ -70,8 +70,8 @@
       ? qmkUnmappable(geometry, osLanguageObject)
       : []
 
-  $: guessedLangauge = LAYOUTS[detectLayout(toFullCosmosConfig(config))].languages[0].name
-  $: osLanguage = guessedLangauge
+  // Guess the language from the config
+  $: osLanguage = LAYOUTS[detectLayout(toFullCosmosConfig(config))].languages[0].name
 
   const languageGroups = partitionLanguages(window?.navigator.languages)
   const languageOptions = {
@@ -113,7 +113,7 @@
   help="This is the keyboard layout you have installed on your operating system. It can be different than your Cosmos keyboard."
 >
   <SelectThingy
-    value={guessedLangauge}
+    value={osLanguage}
     on:change={(ev) => (osLanguage = ev.detail)}
     options={languageOptions}
     component={SelectLanguageInner}
