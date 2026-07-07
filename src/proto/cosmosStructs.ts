@@ -51,6 +51,7 @@ enumeration('PART', {
   35: 'oled-128x64-0.96-aliexpress',
   36: 'trackpad-procyon',
   37: 'joystick-joycon-nintendo',
+  38: 'trackball-splitball',
 
   // Old stuff no one should be using.
   110: 'old-mx',
