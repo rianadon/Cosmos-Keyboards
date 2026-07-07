@@ -251,7 +251,7 @@ Cosmos is very thorough in checking for collisions because finding out your keyb
 
 Every part/socket pair is assigned intersection geometry for its part and socket individually. That said, there are many times when it is ok to omit one or both of these geometries. The general rule of thumb is that if your socket has geometry sticking out below the web, it needs intersection geometry for the socket. Likewise, if the part sticks out below the web, or if the part sticks out above the web (with the exception of any switches, for the separate keycap intersection geometry covers this case), you need part intersection geometry. Here's a few examples:
 
-![Explanations of intersection geometry for trackball, encoder, switch, and joystick](../../assets/intersection-geometry.svg)
+![Explanations of intersection geometry for trackball, encoder, switch, and joystick](../assets/intersection-geometry.svg)
 
 Intersection geometry is saved as STL files then compiled into JSON by the code by `src/model_gen/parts-simple.ts` and loaded by `src/lib/loaders/simpleparts.ts`. Some geometry that can be completely parametric, such as that for trackballs, is directly generated inside `simpleparts.ts`.
 
