@@ -35,6 +35,7 @@ export function simplePartGeos(type: CuttleKey['type'], variant: Record<string, 
   if (type == 'thqwgd001') return [socket('thqwgd001')]
   if (type == 'encoder-alps-rkjxt1f42001') return [socket('rkjxt1f42001')]
   if (type == 'trackball') return trackballPart(variant as TrackballVariant)
+  if (type == 'trackball-splitball') return splitballPart()
   if (type == 'joystick-joycon-adafruit') return [socket('joycon-adafruit')]
   if (type == 'joystick-ps2-40x45') return [socket('ps2')]
   if (type == 'joystick-joycon-nintendo') return [socket('joycon-nintendo')]
@@ -92,6 +93,16 @@ function trackballPart(variant: TrackballVariant): BufferGeometry[] {
   }
 
   return parts
+}
+
+function splitballPart(): BufferGeometry[] {
+  // The cup is part of the part (not the socket), so it's modeled here:
+  // the 34mm ball (+0.5mm so it can freely spin) and the cup's outer shell.
+  // The ball center sits at the socket origin.
+  return [
+    new IcosahedronGeometry(17.5, 2).toNonIndexed(),
+    botIcosahredron(21, 2), // 17mm ball + 1mm gap + 3mm cup wall
+  ]
 }
 
 function trackballSocket(variant: TrackballVariant): BufferGeometry[] {

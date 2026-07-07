@@ -673,7 +673,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
       const items: Record<string, BomItem> = {
         'trackball-cup': {
           item: 'Split-Ball Trackball Cup',
-          icon: 'trackball',
+          icon: 'cup',
           count: 1,
           info: `<a class="underline" href="${cupUrl}">Available from Skree</a> with optional ball retention bumps, or resin print it yourself`,
         },
@@ -681,16 +681,17 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
       if (v.sensor == 'ZMK') {
         items['trackball-sensor'] = {
           item: 'PMW3610 Sensor',
-          icon: 'trackball',
+          icon: 'pcb',
           count: 1,
           info: 'Supports <a class="underline" href="https://skree.us/products/zmk-compatible-pmw3610-board">these PCBs</a> from Skree',
         }
       } else {
         items['trackball-sensor'] = {
           item: 'PMW3389 Sensor',
-          icon: 'trackball',
+          icon: 'pcb',
           count: 1,
-          info: 'Supports <a class="underline" href="https://skree.us/products/qmk-compatible-trackball-mouse-sensor-pmw3389">these PCBs</a> from Skree, available in VIK-compatible and JST-SH versions',
+          info:
+            'Supports <a class="underline" href="https://skree.us/products/qmk-compatible-trackball-mouse-sensor-pmw3389">these PCBs</a> from Skree, available in VIK-compatible and JST-SH versions',
         }
       }
       return items
