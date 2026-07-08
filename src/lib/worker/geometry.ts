@@ -36,6 +36,7 @@ export const wallZOffset = (c: Cuttleform) => {
 export const BOARD_HOLDER_OFFSET = 0.02
 
 export const DEFAULT_FOOT_DIAM = 10
+export const DEFAULT_FOOT_HEIGHT = 2.5
 export const FOOT_INSET = 6 // How far feet are placed from outer wall
 
 const MICROCONTROLLER_BOX_MARGIN = 0.1 // How much space to give around microcontroller

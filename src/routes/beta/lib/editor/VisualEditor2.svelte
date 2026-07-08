@@ -1401,7 +1401,7 @@
   <Field name="Improved Plate" icon="art" pro help="Add plate art and insets for silicone feet">
     <CheckboxOpt
       bind:value={$protoConfig.plate}
-      def={{ art: 'cosmos', footIndices: [-1, -1, -1, -1], footDiameter: 10 }}
+      def={{ art: 'cosmos', footIndices: [-1, -1, -1, -1], footDiameter: 10, footHeight: 2.5 }}
     />
   </Field>
   {#if $protoConfig.plate}
@@ -1432,7 +1432,7 @@
         to the Advanced &rarr; Number of Feet.</InfoBox
       >
     {/if}
-    <Field name="Size of Feet" pro>
+    <Field name="Diameter of Feet" pro>
       <DecimalInput
         divisor={10}
         bind:value={$protoConfig.plate.footDiameter}
@@ -1440,6 +1440,21 @@
         on:change={updatePlate}
       />
     </Field>
+    <Field
+      name="Height of Feet"
+      pro
+      help="Height of the feet you are using, minus how far they stick out. I.e. the distance that feet should be inset into the plate."
+    >
+      <DecimalInput
+        divisor={10}
+        bind:value={$protoConfig.plate.footHeight}
+        units="mm"
+        on:change={updatePlate}
+      />
+    </Field>
+    {#if $protoConfig.plate?.footHeight + 0.5 > $protoConfig.plateThickness + 1e-5}
+      <InfoBox>The feet will stick out extra because the plate thickness is too small.</InfoBox>
+    {/if}
   {/if}
   <Field name="Rounded Top Edge" icon="round-top" pro>
     <CheckboxOpt bind:value={$protoConfig.rounded.top} def={{ horizontal: 0.25, vertical: 0.67 }} />

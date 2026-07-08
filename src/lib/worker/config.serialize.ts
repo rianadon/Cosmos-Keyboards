@@ -265,6 +265,7 @@ const KEYBOARD_EXTRA_DEFAULTS: KeyboardExtra = {
   plateArt: 0,
   footIndices: [],
   footDiameter: 100,
+  footHeight: 25,
 }
 
 const TILT_DEFAULTS: TiltShell = {
@@ -544,6 +545,7 @@ export function decodeConfigIdk(b64: string): CosmosKeyboard {
         art: decodePlateArt(keebExtra.plateArt) || undefined,
         footIndices: keebExtra.footIndices.map(i => i / 10 - 1),
         footDiameter: keebExtra.footDiameter / 10,
+        footHeight: keebExtra.footHeight / 10,
       }
       : undefined,
     layout: decodeLayout(keeb.layoutId),
@@ -748,6 +750,7 @@ export function encodeCosmosConfig(conf: CosmosKeyboard): Keyboard {
       plateArt: encodePlateArt(conf.plate?.art || null),
       footIndices: conf.plate?.footIndices?.map(i => Math.round(i * 10) + 10) || [],
       footDiameter: conf.plate?.footDiameter ? Math.round(conf.plate.footDiameter * 10) : undefined,
+      footHeight: conf.plate?.footHeight ? Math.round(conf.plate.footHeight * 10) : undefined,
     },
   }
 }
