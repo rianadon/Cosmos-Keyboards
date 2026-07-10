@@ -187,3 +187,10 @@ iframe {
 .lightbox {
     display: block;
 }
+
+iframe.youtube {
+    display: block;
+    margin: 0 auto;
+    aspect-ratio: 16/9;
+    max-width: 600px;
+}

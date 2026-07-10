@@ -934,19 +934,37 @@
             <ConfError {config} {mode} />
           {/if}
           {#if ocError && viewer == '3d'}
-            <div class="absolute text-white m-4 left-0 right-0 rounded p-4 top-[10%] bg-red-700">
-              <p>There are some rough edges in this tool, and you've found one of them.</p>
-              <p class="mb-2">The set of options you've chosen cannot be previewed.</p>
-              <p class="mb-2">Here's some technical information:</p>
-              <p class="text-sm"><code>During processing of <b>{ocError.task}</b></code></p>
-              <p class="text-sm">
-                <code
-                  >{ocError}<br />{ocError.stack
-                    ? ocError.stack.split('\n').slice(0, 5).join('\n')
-                    : ''}</code
-                >
-              </p>
-            </div>
+            {#if String(ocError.message).startsWith('Stilts ')}
+              <div class="absolute text-white m-4 left-0 right-0 rounded p-4 top-[10%] bg-pink-700">
+                <p class="mb-2">
+                  Stilts mode doesn't work with every model out there. The generator reported the issue:
+                  <span class="font-600">{ocError}</span>.
+                </p>
+                <p class="mb-2">
+                  Often this is because your keys are angled too horizontal or your microcontroller is
+                  interfering with the walls.
+                </p>
+                <p class="mb-2">
+                  Try the following to fix the problem: Set the microcontroller to none, then tilt keys
+                  to be more vertical. Once you have a working model, you can go back and readd the
+                  microcontroller and key tilting.
+                </p>
+              </div>
+            {:else}
+              <div class="absolute text-white m-4 left-0 right-0 rounded p-4 top-[10%] bg-red-700">
+                <p>There are some rough edges in this tool, and you've found one of them.</p>
+                <p class="mb-2">The set of options you've chosen cannot be previewed.</p>
+                <p class="mb-2">Here's some technical information:</p>
+                <p class="text-sm"><code>During processing of <b>{ocError.task}</b></code></p>
+                <p class="text-sm">
+                  <code
+                    >{ocError}<br />{ocError.stack
+                      ? ocError.stack.split('\n').slice(0, 5).join('\n')
+                      : ''}</code
+                  >
+                </p>
+              </div>
+            {/if}
           {/if}
         {/if}
       </div>
