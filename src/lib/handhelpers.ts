@@ -1,4 +1,4 @@
-import type { Joints } from '../routes/beta/lib/hand'
+import type { Joints } from '$lib/hand'
 
 export interface HandData {
   version: number

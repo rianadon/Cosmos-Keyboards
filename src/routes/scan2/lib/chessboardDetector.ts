@@ -1,7 +1,7 @@
 // import AR from '../lib/aruco/aruco.mjs';
+import type { PoseHand } from '$lib/hand'
 import { Matrix4, Vector3 } from 'three'
 import type { Detector } from '../lib/detector'
-import type { PoseHand } from '../lib/hand'
 
 type OpenCV = typeof import('$assets/opencv.d.ts')
 

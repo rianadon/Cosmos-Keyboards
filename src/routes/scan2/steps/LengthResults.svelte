@@ -1,7 +1,7 @@
 <script lang="ts">
   import { download } from '$lib/browser'
   import Step from '../lib/Step.svelte'
-  import { calculateJoints, FINGERS, type Hand, type Joints } from '../lib/hand'
+  import { calculateJoints, FINGERS, type Hand, type Joints } from '$lib/hand'
   import { stats, debugImgs } from '../store'
   import Stage from '../lib/Stage.svelte'
   import { onMount } from 'svelte'

@@ -5,7 +5,7 @@
   import { readHands, type HandData } from '$lib/handhelpers'
   import Icon from '$lib/presentation/Icon.svelte'
   import { mdiHandBackLeft, mdiHandBackRight, mdiHelp } from '@mdi/js'
-  import { SolvedHand, FINGERS, type Joints } from '../hand'
+  import { SolvedHand, FINGERS, type Joints } from '$lib/hand'
   import { Matrix4, Vector3 } from 'three'
   import HandFitViewTable from './HandFitViewTable.svelte'
   import { mirrorCluster, type CosmosCluster, type CosmosKeyboard } from '$lib/worker/config.cosmos'

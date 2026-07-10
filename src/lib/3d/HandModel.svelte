@@ -3,7 +3,7 @@
   import handModel from '$assets/hand.glb?url'
   import { Euler, Matrix4, Mesh, MeshNormalMaterial, Object3D, type Vector3Tuple } from 'three'
   import { T } from '@threlte/core'
-  import type { SolvedHand } from '../../routes/beta/lib/hand'
+  import type { SolvedHand } from '$lib/hand'
 
   export let scale = 66.7
   export let reverse = false

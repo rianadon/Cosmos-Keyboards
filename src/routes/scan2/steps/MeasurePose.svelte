@@ -13,7 +13,7 @@
     handOrientation,
     SolvedHand,
     type Joints,
-  } from '../lib/hand'
+  } from '$lib/hand'
   import { browser } from '$app/environment'
   import { Camera } from '../lib/camera'
   import { drawKeypoints } from '../lib/measurementHelpers'

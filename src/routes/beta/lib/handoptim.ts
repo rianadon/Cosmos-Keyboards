@@ -1,6 +1,6 @@
+import { type Finger, type Joints } from '$lib/hand'
 import { objKeys } from '$lib/worker/util'
 import { Euler, Matrix4, Vector3 } from 'three'
-import { type Finger, type Joints } from './hand'
 
 /**
  * Optimize the hand position! (IK!)

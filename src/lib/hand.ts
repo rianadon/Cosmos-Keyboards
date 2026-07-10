@@ -54,7 +54,6 @@ import { sum } from '$lib/worker/util'
 import type { LandmarkList, NormalizedLandmarkList } from '@mediapipe/hands'
 import { SVD } from 'svd-js'
 import { Euler, Matrix4, Quaternion, Vector3, type Vector3Tuple } from 'three'
-import { DEG2RAD } from 'three/src/math/MathUtils.js'
 
 export interface PoseHand {
   keypoints: NormalizedLandmarkList
@@ -117,14 +116,18 @@ const Y_AXIS = new Vector3(0, 1, 0)
 const Z_AXIS = new Vector3(0, 0, 1)
 
 function MAX_PAN(finger: Finger) {
-  if (finger == 'thumb') return 40 * DEG2RAD
-  return 30 * DEG2RAD
+  // Pan limits are disabled: the only IK caller (the /beta hand-fit view) needs
+  // ik() to always produce a solve rather than reject out-of-pan targets.
+  return Infinity
+  // Previous per-finger limits, kept for reference:
+  // if (finger == 'thumb') return 40 * DEG2RAD
+  // return 30 * DEG2RAD
 }
 
 export type Joint =
   | { length: number; degree: 0; position: Vector3; V: Matrix4; Vinv: Matrix4 }
   | { length: number; degree: 1 | 2; V: Matrix4; Vinv: Matrix4 }
-type Finger = string
+export type Finger = keyof typeof CONNECTIONS
 export type Joints = Record<Finger, Joint[]>
 
 /** Create a basis to orient the hand in a standard position.
@@ -253,7 +256,7 @@ export function objectFromFingers<U>(f: (finger: Finger) => U) {
 export class SolvedHand {
   private matrices: Record<Finger, Matrix4[]>
 
-  constructor(private joints: Joints, private position: Matrix4) {
+  constructor(private joints: Joints, public position: Matrix4) {
     this.matrices = objectFromFingers(() => LIMBS.map(() => new Matrix4()))
   }
 
@@ -410,7 +413,7 @@ export class SolvedHand {
   }
 }
 
-export function calculateJoints(history: Hand[], means: Record<string, number[]>) {
+export function calculateJoints(history: Hand[], means: Record<string, number[]>): Joints {
   return Object.fromEntries(
     FINGERS.map((l) => {
       const deg1 = averageNorms(
@@ -430,13 +433,13 @@ export function calculateJoints(history: Hand[], means: Record<string, number[]>
       const deg4 = fitNorms(rest, true, means[l][3], mat)
       return [l, [deg1, deg2, deg3, deg4]]
     }),
-  )
+  ) as Joints
 }
 
 /** Like calculatejoints, but used when there is no 3d data.
 	This gives a hand that at least looks ok in 2d.
 	*/
-export function calculateJoints2D(history: Hand[], means: Record<string, number[]>) {
+export function calculateJoints2D(history: Hand[], means: Record<string, number[]>): Joints {
   return Object.fromEntries(
     FINGERS.map((l) => {
       const deg1 = fitNorms(
@@ -455,13 +458,6 @@ export function calculateJoints2D(history: Hand[], means: Record<string, number[
       mat.premultiply(deg3.V)
       const deg4 = fitNorms(rest, true, means[l][3], mat)
       return [l, [deg1, deg2, deg3, deg4]]
-
-      // const deg2 = averageNorms(rest, means[l][1], mat, l === 'thumb' ? 2 : 2);
-      // mat.premultiply(deg2.V);
-      // const deg3 = averageNorms(rest, means[l][2], mat, l !== 'thumb' ? 1 : 2);
-      // mat.premultiply(deg3.V);
-      // const deg4 = averageNorms(rest, means[l][3], mat, 1);
-      // return [l, [deg1, deg2, deg3, deg4]];
     }),
-  )
+  ) as Joints
 }

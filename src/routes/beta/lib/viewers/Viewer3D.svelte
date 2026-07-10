@@ -33,7 +33,7 @@
   import HandModel from '$lib/3d/HandModel.svelte'
   import ImportedModel from '$lib/3d/ImportedModel.svelte'
   import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
-  import { type Finger, FINGERS, type Joints, SolvedHand } from '../hand'
+  import { type Finger, FINGERS, type Joints, SolvedHand } from '$lib/hand'
   import { refine } from '../handoptim'
   import Keyboard from '$lib/3d/Keyboard.svelte'
   import AddButton from '$lib/3d/AddButton.svelte'

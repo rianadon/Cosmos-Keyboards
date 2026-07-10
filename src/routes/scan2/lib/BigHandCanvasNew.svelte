@@ -13,7 +13,7 @@
   } from 'three'
   import handModel from '$assets/hand.glb?url'
   import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader'
-  import type { Hand, SolvedHand } from 'src/routes/scan2/lib/hand'
+  import type { Hand, SolvedHand } from '$lib/hand'
 
   export let lines2D: Vector3Tuple[][] = []
   export let positions: Record<string, Vector3[]>

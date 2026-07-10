@@ -1,6 +1,6 @@
 <script lang="ts">
   import { useFrame, T } from '@threlte/core'
-  import { FINGERS, SolvedHand } from './hand'
+  import { FINGERS, SolvedHand } from '$lib/hand'
   import HandModel from './HandModel.svelte'
   import { MeshStandardMaterial, Vector3, type BufferGeometry, type Vector3Tuple } from 'three'
   import { MeshLineGeometry, MeshLineMaterial } from '@threlte/extras'

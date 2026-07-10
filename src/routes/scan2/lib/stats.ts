@@ -4,7 +4,7 @@
  * Average = E[x] = sum(x)/n
  * Standard deviation = sqrt(E[x^2] - E[x]^2) = sqrt(sum(x^2)/n - (sum(x)/n)^2)
  */
-import { FINGERS, type Hand } from './hand'
+import { FINGERS, type Hand } from '$lib/hand'
 
 function mapValues<K extends string | number | symbol, V, R>(
   m: Record<K, V>,

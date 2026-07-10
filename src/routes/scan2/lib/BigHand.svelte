@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CONNECTIONS, type PoseHand } from './hand'
+  import { CONNECTIONS, type PoseHand } from '$lib/hand'
   import { Vector3, type Vector3Tuple, Matrix4 } from 'three'
   import { cameraToMarkerPoint } from './reconstruction'
   import { onMount } from 'svelte'
