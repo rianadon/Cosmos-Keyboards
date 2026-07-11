@@ -59,6 +59,12 @@ You can now drag your old models into the keyboard preview area to compare them 
 
 You can even drag in a banana for scale.
 
+## Double the Hands, Double the Fun
+
+![Keyboard with two hand renders](../../assets/twohand.png)
+
+The left hand preview is finally bug-free! Now that both hands work, I've updated the 3D Viewer to show a preview of both your hands next to your keyboard, so that you have a good idea of how the keyboard will fit your hands. :raised_hands:
+
 ## All-New Stilts Mode <span class="pro"></span>
 
 ![A keyboard made with the new stilts mode](../../assets/stilts-mode-new.png)
