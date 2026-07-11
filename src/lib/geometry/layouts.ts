@@ -1,7 +1,7 @@
 import { parseBCP } from '$lib/bcp'
 import type { Finger } from '$lib/hand'
 import { type CosmosCluster, type CosmosKey, type CosmosKeyboard, mirrorCluster } from '$lib/worker/config.cosmos'
-import { objEntries, objKeys, range } from '$lib/worker/util'
+import { objEntries, objKeys, range, reverseMap } from '$lib/worker/util'
 import type { Layout } from '$target/cosmosStructs'
 import { PART_INFO } from './socketsParts'
 
@@ -464,7 +464,8 @@ export function transposeCells(cells: string[]) {
 export function flipLetter(letter: string | undefined, layout: Layout): string | undefined {
   if (!letter) return letter
   const layoutStr = LAYOUTS[layout].layout
-  const index = R2L[layoutStr.indexOf(letter)]
+  let index: number | undefined = R2L[layoutStr.indexOf(letter)]
+  if (typeof index === 'undefined') index = reverseMap(R2L)[layoutStr.indexOf(letter)]
   if (typeof index === 'undefined') return letter
   return layoutStr[index]
 }

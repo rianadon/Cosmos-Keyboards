@@ -1,13 +1,18 @@
-import { UNIFORM } from '$lib/geometry/keycaps'
+import { keyInfo, UNIFORM } from '$lib/geometry/keycaps'
 import { adjacentKeycapLetter } from '$lib/geometry/layouts'
+import { switchInfo } from '$lib/geometry/switches'
+import type { Finger, Joints } from '$lib/hand'
+import type { HandData } from '$lib/handhelpers'
 import { referenceModels } from '$lib/store'
-import { type Center, decodeTuple, type Full, type FullGeometry, type Geometry, type KeyboardSide } from '$lib/worker/config'
+import { type Center, type Cuttleform, decodeTuple, type Full, type FullCuttleform, type FullGeometry, type Geometry, type KeyboardSide } from '$lib/worker/config'
 import { type CosmosCluster, type CosmosKey, type CosmosKeyboard, cosmosKeyPosition, nthKey } from '$lib/worker/config.cosmos'
 import type { ShapeMesh } from '$lib/worker/modeling'
 import Trsf, { Vector } from '$lib/worker/modeling/transformation'
-import type { Profile } from '$target/cosmosStructs'
+import { keyPosition, keyPositionTop } from '$lib/worker/modeling/transformation-ext'
+import { findMaxBy, findMinBy } from '$lib/worker/util'
+import type { CuttleKey, Profile } from '$target/cosmosStructs'
 import { type Readable } from 'svelte/store'
-import { BufferGeometry, Matrix4 } from 'three'
+import { BufferGeometry, Matrix4, Vector3 } from 'three'
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
 import { TupleBaseStore } from '../editor/tuple'
 
@@ -363,5 +368,99 @@ export async function updateReferenceModels(inFiles: File[] | FileList, geometry
     } catch (err) {
       console.error('Failed to import STL', file.name, err)
     }
+  }
+}
+
+export type HandSide = 'left' | 'right'
+export const HAND_SIDES: HandSide[] = ['left', 'right']
+
+const HAND_RADIUS = 2
+
+/** A split keyboard's left half is stored mirrored into the right half's frame (a unibody's is
+ *  not), but the hands are solved in world coordinates. Flip its positions back over x. */
+const mirrored = (v: Vector3, side: HandSide, isUnibody: boolean): Vector3 => side == 'left' && !isUnibody ? v.setX(-v.x) : v
+
+/** Position of a switch when unpressed */
+export const pos = (c: Cuttleform, k: CuttleKey | undefined, side: HandSide, isUnibody: boolean) =>
+  k
+    ? mirrored(keyPositionTop(c, k, false).pretranslated(0, 0, HAND_RADIUS).origin(), side, isUnibody)
+    : undefined
+
+/** Position of a switch when pressed down */
+export const pos15 = (c: Cuttleform, k: CuttleKey | undefined, side: HandSide, isUnibody: boolean) =>
+  k
+    ? mirrored(
+      keyPositionTop(c, k, false)
+        .pretranslated(0, 0, -switchInfo(k.type).height + switchInfo(k.type).pressedHeight + HAND_RADIUS)
+        .origin(),
+      side,
+      isUnibody,
+    )
+    : undefined
+
+/** How far the finger's position is to fully pressing the key down. */
+export function keyPressDepth(pos: Vector3, conf: Cuttleform, key: CuttleKey, side: HandSide, isUnibody: boolean) {
+  const ti = keyPosition(conf, key, false).invert().Matrix4()
+  const swInfo = switchInfo(key.type)
+  // The fingertip is in world coordinates; take it back into the config's frame to measure it
+  // against the key.
+  const tip = mirrored(pos, side, isUnibody).applyMatrix4(ti)
+  return Math.max(
+    Math.min(tip.z - HAND_RADIUS - swInfo.height - keyInfo(key).depth, 0),
+    swInfo.pressedHeight - swInfo.height,
+  )
+}
+
+export function findKeyByAttr(c: Cuttleform, unibodyLeft: boolean, attr: 'home' | 'letter', value: string) {
+  // On left and right splits, the rightmost key is always the outermost one.
+  // On unibody, the left side key is the one with the smallest x
+  return (unibodyLeft ? findMinBy : findMaxBy)(
+    c.keys.filter((k) => 'keycap' in k && k.keycap && k.keycap[attr] == value),
+    (k) => keyPosition(c, k, false).origin().x,
+  )
+}
+
+/** Whether a hand can reach a key. Both the hand and the key are in world coordinates. */
+function keyReachable(
+  joints: Joints,
+  c: Cuttleform,
+  k: CuttleKey,
+  side: HandSide,
+  matrices: Record<HandSide, Matrix4>,
+  fingers: Record<string, Finger>,
+  isUnibody: boolean,
+) {
+  const finger = 'keycap' in k && k.keycap?.letter ? fingers[k.keycap.letter] : 'thumb'
+  const reach = joints[finger || 'thumb'].reduce((a, j) => a + j.length, 0) * 1000
+  const origin = new Vector3().setFromMatrixPosition(matrices[side])
+  return pos15(c, k, side, isUnibody)!.distanceTo(origin) <= reach
+}
+
+/** Reachability of every key of a keyboard, given the hands resting on it. */
+function reachability(
+  handData: HandData,
+  c: Cuttleform | undefined,
+  sides: HandSide[],
+  matrices: Record<HandSide, Matrix4>,
+  fingers: Record<string, Finger>,
+  isUnibody: boolean,
+) {
+  if (!c || !sides.length) return undefined
+  return c.keys.map((k) => sides.some((side) => keyReachable(handData[side], c, k, side, matrices, fingers, isUnibody)))
+}
+
+export function computeReachability(
+  handData: HandData,
+  confs: Record<HandSide, Cuttleform | undefined>,
+  sides: HandSide[],
+  matrices: Record<HandSide, Matrix4>,
+  geometry: FullGeometry,
+  fingers: Record<string, Finger>,
+): Partial<Record<KeyboardSide, boolean[]>> {
+  // Both hands rest on a unibody keyboard, so a key only needs to be within reach of one of them.
+  if (geometry.unibody) return { unibody: reachability(handData, confs.right, sides, matrices, fingers, true) }
+  return {
+    left: reachability(handData, confs.left, sides.filter((s) => s == 'left'), matrices, fingers, false),
+    right: reachability(handData, confs.right, sides.filter((s) => s == 'right'), matrices, fingers, false),
   }
 }

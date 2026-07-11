@@ -3,7 +3,6 @@
   import { Euler, Matrix4, Quaternion, Vector3, type BufferGeometry } from 'three'
   import {
     type Cuttleform,
-    type CuttleKey,
     decodeTuple,
     encodeTuple,
     tupleToXYZ,
@@ -39,10 +38,8 @@
   import * as flags from '$lib/flags'
   import TransformControls from '$lib/3d/TransformControls.svelte'
   import { ContactShadows, TransformControls as TTransformControls } from '@threlte/extras'
-  import ETrsf, { keyPosition, keyPositionTop } from '$lib/worker/modeling/transformation-ext'
-  import { keyInfo } from '$lib/geometry/keycaps'
-  import { DEFAULT_LAYOUT, lettersToFingers, relayout } from '$lib/geometry/layouts'
-  import { switchInfo } from '$lib/geometry/switches'
+  import ETrsf, { keyPosition } from '$lib/worker/modeling/transformation-ext'
+  import { DEFAULT_LAYOUT, flippedKey, lettersToFingers, relayout } from '$lib/geometry/layouts'
   import { componentBoxes, componentGeometry } from '$lib/worker/geometry'
   import * as mdi from '@mdi/js'
   import Icon from '$lib/presentation/Icon.svelte'
@@ -96,6 +93,13 @@
     AbsPositionStore,
     AbsRotationStore,
     updateReferenceModels,
+    type HandSide,
+    HAND_SIDES,
+    pos,
+    pos15,
+    keyPressDepth,
+    findKeyByAttr,
+    computeReachability,
   } from './viewer3dHelpers'
   import Field from '$lib/presentation/Field.svelte'
   import DecimalInput from '../editor/DecimalInput.svelte'
@@ -469,22 +473,10 @@
 
   // The keys the simulation presses, named by their QWERTY letters. The same physical keys are
   // pressed in the same order whatever the layout; only the letters on them change.
-  const SENTENCE = 'The quick brown fox jumps over the lazy dog.'
+  const SENTENCE = 'the quick brown fox jumps over the lazy dog.'
   $: layout = $protoConfig?.layout ?? DEFAULT_LAYOUT
   $: sentence = relayout(SENTENCE, DEFAULT_LAYOUT, layout)
   $: fingersToKeys = lettersToFingers(layout)
-
-  type HandSide = 'left' | 'right'
-  const HAND_SIDES: HandSide[] = ['left', 'right']
-
-  /** Only a unibody puts the keys of both hands into one config. */
-  function sideKeys(c: Cuttleform, side: HandSide) {
-    if (!geometry.unibody) return c.keys
-    const mul = side == 'left' ? -1 : 1
-    return c.keys.filter((k) => keyPosition(c, k, false).origin().x * mul > 0)
-  }
-  const findSideKey = (c: Cuttleform, side: HandSide, attr: 'home' | 'letter', value: string) =>
-    sideKeys(c, side).find((k) => 'keycap' in k && k.keycap && k.keycap[attr] == value)
 
   /** The center of the keyboard a hand rests on, or undefined if that keyboard isn't shown. */
   function handCenter(side: HandSide, center: Center, geometry: FullGeometry) {
@@ -542,52 +534,36 @@
     return ik
   }
 
-  const keyDepth = (k: CuttleKey) => keyInfo(k).depth
-
-  const HAND_RADIUS = 2
-
-  const pos = (c: Cuttleform, k: CuttleKey | undefined) =>
-    k ? keyPositionTop(c, k, false).pretranslated(0, 0, HAND_RADIUS).origin() : undefined
-  const pos15 = (c: Cuttleform, k: CuttleKey | undefined) =>
-    k
-      ? keyPositionTop(c, k, false)
-          .pretranslated(
-            0,
-            0,
-            -switchInfo(k.type).height + switchInfo(k.type).pressedHeight + HAND_RADIUS
-          )
-          .origin()
-      : undefined
-  function theBigFit(conf: Cuttleform, side: HandSide) {
+  function theBigFit(fitConfs: FitConfs, side: HandSide) {
+    const conf = fitConfs[side]!
+    const isUnibody = fitConfs.isUnibody
+    const isUnibodyLeft = side == 'left' && fitConfs.isUnibody
     return fit(
       {
-        indexFinger: pos(conf, findSideKey(conf, side, 'home', 'index')),
-        middleFinger: pos(conf, findSideKey(conf, side, 'home', 'middle')),
-        ringFinger: pos(conf, findSideKey(conf, side, 'home', 'ring')),
-        pinky: pos(conf, findSideKey(conf, side, 'home', 'pinky')),
-        thumb: pos(conf, findSideKey(conf, side, 'home', 'thumb')),
+        indexFinger: pos(conf, findKeyByAttr(conf, isUnibodyLeft, 'home', 'index'), side, isUnibody),
+        middleFinger: pos(conf, findKeyByAttr(conf, isUnibodyLeft, 'home', 'middle'), side, isUnibody),
+        ringFinger: pos(conf, findKeyByAttr(conf, isUnibodyLeft, 'home', 'ring'), side, isUnibody),
+        pinky: pos(conf, findKeyByAttr(conf, isUnibodyLeft, 'home', 'pinky'), side, isUnibody),
+        thumb: pos(conf, findKeyByAttr(conf, isUnibodyLeft, 'home', 'thumb'), side, isUnibody),
       },
       side
     )
   }
 
-  // The config each hand is fit against. Both hands share the config of a unibody keyboard.
-  // The hands live in world coordinates, so the left half must be unflipped: fromCosmosConfig
-  // mirrors it into the right half's frame by default, and the renderer undoes that with scale.x=-1.
-  let fitConfs: Record<HandSide, Cuttleform | undefined> = { left: undefined, right: undefined }
-  $: if (conf) fitConfs = { ...fitConfs, right: conf.right || conf.unibody, left: conf.left }
-  $: if ($tempConfig) {
-    const full = fromCosmosConfig($tempConfig, false)
-    fitConfs = { left: full.left ?? full.unibody, right: full.right ?? full.unibody }
-  }
+  type FitConfs = Record<HandSide, Cuttleform | undefined> & { isUnibody: boolean }
+  let fitConfs: FitConfs = { left: undefined, right: undefined, isUnibody: false }
+  const toFitConf = (c: FullCuttleform) => ({
+    right: c.right || c.unibody,
+    left: c.left || c.unibody,
+    isUnibody: !!c.unibody,
+  })
+  $: if (conf) fitConfs = toFitConf(conf)
+  $: if ($tempConfig) fitConfs = toFitConf(fromCosmosConfig($tempConfig, true)) // Because this is how conf is
   $: handSides = HAND_SIDES.filter((s) => !!handCenter(s, center, geometry) && !!fitConfs[s])
-
-  function refitHands(sides: HandSide[], confs: Record<HandSide, Cuttleform | undefined>) {
-    for (const side of sides) {
-      if (confs[side]) theBigFit(confs[side]!, side)
-    }
-  }
-  $: if (jointsJSON && geometry) refitHands(handSides, fitConfs)
+  $: if (jointsJSON && geometry)
+    handSides.forEach((side) => {
+      if (fitConfs[side]) theBigFit(fitConfs, side)
+    })
 
   function easeInOutQuad(x: number): number {
     return x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2
@@ -599,21 +575,43 @@
   /** The pose of every finger of a hand, as the ik solver returns it. */
   type HandFit = Record<string, Vector3[] | false>
   /** The hand that types a letter, or undefined if no hand on screen can reach it. */
-  const letterSide = (letter: string) =>
-    handSides.find((s) => !!findSideKey(fitConfs[s]!, s, 'letter', letter))
+  const letterSide = (letter: string) => {
+    if (fitConfs.isUnibody) {
+      // Unibody keyboards have all keys dumped in one array, so it's difficult to know which hand
+      // side they correspond to. This approach uses the layout to guesss which side
+      const conf = fitConfs.left || fitConfs.right!
+      const flipped = flippedKey(letter, $protoConfig?.layout)
+      const matchThis = findKeyByAttr(conf, false, 'letter', letter)
+      const matchFlip =
+        typeof flipped !== 'undefined' ? findKeyByAttr(conf, false, 'letter', flipped) : undefined
+      if (!matchThis) return undefined
+      const thisX = keyPosition(conf, matchThis, false).origin().x
+      if (!matchFlip) return thisX < 0 ? 'left' : 'right'
+      const flipX = keyPosition(conf, matchFlip, false).origin().x
+      return thisX < flipX ? 'left' : 'right'
+    } else {
+      return handSides.find((s) => !!findKeyByAttr(fitConfs[s]!, false, 'letter', letter))
+    }
+  }
 
   /** Fit every hand: the one typing `letter` reaches for its key, the rest return to home row. */
   function fitHandsToLetter(active: HandSide | undefined, letter: string | undefined) {
     const fits = {} as Record<HandSide, HandFit>
     for (const side of handSides) {
       const conf = fitConfs[side]!
-      const key = side == active && letter ? findSideKey(conf, side, 'letter', letter) : undefined
+      const isUnibody = fitConfs.isUnibody
+      const isUnibodyLeft = side == 'left' && fitConfs.isUnibody
+      const key =
+        side == active && letter ? findKeyByAttr(conf, isUnibodyLeft, 'letter', letter) : undefined
       fits[side] = key
         ? fit(
-            { [fingersToKeys[letter!]]: pos15(conf, key) } as Record<Finger, Vector3 | undefined>,
+            { [fingersToKeys[letter!]]: pos15(conf, key, side, isUnibody) } as Record<
+              Finger,
+              Vector3 | undefined
+            >,
             side
           )
-        : theBigFit(conf, side)
+        : theBigFit(fitConfs, side)
     }
     return fits
   }
@@ -621,15 +619,11 @@
   /** How far the finger pressing `letter` has pushed its key down. */
   function pressDepth(side: HandSide, letter: string, hand: SolvedHand, finger: Finger) {
     const conf = fitConfs[side]!
-    const key = findSideKey(conf, side, 'letter', letter)
+    const isUnibodyleft = side == 'left' && fitConfs.isUnibody
+    const key = findKeyByAttr(conf, isUnibodyleft, 'letter', letter)
     if (!key) return zPos
-    const ti = keyPosition(conf, key, false).invert().Matrix4()
-    const swInfo = switchInfo(key.type)
     const pos = hand.worldPositions(finger, 1000)
-    return Math.max(
-      Math.min(pos[pos.length - 1].applyMatrix4(ti).z - HAND_RADIUS - swInfo.height - keyDepth(key), 0),
-      swInfo.pressedHeight - swInfo.height
-    )
+    return keyPressDepth(pos[pos.length - 1], conf, key, side, fitConfs.isUnibody)
   }
 
   const handPoses = () =>
@@ -667,6 +661,7 @@
     // Each letter is typed by whichever hand owns its key. The other hand rests on its home row.
     const letter: string | undefined = sentence[index]
     const active = letter ? letterSide(letter) : undefined
+    console.log('letter', letter, 'side', active)
     const prevPose = handPoses()
     const targets = fitHandsToLetter(active, letter)
     const newPose = handPoses()
@@ -718,17 +713,23 @@
   function updateHandMatrix(mat: Matrix4, side: HandSide) {
     handMatrix[side] = mat
     const conf = fitConfs[side]
+    const isUnibodyLeft = side == 'left' && fitConfs.isUnibody
     if (!conf) return
     if (pressedLetter && letterSide(pressedLetter) == side) {
       const finger = fingersToKeys[pressedLetter]
       fit(
         {
-          [finger]: pos15(conf, findSideKey(conf, side, 'letter', pressedLetter)),
+          [finger]: pos15(
+            conf,
+            findKeyByAttr(conf, isUnibodyLeft, 'letter', pressedLetter),
+            side,
+            fitConfs.isUnibody
+          ),
         } as Record<Finger, Vector3 | undefined>,
         side
       )
     } else {
-      theBigFit(conf, side)
+      theBigFit(fitConfs, side)
     }
   }
 
@@ -801,66 +802,10 @@
     handControlsReady = true
   })
 
-  /** Whether a hand can reach a key. Both the hand and the key are in world coordinates. */
-  function keyReachable(
-    c: Cuttleform,
-    k: CuttleKey,
-    side: HandSide,
-    matrices: Record<HandSide, Matrix4>,
-    fingers: Record<string, Finger>
-  ) {
-    const joints = jointsJSON![side]
-    const finger = 'keycap' in k && k.keycap?.letter ? fingers[k.keycap.letter] : 'thumb'
-    const reach = joints[finger || 'thumb'].reduce((a, j) => a + j.length, 0) * 1000
-    const origin = new Vector3().setFromMatrixPosition(matrices[side])
-    return pos15(c, k)!.distanceTo(origin) <= reach
-  }
-
-  /** Reachability of every key of a keyboard, given the hands resting on it. */
-  function reachability(
-    c: Cuttleform | undefined,
-    sides: HandSide[],
-    matrices: Record<HandSide, Matrix4>,
-    fingers: Record<string, Finger>
-  ) {
-    if (!c || !sides.length || !jointsJSON || !flags.hand || !showHand) return undefined
-    return c.keys.map((k) => sides.some((side) => keyReachable(c, k, side, matrices, fingers)))
-  }
-
-  function computeReachability(
-    confs: Record<HandSide, Cuttleform | undefined>,
-    sides: HandSide[],
-    matrices: Record<HandSide, Matrix4>,
-    geometry: FullGeometry,
-    showHand: boolean,
-    fingers: Record<string, Finger>
-  ): Partial<Record<KeyboardSide, boolean[]>> {
-    if (!showHand) return {}
-    // Both hands rest on a unibody keyboard, so a key only needs to be within reach of one of them.
-    if (geometry.unibody) return { unibody: reachability(confs.right, sides, matrices, fingers) }
-    return {
-      left: reachability(
-        confs.left,
-        sides.filter((s) => s == 'left'),
-        matrices,
-        fingers
-      ),
-      right: reachability(
-        confs.right,
-        sides.filter((s) => s == 'right'),
-        matrices,
-        fingers
-      ),
-    }
-  }
-  $: reachabilityArr = computeReachability(
-    fitConfs,
-    handSides,
-    handMatrix,
-    geometry,
-    showHand,
-    fingersToKeys
-  )
+  $: reachabilityArr =
+    jointsJSON && flags.hand && showHand
+      ? computeReachability(jointsJSON, fitConfs, handSides, handMatrix, geometry, fingersToKeys)
+      : {}
 
   $: columnType = columnIsClicked?.type
   $: clusterType = clusterIsClicked?.type
