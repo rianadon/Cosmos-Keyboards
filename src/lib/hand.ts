@@ -288,6 +288,7 @@ export class SolvedHand {
     if (Math.abs(yAngle) > MAX_PAN(finger)) return false
 
     const z = new Vector3(Math.sin(yAngle), 0, Math.cos(yAngle))
+    z.addScaledVector(x, -x.dot(z)).normalize()
     const y = new Vector3().crossVectors(z, x)
 
     const localToParent = new Matrix4().makeBasis(x, y, z)

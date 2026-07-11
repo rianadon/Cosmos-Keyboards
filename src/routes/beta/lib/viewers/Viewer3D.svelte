@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onDestroy } from 'svelte'
+  import { onDestroy, onMount, tick } from 'svelte'
   import { Euler, Matrix4, Quaternion, Vector3, type BufferGeometry } from 'three'
   import {
     type Cuttleform,
@@ -554,12 +554,10 @@
     )
     let handMatrix = flip ? leftHandMatrix : rightHandMatrix
     const position = new Vector3().setFromMatrixPosition(handMatrix)
-    handMatrix = new Matrix4()
-      .makeRotationFromEuler(flip ? new Euler(0, Math.PI / 2, Math.PI) : new Euler(0, -Math.PI / 2, 0))
-      .setPosition(position)
+    handMatrix = new Matrix4().makeRotationFromEuler(new Euler(0, -Math.PI / 2, 0)).setPosition(position)
     const { m, Vt } = refine(handMatrix, jointsJSON[whichHand], tg)
     handMatrix = m
-    debug = new Matrix4().multiplyMatrices(handMatrix, new Matrix4().copy(Vt))
+    // debug = new Matrix4().multiplyMatrices(handMatrix, new Matrix4().copy(Vt))
     theHand = new SolvedHand(jointsJSON[whichHand], handMatrix)
     for (const [finger, position] of objEntries(tg)) {
       ik[finger] = theHand.ik(finger, position, 1000)
@@ -707,9 +705,13 @@
     })(tStart)
   }
 
-  function updateHandMatrix(rightMat: Matrix4) {
-    console.log('update matrix', new Vector3().setFromMatrixPosition(rightMat))
-    rightHandMatrix = rightMat
+  function updateHandMatrix(mat: Matrix4) {
+    console.log('update matrix', new Vector3().setFromMatrixPosition(mat))
+    if (flip) {
+      leftHandMatrix = mat
+    } else {
+      rightHandMatrix = mat
+    }
     if (pressedLetter && conf) {
       const finger = fingersToKeys[pressedLetter]
       fit({
@@ -720,8 +722,9 @@
     }
   }
 
-  function updateWristRest(mat: Matrix4) {
+  function updateWristRest(mat: Matrix4, flip: boolean) {
     const wrOrigin = new Vector3().setFromMatrixPosition(mat).toArray()
+    if (flip) wrOrigin[0] = -wrOrigin[0]
     if ($protoConfig)
       $protoConfig.wristRestPosition = encodeTuple(wrOrigin.map((w) => Math.round(w * 10)))
   }
@@ -762,7 +765,7 @@
   }
 
   const onFlip = (f: boolean) => {
-    if (fitConf && jointsJSON) updateHandMatrix(rightHandMatrix)
+    if (fitConf && jointsJSON) updateHandMatrix(f ? leftHandMatrix : rightHandMatrix)
   }
   $: onFlip(flip)
 
@@ -780,6 +783,16 @@
   onDestroy(() => {
     cancelAnimationFrame(req)
     if (timer) clearInterval(timer)
+  })
+
+  // Threlte rebuilds its TransformControls (and adds a fresh gizmo to the scene) every time the
+  // default camera store emits, but only removes the previous gizmo one microtask later. While the
+  // viewer's camera is still being set up the store emits twice in a row, so a gizmo bound to the
+  // stale camera gets stranded in the scene. Mount the controls after that has settled.
+  let handControlsReady = false
+  onMount(async () => {
+    await tick()
+    handControlsReady = true
   })
 
   $: reachabilityArr =
@@ -1731,25 +1744,25 @@
   <T.Group position={[-bestC[0], -bestC[1], -bestC[2]]}>
     {#if conf && flags.hand && showHand && jointsJSON && theHand}
       <T.Group
-        position={$view == 'left' ? leftHandPosition : rightHandPosition}
-        rotation={$view == 'left' ? leftHandRotation : rightHandRotation}
-        scale={[1, flip ? -1 : 1, 1]}
+        position={flip ? leftHandPosition : rightHandPosition}
+        rotation={flip ? leftHandRotation : rightHandRotation}
         let:ref={handRef}
       >
         <HandModel reverse={!flip} hand={theHand} />
-        <TTransformControls
-          object={handRef}
-          scale={0.9}
-          transformation={rightHandMatrix}
-          on:objectChange={() => {
-            handRef.updateMatrix()
-            updateHandMatrix(handRef.matrix)
-          }}
-          on:mouseUp={() => {
-            handRef.updateMatrix()
-            updateWristRest(handRef.matrix)
-          }}
-        />
+        {#if handControlsReady}
+          <TTransformControls
+            object={handRef}
+            transformation={flip ? leftHandMatrix : rightHandMatrix}
+            on:objectChange={() => {
+              handRef.updateMatrix()
+              updateHandMatrix(handRef.matrix)
+            }}
+            on:mouseUp={() => {
+              handRef.updateMatrix()
+              updateWristRest(handRef.matrix, flip)
+            }}
+          />
+        {/if}
       </T.Group>
       <!-- <AxesHelper size={100} matrix={debug} /> -->
     {/if}
