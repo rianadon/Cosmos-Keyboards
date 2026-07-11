@@ -4,13 +4,13 @@
   import {
     type Cuttleform,
     type CuttleKey,
-    findKeyByAttr,
     decodeTuple,
     encodeTuple,
     tupleToXYZ,
     type Center,
     type KeyboardSide,
     type FullGeometry,
+    type FullCuttleform,
   } from '$lib/worker/config'
   import Trsf from '$lib/worker/modeling/transformation'
   import {
@@ -33,7 +33,7 @@
   import HandModel from '$lib/3d/HandModel.svelte'
   import ImportedModel from '$lib/3d/ImportedModel.svelte'
   import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
-  import { type Finger, FINGERS, type Joints, SolvedHand } from '$lib/hand'
+  import { type Finger, FINGERS, SolvedHand } from '$lib/hand'
   import { refine } from '../handoptim'
   import Keyboard from '$lib/3d/Keyboard.svelte'
   import AddButton from '$lib/3d/AddButton.svelte'
@@ -140,12 +140,10 @@
   export let geometry: FullGeometry
   export let progress = 1
 
-  export let conf: Cuttleform | undefined
-  let fitConf: Cuttleform | undefined
+  export let conf: FullCuttleform | undefined
   let snapRotation = false
   const useAbsolute = writable<boolean>(false)
 
-  $: flip = $view == 'left'
   $: if (conf && $showHelp) $clickedKey = 0
 
   function copyCanvas() {
@@ -503,74 +501,94 @@
     ',': 'middleFinger',
     '.': 'ringFinger',
     '/': 'pinky',
+    // Left half of the layout. Only used to look up how far each finger reaches.
+    '1': 'pinky',
+    '2': 'ringFinger',
+    '3': 'middleFinger',
+    '4': 'indexFinger',
+    '5': 'indexFinger',
+    q: 'pinky',
+    w: 'ringFinger',
+    e: 'middleFinger',
+    r: 'indexFinger',
+    t: 'indexFinger',
+    a: 'pinky',
+    s: 'ringFinger',
+    d: 'middleFinger',
+    f: 'indexFinger',
+    g: 'indexFinger',
+    z: 'pinky',
+    x: 'ringFinger',
+    c: 'middleFinger',
+    v: 'indexFinger',
+    b: 'indexFinger',
   }
 
-  function reachability(conf: Cuttleform, joints: Joints, origin: Vector3) {
-    const keys = conf.keys
-    return keys.map((k) => {
-      const finger = 'keycap' in k && k.keycap?.letter ? fingersToKeys[k.keycap.letter] : 'thumb'
-      const reach = joints[finger || 'thumb'].reduce((a, j) => a + j.length, 0) * 1000
-      const distance = pos15(conf, k)!.distanceTo(origin)
-      return distance <= reach
-    })
+  type HandSide = 'left' | 'right'
+  const HAND_SIDES: HandSide[] = ['left', 'right']
+
+  /** Only a unibody puts the keys of both hands into one config. */
+  function sideKeys(c: Cuttleform, side: HandSide) {
+    if (!geometry.unibody) return c.keys
+    const mul = side == 'left' ? -1 : 1
+    return c.keys.filter((k) => keyPosition(c, k, false).origin().x * mul > 0)
+  }
+  const findSideKey = (c: Cuttleform, side: HandSide, attr: 'home' | 'letter', value: string) =>
+    sideKeys(c, side).find((k) => 'keycap' in k && k.keycap && k.keycap[attr] == value)
+
+  /** The center of the keyboard a hand rests on, or undefined if that keyboard isn't shown. */
+  function handCenter(side: HandSide, center: Center, geometry: FullGeometry) {
+    return geometry.unibody ? center.unibody : center[side]
   }
 
   let jointsJSON: HandData | undefined = readHands()
-  let whichHand: 'left' | 'right'
-  $: whichHand = flip ? 'left' : 'right'
+  let hands: Record<HandSide, SolvedHand | undefined> = { left: undefined, right: undefined }
 
-  let theHand = jointsJSON ? new SolvedHand(jointsJSON[whichHand], new Matrix4()) : undefined
+  function wristRestMatrix(side: HandSide) {
+    const mirror = side == 'left'
+    if ($protoConfig) {
+      const [x, y, z] = tupleToXYZ($protoConfig.wristRestPosition)
+      return new Matrix4().makeTranslation(mirror ? -x : x, y, z)
+    }
+    let anyConf = conf?.right || conf?.unibody
+    if (anyConf?.wristRestOrigin) {
+      const trsf = new ETrsf(anyConf.wristRestOrigin.history)
+      if (mirror) trsf.mirrored([1, 0, 0])
+      return trsf.evaluate({ flat: false }).Matrix4()
+    }
+    return new Matrix4()
+  }
 
-  $: rightHandMatrix = $protoConfig
-    ? new Matrix4().makeTranslation(...tupleToXYZ($protoConfig.wristRestPosition))
-    : conf?.wristRestOrigin
-    ? new ETrsf(conf.wristRestOrigin.history).evaluate({ flat: false }).Matrix4()
-    : new Matrix4()
+  // Pose of each hand, in world coordinates. Reset to the wrist rest whenever the config changes;
+  // fitting and the transform controls overwrite it in between.
+  let handMatrix: Record<HandSide, Matrix4> = { left: new Matrix4(), right: new Matrix4() }
+  let handRotation: Record<HandSide, [number, number, number]> = { left: [0, 0, 0], right: [0, 0, 0] }
+  let handPosition: Record<HandSide, [number, number, number]> = { left: [0, 0, 0], right: [0, 0, 0] }
+  $: if ($protoConfig || conf)
+    handMatrix = { left: wristRestMatrix('left'), right: wristRestMatrix('right') }
 
-  $: leftHandMatrix = $protoConfig
-    ? new Matrix4().makeTranslation(
-        ...(tupleToXYZ($protoConfig.wristRestPosition).map((x, i) => (i == 0 ? -x : x)) as [
-          number,
-          number,
-          number
-        ])
-      )
-    : conf?.wristRestOrigin
-    ? new ETrsf(conf.wristRestOrigin.history).mirrored([1, 0, 0]).evaluate({ flat: false }).Matrix4()
-    : new Matrix4()
+  function setHandPose(side: HandSide, world: Matrix4) {
+    handMatrix[side] = world
+    handRotation[side] = new Euler().setFromRotationMatrix(world).toArray() as any
+    handPosition[side] = new Vector3().setFromMatrixPosition(world).toArray()
+  }
 
-  let debug = new Matrix4()
-
-  function fit(targets: Record<Finger, Vector3 | undefined>) {
+  /** Solve one hand's pose. Both the hand and its targets are in world coordinates. */
+  function fit(targets: Record<Finger, Vector3 | undefined>, side: HandSide) {
     if (!jointsJSON) throw new Error('No jointsJSON')
-    // const tg = Object.fromEntries(
-    //   Object.entries(targets)
-    //     .filter(([k, v]) => !!v)
-    //     .map(([k, v]) => (flip ? [k, new Vector3(-v.x, v.y, v.z)] : [k, v]))
-    // )
-    const tg = mapObjNotNull(targets, (v) => (flip ? new Vector3(-v.x, v.y, v.z) : v))
+    const tg = mapObjNotNull(targets, (v) => v)
     const ik: Record<string, Vector3[] | false> = Object.fromEntries(
       FINGERS.map((f) => [f, [new Vector3(), new Vector3(), new Vector3(), new Vector3()]])
     )
-    let handMatrix = flip ? leftHandMatrix : rightHandMatrix
-    const position = new Vector3().setFromMatrixPosition(handMatrix)
-    handMatrix = new Matrix4().makeRotationFromEuler(new Euler(0, -Math.PI / 2, 0)).setPosition(position)
-    const { m, Vt } = refine(handMatrix, jointsJSON[whichHand], tg)
-    handMatrix = m
-    // debug = new Matrix4().multiplyMatrices(handMatrix, new Matrix4().copy(Vt))
-    theHand = new SolvedHand(jointsJSON[whichHand], handMatrix)
+    const origin = new Vector3().setFromMatrixPosition(handMatrix[side])
+    const seed = new Matrix4().makeRotationFromEuler(new Euler(0, -Math.PI / 2, 0)).setPosition(origin)
+    const { m } = refine(seed, jointsJSON[side], tg)
+    const hand = new SolvedHand(jointsJSON[side], m)
     for (const [finger, position] of objEntries(tg)) {
-      ik[finger] = theHand.ik(finger, position, 1000)
+      ik[finger] = hand.ik(finger, position, 1000)
     }
-    if (flip) {
-      leftHandMatrix = handMatrix
-      leftHandRotation = new Euler().setFromRotationMatrix(handMatrix).toArray() as any
-      leftHandPosition = new Vector3().setFromMatrixPosition(handMatrix).toArray()
-    } else {
-      rightHandMatrix = handMatrix
-      rightHandRotation = new Euler().setFromRotationMatrix(handMatrix).toArray() as any
-      rightHandPosition = new Vector3().setFromMatrixPosition(handMatrix).toArray()
-    }
+    hands[side] = hand
+    setHandPose(side, m)
     return ik
   }
 
@@ -590,24 +608,36 @@
           )
           .origin()
       : undefined
-  function theBigFit(conf: Cuttleform) {
-    console.log('FITTING', conf)
-    return fit({
-      indexFinger: pos(conf, findKeyByAttr(conf, 'home', 'index')),
-      middleFinger: pos(conf, findKeyByAttr(conf, 'home', 'middle')),
-      ringFinger: pos(conf, findKeyByAttr(conf, 'home', 'ring')),
-      pinky: pos(conf, findKeyByAttr(conf, 'home', 'pinky')),
-      thumb: pos(conf, findKeyByAttr(conf, 'home', 'thumb')),
-    })
+  function theBigFit(conf: Cuttleform, side: HandSide) {
+    return fit(
+      {
+        indexFinger: pos(conf, findSideKey(conf, side, 'home', 'index')),
+        middleFinger: pos(conf, findSideKey(conf, side, 'home', 'middle')),
+        ringFinger: pos(conf, findSideKey(conf, side, 'home', 'ring')),
+        pinky: pos(conf, findSideKey(conf, side, 'home', 'pinky')),
+        thumb: pos(conf, findSideKey(conf, side, 'home', 'thumb')),
+      },
+      side
+    )
   }
-  $: if (conf) fitConf = conf
-  $: if ($tempConfig) fitConf = fromCosmosConfig($tempConfig).right
-  $: if (fitConf && jointsJSON) theBigFit(fitConf)
 
-  let leftHandRotation: [number, number, number] = [0, 0, 0]
-  let rightHandRotation: [number, number, number] = [0, 0, 0]
-  let leftHandPosition: [number, number, number] = [0, 0, 0]
-  let rightHandPosition: [number, number, number] = [0, 0, 0]
+  // The config each hand is fit against. Both hands share the config of a unibody keyboard.
+  // The hands live in world coordinates, so the left half must be unflipped: fromCosmosConfig
+  // mirrors it into the right half's frame by default, and the renderer undoes that with scale.x=-1.
+  let fitConfs: Record<HandSide, Cuttleform | undefined> = { left: undefined, right: undefined }
+  $: if (conf) fitConfs = { ...fitConfs, right: conf.right || conf.unibody, left: conf.left }
+  $: if ($tempConfig) {
+    const full = fromCosmosConfig($tempConfig, false)
+    fitConfs = { left: full.left ?? full.unibody, right: full.right ?? full.unibody }
+  }
+  $: handSides = HAND_SIDES.filter((s) => !!handCenter(s, center, geometry) && !!fitConfs[s])
+
+  function refitHands(sides: HandSide[], confs: Record<HandSide, Cuttleform | undefined>) {
+    for (const side of sides) {
+      if (confs[side]) theBigFit(confs[side]!, side)
+    }
+  }
+  $: if (jointsJSON && geometry) refitHands(handSides, fitConfs)
 
   function easeInOutQuad(x: number): number {
     return x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2
@@ -616,44 +646,51 @@
   let req: number
   let zPos = 0
 
+  // The typing simulation only drives the right hand: fingersToKeys assigns fingers by letter, and
+  // only the right half's letters correspond to the fingers of the hand playing them.
+  const PLAY_SIDE: HandSide = 'right'
+
   function toggleplay(sentence: string) {
     if (playing) {
       playing = false
       return
     }
+    const conf = fitConfs[PLAY_SIDE]
     if (!conf) return
     playing = true
     const filteredSentence = Array.from(sentence)
-      .filter((letter) => !!findKeyByAttr(conf, 'letter', letter))
+      .filter((letter) => !!findSideKey(conf, PLAY_SIDE, 'letter', letter))
       .join('')
     play(filteredSentence)
   }
 
   let playing = false
   function play(sentence: string, beginning?: Record<string, Vector3[] | false>, index = 0) {
-    if (!fitConf) throw new Error('No fitConf')
+    const conf = fitConfs[PLAY_SIDE]
     if (!conf) throw new Error('No conf')
     if (index > sentence.length) {
       playing = false
       return
     }
-    if (!beginning) beginning = theBigFit(fitConf)
+    if (!beginning) beginning = theBigFit(conf, PLAY_SIDE)
 
-    const prevRot = new Quaternion().setFromEuler(new Euler().fromArray(rightHandRotation))
-    const prevPos = new Vector3().fromArray(rightHandPosition)
+    const prevRot = new Quaternion().setFromEuler(new Euler().fromArray(handRotation[PLAY_SIDE]))
+    const prevPos = new Vector3().fromArray(handPosition[PLAY_SIDE])
     let targets: Record<string, Vector3[] | false>
     if (index >= sentence.length) {
-      targets = theBigFit(fitConf)
+      targets = theBigFit(conf, PLAY_SIDE)
     } else {
       const letter = sentence[index]
       const finger = fingersToKeys[letter]
-      targets = fit({
-        [finger]: pos15(conf, findKeyByAttr(conf, 'letter', letter)),
-      } as Record<Finger, Vector3 | undefined>)
-      console.log('letter', pressedLetter)
+      targets = fit(
+        {
+          [finger]: pos15(conf, findSideKey(conf, PLAY_SIDE, 'letter', letter)),
+        } as Record<Finger, Vector3 | undefined>,
+        PLAY_SIDE
+      )
     }
-    const newRot = new Quaternion().setFromEuler(new Euler().fromArray(rightHandRotation))
-    const newPos = new Vector3().fromArray(rightHandPosition)
+    const newRot = new Quaternion().setFromEuler(new Euler().fromArray(handRotation[PLAY_SIDE]))
+    const newPos = new Vector3().fromArray(handPosition[PLAY_SIDE])
 
     const tStart = window.performance.now()
     ;(function step(t) {
@@ -666,8 +703,10 @@
 
       const percent = easeInOutQuad(p)
       if (p > 1) return play(sentence, targets, ++index)
-      if (!theHand) throw new Error('No theHand')
-      theHand = new SolvedHand(jointsJSON[whichHand], theHand.position)
+      const prevHand = hands[PLAY_SIDE]
+      if (!prevHand) throw new Error('No hand')
+      const hand = new SolvedHand(jointsJSON[PLAY_SIDE], prevHand.position)
+      hands[PLAY_SIDE] = hand
       for (const f of FINGERS) {
         const targetArr = targets[f]
         const beginArr = beginning[f]
@@ -675,14 +714,13 @@
         const current = beginArr.map((b, i) =>
           new Vector3().subVectors(targetArr[i], b).multiplyScalar(percent).add(b)
         )
-        theHand.fkBy(f, (i) => [current[i].z, current[i].y])
+        hand.fkBy(f, (i) => [current[i].z, current[i].y])
         if (pressedLetter && f == fingersToKeys[pressedLetter]) {
-          console.log('pl', pressedLetter)
-          const key = findKeyByAttr(conf, 'letter', pressedLetter)
+          const key = findSideKey(conf, PLAY_SIDE, 'letter', pressedLetter)
           if (!key) continue
           const ti = keyPosition(conf, key, false).invert().Matrix4()
           const swInfo = switchInfo(key.type)
-          const pos = theHand.worldPositions(f, 1000)
+          const pos = hand.worldPositions(f, 1000)
           zPos = Math.max(
             Math.min(
               pos[pos.length - 1].applyMatrix4(ti).z - HAND_RADIUS - swInfo.height - keyDepth(key),
@@ -692,39 +730,40 @@
           )
         }
       }
-      rightHandPosition = new Vector3()
+      handPosition[PLAY_SIDE] = new Vector3()
         .subVectors(newPos, prevPos)
         .multiplyScalar(percent)
         .add(prevPos)
         .toArray()
-      rightHandRotation = new Euler()
+      handRotation[PLAY_SIDE] = new Euler()
         .setFromQuaternion(new Quaternion().slerpQuaternions(prevRot, newRot, percent))
         .toArray() as any
-      // handRotation = newRot.toArray()
       if (playing) req = requestAnimationFrame(step)
     })(tStart)
   }
 
-  function updateHandMatrix(mat: Matrix4) {
-    console.log('update matrix', new Vector3().setFromMatrixPosition(mat))
-    if (flip) {
-      leftHandMatrix = mat
-    } else {
-      rightHandMatrix = mat
-    }
-    if (pressedLetter && conf) {
+  /** Called while a hand's gizmo is dragged. The matrix is in world coordinates. */
+  function updateHandMatrix(mat: Matrix4, side: HandSide) {
+    handMatrix[side] = mat
+    const conf = fitConfs[side]
+    if (!conf) return
+    if (pressedLetter && side == PLAY_SIDE) {
       const finger = fingersToKeys[pressedLetter]
-      fit({
-        [finger]: pos15(conf, findKeyByAttr(conf, 'letter', pressedLetter)),
-      } as Record<Finger, Vector3 | undefined>)
+      fit(
+        {
+          [finger]: pos15(conf, findSideKey(conf, side, 'letter', pressedLetter)),
+        } as Record<Finger, Vector3 | undefined>,
+        side
+      )
     } else {
-      theBigFit(fitConf!)
+      theBigFit(conf, side)
     }
   }
 
-  function updateWristRest(mat: Matrix4, flip: boolean) {
+  /** The wrist rest position is a single, mirrored tuple, so either hand moves both wrist rests. */
+  function updateWristRest(mat: Matrix4, side: HandSide) {
     const wrOrigin = new Vector3().setFromMatrixPosition(mat).toArray()
-    if (flip) wrOrigin[0] = -wrOrigin[0]
+    if (side == 'left') wrOrigin[0] = -wrOrigin[0]
     if ($protoConfig)
       $protoConfig.wristRestPosition = encodeTuple(wrOrigin.map((w) => Math.round(w * 10)))
   }
@@ -764,11 +803,6 @@
     })
   }
 
-  const onFlip = (f: boolean) => {
-    if (fitConf && jointsJSON) updateHandMatrix(f ? leftHandMatrix : rightHandMatrix)
-  }
-  $: onFlip(flip)
-
   let timer: ReturnType<typeof setInterval> | undefined
   function scanHand() {
     const win = window.open('scan2')
@@ -795,10 +829,54 @@
     handControlsReady = true
   })
 
-  $: reachabilityArr =
-    conf && flags.hand && showHand && jointsJSON
-      ? reachability(conf, jointsJSON[whichHand], new Vector3().setFromMatrixPosition(rightHandMatrix))
-      : undefined
+  /** Whether a hand can reach a key. Both the hand and the key are in world coordinates. */
+  function keyReachable(
+    c: Cuttleform,
+    k: CuttleKey,
+    side: HandSide,
+    matrices: Record<HandSide, Matrix4>
+  ) {
+    const joints = jointsJSON![side]
+    const finger = 'keycap' in k && k.keycap?.letter ? fingersToKeys[k.keycap.letter] : 'thumb'
+    const reach = joints[finger || 'thumb'].reduce((a, j) => a + j.length, 0) * 1000
+    const origin = new Vector3().setFromMatrixPosition(matrices[side])
+    return pos15(c, k)!.distanceTo(origin) <= reach
+  }
+
+  /** Reachability of every key of a keyboard, given the hands resting on it. */
+  function reachability(
+    c: Cuttleform | undefined,
+    sides: HandSide[],
+    matrices: Record<HandSide, Matrix4>
+  ) {
+    if (!c || !sides.length || !jointsJSON || !flags.hand || !showHand) return undefined
+    return c.keys.map((k) => sides.some((side) => keyReachable(c, k, side, matrices)))
+  }
+
+  function computeReachability(
+    confs: Record<HandSide, Cuttleform | undefined>,
+    sides: HandSide[],
+    matrices: Record<HandSide, Matrix4>,
+    geometry: FullGeometry,
+    showHand: boolean
+  ): Partial<Record<KeyboardSide, boolean[]>> {
+    if (!showHand) return {}
+    // Both hands rest on a unibody keyboard, so a key only needs to be within reach of one of them.
+    if (geometry.unibody) return { unibody: reachability(confs.right, sides, matrices) }
+    return {
+      left: reachability(
+        confs.left,
+        sides.filter((s) => s == 'left'),
+        matrices
+      ),
+      right: reachability(
+        confs.right,
+        sides.filter((s) => s == 'right'),
+        matrices
+      ),
+    }
+  }
+  $: reachabilityArr = computeReachability(fitConfs, handSides, handMatrix, geometry, showHand)
 
   $: columnType = columnIsClicked?.type
   $: clusterType = clusterIsClicked?.type
@@ -965,11 +1043,6 @@
           </div>
         </div>
       {/if}
-    </div>
-  {/if}
-  {#if flip && jointsJSON && flags.hand && showHand}
-    <div class=" text-white m-4 rounded p-4 bg-yellow-700 flex">
-      Sorry the left hand is not fitting properly for the time being.
     </div>
   {/if}
   {#if progress != 1}
@@ -1685,7 +1758,7 @@
           flip={kbd == 'left'}
           {pressedLetter}
           translation={zPos}
-          reachability={kbd != 'left' ? reachabilityArr : undefined}
+          reachability={reachabilityArr[kbd]}
           side={kbd}
         />
         {#if flags.intersection}
@@ -1740,33 +1813,32 @@
       }}
     />
   {/each}
-  {@const bestC = center.unibody || center.right || center.left || [0, 0, 0]}
-  <T.Group position={[-bestC[0], -bestC[1], -bestC[2]]}>
-    {#if conf && flags.hand && showHand && jointsJSON && theHand}
-      <T.Group
-        position={flip ? leftHandPosition : rightHandPosition}
-        rotation={flip ? leftHandRotation : rightHandRotation}
-        let:ref={handRef}
-      >
-        <HandModel reverse={!flip} hand={theHand} />
-        {#if handControlsReady}
-          <TTransformControls
-            object={handRef}
-            transformation={flip ? leftHandMatrix : rightHandMatrix}
-            on:objectChange={() => {
-              handRef.updateMatrix()
-              updateHandMatrix(handRef.matrix)
-            }}
-            on:mouseUp={() => {
-              handRef.updateMatrix()
-              updateWristRest(handRef.matrix, flip)
-            }}
-          />
-        {/if}
-      </T.Group>
-      <!-- <AxesHelper size={100} matrix={debug} /> -->
-    {/if}
-  </T.Group>
+  {#if flags.hand && showHand && jointsJSON}
+    {#each handSides as side (side)}
+      {@const cent = handCenter(side, center, geometry)}
+      {@const hand = hands[side]}
+      {#if cent && hand}
+        <T.Group position={[-cent[0], -cent[1], -cent[2]]}>
+          <T.Group position={handPosition[side]} rotation={handRotation[side]} let:ref={handRef}>
+            <HandModel reverse={side == 'right'} {hand} />
+            {#if handControlsReady}
+              <TTransformControls
+                object={handRef}
+                on:objectChange={() => {
+                  handRef.updateMatrix()
+                  updateHandMatrix(handRef.matrix, side)
+                }}
+                on:mouseUp={() => {
+                  handRef.updateMatrix()
+                  updateWristRest(handRef.matrix, side)
+                }}
+              />
+            {/if}
+          </T.Group>
+        </T.Group>
+      {/if}
+    {/each}
+  {/if}
   {#if clickedConfigSide != null}
     {@const clickedC = center[clickedConfigSide] || [0, 0, 0]}
     <T.Group position={[-clickedC[0], -clickedC[1], -clickedC[2]]}>

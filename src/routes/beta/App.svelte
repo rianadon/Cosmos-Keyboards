@@ -821,7 +821,7 @@
             {darkMode}
             geometry={microcontrollerGeometry}
             transparency={cTransparency}
-            conf={isRenderable($confError) ? config?.right ?? config?.unibody : undefined}
+            conf={isRenderable($confError) ? config : undefined}
             isExpert={mode == 'advanced'}
             {showSupports}
             {center}
