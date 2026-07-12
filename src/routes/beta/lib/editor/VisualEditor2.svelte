@@ -814,7 +814,7 @@
     <AngleInput bind:value={$protoConfig.curvature.curvatureA} />
   </Field>
   {#if !basic}
-    <Field name="Row's Curvature Disparity" plusminus icon="row-curve" help={DISPARITY_HELP}>
+    <Field name="Row's Curvature Disparity" plusminus help={DISPARITY_HELP}>
       <DecimalInput divisor={100} bind:value={$protoConfig.curvature.rowDisparity} />
     </Field>
   {/if}
@@ -822,7 +822,7 @@
     <AngleInput bind:value={$protoConfig.curvature.curvatureB} />
   </Field>
   {#if !basic}
-    <Field name="Column's Curvature Disparity" plusminus icon="column-curve" help={DISPARITY_HELP}>
+    <Field name="Column's Curvature Disparity" plusminus help={DISPARITY_HELP}>
       <DecimalInput divisor={100} bind:value={$protoConfig.curvature.columnDisparity} />
     </Field>
   {/if}
@@ -889,7 +889,7 @@
       <AngleInput bind:value={leftThumbCluster.curvature.curvatureA} />
     </Field>
     {#if !basic && !isSphere(leftThumbCluster)}
-      <Field name="Row's Curvature Disparity" plusminus icon="row-curve" help={DISPARITY_HELP}>
+      <Field name="Row's Curvature Disparity" plusminus help={DISPARITY_HELP}>
         <DecimalInput divisor={100} bind:value={leftThumbCluster.curvature.rowDisparity} />
       </Field>
     {/if}
@@ -897,7 +897,7 @@
       <AngleInput bind:value={leftThumbCluster.curvature.curvatureB} />
     </Field>
     {#if !basic && !isSphere(leftThumbCluster)}
-      <Field name="Column's Curvature Disparity" plusminus icon="column-curve" help={DISPARITY_HELP}>
+      <Field name="Column's Curvature Disparity" plusminus help={DISPARITY_HELP}>
         <DecimalInput divisor={100} bind:value={leftThumbCluster.curvature.columnDisparity} />
       </Field>
     {/if}
@@ -961,7 +961,7 @@
     <AngleInput bind:value={rightThumbCluster.curvature.curvatureA} />
   </Field>
   {#if !basic && !isSphere(rightThumbCluster)}
-    <Field name="Row's Curvature Disparity" plusminus icon="row-curve" help={DISPARITY_HELP}>
+    <Field name="Row's Curvature Disparity" plusminus help={DISPARITY_HELP}>
       <DecimalInput divisor={100} bind:value={rightThumbCluster.curvature.rowDisparity} />
     </Field>
   {/if}
@@ -969,7 +969,7 @@
     <AngleInput bind:value={rightThumbCluster.curvature.curvatureB} />
   </Field>
   {#if !basic && !isSphere(rightThumbCluster)}
-    <Field name="Column's Curvature Disparity" plusminus icon="column-curve" help={DISPARITY_HELP}>
+    <Field name="Column's Curvature Disparity" plusminus help={DISPARITY_HELP}>
       <DecimalInput divisor={100} bind:value={rightThumbCluster.curvature.columnDisparity} />
     </Field>
   {/if}
@@ -1017,7 +1017,7 @@
       <AngleInput bind:value={centerCl.curvature.curvatureA} />
     </Field>
     {#if !basic && !isSphere(centerCl)}
-      <Field name="Row's Curvature Disparity" plusminus icon="row-curve" help={DISPARITY_HELP}>
+      <Field name="Row's Curvature Disparity" plusminus help={DISPARITY_HELP}>
         <DecimalInput divisor={100} bind:value={centerCl.curvature.rowDisparity} />
       </Field>
     {/if}
@@ -1025,7 +1025,7 @@
       <AngleInput bind:value={centerCl.curvature.curvatureB} />
     </Field>
     {#if !basic && !isSphere(centerCl)}
-      <Field name="Column's Curvature Disparity" plusminus icon="column-curve" help={DISPARITY_HELP}>
+      <Field name="Column's Curvature Disparity" plusminus help={DISPARITY_HELP}>
         <DecimalInput divisor={100} bind:value={centerCl.curvature.columnDisparity} />
       </Field>
     {/if}
