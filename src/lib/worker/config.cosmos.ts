@@ -66,6 +66,7 @@ export type CosmosKey = {
   rotation: bigint | undefined
   sizeA?: number
   sizeB?: number
+  sizeC?: number
   marginX?: number
   marginY?: number
 }
@@ -222,9 +223,9 @@ function toCosmosClusters(keys: CuttleKey[], side: ClusterSide, globalProfile: K
         // const keyType = decodePartType(encodePartType(colKey))
         const keycap = 'keycap' in colKey ? colKey.keycap : undefined
 
-        let size = { sizeA: undefined as number | undefined, sizeB: undefined as number | undefined }
-        if (colKey.type == 'blank') size = { sizeA: colKey.size.width, sizeB: colKey.size.height }
-        if (ROUND_PARTS.includes(colKey.type)) size = { sizeA: undefined, sizeB: (colKey as any).size.sides }
+        let size = { sizeA: undefined as number | undefined, sizeB: undefined as number | undefined, sizeC: undefined as number | undefined }
+        if (colKey.type == 'blank') size = { sizeA: colKey.size.width, sizeB: colKey.size.height, sizeC: colKey.size.depth }
+        if (ROUND_PARTS.includes(colKey.type)) size = { sizeA: undefined, sizeB: (colKey as any).size.sides, sizeC: undefined }
 
         let margin = { x: undefined as number | undefined, y: undefined as number | undefined }
         if (colKey.type != 'blank') margin = { x: colKey.marginX, y: colKey.marginY }
@@ -244,6 +245,7 @@ function toCosmosClusters(keys: CuttleKey[], side: ClusterSide, globalProfile: K
           row: keyRow,
           sizeA: size.sizeA,
           sizeB: size.sizeB,
+          sizeC: size.sizeC,
           marginX: margin.x,
           marginY: margin.y,
           ...toPosRotation(trsf.Matrix4()),
@@ -551,7 +553,7 @@ export function toCuttleKey(c: CosmosKeyboard, cluster: CosmosCluster, col: Cosm
   } else {
     cuttleKey.aspect = 1
   }
-  if (cuttleKey.type == 'blank') cuttleKey.size = { width: key.sizeA!, height: key.sizeB! }
+  if (cuttleKey.type == 'blank') cuttleKey.size = { width: key.sizeA!, height: key.sizeB!, depth: key.sizeC }
   else {
     cuttleKey.marginX = key.marginX
     cuttleKey.marginY = key.marginY

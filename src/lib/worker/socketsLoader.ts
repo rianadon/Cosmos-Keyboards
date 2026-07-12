@@ -13,7 +13,10 @@ try {
 }
 
 const keyCacher = makeAsyncCacher(async (key: CuttleKey) => {
-  if (key.type == 'blank') return makeBaseBox(key.size?.width ?? 18.5, key.size?.height ?? 18.5, 5).translateZ(-5)
+  if (key.type == 'blank') {
+    const depth = key.size?.depth ?? 5
+    return makeBaseBox(key.size?.width ?? 18.5, key.size?.height ?? 18.5, depth).translateZ(-depth)
+  }
   const url = 'partOverride' in PART_INFO[key.type]
     ? PART_INFO[key.type].stepFile.replace('.step', variantURL(key) + '.step')
     : `/target/splitsocket-${key.type}${variantURL(key)}.step`
@@ -29,7 +32,7 @@ const keyCacher = makeAsyncCacher(async (key: CuttleKey) => {
 
 const extendedKeyCacher = makeAsyncCacher(async (key: CuttleKey) => {
   let cacheKey = key.type + variantURL(key)
-  if (key.type == 'blank') cacheKey += `-${key.size?.width}x${key.size?.height}`
+  if (key.type == 'blank') cacheKey += `-${key.size?.width}x${key.size?.height}x${key.size?.depth}`
   return extendPlate(await keyCacher(cacheKey, null, key), key)
 })
 
@@ -49,6 +52,6 @@ function extendPlate(plate: Solid, key: CuttleKey) {
 
 export function keyHole(key: CuttleKey, trsf: Trsf) {
   let cacheKey = key.type + variantURL(key) + ':' + key.aspect
-  if (key.type == 'blank') cacheKey += `-${key.size?.width}x${key.size?.height}`
+  if (key.type == 'blank') cacheKey += `-${key.size?.width}x${key.size?.height}x${key.size?.depth}`
   return extendedKeyCacher(cacheKey, trsf, key)
 }

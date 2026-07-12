@@ -353,7 +353,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     stepFile: null,
     partOverride: null,
     // @ts-ignore
-    socketSize: (k: CuttleBlankKey) => [k.size?.width ?? 18.5, k.size?.height ?? 18.5, 5],
+    socketSize: (k: CuttleBlankKey) => [k.size?.width ?? 18.5, k.size?.height ?? 18.5, k.size?.depth ?? 5],
     partBottom: [],
     keycap: 'mx',
     numPinsGPIO: 0,

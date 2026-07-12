@@ -10,7 +10,7 @@ You can convert any key to a Shaper Key by selecting it then using the dropdown 
 
 By default, Shaper Keys appear as a faint, elevated rectangle in Cosmos. However, they will print flat. To preview the keyboard exactly as it will print, use _⚙ → Hide Shapers_.
 
-You can also customize the size of a shaper key by selecting it then opening the _Edit Key_ menu. This makes Shaper Keys a super powerful tool for correcting geometry issues or tweaking the shape of the case.
+You can also customize the width, height, and depth of a shaper key by selecting it then opening the _Edit Key_ menu. This makes Shaper Keys a super powerful tool for correcting geometry issues or tweaking the shape of the case. Width & height control how big it is on the surface of the keyboard. Depth controls how thick the keyboard will be underneath the shaper key.
 
 [Here's](https://ryanis.cool/cosmos/beta#cm:CrkBChESBRCAPyAnEgASABIAODFAAAoREgUQgEsgJxIAEgASADgdQAAKHhIFEIBXICcSABIAEgMQsC8SBQgIELBfOAlAgPC8AgobEgUQgGMgJxIAEgASAxCwOxIFCAgQsGs4CkAAChUSBRCAbyAnEgASABIAOB5AgIaKwAcKLhIRCAgQECAjKB4wyAFIgICsrAESBAgRIAASDwgIIB4oHjDIAUiAgLCsAThFQAAYAEDohaCu8FVI3PCioAEKigEKKxITEMCAAkCAgJgCSMKZoJWQvAFQQxISQICAzAJIwpmglZC8AVCGAVg6OAgKFRIQEEBAgIAgSNCVgN2Q9QNQC1CeAgonEhAQQECAgPgBSOaZ/KeQC1BXEhFAgICkA0jwmcS10DBQdFiVAVB/GAIiCgjIARDIARgAIABAy4v8n9AxSK2R3I3BkwaCAQIEAg==) an example of using shaper keys to bring out the wall boundary to smoothly incorporate OLED displays. The two shaper keys are 3 × 20mm wide. Can you see them?
 

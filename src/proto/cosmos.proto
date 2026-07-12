@@ -116,4 +116,5 @@ message Key {
   // 13-15 reserved
   optional uint32 margin_x = 16;
   optional uint32 margin_y = 17;
+  optional uint32 size_c = 18;
 }

@@ -189,7 +189,7 @@
       const { key, column } = nthKey(proto, $clickedKey!)
       if ($selectMode == 'key') {
         key.partType.type = newType
-        key.partType.variant = key.sizeA = key.sizeB = undefined
+        key.partType.variant = key.sizeA = key.sizeB = key.sizeC = undefined
         if (newType == 'blank') key.marginX = key.marginY = undefined
       }
       if ($selectMode == 'column') {
@@ -1195,6 +1195,17 @@
                           on:change={updateProto}
                         />
                       {:else if keyIsHovered}<span class="fallback">{keyIsHovered.sizeB || '18.5'}</span>
+                      {:else}<span class="fallback">-</span>{/if}
+                    </Field>
+                    <Field small name="Depth">
+                      {#if keyIsClicked}<DecimalInputInherit
+                          small
+                          noColor
+                          inherit={5}
+                          bind:value={keyIsClicked.sizeC}
+                          on:change={updateProto}
+                        />
+                      {:else if keyIsHovered}<span class="fallback">{keyIsHovered.sizeC || '5'}</span>
                       {:else}<span class="fallback">-</span>{/if}
                     </Field>
                   {/if}

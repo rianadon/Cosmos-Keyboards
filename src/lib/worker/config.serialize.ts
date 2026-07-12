@@ -484,6 +484,7 @@ export function decodeCosmosCluster(clusterA: Cluster): CosmosCluster {
             rotation: key.rotation,
             sizeA: typeof key.sizeA !== 'undefined' ? key.sizeA / 10 : undefined,
             sizeB: typeof key.sizeB !== 'undefined' ? key.sizeB / 10 : undefined,
+            sizeC: typeof key.sizeC !== 'undefined' ? key.sizeC / 10 : undefined,
             marginX: typeof key.marginX !== 'undefined' ? key.marginX / 10 : undefined,
             marginY: typeof key.marginY !== 'undefined' ? key.marginY / 10 : undefined,
           }
@@ -684,6 +685,7 @@ export function encodeCosmosCluster(clusterA: CosmosCluster): Cluster {
         position: key.position,
         sizeA: typeof key.sizeA != 'undefined' ? Math.round(key.sizeA * 10) : undefined,
         sizeB: typeof key.sizeB != 'undefined' ? Math.round(key.sizeB * 10) : undefined,
+        sizeC: typeof key.sizeC != 'undefined' ? Math.round(key.sizeC * 10) : undefined,
         marginX: typeof key.marginX != 'undefined' ? Math.round(key.marginX * 10) : undefined,
         marginY: typeof key.marginY != 'undefined' ? Math.round(key.marginY * 10) : undefined,
         letter: key.profile.letter && !shouldLegendGoInProfile(key.profile.letter) ? key.profile.letter : undefined,

@@ -67,9 +67,12 @@ function boxGeo(width: number, height: number, depth: number) {
 
 const keyCacher = makeAsyncCacher(async (key: CuttleKey) => {
   if (key.type == 'blank') {
+    const width = key.size?.width ?? 18.5
+    const height = key.size?.height ?? 18.5
+    const depth = key.size?.depth ?? 5
     return {
-      mesh: boxGeo(key.size?.width ?? 18.5, key.size?.height ?? 18.5, 5).translate(0, 0, -2.5),
-      mass: (key.size?.width ?? 18.5) * (key.size?.height ?? 18.5) * 5,
+      mesh: boxGeo(width, height, depth).translate(0, 0, -depth / 2),
+      mass: width * height * depth,
     }
   }
   return {
@@ -80,7 +83,7 @@ const keyCacher = makeAsyncCacher(async (key: CuttleKey) => {
 
 const extendedKeyCacher = makeAsyncCacher(async (key: CuttleKey) => {
   let cacheKey = key.type + variantURL(key)
-  if (key.type == 'blank') cacheKey += `-${key.size?.width}x${key.size?.height}`
+  if (key.type == 'blank') cacheKey += `-${key.size?.width}x${key.size?.height}x${key.size?.depth}`
   return extendPlate(await keyCacher(cacheKey, key), key)
 })
 
@@ -114,7 +117,7 @@ function extendPlate(plate: Mesh, key: CuttleKey) {
 
 async function keyHole(key: CuttleKey, trsf: Trsf) {
   let cacheKey = key.type + ':' + key.aspect + variantURL(key)
-  if (key.type == 'blank') cacheKey += `-${key.size?.width}x${key.size?.height}`
+  if (key.type == 'blank') cacheKey += `-${key.size?.width}x${key.size?.height}x${key.size?.depth}`
   const model = await extendedKeyCacher(cacheKey, key)
   return {
     flip: true,
