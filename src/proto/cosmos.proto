@@ -84,6 +84,8 @@ message Curvature {
   optional sint32 curvature_a = 3;
   optional sint32 curvature_b = 4;
   optional sint32 arc = 5;
+  optional sint32 row_disparity = 6;
+  optional sint32 column_disparity = 7;
 }
 
 message Cluster {

@@ -810,6 +810,8 @@
   $: columnType = columnIsClicked?.type
   $: clusterType = clusterIsClicked?.type
   $: sphereColumn = (columnIsClicked || columnIsHovered)?.type == 'sphere'
+  // Spheres bend by a single curvature, so disparity would do nothing for them.
+  $: sphereCluster = (clusterIsClicked || clusterIsHovered)?.clusters.some((c) => c.type == 'sphere')
 </script>
 
 <svelte:window on:keydown={handleKeydown} on:keyup={handleKeyUp} />
@@ -1384,6 +1386,24 @@
                   {:else}<span class="fallback">-</span>{/if}
                 </Field>
                 {#if !sphereColumn}
+                  <Field small name="Disparity" icon="column-curve">
+                    {#if columnIsClicked && $clickedKey != null}<DecimalInputInherit
+                        small
+                        divisor={100}
+                        bind:value={columnIsClicked.curvature.columnDisparity}
+                        on:change={updateProto}
+                        inherit={nthCurvature($protoConfig, $clickedKey, 'columnDisparity', 'cluster')}
+                      />
+                    {:else if $hoveredKey != null && columnIsHovered}<span
+                        class="fallback"
+                        class:inherit={typeof columnIsHovered.curvature.columnDisparity == 'undefined'}
+                      >
+                        {nthCurvature($protoConfig, $hoveredKey, 'columnDisparity', 'column')}
+                      </span>
+                    {:else}<span class="fallback">-</span>{/if}
+                  </Field>
+                {/if}
+                {#if !sphereColumn}
                   <Field small name="Arc" icon="bulge">
                     {#if columnIsClicked && $clickedKey != null}<DecimalInputInherit
                         small
@@ -1530,6 +1550,24 @@
                     </span>
                   {:else}<span class="fallback">-</span>{/if}
                 </Field>
+                {#if !sphereCluster}
+                  <Field small name="Row Dispty">
+                    {#if clusterIsClicked && $clickedKey != null}<DecimalInputInherit
+                        small
+                        divisor={100}
+                        bind:value={clusterIsClicked.curvature.rowDisparity}
+                        on:change={updateProto}
+                        inherit={nthCurvature($protoConfig, $clickedKey, 'rowDisparity', 'kb')}
+                      />
+                    {:else if $hoveredKey != null && clusterIsHovered}<span
+                        class="fallback"
+                        class:inherit={typeof clusterIsHovered.curvature.rowDisparity == 'undefined'}
+                      >
+                        {nthCurvature($protoConfig, $hoveredKey, 'rowDisparity', 'cluster')}
+                      </span>
+                    {:else}<span class="fallback">-</span>{/if}
+                  </Field>
+                {/if}
                 <Field small name="Col Curve" icon="column-curve">
                   {#if clusterIsClicked && $clickedKey != null}<AngleInputInherit
                       small
@@ -1545,6 +1583,24 @@
                     </span>
                   {:else}<span class="fallback">-</span>{/if}
                 </Field>
+                {#if !sphereCluster}
+                  <Field small name="Col Dispty">
+                    {#if clusterIsClicked && $clickedKey != null}<DecimalInputInherit
+                        small
+                        divisor={100}
+                        bind:value={clusterIsClicked.curvature.columnDisparity}
+                        on:change={updateProto}
+                        inherit={nthCurvature($protoConfig, $clickedKey, 'columnDisparity', 'kb')}
+                      />
+                    {:else if $hoveredKey != null && clusterIsHovered}<span
+                        class="fallback"
+                        class:inherit={typeof clusterIsHovered.curvature.columnDisparity == 'undefined'}
+                      >
+                        {nthCurvature($protoConfig, $hoveredKey, 'columnDisparity', 'cluster')}
+                      </span>
+                    {:else}<span class="fallback">-</span>{/if}
+                  </Field>
+                {/if}
                 <Field small name="Arc" icon="bulge">
                   {#if clusterIsClicked && $clickedKey != null}<DecimalInputInherit
                       small
