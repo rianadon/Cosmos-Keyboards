@@ -1,5 +1,5 @@
 ---
-date: 2026-06-28
+date: 2026-07-12
 categories:
     - Releases
 ---
@@ -8,7 +8,7 @@ categories:
 
 ![Summary of the new features](../../assets/summer-software.png){ .header }
 
-Did I hear you say you want more customization options in Cosmos? This release brings new possibilities for layouts and keyboard design, plus stability in Stilts Mode and part intersection detection.
+Did I hear you say you want more customization options in Cosmos? More? Really? This release brings new possibilities for layouts and keyboard design, plus stability in Stilts Mode, part intersection detection, and hand previews.
 
 <!-- more -->
 
@@ -47,7 +47,7 @@ Many dongles have a display tucked in them, but if you'd like to use your own pa
 
 Every time you make an edit, Cosmos checks all the parts in the model against what's nearby to make sure every component fits, so you can be confident your 3d print is useable. The new release extends support from only keycaps and some switches to nearly every part in Cosmos.
 
-Cosmos detects intersecting parts by first converting the web and all parts to [low poly](https://en.wikipedia.org/wiki/Low_poly) triangle meshes. The triangles in every mesh are stored in a data structure for efficient lookup (as of writing, Cosmos uses an octree). The intersection checker then determines which triangles intersect and marks the two parts owning these triangles as colliding. This releas's contribution is that all parts which require low-poly meshes now have one.
+Cosmos detects intersecting parts by first converting the web and all parts to [low poly](https://en.wikipedia.org/wiki/Low_poly) triangle meshes. The triangles in every mesh are stored in a data structure for efficient lookup (as of writing, Cosmos uses an octree). The intersection checker then determines which triangles intersect and marks the two parts owning these triangles as colliding. This release's contribution is that all parts which require low-poly meshes now have one.
 
 I've been bitten before by switches that were too close to the trackball holder, creating a socket with an incomplete switch hole. Now, as shown in the image above, you'll see an error if your switch won't fit in.
 
@@ -65,6 +65,18 @@ You can even drag in a banana for scale.
 
 The left hand preview is finally bug-free! Now that both hands work, I've updated the 3D Viewer to show a preview of both your hands next to your keyboard, so that you have a good idea of how the keyboard will fit your hands. :raised_hands:
 
+## New Curvature Controls
+
+![type:video](../../assets/disparity.mp4){ autoplay width=500 .center .rounded }
+
+Trace the path created by curling your fingers. It turns out they don't curl in a perfect circle. Instead, the circle's radius is decreasing as you curl further in. The consequence for keyboard design is that in order to best fit your hand, you'll want the keys close to you to have more curvature and the ones further from you to have less.
+
+You'll now be able to tune this difference in curvatures by changing the row and column disparity settings. A positive column disparity will increase the curvature of keys close to you, making them easier to reach.
+
+We can throw a lot of mathematics at the problem. For instance, if we assume that the curvature increases at a fixed rate (linearly) with respect to the arc length, we derive a [clothoid (or Euler spiral)](https://en.wikipedia.org/wiki/Euler_spiral). Computing these curves requires numerical integration, which isn't exactly fast. Instead, Cosmos approximates these curves by splitting the circular arc in two parts and changing the ratio of the two arc radii. At the small disparity that keyboards require, the error between this approximation, clothoids, and logarithmic curves are all small. That's a fancy way of saying that unless your fingers require a very wacky curve, the curvature and disparity controls will be able to create it.
+
+If you're getting started with this setting, I recommend using between 1.0 and 1.5 for the column curvature disparity.
+
 ## All-New Stilts Mode <span class="pro"></span>
 
 ![A keyboard made with the new stilts mode](../../assets/stilts-mode-new.png)
@@ -76,11 +88,17 @@ For several years, I've been experimenting with how to make the Stilts mode more
 - Walls more smoothly transition between large angles.
 - Microcontroller holders use less space and better tuck into the case.
 
+After lots of iteration and tuning, the system should be able to deal with most keyboards. If it doesn't work, you'll see an error explaining what you can change in your model to avoid the situations where stilts mode can't compute a good 3D model.
+
 ## Everything Else
 
 Although they aren't as big as the other features, these changes are nonetheless worth mentioning:
 
-- You can now tune the depth of the foot inset when Improved Plate is enabled. Now Cosmos can accomodate any size of rubber foot.
+- You can now tune the depth of the foot inset when Improved Plate is enabled. Now Cosmos can accommodate any size of rubber foot.
 - In Firefox, the Edit Key button now longer changes size when it's clicked.
 - The default model has different legends than before. The ++bracket-left++ key is gone, and ++equal++ and ++backslash++ have been added. This isn't because one layout is better than the other: Arguably they're both bad, because such symbols should be on their own layer. The change is simply to align the default layout with the new default QWERTY layout.
 - I've fixed the bug where the URL starts out very long. Now, the default model encodes to the URL `ryanis.cool/cosmos/cosmos/beta#cm` as it used to.
+- You can now configure the depth of shaper keys.
+- There was a recent regression where the hand models showed two move controls each. They're back to only showing one now.
+
+--8<-- "docs/blog/.footer.md"
