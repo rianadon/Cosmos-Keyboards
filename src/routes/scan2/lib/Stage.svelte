@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { FINGERS, type Hand, type Joints } from './hand'
+  import { FINGERS, type Hand, type Joints } from '$lib/hand'
   import { Canvas, T } from '@threlte/core'
   import { DEG2RAD } from 'three/src/math/MathUtils.js'
   import { HTML, MeshLineGeometry, MeshLineMaterial } from '@threlte/extras'

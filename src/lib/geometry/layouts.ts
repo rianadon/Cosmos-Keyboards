@@ -1,6 +1,7 @@
 import { parseBCP } from '$lib/bcp'
+import type { Finger } from '$lib/hand'
 import { type CosmosCluster, type CosmosKey, type CosmosKeyboard, mirrorCluster } from '$lib/worker/config.cosmos'
-import { objEntries, objKeys, range } from '$lib/worker/util'
+import { objEntries, objKeys, range, reverseMap } from '$lib/worker/util'
 import type { Layout } from '$target/cosmosStructs'
 import { PART_INFO } from './socketsParts'
 
@@ -463,7 +464,8 @@ export function transposeCells(cells: string[]) {
 export function flipLetter(letter: string | undefined, layout: Layout): string | undefined {
   if (!letter) return letter
   const layoutStr = LAYOUTS[layout].layout
-  const index = R2L[layoutStr.indexOf(letter)]
+  let index: number | undefined = R2L[layoutStr.indexOf(letter)]
+  if (typeof index === 'undefined') index = reverseMap(R2L)[layoutStr.indexOf(letter)]
   if (typeof index === 'undefined') return letter
   return layoutStr[index]
 }
@@ -479,6 +481,34 @@ export function flippedKey(letter: string | undefined, layout: Layout | undefine
   if (!letter) return letter
   if (letter in SHARED_FLIP) return SHARED_FLIP[letter]
   return flipLetter(letter, layout || DEFAULT_LAYOUT) ?? letter
+}
+
+const RIGHT_COLUMN_FINGERS: Finger[] = ['indexFinger', 'indexFinger', 'middleFinger', 'ringFinger', 'pinky', 'pinky']
+const LEFT_COLUMN_FINGERS: Finger[] = [...RIGHT_COLUMN_FINGERS].reverse()
+
+/** Mapping of which finger presses each letter in the layout. */
+export function lettersToFingers(layout: Layout): Record<string, Finger> {
+  const fingers: Record<string, Finger> = {}
+  const assign = (cells: string[], columns: Finger[]) =>
+    cells.forEach((row) =>
+      Array.from(row).forEach((letter, c) => {
+        if (letter && letter != ' ') fingers[letter] = columns[c]
+      })
+    )
+  assign(leftCells(layout), LEFT_COLUMN_FINGERS)
+  assign(rightCells(layout), RIGHT_COLUMN_FINGERS)
+  return fingers
+}
+
+/** Re-letters `letters`, typed on a the source layout, to the letters sitting at the same physical
+ *  positions in the arget layout. Positions the layout leaves blank are dropped. */
+export function relayout(letters: string, sourceLayout: Layout, targetLayout: Layout) {
+  const source = LAYOUTS[sourceLayout].layout
+  const target = LAYOUTS[targetLayout].layout
+  return Array.from(letters)
+    .map(letter => target[source.indexOf(letter)])
+    .filter(letter => letter && letter != ' ' && letter != '\n')
+    .join('')
 }
 
 export function adjacentKeycapLetter(letter: string | undefined, dx: number, dy: number, layout: Layout) {

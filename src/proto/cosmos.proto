@@ -73,6 +73,7 @@ message KeyboardExtra {
   optional int32 plate_thickness = 19;
   repeated uint32 foot_indices = 20;
   optional uint32 foot_diameter = 21;
+  optional uint32 foot_height = 24;
   optional uint32 plate_art = 22;
   optional int32 connector_center_index = 23;
 }
@@ -83,6 +84,8 @@ message Curvature {
   optional sint32 curvature_a = 3;
   optional sint32 curvature_b = 4;
   optional sint32 arc = 5;
+  optional sint32 row_disparity = 6;
+  optional sint32 column_disparity = 7;
 }
 
 message Cluster {
@@ -113,4 +116,5 @@ message Key {
   // 13-15 reserved
   optional uint32 margin_x = 16;
   optional uint32 margin_y = 17;
+  optional uint32 size_c = 18;
 }

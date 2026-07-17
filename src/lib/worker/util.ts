@@ -277,3 +277,31 @@ export function pluralizeLastWord(str: string) {
 export function iterEmpty<T, TR, TN>(iter: Generator<T, TR, TN>) {
   return iter.next().done
 }
+
+export function findMaxBy<E>(elems: E[], score: (e: E) => number): E | undefined {
+  if (elems.length <= 1) return elems[0]
+  let bestElem = elems[0]
+  let bestScore = score(elems[0])
+  for (let i = 1; i < elems.length; i++) {
+    const newScore = score(elems[i])
+    if (newScore > bestScore) {
+      bestScore = newScore
+      bestElem = elems[i]
+    }
+  }
+  return bestElem
+}
+
+export function findMinBy<E>(elems: E[], score: (e: E) => number): E | undefined {
+  if (elems.length <= 1) return elems[0]
+  let bestElem = elems[0]
+  let bestScore = score(elems[0])
+  for (let i = 1; i < elems.length; i++) {
+    const newScore = score(elems[i])
+    if (newScore < bestScore) {
+      bestScore = newScore
+      bestElem = elems[i]
+    }
+  }
+  return bestElem
+}

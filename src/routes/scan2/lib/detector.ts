@@ -7,9 +7,9 @@ import resAssetsLoader from '@mediapipe/hands/hands_solution_packed_assets_loade
 import resSimdWasm from '@mediapipe/hands/hands_solution_simd_wasm_bin.wasm?url'
 import resSimdWasmJs from '@mediapipe/hands/hands_solution_simd_wasm_bin?url'
 
+import type { PoseHand } from '$lib/hand'
 import * as mp from '@mediapipe/hands'
 import type { InputImage } from '@mediapipe/hands'
-import type { PoseHand } from './hand'
 
 interface EstimationConfig {
   flipHorizontal?: boolean

@@ -35,8 +35,8 @@
     mirrorCluster,
     partVariant,
     sortClusters,
-    toCosmosConfig,
     type ConnectorMaybeCustom,
+    type CosmosCluster,
     type CosmosKeyboard,
     type PartType,
   } from '$lib/worker/config.cosmos'
@@ -44,7 +44,7 @@
   import Checkbox from '$lib/presentation/Checkbox.svelte'
   import CheckboxOpt from '$lib/presentation/CheckboxOptDef.svelte'
   import Select from '$lib/presentation/Select.svelte'
-  import { capitalize, mapObj, mapObjNotNull, notNull, objEntries, objKeys } from '$lib/worker/util'
+  import { capitalize, mapObjNotNull, notNull, objEntries, objKeys } from '$lib/worker/util'
   import { profileName, sortProfiles } from '../viewers/viewer3dHelpers'
   import { encodeVariant, PART_INFO } from '$lib/geometry/socketsParts'
   import DecimalInputInherit from './DecimalInputInherit.svelte'
@@ -507,6 +507,16 @@
     })
   }
 
+  /** The curvature fields mutate the config in place, so their edits have to be published to the store. */
+  function updateProto() {
+    protoConfig.update((p) => p)
+  }
+
+  /** Spheres bend by a single curvature, so a sphere cluster is never offered a compound curve. */
+  function isSphere(cluster: CosmosCluster | undefined) {
+    return !!cluster?.clusters.some((c) => c.type == 'sphere')
+  }
+
   function rearPins(conf: CosmosKeyboard): number {
     if (conf.microcontroller == null) return 0
     return BOARD_PROPERTIES[conf.microcontroller].rearPins?.length || 0
@@ -570,6 +580,9 @@
   $: clusterAng = clusterAngle($tempConfig)
   const setClusterAng = (ev: CustomEvent) =>
     protoConfig.update((proto) => setClusterAngle(proto, ev.detail))
+
+  const DISPARITY_HELP =
+    "Bends the inner and outer parts of the curve by unequal amounts. At 0 they're equal."
 </script>
 
 <Section name="Upper Keys">
@@ -800,9 +813,19 @@
   <Field name="Row's Curvature" plusminus icon="row-curve">
     <AngleInput bind:value={$protoConfig.curvature.curvatureA} />
   </Field>
+  {#if !basic}
+    <Field name="Row's Curvature Disparity" plusminus help={DISPARITY_HELP}>
+      <DecimalInput divisor={100} bind:value={$protoConfig.curvature.rowDisparity} />
+    </Field>
+  {/if}
   <Field name="Column's Curvature" icon="column-curve">
     <AngleInput bind:value={$protoConfig.curvature.curvatureB} />
   </Field>
+  {#if !basic}
+    <Field name="Column's Curvature Disparity" plusminus help={DISPARITY_HELP}>
+      <DecimalInput divisor={100} bind:value={$protoConfig.curvature.columnDisparity} />
+    </Field>
+  {/if}
   <Field
     name="Outwards Arc"
     icon="bulge"
@@ -865,9 +888,19 @@
     <Field name="Row's Curvature" plusminus icon="row-curve">
       <AngleInput bind:value={leftThumbCluster.curvature.curvatureA} />
     </Field>
+    {#if !basic && !isSphere(leftThumbCluster)}
+      <Field name="Row's Curvature Disparity" plusminus help={DISPARITY_HELP}>
+        <DecimalInput divisor={100} bind:value={leftThumbCluster.curvature.rowDisparity} />
+      </Field>
+    {/if}
     <Field name="Column's Curvature" plusminus icon="column-curve">
       <AngleInput bind:value={leftThumbCluster.curvature.curvatureB} />
     </Field>
+    {#if !basic && !isSphere(leftThumbCluster)}
+      <Field name="Column's Curvature Disparity" plusminus help={DISPARITY_HELP}>
+        <DecimalInput divisor={100} bind:value={leftThumbCluster.curvature.columnDisparity} />
+      </Field>
+    {/if}
     {#if !basic}
       <Field name="Horizontal (X) Spacing" icon="expand-horizontal">
         <DecimalInputInherit
@@ -927,9 +960,19 @@
   <Field name="Row's Curvature" plusminus icon="row-curve">
     <AngleInput bind:value={rightThumbCluster.curvature.curvatureA} />
   </Field>
+  {#if !basic && !isSphere(rightThumbCluster)}
+    <Field name="Row's Curvature Disparity" plusminus help={DISPARITY_HELP}>
+      <DecimalInput divisor={100} bind:value={rightThumbCluster.curvature.rowDisparity} />
+    </Field>
+  {/if}
   <Field name="Column's Curvature" plusminus icon="column-curve">
     <AngleInput bind:value={rightThumbCluster.curvature.curvatureB} />
   </Field>
+  {#if !basic && !isSphere(rightThumbCluster)}
+    <Field name="Column's Curvature Disparity" plusminus help={DISPARITY_HELP}>
+      <DecimalInput divisor={100} bind:value={rightThumbCluster.curvature.columnDisparity} />
+    </Field>
+  {/if}
   {#if !basic}
     <Field name="Horizontal (X) Spacing" icon="expand-horizontal">
       <DecimalInputInherit
@@ -973,9 +1016,19 @@
     <Field name="Row's Curvature" plusminus icon="row-curve">
       <AngleInput bind:value={centerCl.curvature.curvatureA} />
     </Field>
+    {#if !basic && !isSphere(centerCl)}
+      <Field name="Row's Curvature Disparity" plusminus help={DISPARITY_HELP}>
+        <DecimalInput divisor={100} bind:value={centerCl.curvature.rowDisparity} />
+      </Field>
+    {/if}
     <Field name="Column's Curvature" plusminus icon="column-curve">
       <AngleInput bind:value={centerCl.curvature.curvatureB} />
     </Field>
+    {#if !basic && !isSphere(centerCl)}
+      <Field name="Column's Curvature Disparity" plusminus help={DISPARITY_HELP}>
+        <DecimalInput divisor={100} bind:value={centerCl.curvature.columnDisparity} />
+      </Field>
+    {/if}
     {#if !basic}
       <Field name="Horizontal (X) Spacing" icon="expand-horizontal">
         <DecimalInputInherit
@@ -1401,7 +1454,7 @@
   <Field name="Improved Plate" icon="art" pro help="Add plate art and insets for silicone feet">
     <CheckboxOpt
       bind:value={$protoConfig.plate}
-      def={{ art: 'cosmos', footIndices: [-1, -1, -1, -1], footDiameter: 10 }}
+      def={{ art: 'cosmos', footIndices: [-1, -1, -1, -1], footDiameter: 10, footHeight: 2.5 }}
     />
   </Field>
   {#if $protoConfig.plate}
@@ -1432,7 +1485,7 @@
         to the Advanced &rarr; Number of Feet.</InfoBox
       >
     {/if}
-    <Field name="Size of Feet" pro>
+    <Field name="Diameter of Feet" pro>
       <DecimalInput
         divisor={10}
         bind:value={$protoConfig.plate.footDiameter}
@@ -1440,6 +1493,21 @@
         on:change={updatePlate}
       />
     </Field>
+    <Field
+      name="Height of Feet"
+      pro
+      help="Height of the feet you are using, minus how far they stick out. I.e. the distance that feet should be inset into the plate."
+    >
+      <DecimalInput
+        divisor={10}
+        bind:value={$protoConfig.plate.footHeight}
+        units="mm"
+        on:change={updatePlate}
+      />
+    </Field>
+    {#if $protoConfig.plate?.footHeight + 0.5 > $protoConfig.plateThickness + 1e-5}
+      <InfoBox>The feet will stick out extra because the plate thickness is too small.</InfoBox>
+    {/if}
   {/if}
   <Field name="Rounded Top Edge" icon="round-top" pro>
     <CheckboxOpt bind:value={$protoConfig.rounded.top} def={{ horizontal: 0.25, vertical: 0.67 }} />

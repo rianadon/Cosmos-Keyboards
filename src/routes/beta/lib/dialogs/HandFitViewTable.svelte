@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Vector3 } from 'three'
-  import type { FINGERS } from '../hand'
+  import type { FINGERS } from '$lib/hand'
 
   type Finger = (typeof FINGERS)[number]
   const FINGER_NAMES: Record<Finger, string> = {

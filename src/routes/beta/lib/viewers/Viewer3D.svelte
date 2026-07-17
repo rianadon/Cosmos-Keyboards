@@ -1,16 +1,15 @@
 <script lang="ts">
-  import { onDestroy } from 'svelte'
+  import { onDestroy, onMount, tick } from 'svelte'
   import { Euler, Matrix4, Quaternion, Vector3, type BufferGeometry } from 'three'
   import {
     type Cuttleform,
-    type CuttleKey,
-    findKeyByAttr,
     decodeTuple,
     encodeTuple,
     tupleToXYZ,
     type Center,
     type KeyboardSide,
     type FullGeometry,
+    type FullCuttleform,
   } from '$lib/worker/config'
   import Trsf from '$lib/worker/modeling/transformation'
   import {
@@ -32,31 +31,19 @@
   } from '$lib/store'
   import HandModel from '$lib/3d/HandModel.svelte'
   import ImportedModel from '$lib/3d/ImportedModel.svelte'
-  import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
-  import { type Finger, FINGERS, type Joints, SolvedHand } from '../hand'
+  import { type Finger, FINGERS, SolvedHand } from '$lib/hand'
   import { refine } from '../handoptim'
   import Keyboard from '$lib/3d/Keyboard.svelte'
   import AddButton from '$lib/3d/AddButton.svelte'
   import * as flags from '$lib/flags'
   import TransformControls from '$lib/3d/TransformControls.svelte'
   import { ContactShadows, TransformControls as TTransformControls } from '@threlte/extras'
-  import ETrsf, { keyPosition, keyPositionTop } from '$lib/worker/modeling/transformation-ext'
-  import { keyInfo } from '$lib/geometry/keycaps'
-  import { switchInfo } from '$lib/geometry/switches'
+  import ETrsf, { keyPosition } from '$lib/worker/modeling/transformation-ext'
+  import { DEFAULT_LAYOUT, flippedKey, lettersToFingers, relayout } from '$lib/geometry/layouts'
   import { componentBoxes, componentGeometry } from '$lib/worker/geometry'
   import * as mdi from '@mdi/js'
   import Icon from '$lib/presentation/Icon.svelte'
-  import { flipLetter } from '$lib/geometry/layouts'
-  import {
-    diff,
-    filterObj,
-    mapObj,
-    mapObjNotNull,
-    notNull,
-    objEntries,
-    objEntriesNotNull,
-    objKeys,
-  } from '$lib/worker/util'
+  import { diff, mapObjNotNull, notNull, objEntries, objEntriesNotNull, objKeys } from '$lib/worker/util'
   import { readHands, type HandData } from '$lib/handhelpers'
   import { simplePartGeos, simpleSocketGeos } from '$lib/loaders/simpleparts'
   import GroupMatrix from '$lib/3d/GroupMatrix.svelte'
@@ -105,8 +92,14 @@
     keyRot,
     AbsPositionStore,
     AbsRotationStore,
-    importModel,
     updateReferenceModels,
+    type HandSide,
+    HAND_SIDES,
+    pos,
+    pos15,
+    keyPressDepth,
+    findKeyByAttr,
+    computeReachability,
   } from './viewer3dHelpers'
   import Field from '$lib/presentation/Field.svelte'
   import DecimalInput from '../editor/DecimalInput.svelte'
@@ -140,12 +133,10 @@
   export let geometry: FullGeometry
   export let progress = 1
 
-  export let conf: Cuttleform | undefined
-  let fitConf: Cuttleform | undefined
+  export let conf: FullCuttleform | undefined
   let snapRotation = false
   const useAbsolute = writable<boolean>(false)
 
-  $: flip = $view == 'left'
   $: if (conf && $showHelp) $clickedKey = 0
 
   function copyCanvas() {
@@ -198,7 +189,7 @@
       const { key, column } = nthKey(proto, $clickedKey!)
       if ($selectMode == 'key') {
         key.partType.type = newType
-        key.partType.variant = key.sizeA = key.sizeB = undefined
+        key.partType.variant = key.sizeA = key.sizeB = key.sizeC = undefined
         if (newType == 'blank') key.marginX = key.marginY = undefined
       }
       if ($selectMode == 'column') {
@@ -391,7 +382,6 @@
   let selectedImportId: number | null = null
   let hoveredImportId: number | null = null
   let fileDragging = false
-  let importsIdCounter = 0
   $: if ($clickedKey != null) selectedImportId = null
 
   function deleteImport(id: number) {
@@ -481,135 +471,99 @@
   $: hoveredCRotation = columnIsHovered == null ? null : decodeTuple(columnIsHovered.rotation || 0n)
   $: hoveredLRotation = clusterIsHovered == null ? null : decodeTuple(clusterIsHovered.rotation || 0n)
 
-  const sentence = 'pink,plum;youlhuminjoy.'
-  const fingersToKeys: Record<string, Finger> = {
-    '6': 'indexFinger',
-    '7': 'indexFinger',
-    '8': 'middleFinger',
-    '9': 'ringFinger',
-    '0': 'pinky',
-    y: 'indexFinger',
-    u: 'indexFinger',
-    i: 'middleFinger',
-    o: 'ringFinger',
-    p: 'pinky',
-    h: 'indexFinger',
-    j: 'indexFinger',
-    k: 'middleFinger',
-    l: 'ringFinger',
-    ';': 'pinky',
-    n: 'indexFinger',
-    m: 'indexFinger',
-    ',': 'middleFinger',
-    '.': 'ringFinger',
-    '/': 'pinky',
-  }
+  // The keys the simulation presses, named by their QWERTY letters. The same physical keys are
+  // pressed in the same order whatever the layout; only the letters on them change.
+  const SENTENCE = 'the quick brown fox jumps over the lazy dog.'
+  $: layout = $protoConfig?.layout ?? DEFAULT_LAYOUT
+  $: sentence = relayout(SENTENCE, DEFAULT_LAYOUT, layout)
+  $: fingersToKeys = lettersToFingers(layout)
 
-  function reachability(conf: Cuttleform, joints: Joints, origin: Vector3) {
-    const keys = conf.keys
-    return keys.map((k) => {
-      const finger = 'keycap' in k && k.keycap?.letter ? fingersToKeys[k.keycap.letter] : 'thumb'
-      const reach = joints[finger || 'thumb'].reduce((a, j) => a + j.length, 0) * 1000
-      const distance = pos15(conf, k)!.distanceTo(origin)
-      return distance <= reach
-    })
+  /** The center of the keyboard a hand rests on, or undefined if that keyboard isn't shown. */
+  function handCenter(side: HandSide, center: Center, geometry: FullGeometry) {
+    return geometry.unibody ? center.unibody : center[side]
   }
 
   let jointsJSON: HandData | undefined = readHands()
-  let whichHand: 'left' | 'right'
-  $: whichHand = flip ? 'left' : 'right'
+  let hands: Record<HandSide, SolvedHand | undefined> = { left: undefined, right: undefined }
 
-  let theHand = jointsJSON ? new SolvedHand(jointsJSON[whichHand], new Matrix4()) : undefined
+  function wristRestMatrix(side: HandSide) {
+    const mirror = side == 'left'
+    if ($protoConfig) {
+      const [x, y, z] = tupleToXYZ($protoConfig.wristRestPosition)
+      return new Matrix4().makeTranslation(mirror ? -x : x, y, z)
+    }
+    let anyConf = conf?.right || conf?.unibody
+    if (anyConf?.wristRestOrigin) {
+      const trsf = new ETrsf(anyConf.wristRestOrigin.history)
+      if (mirror) trsf.mirrored([1, 0, 0])
+      return trsf.evaluate({ flat: false }).Matrix4()
+    }
+    return new Matrix4()
+  }
 
-  $: rightHandMatrix = $protoConfig
-    ? new Matrix4().makeTranslation(...tupleToXYZ($protoConfig.wristRestPosition))
-    : conf?.wristRestOrigin
-    ? new ETrsf(conf.wristRestOrigin.history).evaluate({ flat: false }).Matrix4()
-    : new Matrix4()
+  // Pose of each hand, in world coordinates. Reset to the wrist rest whenever the config changes;
+  // fitting and the transform controls overwrite it in between.
+  let handMatrix: Record<HandSide, Matrix4> = { left: new Matrix4(), right: new Matrix4() }
+  let handRotation: Record<HandSide, [number, number, number]> = { left: [0, 0, 0], right: [0, 0, 0] }
+  let handPosition: Record<HandSide, [number, number, number]> = { left: [0, 0, 0], right: [0, 0, 0] }
+  $: if ($protoConfig || conf)
+    handMatrix = { left: wristRestMatrix('left'), right: wristRestMatrix('right') }
 
-  $: leftHandMatrix = $protoConfig
-    ? new Matrix4().makeTranslation(
-        ...(tupleToXYZ($protoConfig.wristRestPosition).map((x, i) => (i == 0 ? -x : x)) as [
-          number,
-          number,
-          number
-        ])
-      )
-    : conf?.wristRestOrigin
-    ? new ETrsf(conf.wristRestOrigin.history).mirrored([1, 0, 0]).evaluate({ flat: false }).Matrix4()
-    : new Matrix4()
+  function setHandPose(side: HandSide, world: Matrix4) {
+    handMatrix[side] = world
+    handRotation[side] = new Euler().setFromRotationMatrix(world).toArray() as any
+    handPosition[side] = new Vector3().setFromMatrixPosition(world).toArray()
+  }
 
-  let debug = new Matrix4()
-
-  function fit(targets: Record<Finger, Vector3 | undefined>) {
+  /** Solve one hand's pose. Both the hand and its targets are in world coordinates. */
+  function fit(targets: Record<Finger, Vector3 | undefined>, side: HandSide) {
     if (!jointsJSON) throw new Error('No jointsJSON')
-    // const tg = Object.fromEntries(
-    //   Object.entries(targets)
-    //     .filter(([k, v]) => !!v)
-    //     .map(([k, v]) => (flip ? [k, new Vector3(-v.x, v.y, v.z)] : [k, v]))
-    // )
-    const tg = mapObjNotNull(targets, (v) => (flip ? new Vector3(-v.x, v.y, v.z) : v))
+    const tg = mapObjNotNull(targets, (v) => v)
     const ik: Record<string, Vector3[] | false> = Object.fromEntries(
       FINGERS.map((f) => [f, [new Vector3(), new Vector3(), new Vector3(), new Vector3()]])
     )
-    let handMatrix = flip ? leftHandMatrix : rightHandMatrix
-    const position = new Vector3().setFromMatrixPosition(handMatrix)
-    handMatrix = new Matrix4()
-      .makeRotationFromEuler(flip ? new Euler(0, Math.PI / 2, Math.PI) : new Euler(0, -Math.PI / 2, 0))
-      .setPosition(position)
-    const { m, Vt } = refine(handMatrix, jointsJSON[whichHand], tg)
-    handMatrix = m
-    debug = new Matrix4().multiplyMatrices(handMatrix, new Matrix4().copy(Vt))
-    theHand = new SolvedHand(jointsJSON[whichHand], handMatrix)
+    const origin = new Vector3().setFromMatrixPosition(handMatrix[side])
+    const seed = new Matrix4().makeRotationFromEuler(new Euler(0, -Math.PI / 2, 0)).setPosition(origin)
+    const { m } = refine(seed, jointsJSON[side], tg)
+    const hand = new SolvedHand(jointsJSON[side], m)
     for (const [finger, position] of objEntries(tg)) {
-      ik[finger] = theHand.ik(finger, position, 1000)
+      ik[finger] = hand.ik(finger, position, 1000)
     }
-    if (flip) {
-      leftHandMatrix = handMatrix
-      leftHandRotation = new Euler().setFromRotationMatrix(handMatrix).toArray() as any
-      leftHandPosition = new Vector3().setFromMatrixPosition(handMatrix).toArray()
-    } else {
-      rightHandMatrix = handMatrix
-      rightHandRotation = new Euler().setFromRotationMatrix(handMatrix).toArray() as any
-      rightHandPosition = new Vector3().setFromMatrixPosition(handMatrix).toArray()
-    }
+    hands[side] = hand
+    setHandPose(side, m)
     return ik
   }
 
-  const keyDepth = (k: CuttleKey) => keyInfo(k).depth
-
-  const HAND_RADIUS = 2
-
-  const pos = (c: Cuttleform, k: CuttleKey | undefined) =>
-    k ? keyPositionTop(c, k, false).pretranslated(0, 0, HAND_RADIUS).origin() : undefined
-  const pos15 = (c: Cuttleform, k: CuttleKey | undefined) =>
-    k
-      ? keyPositionTop(c, k, false)
-          .pretranslated(
-            0,
-            0,
-            -switchInfo(k.type).height + switchInfo(k.type).pressedHeight + HAND_RADIUS
-          )
-          .origin()
-      : undefined
-  function theBigFit(conf: Cuttleform) {
-    console.log('FITTING', conf)
-    return fit({
-      indexFinger: pos(conf, findKeyByAttr(conf, 'home', 'index')),
-      middleFinger: pos(conf, findKeyByAttr(conf, 'home', 'middle')),
-      ringFinger: pos(conf, findKeyByAttr(conf, 'home', 'ring')),
-      pinky: pos(conf, findKeyByAttr(conf, 'home', 'pinky')),
-      thumb: pos(conf, findKeyByAttr(conf, 'home', 'thumb')),
-    })
+  function theBigFit(fitConfs: FitConfs, side: HandSide) {
+    const conf = fitConfs[side]!
+    const isUnibody = fitConfs.isUnibody
+    const isUnibodyLeft = side == 'left' && fitConfs.isUnibody
+    return fit(
+      {
+        indexFinger: pos(conf, findKeyByAttr(conf, isUnibodyLeft, 'home', 'index'), side, isUnibody),
+        middleFinger: pos(conf, findKeyByAttr(conf, isUnibodyLeft, 'home', 'middle'), side, isUnibody),
+        ringFinger: pos(conf, findKeyByAttr(conf, isUnibodyLeft, 'home', 'ring'), side, isUnibody),
+        pinky: pos(conf, findKeyByAttr(conf, isUnibodyLeft, 'home', 'pinky'), side, isUnibody),
+        thumb: pos(conf, findKeyByAttr(conf, isUnibodyLeft, 'home', 'thumb'), side, isUnibody),
+      },
+      side
+    )
   }
-  $: if (conf) fitConf = conf
-  $: if ($tempConfig) fitConf = fromCosmosConfig($tempConfig).right
-  $: if (fitConf && jointsJSON) theBigFit(fitConf)
 
-  let leftHandRotation: [number, number, number] = [0, 0, 0]
-  let rightHandRotation: [number, number, number] = [0, 0, 0]
-  let leftHandPosition: [number, number, number] = [0, 0, 0]
-  let rightHandPosition: [number, number, number] = [0, 0, 0]
+  type FitConfs = Record<HandSide, Cuttleform | undefined> & { isUnibody: boolean }
+  let fitConfs: FitConfs = { left: undefined, right: undefined, isUnibody: false }
+  const toFitConf = (c: FullCuttleform) => ({
+    right: c.right || c.unibody,
+    left: c.left || c.unibody,
+    isUnibody: !!c.unibody,
+  })
+  $: if (conf) fitConfs = toFitConf(conf)
+  $: if ($tempConfig) fitConfs = toFitConf(fromCosmosConfig($tempConfig, true)) // Because this is how conf is
+  $: handSides = HAND_SIDES.filter((s) => !!handCenter(s, center, geometry) && !!fitConfs[s])
+  $: if (jointsJSON && geometry)
+    handSides.forEach((side) => {
+      if (fitConfs[side]) theBigFit(fitConfs, side)
+    })
 
   function easeInOutQuad(x: number): number {
     return x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2
@@ -618,44 +572,99 @@
   let req: number
   let zPos = 0
 
+  /** The pose of every finger of a hand, as the ik solver returns it. */
+  type HandFit = Record<string, Vector3[] | false>
+  /** The hand that types a letter, or undefined if no hand on screen can reach it. */
+  const letterSide = (letter: string) => {
+    if (fitConfs.isUnibody) {
+      // Unibody keyboards have all keys dumped in one array, so it's difficult to know which hand
+      // side they correspond to. This approach uses the layout to guesss which side
+      const conf = fitConfs.left || fitConfs.right!
+      const flipped = flippedKey(letter, $protoConfig?.layout)
+      const matchThis = findKeyByAttr(conf, false, 'letter', letter)
+      const matchFlip =
+        typeof flipped !== 'undefined' ? findKeyByAttr(conf, false, 'letter', flipped) : undefined
+      if (!matchThis) return undefined
+      const thisX = keyPosition(conf, matchThis, false).origin().x
+      if (!matchFlip) return thisX < 0 ? 'left' : 'right'
+      const flipX = keyPosition(conf, matchFlip, false).origin().x
+      return thisX < flipX ? 'left' : 'right'
+    } else {
+      return handSides.find((s) => !!findKeyByAttr(fitConfs[s]!, false, 'letter', letter))
+    }
+  }
+
+  /** Fit every hand: the one typing `letter` reaches for its key, the rest return to home row. */
+  function fitHandsToLetter(active: HandSide | undefined, letter: string | undefined) {
+    const fits = {} as Record<HandSide, HandFit>
+    for (const side of handSides) {
+      const conf = fitConfs[side]!
+      const isUnibody = fitConfs.isUnibody
+      const isUnibodyLeft = side == 'left' && fitConfs.isUnibody
+      const key =
+        side == active && letter ? findKeyByAttr(conf, isUnibodyLeft, 'letter', letter) : undefined
+      fits[side] = key
+        ? fit(
+            { [fingersToKeys[letter!]]: pos15(conf, key, side, isUnibody) } as Record<
+              Finger,
+              Vector3 | undefined
+            >,
+            side
+          )
+        : theBigFit(fitConfs, side)
+    }
+    return fits
+  }
+
+  /** How far the finger pressing `letter` has pushed its key down. */
+  function pressDepth(side: HandSide, letter: string, hand: SolvedHand, finger: Finger) {
+    const conf = fitConfs[side]!
+    const isUnibodyleft = side == 'left' && fitConfs.isUnibody
+    const key = findKeyByAttr(conf, isUnibodyleft, 'letter', letter)
+    if (!key) return zPos
+    const pos = hand.worldPositions(finger, 1000)
+    return keyPressDepth(pos[pos.length - 1], conf, key, side, fitConfs.isUnibody)
+  }
+
+  const handPoses = () =>
+    Object.fromEntries(
+      handSides.map((side) => [
+        side,
+        {
+          position: new Vector3().fromArray(handPosition[side]),
+          rotation: new Quaternion().setFromEuler(new Euler().fromArray(handRotation[side])),
+        },
+      ])
+    ) as Record<HandSide, { position: Vector3; rotation: Quaternion }>
+
   function toggleplay(sentence: string) {
     if (playing) {
       playing = false
       return
     }
-    if (!conf) return
+    if (!handSides.length) return
     playing = true
     const filteredSentence = Array.from(sentence)
-      .filter((letter) => !!findKeyByAttr(conf, 'letter', letter))
+      .filter((letter) => !!letterSide(letter))
       .join('')
     play(filteredSentence)
   }
 
   let playing = false
-  function play(sentence: string, beginning?: Record<string, Vector3[] | false>, index = 0) {
-    if (!fitConf) throw new Error('No fitConf')
-    if (!conf) throw new Error('No conf')
+  function play(sentence: string, beginning?: Record<HandSide, HandFit>, index = 0) {
     if (index > sentence.length) {
       playing = false
       return
     }
-    if (!beginning) beginning = theBigFit(fitConf)
+    if (!beginning) beginning = fitHandsToLetter(undefined, undefined)
 
-    const prevRot = new Quaternion().setFromEuler(new Euler().fromArray(rightHandRotation))
-    const prevPos = new Vector3().fromArray(rightHandPosition)
-    let targets: Record<string, Vector3[] | false>
-    if (index >= sentence.length) {
-      targets = theBigFit(fitConf)
-    } else {
-      const letter = sentence[index]
-      const finger = fingersToKeys[letter]
-      targets = fit({
-        [finger]: pos15(conf, findKeyByAttr(conf, 'letter', letter)),
-      } as Record<Finger, Vector3 | undefined>)
-      console.log('letter', pressedLetter)
-    }
-    const newRot = new Quaternion().setFromEuler(new Euler().fromArray(rightHandRotation))
-    const newPos = new Vector3().fromArray(rightHandPosition)
+    // Each letter is typed by whichever hand owns its key. The other hand rests on its home row.
+    const letter: string | undefined = sentence[index]
+    const active = letter ? letterSide(letter) : undefined
+    console.log('letter', letter, 'side', active)
+    const prevPose = handPoses()
+    const targets = fitHandsToLetter(active, letter)
+    const newPose = handPoses()
 
     const tStart = window.performance.now()
     ;(function step(t) {
@@ -663,65 +672,71 @@
       if (!beginning) throw new Error('No beginning')
       const p = (t - tStart) / 500
       if (p > 0.5) {
-        pressedLetter = sentence[index]
+        pressedLetter = letter ?? null
       }
 
       const percent = easeInOutQuad(p)
       if (p > 1) return play(sentence, targets, ++index)
-      if (!theHand) throw new Error('No theHand')
-      theHand = new SolvedHand(jointsJSON[whichHand], theHand.position)
-      for (const f of FINGERS) {
-        const targetArr = targets[f]
-        const beginArr = beginning[f]
-        if (!targetArr || !beginArr) continue
-        const current = beginArr.map((b, i) =>
-          new Vector3().subVectors(targetArr[i], b).multiplyScalar(percent).add(b)
-        )
-        theHand.fkBy(f, (i) => [current[i].z, current[i].y])
-        if (pressedLetter && f == fingersToKeys[pressedLetter]) {
-          console.log('pl', pressedLetter)
-          const key = findKeyByAttr(conf, 'letter', pressedLetter)
-          if (!key) continue
-          const ti = keyPosition(conf, key, false).invert().Matrix4()
-          const swInfo = switchInfo(key.type)
-          const pos = theHand.worldPositions(f, 1000)
-          zPos = Math.max(
-            Math.min(
-              pos[pos.length - 1].applyMatrix4(ti).z - HAND_RADIUS - swInfo.height - keyDepth(key),
-              0
-            ),
-            swInfo.pressedHeight - swInfo.height
+      for (const side of handSides) {
+        const prevHand = hands[side]
+        if (!prevHand || !beginning[side] || !targets[side]) continue
+        const hand = new SolvedHand(jointsJSON[side], prevHand.position)
+        hands[side] = hand
+        for (const f of FINGERS) {
+          const targetArr = targets[side][f]
+          const beginArr = beginning[side][f]
+          if (!targetArr || !beginArr) continue
+          const current = beginArr.map((b, i) =>
+            new Vector3().subVectors(targetArr[i], b).multiplyScalar(percent).add(b)
           )
+          hand.fkBy(f, (i) => [current[i].z, current[i].y])
+          if (pressedLetter && side == active && f == fingersToKeys[pressedLetter]) {
+            zPos = pressDepth(side, pressedLetter, hand, f)
+          }
         }
+        handPosition[side] = new Vector3()
+          .subVectors(newPose[side].position, prevPose[side].position)
+          .multiplyScalar(percent)
+          .add(prevPose[side].position)
+          .toArray()
+        handRotation[side] = new Euler()
+          .setFromQuaternion(
+            new Quaternion().slerpQuaternions(prevPose[side].rotation, newPose[side].rotation, percent)
+          )
+          .toArray() as any
       }
-      rightHandPosition = new Vector3()
-        .subVectors(newPos, prevPos)
-        .multiplyScalar(percent)
-        .add(prevPos)
-        .toArray()
-      rightHandRotation = new Euler()
-        .setFromQuaternion(new Quaternion().slerpQuaternions(prevRot, newRot, percent))
-        .toArray() as any
-      // handRotation = newRot.toArray()
       if (playing) req = requestAnimationFrame(step)
     })(tStart)
   }
 
-  function updateHandMatrix(rightMat: Matrix4) {
-    console.log('update matrix', new Vector3().setFromMatrixPosition(rightMat))
-    rightHandMatrix = rightMat
-    if (pressedLetter && conf) {
+  /** Called while a hand's gizmo is dragged. The matrix is in world coordinates. */
+  function updateHandMatrix(mat: Matrix4, side: HandSide) {
+    handMatrix[side] = mat
+    const conf = fitConfs[side]
+    const isUnibodyLeft = side == 'left' && fitConfs.isUnibody
+    if (!conf) return
+    if (pressedLetter && letterSide(pressedLetter) == side) {
       const finger = fingersToKeys[pressedLetter]
-      fit({
-        [finger]: pos15(conf, findKeyByAttr(conf, 'letter', pressedLetter)),
-      } as Record<Finger, Vector3 | undefined>)
+      fit(
+        {
+          [finger]: pos15(
+            conf,
+            findKeyByAttr(conf, isUnibodyLeft, 'letter', pressedLetter),
+            side,
+            fitConfs.isUnibody
+          ),
+        } as Record<Finger, Vector3 | undefined>,
+        side
+      )
     } else {
-      theBigFit(fitConf!)
+      theBigFit(fitConfs, side)
     }
   }
 
-  function updateWristRest(mat: Matrix4) {
+  /** The wrist rest position is a single, mirrored tuple, so either hand moves both wrist rests. */
+  function updateWristRest(mat: Matrix4, side: HandSide) {
     const wrOrigin = new Vector3().setFromMatrixPosition(mat).toArray()
+    if (side == 'left') wrOrigin[0] = -wrOrigin[0]
     if ($protoConfig)
       $protoConfig.wristRestPosition = encodeTuple(wrOrigin.map((w) => Math.round(w * 10)))
   }
@@ -761,11 +776,6 @@
     })
   }
 
-  const onFlip = (f: boolean) => {
-    if (fitConf && jointsJSON) updateHandMatrix(rightHandMatrix)
-  }
-  $: onFlip(flip)
-
   let timer: ReturnType<typeof setInterval> | undefined
   function scanHand() {
     const win = window.open('scan2')
@@ -782,14 +792,26 @@
     if (timer) clearInterval(timer)
   })
 
+  // Threlte rebuilds its TransformControls (and adds a fresh gizmo to the scene) every time the
+  // default camera store emits, but only removes the previous gizmo one microtask later. While the
+  // viewer's camera is still being set up the store emits twice in a row, so a gizmo bound to the
+  // stale camera gets stranded in the scene. Mount the controls after that has settled.
+  let handControlsReady = false
+  onMount(async () => {
+    await tick()
+    handControlsReady = true
+  })
+
   $: reachabilityArr =
-    conf && flags.hand && showHand && jointsJSON
-      ? reachability(conf, jointsJSON[whichHand], new Vector3().setFromMatrixPosition(rightHandMatrix))
-      : undefined
+    jointsJSON && flags.hand && showHand
+      ? computeReachability(jointsJSON, fitConfs, handSides, handMatrix, geometry, fingersToKeys)
+      : {}
 
   $: columnType = columnIsClicked?.type
   $: clusterType = clusterIsClicked?.type
   $: sphereColumn = (columnIsClicked || columnIsHovered)?.type == 'sphere'
+  // Spheres bend by a single curvature, so disparity would do nothing for them.
+  $: sphereCluster = (clusterIsClicked || clusterIsHovered)?.clusters.some((c) => c.type == 'sphere')
 </script>
 
 <svelte:window on:keydown={handleKeydown} on:keyup={handleKeyUp} />
@@ -952,11 +974,6 @@
           </div>
         </div>
       {/if}
-    </div>
-  {/if}
-  {#if flip && jointsJSON && flags.hand && showHand}
-    <div class=" text-white m-4 rounded p-4 bg-yellow-700 flex">
-      Sorry the left hand is not fitting properly for the time being.
     </div>
   {/if}
   {#if progress != 1}
@@ -1180,6 +1197,17 @@
                       {:else if keyIsHovered}<span class="fallback">{keyIsHovered.sizeB || '18.5'}</span>
                       {:else}<span class="fallback">-</span>{/if}
                     </Field>
+                    <Field small name="Depth">
+                      {#if keyIsClicked}<DecimalInputInherit
+                          small
+                          noColor
+                          inherit={5}
+                          bind:value={keyIsClicked.sizeC}
+                          on:change={updateProto}
+                        />
+                      {:else if keyIsHovered}<span class="fallback">{keyIsHovered.sizeC || '5'}</span>
+                      {:else}<span class="fallback">-</span>{/if}
+                    </Field>
                   {/if}
                 </div>
               {:else}
@@ -1369,6 +1397,24 @@
                   {:else}<span class="fallback">-</span>{/if}
                 </Field>
                 {#if !sphereColumn}
+                  <Field small name="Disparity" icon="column-curve">
+                    {#if columnIsClicked && $clickedKey != null}<DecimalInputInherit
+                        small
+                        divisor={100}
+                        bind:value={columnIsClicked.curvature.columnDisparity}
+                        on:change={updateProto}
+                        inherit={nthCurvature($protoConfig, $clickedKey, 'columnDisparity', 'cluster')}
+                      />
+                    {:else if $hoveredKey != null && columnIsHovered}<span
+                        class="fallback"
+                        class:inherit={typeof columnIsHovered.curvature.columnDisparity == 'undefined'}
+                      >
+                        {nthCurvature($protoConfig, $hoveredKey, 'columnDisparity', 'column')}
+                      </span>
+                    {:else}<span class="fallback">-</span>{/if}
+                  </Field>
+                {/if}
+                {#if !sphereColumn}
                   <Field small name="Arc" icon="bulge">
                     {#if columnIsClicked && $clickedKey != null}<DecimalInputInherit
                         small
@@ -1515,6 +1561,24 @@
                     </span>
                   {:else}<span class="fallback">-</span>{/if}
                 </Field>
+                {#if !sphereCluster}
+                  <Field small name="Row Dispty">
+                    {#if clusterIsClicked && $clickedKey != null}<DecimalInputInherit
+                        small
+                        divisor={100}
+                        bind:value={clusterIsClicked.curvature.rowDisparity}
+                        on:change={updateProto}
+                        inherit={nthCurvature($protoConfig, $clickedKey, 'rowDisparity', 'kb')}
+                      />
+                    {:else if $hoveredKey != null && clusterIsHovered}<span
+                        class="fallback"
+                        class:inherit={typeof clusterIsHovered.curvature.rowDisparity == 'undefined'}
+                      >
+                        {nthCurvature($protoConfig, $hoveredKey, 'rowDisparity', 'cluster')}
+                      </span>
+                    {:else}<span class="fallback">-</span>{/if}
+                  </Field>
+                {/if}
                 <Field small name="Col Curve" icon="column-curve">
                   {#if clusterIsClicked && $clickedKey != null}<AngleInputInherit
                       small
@@ -1530,6 +1594,24 @@
                     </span>
                   {:else}<span class="fallback">-</span>{/if}
                 </Field>
+                {#if !sphereCluster}
+                  <Field small name="Col Dispty">
+                    {#if clusterIsClicked && $clickedKey != null}<DecimalInputInherit
+                        small
+                        divisor={100}
+                        bind:value={clusterIsClicked.curvature.columnDisparity}
+                        on:change={updateProto}
+                        inherit={nthCurvature($protoConfig, $clickedKey, 'columnDisparity', 'kb')}
+                      />
+                    {:else if $hoveredKey != null && clusterIsHovered}<span
+                        class="fallback"
+                        class:inherit={typeof clusterIsHovered.curvature.columnDisparity == 'undefined'}
+                      >
+                        {nthCurvature($protoConfig, $hoveredKey, 'columnDisparity', 'cluster')}
+                      </span>
+                    {:else}<span class="fallback">-</span>{/if}
+                  </Field>
+                {/if}
                 <Field small name="Arc" icon="bulge">
                   {#if clusterIsClicked && $clickedKey != null}<DecimalInputInherit
                       small
@@ -1672,7 +1754,7 @@
           flip={kbd == 'left'}
           {pressedLetter}
           translation={zPos}
-          reachability={kbd != 'left' ? reachabilityArr : undefined}
+          reachability={reachabilityArr[kbd]}
           side={kbd}
         />
         {#if flags.intersection}
@@ -1727,33 +1809,32 @@
       }}
     />
   {/each}
-  {@const bestC = center.unibody || center.right || center.left || [0, 0, 0]}
-  <T.Group position={[-bestC[0], -bestC[1], -bestC[2]]}>
-    {#if conf && flags.hand && showHand && jointsJSON && theHand}
-      <T.Group
-        position={$view == 'left' ? leftHandPosition : rightHandPosition}
-        rotation={$view == 'left' ? leftHandRotation : rightHandRotation}
-        scale={[1, flip ? -1 : 1, 1]}
-        let:ref={handRef}
-      >
-        <HandModel reverse={!flip} hand={theHand} />
-        <TTransformControls
-          object={handRef}
-          scale={0.9}
-          transformation={rightHandMatrix}
-          on:objectChange={() => {
-            handRef.updateMatrix()
-            updateHandMatrix(handRef.matrix)
-          }}
-          on:mouseUp={() => {
-            handRef.updateMatrix()
-            updateWristRest(handRef.matrix)
-          }}
-        />
-      </T.Group>
-      <!-- <AxesHelper size={100} matrix={debug} /> -->
-    {/if}
-  </T.Group>
+  {#if flags.hand && showHand && jointsJSON}
+    {#each handSides as side (side)}
+      {@const cent = handCenter(side, center, geometry)}
+      {@const hand = hands[side]}
+      {#if cent && hand}
+        <T.Group position={[-cent[0], -cent[1], -cent[2]]}>
+          <T.Group position={handPosition[side]} rotation={handRotation[side]} let:ref={handRef}>
+            <HandModel reverse={side == 'right'} {hand} />
+            {#if handControlsReady}
+              <TTransformControls
+                object={handRef}
+                on:objectChange={() => {
+                  handRef.updateMatrix()
+                  updateHandMatrix(handRef.matrix, side)
+                }}
+                on:mouseUp={() => {
+                  handRef.updateMatrix()
+                  updateWristRest(handRef.matrix, side)
+                }}
+              />
+            {/if}
+          </T.Group>
+        </T.Group>
+      {/if}
+    {/each}
+  {/if}
   {#if clickedConfigSide != null}
     {@const clickedC = center[clickedConfigSide] || [0, 0, 0]}
     <T.Group position={[-clickedC[0], -clickedC[1], -clickedC[2]]}>

@@ -134,6 +134,7 @@ export interface SpecificCuttleform<S> {
     art?: 'cosmos' | 'circle'
     footIndices: number[]
     footDiameter: number
+    footHeight: number
   }
   shell: S
 }

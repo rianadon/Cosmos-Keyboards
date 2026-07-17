@@ -1,7 +1,7 @@
 <script lang="ts">
   // @ts-nocheck Unused file.
 
-  import { SolvedHand, type Hand, type Joints, CONNECTIONS, type PoseHand, makeHand } from './hand'
+  import { SolvedHand, type Hand, type Joints, CONNECTIONS, type PoseHand, makeHand } from '$lib/hand'
   import { Vector3, type Vector3Tuple, Matrix4 } from 'three'
   import { cameraToMarkerPoint } from './reconstruction'
   import BigHandCanvas from './BigHandCanvasNew.svelte'

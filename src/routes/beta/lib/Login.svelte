@@ -209,6 +209,11 @@
                 Make sure you've selected one of the tiers that mention Cosmos.
               </p>
               <p class="mt-1 text-sm opacity-70 max-w-[30rem] mx-auto">
+                If you've just sponsored me, it can take a few minutes to an hour for GitHub to update
+                its sponsorship information, especially if your card or bank is from outside the United
+                States.
+              </p>
+              <p class="mt-1 text-sm opacity-70 max-w-[30rem] mx-auto">
                 If you have sponsored me on GitHub and this message is in error, please <a
                   class="link"
                   href="mailto:ryan@ryanis.cool">get in touch</a

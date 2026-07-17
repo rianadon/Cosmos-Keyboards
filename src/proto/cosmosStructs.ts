@@ -267,7 +267,7 @@ const safeCaps = (s: string) => capitalize(s).replace(/\W/g, '_')
 
 for (const [part, info] of objEntries(PART_INFO)) {
   if (part == 'blank') { // Special interface for blank keys
-    code += "export interface CuttleBlankKey extends CuttleBaseKey { type: 'blank', keycap?: IKeycap, size: { width: number; height: number } }\n"
+    code += "export interface CuttleBlankKey extends CuttleBaseKey { type: 'blank', keycap?: IKeycap, size: { width: number; height: number; depth?: number } }\n"
     continue
   }
   if ('variants' in info) {

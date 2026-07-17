@@ -1,6 +1,6 @@
+import { type Finger, type Joints } from '$lib/hand'
 import { objKeys } from '$lib/worker/util'
 import { Euler, Matrix4, Vector3 } from 'three'
-import { type Finger, type Joints } from './hand'
 
 /**
  * Optimize the hand position! (IK!)
@@ -65,8 +65,11 @@ function sqDistanceGrad(e: Euler, x: Vector3, y: Vector3, length: number, Vt: Ma
   const jointVector = new Vector3().copy(y).applyMatrix4(
     new Matrix4().multiplyMatrices(Vt, new Matrix4().makeRotationFromEuler(e).invert()),
   )
-  const jointAngle = Math.atan2(jointVector.y, jointVector.x)
-  // console.log(jointAngle * 180/Math.PI, jointVector)
+  // Normalize to a unit direction so the joint-limit penalty below is a shape function of
+  // the joint angle rather than the target distance. jointVector is y (≈100mm) rotated into
+  // the joint frame, so its raw magnitude makes the 0.001*y**3 branch blow up (y**3 ≈ 5000+)
+  // and destabilize the optimizer.
+  jointVector.normalize()
 
   const ja = new Vector3().copy(y).applyMatrix4(new Matrix4().multiplyMatrices(Vt, da))
   const jb = new Vector3().copy(y).applyMatrix4(new Matrix4().multiplyMatrices(Vt, db))
@@ -118,16 +121,15 @@ function refineIter(m: Matrix4, joints: Joints, targets: Record<Finger, Vector3>
       new Matrix4().makeTranslation(joints[f][0].length * scale, 0, 0),
     ).multiply(joints[f][1].Vinv).invert()
 
-    const jointVector = new Vector3().copy(y).applyMatrix4(
-      new Matrix4().multiplyMatrices(Vt, new Matrix4().makeRotationFromEuler(e).invert()),
-    )
-    if (f === 'indexFinger') {
-      debug = new Matrix4().setPosition(jointVector.applyMatrix4(new Matrix4().copy(Vt).invert()))
-    }
+    // const jointVector = new Vector3().copy(y).applyMatrix4(
+    // new Matrix4().multiplyMatrices(Vt, new Matrix4().makeRotationFromEuler(e).invert()),
+    // )
+    // if (f === 'indexFinger') {
+    // debug = new Matrix4().setPosition(jointVector.applyMatrix4(new Matrix4().copy(Vt).invert()))
+    // }
 
     // The gradient descent will bounce around the 0 error point (when the arm is exactly outstretched)
     // Make the target length sligtly smaller so there will always be an ik solution
-    // console.log(f)
     const grad = sqDistanceGrad(e, x, y, length * .99, Vt)
     totalGrad.x += grad.a
     totalGrad.y += grad.b

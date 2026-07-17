@@ -66,6 +66,7 @@ export type CosmosKey = {
   rotation: bigint | undefined
   sizeA?: number
   sizeB?: number
+  sizeC?: number
   marginX?: number
   marginY?: number
 }
@@ -163,7 +164,7 @@ function toCosmosClusters(keys: CuttleKey[], side: ClusterSide, globalProfile: K
   const clusters: CosmosCluster[] = []
 
   for (const [name, trsfGrp] of collectByClusterName(keys).entries()) {
-    const clusterCurvature = dominantCurvature(trsfGrp)
+    const clusterCurvature = dominantCurvature(trsfGrp, side)
     const clusterProfile = dominantProfile(trsfGrp) ?? globalProfile
     const clusterPartType = decodePartType(dominantPartType(trsfGrp) ?? encodePartType(globalPartType))
     const clusterType = decodeClusterFlags(dominantClusterType(trsfGrp, side))
@@ -184,7 +185,7 @@ function toCosmosClusters(keys: CuttleKey[], side: ClusterSide, globalProfile: K
     }
     clusters.push(cluster)
     for (const [col, colGrp] of collectByColumn(trsfGrp)) {
-      const columnCurvature = dominantCurvature(colGrp)
+      const columnCurvature = dominantCurvature(colGrp, side)
       const columnProfile = dominantProfile(colGrp) ?? clusterProfile
       const columnPartType = decodePartType(dominantPartType(colGrp) ?? encodePartType(clusterPartType))
       const columnStagger = dominantStagger(colGrp)
@@ -193,7 +194,7 @@ function toCosmosClusters(keys: CuttleKey[], side: ClusterSide, globalProfile: K
       let columnTrsf = new Trsf().fromMatrix(columnStagger.split(',').map(Number))
       if (columnStagger.startsWith('!')) {
         columnTrsf = new Trsf().fromMatrix(columnStagger.slice(1).split(',').map(Number))
-        columnTrsf = rotateColumnStagger(columnTrsf, col, columnCurvature)
+        columnTrsf = rotateColumnStagger(columnTrsf, col, columnCurvature, side)
       }
       const column: CosmosCluster = {
         ...columnType,
@@ -222,9 +223,9 @@ function toCosmosClusters(keys: CuttleKey[], side: ClusterSide, globalProfile: K
         // const keyType = decodePartType(encodePartType(colKey))
         const keycap = 'keycap' in colKey ? colKey.keycap : undefined
 
-        let size = { sizeA: undefined as number | undefined, sizeB: undefined as number | undefined }
-        if (colKey.type == 'blank') size = { sizeA: colKey.size.width, sizeB: colKey.size.height }
-        if (ROUND_PARTS.includes(colKey.type)) size = { sizeA: undefined, sizeB: (colKey as any).size.sides }
+        let size = { sizeA: undefined as number | undefined, sizeB: undefined as number | undefined, sizeC: undefined as number | undefined }
+        if (colKey.type == 'blank') size = { sizeA: colKey.size.width, sizeB: colKey.size.height, sizeC: colKey.size.depth }
+        if (ROUND_PARTS.includes(colKey.type)) size = { sizeA: undefined, sizeB: (colKey as any).size.sides, sizeC: undefined }
 
         let margin = { x: undefined as number | undefined, y: undefined as number | undefined }
         if (colKey.type != 'blank') margin = { x: colKey.marginX, y: colKey.marginY }
@@ -244,6 +245,7 @@ function toCosmosClusters(keys: CuttleKey[], side: ClusterSide, globalProfile: K
           row: keyRow,
           sizeA: size.sizeA,
           sizeB: size.sizeB,
+          sizeC: size.sizeC,
           marginX: margin.x,
           marginY: margin.y,
           ...toPosRotation(trsf.Matrix4()),
@@ -332,7 +334,7 @@ type ToCosmosConfigOpts = {
 }
 
 export function toCosmosConfig(conf: Cuttleform, side: KeyboardSide, overrideWristRest: boolean, flipLeft = false, opts?: ToCosmosConfigOpts): CosmosKeyboard {
-  const globalCurvature = opts?.globalCurvature ?? dominantCurvature(conf.keys)
+  const globalCurvature = opts?.globalCurvature ?? dominantCurvature(conf.keys, side == 'left' ? 'left' : 'right')
   const globalProfile = opts?.globalProfile ?? dominantProfile(conf.keys) ?? 'xda'
   const globalPartType = opts?.globalPartType ?? decodePartType(dominantPartType(conf.keys) ?? encodePartType({ type: 'mx-better', aspect: 1 }))
   const wrOrigin = new ETrsf(conf.wristRestOrigin.history).evaluate({ flat: false }, new Trsf())
@@ -413,11 +415,13 @@ function filterUnibodySide(keys: CuttleKey[], side: 'left' | 'right') {
   return sideKeys.filter((k, i) => side == 'left' ? (xs[i] < center) : (xs[i] > center))
 }
 
-function dominantCurvature(keys: CuttleKey[]): CosmosKeyboard['curvature'] {
+function dominantCurvature(keys: CuttleKey[], side: ClusterSide = 'right'): CosmosKeyboard['curvature'] {
   const horizontalSpacings = new TallyMap<number>()
   const verticalSpacings = new TallyMap<number>()
   const rowCurvatures = new TallyMap<number>()
   const columnCurvatures = new TallyMap<number>()
+  const rowDisparities = new TallyMap<number>()
+  const columnDisparities = new TallyMap<number>()
   const arcs = new TallyMap<number>()
 
   for (const key of keys) {
@@ -427,7 +431,9 @@ function dominantCurvature(keys: CuttleKey[]): CosmosKeyboard['curvature'] {
         horizontalSpacings.incr(opts.spacingOfColumns)
         verticalSpacings.incr(opts.spacingOfRows)
         rowCurvatures.incr(opts.curvatureOfRow)
+        rowDisparities.incr((opts.curvatureOfRowDisparity || 0) * (side == 'left' ? -1 : 1))
         columnCurvatures.incr(opts.curvatureOfColumn)
+        columnDisparities.incr(opts.curvatureOfColumnDisparity || 0)
         arcs.incr(opts.arc || 0)
       } else if (h.name == 'placeOnSphere') {
         const opts: any = 'merged' in h.args[0] ? h.args[0].merged : h.args[0]
@@ -437,11 +443,13 @@ function dominantCurvature(keys: CuttleKey[]): CosmosKeyboard['curvature'] {
         const opts: any = 'merged' in h.args[0] ? h.args[0].merged : h.args[0]
         verticalSpacings.incr(opts.spacingOfRows)
         columnCurvatures.incr(opts.curvatureOfColumn)
+        columnDisparities.incr(opts.curvatureOfColumnDisparity || 0)
         arcs.incr(opts.arc || 0)
       } else if (h.name == 'placeColumn') {
         const opts: any = 'merged' in h.args[0] ? h.args[0].merged : h.args[0]
         horizontalSpacings.incr(opts.spacingOfColumns)
         rowCurvatures.incr(opts.curvatureOfRow)
+        rowDisparities.incr((opts.curvatureOfRowDisparity || 0) * (side == 'left' ? -1 : 1))
       }
     }
   }
@@ -451,6 +459,8 @@ function dominantCurvature(keys: CuttleKey[]): CosmosKeyboard['curvature'] {
     curvatureA: rowCurvatures.max() ?? 0,
     curvatureB: columnCurvatures.max() ?? 0,
     arc: arcs.max() ?? 0,
+    rowDisparity: rowDisparities.max() ?? 0,
+    columnDisparity: columnDisparities.max() ?? 0,
   }
 }
 
@@ -543,7 +553,7 @@ export function toCuttleKey(c: CosmosKeyboard, cluster: CosmosCluster, col: Cosm
   } else {
     cuttleKey.aspect = 1
   }
-  if (cuttleKey.type == 'blank') cuttleKey.size = { width: key.sizeA!, height: key.sizeB! }
+  if (cuttleKey.type == 'blank') cuttleKey.size = { width: key.sizeA!, height: key.sizeB!, depth: key.sizeC }
   else {
     cuttleKey.marginX = key.marginX
     cuttleKey.marginY = key.marginY
@@ -593,22 +603,25 @@ export function cosmosKeyPosition(key: CosmosKey, column: CosmosCluster, cluster
   let placeOnColumn = true
   if (typeof row !== 'undefined' && typeof col !== 'undefined') {
     // console.log(JSON.stringify(clusterTrsf), JSON.stringify(columnTrsf))
-    const curvature = { ...trimUndefined(keeb.curvature), ...trimUndefined(cluster.curvature), ...trimUndefined(column.curvature) } as Required<Curvature>
+    const curvature = { ...trimUndefined(keeb.curvature), ...trimUndefined(cluster.curvature), ...trimUndefined(column.curvature) }
 
     if (column.type == 'matrix') {
+      const rowDisparity = curvature.rowDisparity ? curvature.rowDisparity * (cluster.side == 'left' ? -1 : 1) : undefined
       if (columnTrsf) {
         placeOnColumn = false
         trsf.placeRow({
           row: row,
           spacingOfRows: curvature.verticalSpacing,
-          curvatureOfColumn: curvature.curvatureB,
+          curvatureOfColumn: curvature.curvatureB!,
+          curvatureOfColumnDisparity: curvature.columnDisparity,
           arc: curvature.arc,
           columnForArc: col,
         }).transformBy(columnTrsf)
           .placeColumn({
             column: col,
             spacingOfColumns: curvature.horizontalSpacing,
-            curvatureOfRow: curvature.curvatureA,
+            curvatureOfRow: curvature.curvatureA!,
+            curvatureOfRowDisparity: rowDisparity,
           })
       } else {
         trsf.placeOnMatrix({
@@ -616,9 +629,11 @@ export function cosmosKeyPosition(key: CosmosKey, column: CosmosCluster, cluster
           row: row,
           spacingOfColumns: curvature.horizontalSpacing,
           spacingOfRows: curvature.verticalSpacing,
-          curvatureOfRow: curvature.curvatureA,
-          curvatureOfColumn: curvature.curvatureB,
+          curvatureOfColumn: curvature.curvatureB!,
           arc: curvature.arc,
+          curvatureOfColumnDisparity: curvature.columnDisparity,
+          curvatureOfRow: curvature.curvatureA!,
+          curvatureOfRowDisparity: rowDisparity,
         })
       }
     } else if (column.type == 'sphere') {
@@ -711,12 +726,14 @@ function dominantStagger(keys: CuttleKey[]) {
  * In newer versions, column stagger is applied after the row curvature is applied (i.e. column is rotated into place)
  * This function accounts for that difference (i.e. takes a world frame stagger and rotates it into column frame)
  */
-function rotateColumnStagger(stagger: Trsf, col: number, curvature: Curvature) {
+function rotateColumnStagger(stagger: Trsf, col: number, curvature: Curvature, side: ClusterSide) {
   if (!col) return stagger
+  const rowDisparity = curvature.rowDisparity ? curvature.rowDisparity * (side == 'left' ? -1 : 1) : undefined
   const columnRotation = new ETrsf().placeColumn({
     column: col,
     spacingOfColumns: curvature.horizontalSpacing!,
     curvatureOfRow: curvature.curvatureA!,
+    curvatureOfRowDisparity: rowDisparity,
   }).evaluate({ flat: false })
 
   return stagger.premultiplied(columnRotation.inverted()).multiply(columnRotation)

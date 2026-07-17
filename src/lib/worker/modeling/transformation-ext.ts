@@ -24,6 +24,12 @@ import Trsf, { Vector } from './transformation'
 
 type Point = [number, number, number]
 
+// We use this to scale the disparity values. The math isn't anchored to any real world constants
+// so I choose to make the disparity of 1.62 correspond to a ratio between top & bottom curvatures
+// equal to the golden ratio (1 + sqrt(5))/2 which is about 1.62.
+// 1.62 is rounded to the hundredths because that's the max that the UI allows.
+const DISPARITY_MAGIC_NUMBER = 5.95545213 // 1.62 / (sqrt((1 + sqrt(5))/2) - 1)
+
 function pointToString(p: number[]) {
   return '[' + p.join(', ') + ']'
 }
@@ -36,12 +42,15 @@ export interface MatrixOptions {
   spacingOfColumns: number
   spacingOfRows: number
   arc?: number
+  curvatureOfColumnDisparity?: number
+  curvatureOfRowDisparity?: number
 }
 
 export interface ColumnOptions {
   column: number
   curvatureOfRow: number
   spacingOfColumns: number
+  curvatureOfRowDisparity?: number
 }
 
 export interface RowOptions {
@@ -50,6 +59,7 @@ export interface RowOptions {
   curvatureOfColumn: number
   arc?: number
   columnForArc?: number
+  curvatureOfColumnDisparity?: number
 }
 
 export interface SphereOptions {
@@ -253,10 +263,10 @@ function impl(trsf: Trsf, context: EvaluationContext, operation: Operation): Trs
       return rotateTowardsImpl(trsf, operation.args[0], operation.args[1])
     case 'placeColumn':
       const colArgs = 'merged' in operation.args[0] ? operation.args[0].merged : operation.args[0]
-      return placeOnMatrixImpl(trsf, { ...colArgs, row: 0, curvatureOfColumn: 0, spacingOfRows: 0 }, context)
+      return placeOnMatrixImpl(trsf, { ...colArgs, row: 0, curvatureOfColumn: 0, curvatureOfColumnDisparity: 0, spacingOfRows: 0 }, context)
     case 'placeRow':
       const rowArgs = 'merged' in operation.args[0] ? operation.args[0].merged : operation.args[0]
-      return placeOnMatrixImpl(trsf, { ...rowArgs, column: rowArgs.columnForArc ?? 0, curvatureOfRow: 0, spacingOfColumns: 0 }, context)
+      return placeOnMatrixImpl(trsf, { ...rowArgs, column: rowArgs.columnForArc ?? 0, curvatureOfRow: 0, curvatureOfRowDisparity: 0, spacingOfColumns: 0 }, context)
   }
 }
 
@@ -287,15 +297,24 @@ export function keyBase(c: Cuttleform) {
 
 const capTopHeight = (c: EvaluationContext) => switchInfo(c.key?.type).height
 
+function applyDisparity(curvature: number, disparity: number | undefined, beforeApex: boolean) {
+  if (!disparity) return curvature
+  const scaledDisp = disparity / DISPARITY_MAGIC_NUMBER
+  return beforeApex
+    ? (disparity > 0 ? curvature * (1 + scaledDisp) : curvature / (1 - scaledDisp))
+    : (disparity > 0 ? curvature / (1 + scaledDisp) : curvature * (1 - scaledDisp))
+}
+
 /** Rotates all keys of a column */
 function rotateRow(opts: MatrixOptions, c: EvaluationContext, t: Trsf) {
   // @ts-ignore
   const spacing = opts.spacingOfRows ?? opts.spacingInColumn
-  const rowRadius = spacing / 2 / sin(opts.curvatureOfColumn / 2) + capTopHeight(c)
-  if (opts.curvatureOfColumn == 0) {
+  const curvature = applyDisparity(opts.curvatureOfColumn, opts.curvatureOfColumnDisparity, opts.row > 0)
+  const rowRadius = spacing / 2 / sin(curvature / 2) + capTopHeight(c)
+  if (curvature == 0) {
     t.translate(0, -opts.row * spacing, 0)
   } else {
-    t.rotate(-opts.curvatureOfColumn * (opts.row), [0, 0, rowRadius], X)
+    t.rotate(-curvature * (opts.row), [0, 0, rowRadius], X)
   }
 }
 
@@ -303,11 +322,12 @@ function rotateRow(opts: MatrixOptions, c: EvaluationContext, t: Trsf) {
 function rotateCol(opts: MatrixOptions, c: EvaluationContext, t: Trsf) {
   // @ts-ignore
   const spacing = opts.spacingOfColumns ?? opts.spacingInRow
-  const columnRadius = spacing / 2 / sin(opts.curvatureOfRow / 2) + capTopHeight(c)
-  if (opts.curvatureOfRow == 0) {
+  const curvature = applyDisparity(opts.curvatureOfRow, opts.curvatureOfRowDisparity, opts.column < 0)
+  const columnRadius = spacing / 2 / sin(curvature / 2) + capTopHeight(c)
+  if (curvature == 0) {
     t.translate(opts.column * spacing, 0, 0)
   } else {
-    t.rotate(-opts.curvatureOfRow * (opts.column), [0, 0, columnRadius], Y)
+    t.rotate(-curvature * (opts.column), [0, 0, columnRadius], Y)
   }
 }
 
@@ -388,9 +408,11 @@ export function fullMirrorETrsf(e: ETrsf) {
     if (h.name == 'placeOnMatrix') {
       const args: MatrixOptions = (h.args[0] as any).merged ?? h.args[0]
       args.column = -args.column
+      if (args.curvatureOfRowDisparity) args.curvatureOfRowDisparity = -args.curvatureOfRowDisparity
     } else if (h.name == 'placeColumn') {
       const args: MatrixOptions = (h.args[0] as any).merged ?? h.args[0]
       args.column = -args.column
+      if (args.curvatureOfRowDisparity) args.curvatureOfRowDisparity = -args.curvatureOfRowDisparity
     } else if (h.name == 'placeRow') {
       const args: RowOptions = (h.args[0] as any).merged ?? h.args[0]
       if (args.columnForArc) args.columnForArc = -args.columnForArc

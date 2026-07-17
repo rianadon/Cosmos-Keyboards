@@ -9,7 +9,7 @@
   import calcStat, { INITIAL_STAT } from '../lib/stats'
   import createDetector, { type Detector } from '../lib/detector'
   import BigHand from '../lib/BigHand.svelte'
-  import { calculateJoints, makeHand, type Hand, type Joints, type PoseHand } from '../lib/hand'
+  import { calculateJoints, makeHand, type Hand, type Joints, type PoseHand } from '$lib/hand'
   import { browser } from '$app/environment'
   import { cameraToMarkerPoint } from '../lib/reconstruction'
   import { drawKeypoints } from '../lib/measurementHelpers'

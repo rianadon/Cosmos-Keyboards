@@ -219,6 +219,8 @@ export const KEYBOARD_DEFAULTS: Keyboard = {
     curvatureA: Math.round(5 * 45),
     curvatureB: Math.round(15 * 45),
     arc: Math.round(0 * 45),
+    rowDisparity: 0,
+    columnDisparity: 0,
   },
   wallShrouding: 0,
   wallThickness: 40,
@@ -265,6 +267,7 @@ const KEYBOARD_EXTRA_DEFAULTS: KeyboardExtra = {
   plateArt: 0,
   footIndices: [],
   footDiameter: 100,
+  footHeight: 25,
 }
 
 const TILT_DEFAULTS: TiltShell = {
@@ -481,6 +484,7 @@ export function decodeCosmosCluster(clusterA: Cluster): CosmosCluster {
             rotation: key.rotation,
             sizeA: typeof key.sizeA !== 'undefined' ? key.sizeA / 10 : undefined,
             sizeB: typeof key.sizeB !== 'undefined' ? key.sizeB / 10 : undefined,
+            sizeC: typeof key.sizeC !== 'undefined' ? key.sizeC / 10 : undefined,
             marginX: typeof key.marginX !== 'undefined' ? key.marginX / 10 : undefined,
             marginY: typeof key.marginY !== 'undefined' ? key.marginY / 10 : undefined,
           }
@@ -544,6 +548,7 @@ export function decodeConfigIdk(b64: string): CosmosKeyboard {
         art: decodePlateArt(keebExtra.plateArt) || undefined,
         footIndices: keebExtra.footIndices.map(i => i / 10 - 1),
         footDiameter: keebExtra.footDiameter / 10,
+        footHeight: keebExtra.footHeight / 10,
       }
       : undefined,
     layout: decodeLayout(keeb.layoutId),
@@ -609,6 +614,8 @@ function encodeCurvature(c: Curvature): Curvature | undefined {
     curvatureA: typeof c.curvatureA !== 'undefined' ? Math.round(c.curvatureA * 45) : undefined,
     curvatureB: typeof c.curvatureB !== 'undefined' ? Math.round(c.curvatureB * 45) : undefined,
     arc: typeof c.arc !== 'undefined' ? Math.round(c.arc * 45) : undefined,
+    rowDisparity: typeof c.rowDisparity !== 'undefined' ? Math.round(c.rowDisparity * 100) : undefined,
+    columnDisparity: typeof c.columnDisparity !== 'undefined' ? Math.round(c.columnDisparity * 100) : undefined,
   }
   for (const elem of Object.keys(curv) as (keyof Curvature)[]) {
     if (typeof curv[elem] == 'undefined') delete curv[elem]
@@ -622,6 +629,8 @@ function decodeCurvature(c: Curvature): Curvature {
     curvatureA: typeof c.curvatureA !== 'undefined' ? c.curvatureA / 45 : undefined,
     curvatureB: typeof c.curvatureB !== 'undefined' ? c.curvatureB / 45 : undefined,
     arc: typeof c.arc !== 'undefined' ? c.arc / 45 : undefined,
+    rowDisparity: typeof c.rowDisparity !== 'undefined' ? c.rowDisparity / 100 : undefined,
+    columnDisparity: typeof c.columnDisparity !== 'undefined' ? c.columnDisparity / 100 : undefined,
   }
   for (const elem of Object.keys(curv) as (keyof Curvature)[]) {
     if (typeof curv[elem] == 'undefined') delete curv[elem]
@@ -676,6 +685,7 @@ export function encodeCosmosCluster(clusterA: CosmosCluster): Cluster {
         position: key.position,
         sizeA: typeof key.sizeA != 'undefined' ? Math.round(key.sizeA * 10) : undefined,
         sizeB: typeof key.sizeB != 'undefined' ? Math.round(key.sizeB * 10) : undefined,
+        sizeC: typeof key.sizeC != 'undefined' ? Math.round(key.sizeC * 10) : undefined,
         marginX: typeof key.marginX != 'undefined' ? Math.round(key.marginX * 10) : undefined,
         marginY: typeof key.marginY != 'undefined' ? Math.round(key.marginY * 10) : undefined,
         letter: key.profile.letter && !shouldLegendGoInProfile(key.profile.letter) ? key.profile.letter : undefined,
@@ -748,6 +758,7 @@ export function encodeCosmosConfig(conf: CosmosKeyboard): Keyboard {
       plateArt: encodePlateArt(conf.plate?.art || null),
       footIndices: conf.plate?.footIndices?.map(i => Math.round(i * 10) + 10) || [],
       footDiameter: conf.plate?.footDiameter ? Math.round(conf.plate.footDiameter * 10) : undefined,
+      footHeight: conf.plate?.footHeight ? Math.round(conf.plate.footHeight * 10) : undefined,
     },
   }
 }

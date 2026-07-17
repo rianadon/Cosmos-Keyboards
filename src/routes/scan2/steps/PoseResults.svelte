@@ -1,6 +1,6 @@
 <script lang="ts">
   import Step from '../lib/Step.svelte'
-  import { calculateJoints, type Joints, SolvedHand } from '../lib/hand'
+  import { calculateJoints, type Joints, SolvedHand } from '$lib/hand'
   import { stats, poseStats } from '../store'
   import { statMedians, type Statistics } from '../lib/stats'
   import { Matrix4 } from 'three'
