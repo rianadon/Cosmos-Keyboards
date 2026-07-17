@@ -649,6 +649,61 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     description:
       'Move your mouse from your keyboard! Integrating a trackball to your keyboard can help you switch between typing and navigating faster and with less hand movement.\nI personally recommend using ball bearings with trackballs, as they are the most consistent. Roller Bearings and BTUs are more spinny but also more noisy.',
   },
+  'trackball-splitball': {
+    partName: 'Skree Split-Ball (34mm Trackball)',
+    bomName: () => '34mm Trackball',
+    category: 'Trackballs & Trackpads',
+    stepFile: '/src/assets/key-trackball-splitball.step',
+    socketSize: () => ({
+      radius: 22.75,
+      height: 4,
+      sides: 20,
+    }),
+    // box = full assembly below the socket (cup + sensor mount)
+    partBottom: () => [box(45.5, 45.5, 23.3)],
+    variants: {
+      sensor: ['ZMK', 'QMK'],
+    },
+    encodeVariant: makeEncodeVariant('trackball-splitball', { sensor: 1 }),
+    decodeVariant: makeDecodeVariant('trackball-splitball', { sensor: 1 }),
+    extraBomItems(v: Variant) {
+      const cupUrl = v.sensor == 'ZMK'
+        ? 'https://skree.us/products/split-ball-zmk-trackball-cup'
+        : 'https://skree.us/products/split-ball-qmk-trackball-cup'
+      const items: Record<string, BomItem> = {
+        'trackball-cup': {
+          item: 'Split-Ball Trackball Cup',
+          icon: 'cup',
+          count: 1,
+          info: `<a class="underline" href="${cupUrl}">Available from Skree</a> with optional ball retention bumps, or resin print it yourself`,
+        },
+      }
+      if (v.sensor == 'ZMK') {
+        items['trackball-sensor'] = {
+          item: 'PMW3610 Sensor',
+          icon: 'pcb',
+          count: 1,
+          info: 'Supports <a class="underline" href="https://skree.us/products/zmk-compatible-pmw3610-board">these PCBs</a> from Skree',
+        }
+      } else {
+        items['trackball-sensor'] = {
+          item: 'PMW3389 Sensor',
+          icon: 'pcb',
+          count: 1,
+          info:
+            'Supports <a class="underline" href="https://skree.us/products/qmk-compatible-trackball-mouse-sensor-pmw3389">these PCBs</a> from Skree, available in VIK-compatible and JST-SH versions',
+        }
+      }
+      return items
+    },
+    numPins(v: Variant) {
+      if (v.sensor == 'ZMK') return { spi: 'output-only', gpio: 1 } // SPI + Motion trigger
+      return { spi: 'bidirectional' }
+    },
+    icon: 'trackball',
+    description:
+      'Move your mouse from your keyboard! Integrating a trackball to your keyboard can help you switch between typing and navigating faster and with less hand movement.\nWith this 34mm trackball mount, you print just the top ring of the holder, and TheBigSkree sells a <a href="https://skree.us/products/split-ball-zmk-trackball-cup">resin printed cup</a> (with optional ball retention bumps) that attaches on. The cup and ball are previewed but excluded from the exported model. This is useful if you\'re having tolerance issues printing full trackball sockets.',
+  },
   'trackpad-azoteq': {
     partName: 'Azoteq Trackpad',
     bomName: (v: Variant) => `Azoteq ${v.size || 'TPS65'} Trackpad`,
