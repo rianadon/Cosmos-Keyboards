@@ -650,7 +650,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
       'Move your mouse from your keyboard! Integrating a trackball to your keyboard can help you switch between typing and navigating faster and with less hand movement.\nI personally recommend using ball bearings with trackballs, as they are the most consistent. Roller Bearings and BTUs are more spinny but also more noisy.',
   },
   'trackball-splitball': {
-    partName: 'Split-Ball 34mm Trackball',
+    partName: 'Skree Split-Ball (34mm Trackball)',
     bomName: () => '34mm Trackball',
     category: 'Trackballs & Trackpads',
     stepFile: '/src/assets/key-trackball-splitball.step',
@@ -702,7 +702,7 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     },
     icon: 'trackball',
     description:
-      'A two-piece 34mm trackball mount by TheBigSkree. The ring merges with your keyboard, while the ball rides in a separate resin-printed <a href="https://skree.us/products/split-ball-zmk-trackball-cup">cup</a> (with optional ball retention bumps). The cup and ball are previewed but excluded from the exported model.',
+      'Move your mouse from your keyboard! Integrating a trackball to your keyboard can help you switch between typing and navigating faster and with less hand movement.\nWith this 34mm trackball mount, you print just the top ring of the holder, and TheBigSkree sells a <a href="https://skree.us/products/split-ball-zmk-trackball-cup">resin printed cup</a> (with optional ball retention bumps) that attaches on. The cup and ball are previewed but excluded from the exported model. This is useful if you\'re having tolerance issues printing full trackball sockets.',
   },
   'trackpad-azoteq': {
     partName: 'Azoteq Trackpad',
