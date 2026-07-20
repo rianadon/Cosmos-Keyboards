@@ -7,7 +7,7 @@ import { fileURLToPath } from 'url'
 const dev = process.argv.includes('dev')
 const proDir = fileURLToPath(new URL('./src/lib/worker/pro', import.meta.url))
 const proPatchDir = fileURLToPath(new URL('./src/lib/worker/pro-patch', import.meta.url))
-const hasPro = existsSync(proDir)
+const hasPro = existsSync(fileURLToPath(new URL('./src/lib/worker/pro/index.ts', import.meta.url)))
 /** @type {import('@sveltejs/kit').Config}*/
 const config = {
   // Consult https://kit.svelte.dev/docs/integrations#preprocessors
