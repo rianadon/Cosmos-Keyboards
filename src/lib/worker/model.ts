@@ -241,17 +241,19 @@ export function webSolid(c: Cuttleform, geo: Geometry) {
   // Add faces for removed triangles
   // If one of the current triangles shares an edge with a removed
   // triangle, loft the corresponding top & bottom edges to create a face.
-  const removedTriMap = createTriangleMap(removedTriangles)
-  for (let [a, b, c] of triangles) {
-    const loftFace = (x: number, y: number) =>
-      surface.addPatch(loftCurves(
-        lineToCurve(topReinf.allPts[x], topReinf.allPts[y]),
-        lineToCurve(botReinf.allPts[x], botReinf.allPts[y]),
-      ))
-    if (removedTriMap[b] && removedTriMap[b][a]) loftFace(b, a)
-    if (removedTriMap[c] && removedTriMap[c][b]) loftFace(c, b)
-    if (removedTriMap[a] && removedTriMap[a][c]) loftFace(a, c)
-  }
+  // NOTE: Disabled because keywells are the only source of removed triangles.
+  // The keywell code below will already handle creating triangles for these spots.
+  // const removedTriMap = createTriangleMap(removedTriangles)
+  // for (let [a, b, c] of triangles) {
+  //   const loftFace = (x: number, y: number) =>
+  //     surface.addPatch(loftCurves(
+  //       lineToCurve(topReinf.allPts[x], topReinf.allPts[y]),
+  //       lineToCurve(botReinf.allPts[x], botReinf.allPts[y]),
+  //     ))
+  //   if (removedTriMap[b] && removedTriMap[b][a]) loftFace(b, a)
+  //   if (removedTriMap[c] && removedTriMap[c][b]) loftFace(c, b)
+  //   if (removedTriMap[a] && removedTriMap[a][c]) loftFace(a, c)
+  // }
 
   // Add extra walls
   for (const [a, b, other] of topReinf.extraWalls) {

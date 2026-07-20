@@ -1,5 +1,5 @@
 import cdt2d from 'cdt2d'
-import { draw, Face, getOC, type PlaneName } from 'replicad'
+import { draw, Face as RFace, getOC, type PlaneName } from 'replicad'
 import { BufferAttribute, ExtrudeGeometry, Shape } from 'three'
 import { bezierPatch, type Curve, evalPatch, lineToCurve, loftCurves, type Patch, patchGradient, triangleNormTrsf } from '../geometry'
 import { DefaultMap, sum } from '../util'
@@ -10,13 +10,19 @@ import { Vector } from './transformation'
 type Point = [number, number]
 type Triangle = [Trsf, Trsf, Trsf]
 type Quad = [Trsf, Trsf, Trsf, Trsf]
+export type Face = Patch | Triangle | Quad
 
 export class CompBezierSurface {
   private patches: Patch[] = []
   private triangles: Triangle[] = []
   private quads: Quad[] = []
 
-  private faces: (Patch | Triangle | Quad)[] = []
+  private faces: Face[] = []
+
+  /** Return all the faces */
+  get allFaces(): readonly Face[] {
+    return this.faces
+  }
 
   /** Combine this surface with another surface */
   extend(b: CompBezierSurface) {
@@ -246,7 +252,7 @@ export class CompBezierSurface {
 
   /** Create a Solid that can be used in opencascade from this surface. */
   toSolid(sew: boolean, nonManifold: boolean) {
-    const faces: Face[] = []
+    const faces: RFace[] = []
     this.patches.forEach(p => faces.push(bezierFace(p)))
     this.triangles.forEach(([a, b, c]) => faces.push(makeTriangle(a, b, c)))
     this.quads.forEach(([a, b, c, d]) => faces.push(makeQuad(a, b, c, d)))
@@ -255,7 +261,7 @@ export class CompBezierSurface {
 
   /** Create a Shell that can be used in opencascade from this surface. */
   toShell(sew: boolean, nonManifold: boolean) {
-    const faces: Face[] = []
+    const faces: RFace[] = []
     this.patches.forEach(p => faces.push(bezierFace(p)))
     this.triangles.forEach(([a, b, c]) => faces.push(makeTriangle(a, b, c)))
     this.quads.forEach(([a, b, c, d]) => faces.push(makeQuad(a, b, c, d)))
@@ -448,7 +454,7 @@ export function bezierFace(patch: Patch) {
   }
   const surface = new oc.Geom_BezierSurface_1(pts)
   const face = new oc.BRepBuilderAPI_MakeFace_8(new oc.Handle_Geom_Surface_2(surface), 1e-3).Face()
-  return new Face(face)
+  return new RFace(face)
 }
 
 // export class BezierSketch {
