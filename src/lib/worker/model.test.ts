@@ -3,11 +3,11 @@ import { newGeometry } from './config'
 import { fromCosmosConfig } from './config.cosmos'
 import { decodeConfigIdk } from './config.serialize'
 import type { Patch } from './geometry'
-import { webSolid } from './model'
+import { makeWalls, webSolid } from './model'
 import type { Face } from './modeling/bezier'
 import type Trsf from './modeling/transformation'
 
-const WEB_TEST_URLS = [
+const TEST_URLS = [
   'CiIKGhILEEAgAECrhbyc8DgSCSAAQKyFvJzwODgAGABAgJAXCgIYAiIKCMgBEMgBGAAgAFhAaACCAQIEAvIBAggC',
   'Ci4KJhIKEDAgE0CIno64HBILEEAgAECrhbyc8DgSCSAAQKyFvJzwODgAGABAgJAXCgIYAiIKCMgBEMgBGAAgAFhAaACCAQIEAvIBAggC',
   'Ck8KRxIWCAgQMCATKGQw9ANAgOaQHEiAgJD9AxIVCBIQQCAAQIC8uAxIgLaqofoHiAFQEgkgAECrhbyc8DgSCSAAQKyFvJzwODgAGABAgJAXCgIYAiIKCMgBEMgBGAAgAGgAggECBALyAQIIAg==',
@@ -27,7 +27,7 @@ function faceCorners(face: Face): Vec3[] {
 }
 
 /**
- * Check that the given web faces form one or more closed, watertight manifolds
+ * Check that the given mesh faces form one or more closed, watertight manifolds
  * with consistent winding.
  *
  * Returns a description of the violations found, or null if the shell is a
@@ -113,10 +113,19 @@ function findNonManifold(faces: readonly Face[]): string | null {
 }
 
 describe('Web is a consistently-wound manifold', () => {
-  test.each(WEB_TEST_URLS)('for url %s', (url) => {
+  test.each(TEST_URLS)('for url %s', (url) => {
     const config = fromCosmosConfig(decodeConfigIdk(url)).right!
     const geo = newGeometry(config)
     const web = webSolid(config, geo)
     expect(findNonManifold(web.allFaces)).toBeNull()
+  })
+})
+
+describe('Wall is a consistently-wound manifold', () => {
+  test.each(TEST_URLS)('for url %s', (url) => {
+    const config = fromCosmosConfig(decodeConfigIdk(url)).right!
+    const geo = newGeometry(config)
+    const walls = makeWalls(config, geo.allWallCriticalPoints(), geo.worldZ, geo.bottomZ)
+    expect(findNonManifold(walls.allFaces)).toBeNull()
   })
 })
