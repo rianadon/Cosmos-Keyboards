@@ -598,12 +598,13 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
     },
     variants: {
       size: ['25mm', '34mm', '40mm', '43mm', '44mm', '45mm', '46mm', '50mm', '52.5mm', '55mm', '57.15mm'], // add new variants in numerical order
-      bearings: ['Roller', 'Ball', 'BTU (7.5mm)', 'BTU (9mm)'],
+      bearings: ['Roller', 'Ball (3.175mm)', 'Ball (2.381mm)', 'BTU (7.5mm)', 'BTU (9mm)'],
       sensor: ['Joe (QMK)', 'Skree (ZMK)'],
     },
     encodeVariant: (variant: Variant) => { // add new variants to the end
+      if (variant.bearings == 'Ball') variant.bearings = 'Ball (3.175mm)'
       const size = ['34mm', '25mm', '55mm', '43mm', '46mm', '45mm', '40mm', '44mm', '50mm', '52.5mm', '57.15mm'].indexOf(variant.size)
-      const bearings = ['Roller', 'Ball', 'BTU (7.5mm)', 'BTU (9mm)'].indexOf(variant.bearings)
+      const bearings = ['Roller', 'Ball (3.175mm)', 'BTU (7.5mm)', 'BTU (9mm)', 'Ball (2.381mm)'].indexOf(variant.bearings)
       const sensor = ['Joe (QMK)', 'Skree (ZMK)'].indexOf(variant.sensor)
       return (size & 7) + (bearings << 3) + (sensor << 6) + ((size >> 3) << 8)
     },
@@ -613,12 +614,13 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
       const sensor = (variant >> 6) & 0x3
       return {
         size: ['34mm', '25mm', '55mm', '43mm', '46mm', '45mm', '40mm', '44mm', '50mm', '52.5mm', '57.15mm'][size] || '34mm',
-        bearings: ['Roller', 'Ball', 'BTU (7.5mm)', 'BTU (9mm)'][bearings] || 'Roller',
+        bearings: ['Roller', 'Ball (3.175mm)', 'BTU (7.5mm)', 'BTU (9mm)', 'Ball (2.381mm)'][bearings] || 'Roller',
         sensor: ['Joe (QMK)', 'Skree (ZMK)'][sensor] || 'Joe (QMK)',
       }
     },
     extraBomItems(v: Variant) {
       const variant = v as TrackballVariant
+      if (v.bearings == 'Ball') variant.bearings = 'Ball (3.175mm)'
       const btuInfo = 'Use <a class="underline" href="https://www.aliexpress.us/item/3256805224793948.html">these BTUs from AliExpress</a>'
       const joeInfo = 'Supports <a class="underline" href="https://www.tindie.com/products/citizenjoe/pmw3389-motion-sensor/">these PCBs</a> from Tindie'
       const skreeInfo = 'Supports <a class="underline" href="https://skree.us/products/zmk-compatible-pmw3610-board">these PCBs</a> from Skree'
@@ -626,8 +628,10 @@ export const PART_INFO: Record<CuttleKey['type'], PartInfo> = {
       if (variant.bearings == 'Roller') {
         items['trackball-dowel'] = { item: '3 x 8 mm Dowel Pin', icon: 'trackball', count: 3 }
         items['trackball-bearing'] = { item: '3 x 6 x 2.5 mm Bearing', icon: 'trackball', count: 3 }
-      } else if (variant.bearings == 'Ball') {
+      } else if (variant.bearings == 'Ball (3.175mm)') {
         items['trackball-bearing'] = { item: '1/8" diameter (3.175mm) Si3N4/Zr02 Ceramic Ball Bearing', icon: 'trackball', count: 3 }
+      } else if (variant.bearings == 'Ball (2.381mm)') {
+        items['trackball-bearing'] = { item: '3/32" diameter (2.381mm) Si3N4/Zr02 Ceramic Ball Bearing', icon: 'trackball', count: 3 }
       } else if (variant.bearings == 'BTU (7.5mm)') {
         items['trackball-bearing'] = { item: '7.5mm diameter BTU', icon: 'trackball', count: 3, info: btuInfo }
       } else if (variant.bearings == 'BTU (9mm)') {
