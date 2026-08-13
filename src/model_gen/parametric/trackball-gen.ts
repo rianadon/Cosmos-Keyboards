@@ -27,12 +27,13 @@ const DEFAULT_OPTS = {
   /** Wall thickness of the socket */
   thickness: 3,
   /** How far the sensor is from the trackball. Must be between 2.2 and 2.6 to meet pmw3360 specs */
+  /**                                           Must be 2.4 to meet pmw3389 specs                 */
   sensorDistance: 2.2,
   /** How much material to add for sensor alignment */
   sensorAlignHeight: 1,
 
   sensor: 'Joe (QMK)' as 'Joe (QMK)' | 'Bastardkb' | 'Skree (ZMK)',
-  bearings: 'Ball' as 'Roller' | 'Ball' | 'BTU (9mm)' | 'BTU (7.5mm)',
+  bearings: 'Ball (3.175mm)' as 'Roller' | 'Ball (3.175mm)' | 'Ball (2.381mm)' | 'BTU (9mm)' | 'BTU (7.5mm)',
 
   /** Angle from horizontal at which bearings are placed (~phi in polar coordinates) */
   bearingPhi: 13,
@@ -76,6 +77,22 @@ const BTU_PROPS = {
     ballDiameter: 3.5,
   },
 } satisfies Record<string, BTUProps>
+
+interface BallProps {
+  ballBearingRadius: number
+  sensorDistance: number
+}
+
+const BALL_PROPS = {
+  '3.175mm': {
+    ballBearingRadius: 1.585,
+    sensorDistance: 2.2,
+  },
+  '2.381mm': {
+    ballBearingRadius: 1.190,
+    sensorDistance: 2.4,
+  },
+} satisfies Record<string, BallProps>
 
 export type TrackballOptions = typeof DEFAULT_OPTS
 
@@ -141,7 +158,8 @@ export function trackballSocket(opt: Partial<TrackballOptions>): Solid {
   socket = cutoutPMW(socket, opts)
 
   if (opts.bearings == 'Roller') socket = addRollerBearings(socket, opts)
-  if (opts.bearings == 'Ball') socket = addBallBearings(socket, opts)
+  if (opts.bearings == 'Ball (3.175mm)') socket = addBallBearings(socket, opts, '3.175mm')
+  if (opts.bearings == 'Ball (2.381mm)') socket = addBallBearings(socket, opts, '2.381mm')
   if (opts.bearings == 'BTU (7.5mm)') socket = addBtuBearings(socket, opts, '7.5mm')
   if (opts.bearings == 'BTU (9mm)') socket = addBtuBearings(socket, opts, '9mm')
 
@@ -159,7 +177,8 @@ export function trackballPart(opt: Partial<TrackballOptions>): Solid {
   return model.translateZ(-webThickness)
 }
 
-function addBallBearings(socket: Solid, opts: TrackballOptions) {
+function addBallBearings(socket: Solid, opt: TrackballOptions, diameter: keyof typeof BALL_PROPS) {
+  const opts = { ...opt, ...BALL_PROPS[diameter] }
   const ballR = opts.ballBearingRadius
   const ballClearance = 0.2 // Space to add around the ball
   const cylinderThickness = 2 // Thickness of cylinder to add around the ball
