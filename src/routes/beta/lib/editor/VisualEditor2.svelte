@@ -24,6 +24,7 @@
   import { createEventDispatcher } from 'svelte'
   import { protoConfig, pushAlert, tempConfig } from '$lib/store'
   import { hasPro } from '@pro'
+  import { BATTERY_PROPERTIES, batteryDimensions, type BatteryPreset } from '$lib/geometry/batteries'
   import {
     BOARD_PROPERTIES,
     MICROCONTROLLER_SIZES,
@@ -189,6 +190,48 @@
     )
     $protoConfig.connectors = connectors
     $protoConfig.mirrorConnectors = mirrorConnectors
+  }
+
+  /** Value of the battery dropdown: a preset name, 'custom' for a size entered by hand, or '' for none. */
+  function batteryCellKey(battery: CosmosKeyboard['battery']) {
+    if (!battery) return ''
+    return typeof battery.cell == 'string' ? battery.cell : 'custom'
+  }
+
+  function setBatteryCell(ev: Event) {
+    const key = (ev.target as HTMLSelectElement).value
+    if (key == '') $protoConfig.battery = null
+    else if (key == 'custom') {
+      // Start from the size of the cell picked before, so switching to custom doesn't change the model.
+      const { length, width, thickness } = batteryDimensions($protoConfig.battery?.cell ?? 'lipo-502030')
+      $protoConfig.battery = {
+        mount: 'fused',
+        ...$protoConfig.battery,
+        cell: { custom: { length, width, thickness } },
+      }
+    } else {
+      $protoConfig.battery = { mount: 'fused', ...$protoConfig.battery, cell: key as BatteryPreset }
+    }
+  }
+
+  function setBatterySize(dimension: 'length' | 'width' | 'thickness', value: number) {
+    const cell = $protoConfig.battery?.cell
+    if (!cell || typeof cell == 'string') return
+    // Keep the size positive, since a zero or negative cell can't be placed.
+    cell.custom = { ...cell.custom, [dimension]: Math.max(value, 0.1) }
+    $protoConfig.battery = $protoConfig.battery
+  }
+
+  function setBatteryOffset(axis: 'x' | 'y' | 'z' | 'rotation', value: number) {
+    if (!$protoConfig.battery) return
+    $protoConfig.battery.offset = {
+      x: 0,
+      y: 0,
+      z: 0,
+      rotation: 0,
+      ...$protoConfig.battery.offset,
+      [axis]: value,
+    }
   }
 
   type McOption = { key: Exclude<MicrocontrollerName, null> | ''; label: string }
@@ -1411,6 +1454,84 @@
     >
       <Checkbox bind:value={$protoConfig.fastenMicrocontroller} />
     </Field>
+  {/if}
+  <Field
+    name="Battery"
+    icon="battery"
+    help="Add a tray for a LiPo pouch cell, placed against the inside of the case wall near the microcontroller. Pick the preset matching your cell's datasheet, or enter its size with Custom Size."
+  >
+    <Select value={batteryCellKey($protoConfig.battery)} on:change={setBatteryCell}>
+      <option value="">None</option>
+      {#each objEntries(BATTERY_PROPERTIES) as [key, cell]}
+        <option value={key}>{cell.name} ({cell.length}×{cell.width}×{cell.thickness} mm)</option>
+      {/each}
+      <option value="custom">Custom Size</option>
+    </Select>
+  </Field>
+  {#if $protoConfig.battery && typeof $protoConfig.battery.cell != 'string'}
+    <Field
+      name="Battery Size (L/W)"
+      help="Length and width of the cell, from its datasheet. The leads come out of one of the short ends."
+    >
+      <DecimalInput
+        value={$protoConfig.battery.cell.custom.length}
+        on:change={(e) => setBatterySize('length', e.detail)}
+        class="w-[5.2rem]"
+      />
+      <DecimalInput
+        value={$protoConfig.battery.cell.custom.width}
+        on:change={(e) => setBatterySize('width', e.detail)}
+        class="w-[5.2rem]"
+      />
+    </Field>
+    <Field name="Battery Thickness">
+      <DecimalInput
+        value={$protoConfig.battery.cell.custom.thickness}
+        on:change={(e) => setBatterySize('thickness', e.detail)}
+        units="mm"
+      />
+    </Field>
+  {/if}
+  {#if $protoConfig.battery}
+    <Field
+      name="Battery Tray"
+      help="Fused trays are printed as part of the case. Separate trays are printed on their own and taped or glued into the case."
+    >
+      <Select bind:value={$protoConfig.battery.mount}>
+        <option value="fused">Fused to Case</option>
+        <option value="separate">Separate Part</option>
+      </Select>
+    </Field>
+    {#if !basic}
+      <Field
+        name="Battery Offset (X/Y)"
+        help="Move the tray from its automatic position. X runs along the wall it is attached to; negative Y moves it away from the wall, into the case."
+      >
+        <DecimalInput
+          value={$protoConfig.battery.offset?.x ?? 0}
+          on:change={(e) => setBatteryOffset('x', e.detail)}
+          class="w-[5.2rem]"
+        />
+        <DecimalInput
+          value={$protoConfig.battery.offset?.y ?? 0}
+          on:change={(e) => setBatteryOffset('y', e.detail)}
+          class="w-[5.2rem]"
+        />
+      </Field>
+      <Field name="Battery Offset (Z)">
+        <DecimalInput
+          value={$protoConfig.battery.offset?.z ?? 0}
+          on:change={(e) => setBatteryOffset('z', e.detail)}
+          units="mm"
+        />
+      </Field>
+      <Field name="Battery Rotation">
+        <AngleInput
+          value={$protoConfig.battery.offset?.rotation ?? 0}
+          on:change={(e) => setBatteryOffset('rotation', e.detail)}
+        />
+      </Field>
+    {/if}
   {/if}
   <Field name="Fasten Base With Screws" icon="screw">
     <Checkbox value={$protoConfig.screwIndices.length > 0} on:change={setScrewsEnabled} />

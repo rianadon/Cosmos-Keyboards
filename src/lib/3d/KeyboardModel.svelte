@@ -3,6 +3,7 @@
   import type { Geometry, KeyboardSide } from '$lib/worker/config'
   import GroupMatrix from './GroupMatrix.svelte'
   import Microcontroller from './Microcontroller.svelte'
+  import Battery from './Battery.svelte'
   import KMesh from '$lib/3d/KeyboardMeshBetter.svelte'
   import type { KeyboardMeshes } from '../../routes/beta/lib/viewers/viewer3dHelpers'
 
@@ -49,7 +50,7 @@
     flip={side == 'left' || $view == 'left'}
     geometry={microcontrollerGeometry}
     {showSupports}
-  />{/if}
+  /><Battery geometry={microcontrollerGeometry} {showSupports} />{/if}
 {#each meshes.keyBufs || [] as key}
   <GroupMatrix matrix={key.matrix}>
     <KMesh
@@ -95,6 +96,7 @@
     opacity={0.9}
     visible={!showSupports}
   />
+  <KMesh kind="case" geometry={meshes.batteryBuf} color={caseColor} visible={!showSupports} />
   <!-- {#if stiltThing}
     <T.Mesh geometry={stiltThing} renderOrder={-1}>
       <T.MeshNormalMaterial side={2} />

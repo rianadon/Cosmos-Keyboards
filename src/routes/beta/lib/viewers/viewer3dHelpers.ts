@@ -27,6 +27,7 @@ export type KeyboardMeshes = {
   screwBaseBuf?: ShapeMesh
   screwPlateBuf?: ShapeMesh
   holderBuf?: ShapeMesh
+  batteryBuf?: ShapeMesh
   supportGeometries?: ShapeMesh[]
 }
 

@@ -3,6 +3,7 @@ import type { BasicShell, BlockShell, Cuttleform, SpecificCuttleform, TiltShell 
 import {
   additionalHeight,
   allKeyCriticalPoints,
+  batteryPlacement,
   blockWallCriticalPoints,
   boardIndices,
   bottomByNormal,
@@ -178,6 +179,11 @@ export class BaseGeometry<C extends Cuttleform = SpecificCuttleform<BasicShell>>
     const wall = this.c.connectorIndex < 0 ? this.autoConnectorIndex : this.c.connectorIndex
     const innerSurfaces = this.allWallCriticalPoints().map(w => wallSurfacesInner(this.c, w))
     return originForConnector(this.c, this.allWallCriticalPoints(), innerSurfaces, wall)
+  }
+
+  @Memoize()
+  get batteryPlacement() {
+    return batteryPlacement(this.c, this)
   }
 
   @Memoize()

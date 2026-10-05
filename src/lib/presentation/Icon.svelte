@@ -30,6 +30,7 @@
       case 'pcb': return mdi.mdiPuzzleOutline
       case 'diode': return mdi.mdiRectangleOutline
       case 'unibody': return mdi.mdiTableMergeCells
+      case 'battery': return mdi.mdiBatteryOutline
       case 'kb': return mdi.mdiKeyboardOutline
       case 'kb-left': return 'M9 5A2 2 0 007 7V17A2 2 0 009 19H17V17H9V7H17V5H9M10 8V10H12V8H10M13 8V10H15V8H13M16 8V10H17V8H16M10 11V13H12V11H10M13 11V13H15V11H13M16 11V13H17V11H16V13 11M13 14V16H17V14H13Z'
       case 'angle-rotate': return 'M5 20V4.09L19.57 14.18 18.43 15.82 11.87 11.28C11.04 12.89 9.38 14 7.46 14 7.3 14 7.15 14 7 13.97V20H5M7 7.91V11.96C7.15 12 7.3 12 7.46 12 8.72 12 9.78 11.24 10.22 10.14L7 7.91Z'

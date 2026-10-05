@@ -2,6 +2,7 @@
  * For now, the new serializationf format for Cosmos is kept in a separate file.
  */
 
+import { type Battery as BatteryCell, BATTERY_PROPERTIES } from '$lib/geometry/batteries'
 import { BinaryReader, BinaryWriter } from '@protobuf-ts/runtime'
 import {
   type ClusterFlags,
@@ -33,8 +34,8 @@ import {
   encodeStiltsShellFlags,
   encodeTiltShellFlags,
 } from '../../../target/cosmosStructs'
-import { Cluster, Curvature, Key, Keyboard, KeyboardExtra, TiltShell } from '../../../target/proto/cosmos'
-import { convertToMaybeCustomConnectors, type Cuttleform, encodeTuple, tupletoRotOnly } from './config'
+import { Battery, Cluster, Curvature, Key, Keyboard, KeyboardExtra, TiltShell } from '../../../target/proto/cosmos'
+import { convertToMaybeCustomConnectors, type Cuttleform, decodeTuple, encodeTuple, tupletoRotOnly } from './config'
 import { type ConnectorMaybeCustom, type CosmosCluster, type CosmosKeyboard, type PartType, type Profile } from './config.cosmos'
 import { DEFAULT_MWT_FACTOR } from './geometry.thickWebs'
 import { objKeys } from './util'
@@ -494,6 +495,40 @@ export function decodeCosmosCluster(clusterA: Cluster): CosmosCluster {
   }
 }
 
+const BATTERY_PRESETS = objKeys(BATTERY_PROPERTIES)
+
+export function encodeBattery(battery: Cuttleform['battery']): Battery | undefined {
+  if (!battery) return undefined
+  const { cell, mount, offset } = battery
+  const encoded: Battery = typeof cell == 'string'
+    ? { preset: BATTERY_PRESETS.indexOf(cell) }
+    : {
+      length: Math.round(cell.custom.length * 10),
+      width: Math.round(cell.custom.width * 10),
+      thickness: Math.round(cell.custom.thickness * 10),
+    }
+  if (encoded.preset == -1) throw new Error(`Unknown battery preset "${cell}"`)
+  if (mount == 'separate') encoded.separate = true
+  if (offset && (offset.x || offset.y || offset.z || offset.rotation)) {
+    encoded.offset = encodeTuple([offset.x * 10, offset.y * 10, offset.z * 10, offset.rotation * 45].map(Math.round))
+  }
+  return encoded
+}
+
+export function decodeBattery(battery: Battery | undefined): CosmosKeyboard['battery'] {
+  if (!battery) return null
+  const cell: BatteryCell = typeof battery.preset != 'undefined'
+    ? BATTERY_PRESETS[battery.preset]
+    : { custom: { length: (battery.length || 0) / 10, width: (battery.width || 0) / 10, thickness: (battery.thickness || 0) / 10 } }
+  if (!cell) throw new Error(`Unknown battery preset index ${battery.preset}`)
+  const decoded: NonNullable<CosmosKeyboard['battery']> = { cell, mount: battery.separate ? 'separate' : 'fused' }
+  if (battery.offset) {
+    const [x, y, z, rotation] = decodeTuple(battery.offset)
+    decoded.offset = { x: x / 10, y: y / 10, z: z / 10, rotation: rotation / 45 }
+  }
+  return decoded
+}
+
 export function decodeConfigIdk(b64: string): CosmosKeyboard {
   const keeb = deserializeCosmosConfig(b64)
   const keebExtra = keeb.extra
@@ -552,6 +587,7 @@ export function decodeConfigIdk(b64: string): CosmosKeyboard {
       }
       : undefined,
     layout: decodeLayout(keeb.layoutId),
+    battery: decodeBattery(keeb.battery),
   }
   return conf
 }
@@ -734,6 +770,7 @@ export function encodeCosmosConfig(conf: CosmosKeyboard): Keyboard {
     cluster: conf.clusters.map(encodeCosmosCluster),
     shell: encodeShell(conf.shell),
     layoutId: encodeLayout(conf.layout),
+    battery: encodeBattery(conf.battery),
     extra: {
       verticalClearance: Math.round(conf.verticalClearance * 10),
       wristRestAngle: Math.round(conf.wristRestProps.angle * 45),

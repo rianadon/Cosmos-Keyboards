@@ -69,6 +69,7 @@ type Config = {
   connectors: Connector[] // Which connector to use
   connectorIndex: number // Where to place the microcontroller
   flipConnectors: boolean // If true, flip connectors on this side
+  battery: BatteryOptions | null // LiPo battery tray, or null for none
 
   screwIndices: number[] // Where to place the screw inserts
   screwType: string // Which type of screw insert to use
@@ -247,6 +248,24 @@ If a `choc` key basis is used with Choc keys, then the key basis will be positio
 However, if an `mt3` key basis were used with Choc keys, then spacing values would not match the final spacings. For this reason it's advised to set `keyBasis` to whichever profile you use the most within the model. Basic and Advanced modes do this automatically.
 
 If you're curious how this gets configured in the source code, [`keycaps.ts`](https://github.com/rianadon/Cosmos-Keyboards/blob/main/src/lib/geometry/keycaps.ts) defines the tilt and depth of all the keycaps. If you go the [keycaps page](https://ryanis.cool/cosmos/keycaps) and check _Developer mode_ you'll see the depth and tilt box overlaid. `applyKeyAdjustment` in [`geometry.ts`](https://github.com/rianadon/Cosmos-Keyboards/blob/main/src/lib/worker/geometry.ts) applies this adjustment.
+
+## Battery Tray
+
+The `battery` option adds a tray for a LiPo pouch cell. Set it to `#!ts null` (or leave it out) for no battery. See the [Battery Tray guide](battery.md) for how the tray is placed and attached.
+
+```ts
+battery: {
+  // A preset name, or a custom size in mm
+  cell: 'lipo-502030', // or { custom: { length: 30, width: 20, thickness: 5 } }
+  mount: 'fused', // or 'separate'
+  // Optional manual adjustment, in mm and degrees
+  offset: { x: 0, y: 0, z: 0, rotation: 0 },
+}
+```
+
+The presets are `'lipo-301230'`, `'lipo-402030'`, `'lipo-502030'`, `'lipo-503035'` and `'lipo-603040'`. Custom sizes are stored in tenths of a millimeter when you switch back to Basic/Advanced mode.
+
+The tray is placed automatically, then moved by `offset` in the tray's own frame: `x` runs along the wall, negative `y` points into the case, and `rotation` turns the tray around its center.
 
 ## Microcontrollers and Screw Inserts
 

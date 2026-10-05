@@ -1,5 +1,6 @@
+import { BATTERY_EAR_THICKNESS, BATTERY_WALL_THICKNESS, localBatteryBounds } from '$lib/geometry/batteries'
 import { keyInfo } from '$lib/geometry/keycaps'
-import { boardElements, holderBoundsOrigin, holderOuterRadius, holderThickness, localHolderBounds } from '$lib/geometry/microcontrollers'
+import { boardElements, convertToCustomConnectors, holderBoundsOrigin, holderOuterRadius, holderThickness, localHolderBounds } from '$lib/geometry/microcontrollers'
 import { SCREWS } from '$lib/geometry/screws'
 import { partBottom, socketHeight, socketSize } from '$lib/geometry/socketsParts'
 import { switchInfo } from '$lib/geometry/switches'
@@ -12,7 +13,7 @@ import { Vector2 } from 'three/src/math/Vector2.js'
 import { doTrianglesIntersect } from './check'
 import { Clipper, ClipperOffset, EndType, JoinType, Paths, PolyType } from './clipper'
 import concaveman from './concaveman'
-import { type Cuttleform, type CuttleKey, type Geometry } from './config'
+import { convertToMaybeCustomConnectors, type Cuttleform, type CuttleKey, type Geometry } from './config'
 import { intersectLineCircle, intersectPolyPoly, intersectPtPoly, intersectTriCircle } from './geometry.intersections'
 import Trsf from './modeling/transformation'
 import { Vector } from './modeling/transformation'
@@ -2416,6 +2417,295 @@ export function microcontrollerTopBox(c: Cuttleform, connOrigin: Trsf, boardPosi
     direction,
     points: ucPoints.concat(holderPoints),
   }
+}
+
+export const BATTERY_PLATE_GAP = 0.2 // Gap between the bottom plate and the floor of the battery tray
+const BATTERY_CLEARANCE = 0.5 // Minimum distance between the battery tray and other components
+const BATTERY_CONNECTOR_DEPTH = 15 // Room kept free behind each connector for the jack and plug
+const BATTERY_CANDIDATE_SPACING = 2 // Distance between candidate tray positions along the walls
+const BATTERY_WALL_TOUCH = 0.5 // How far the back edge of the tray may reach into the wall when checking it fits
+const BATTERY_SCREW_SAMPLES = 20 // Positions tested per wall segment when looking for a spot for a tray screw
+const BATTERY_SCREW_REACH = 10 // Furthest a tray screw may sit along the wall past the end of the tray
+const BATTERY_ARM_REACH = 25 // Furthest an arm may reach along the wall past the end of the tray to share a base screw
+const BATTERY_SCREW_DRIFT = 3 // Furthest a tray screw may sit from the line of the tray's back edge
+
+interface BatteryObstacle {
+  /** Outline of the obstacle in world coordinates. A single point is treated as a circle. */
+  points: Vector[]
+  radius: number
+}
+
+/** Components the battery tray must stay clear of. */
+export function batteryObstacles(c: Cuttleform, geo: Geometry): BatteryObstacle[] {
+  const obstacles: BatteryObstacle[] = []
+  for (const box of topComponentBoxes(c, geo.keyHolesTrsfs)) {
+    obstacles.push({ points: box.points.map(p => box.origin.apply(p)), radius: 0 })
+  }
+  const insertRadius = screwInsertDimensions(c).outerBottomRadius
+  for (const pos of [...geo.screwPositions, ...Object.values(geo.boardPositions)]) {
+    obstacles.push({ points: [pos.origin()], radius: insertRadius })
+  }
+  const connOrigin = geo.connectorOrigin
+  if (connOrigin) {
+    const rects: [number, number, number, number][] = c.microcontroller && geo.boardPositions.bottomLeft
+      ? microControllerRectangles(c, connOrigin, geo.boardPositions)
+      : []
+    for (const conn of convertToMaybeCustomConnectors(c).map(conn => convertToCustomConnectors(c, conn))) {
+      rects.push([conn.x - conn.width / 2, conn.x + conn.width / 2, -BATTERY_CONNECTOR_DEPTH, 0])
+    }
+    for (const [minX, maxX, minY, maxY] of rects) {
+      const corners = [new Vector(minX, minY, 0), new Vector(maxX, minY, 0), new Vector(maxX, maxY, 0), new Vector(minX, maxY, 0)]
+      obstacles.push({ points: corners.map(p => connOrigin.apply(p)), radius: 0 })
+    }
+  }
+  return obstacles
+}
+
+/** Frame on the inside of the wall at fractional index w: X along the wall, Y out of the case, Z along worldZ. */
+function batteryWallFrame(walls: WallCriticalPoints[], w: number, worldZ: Vector) {
+  const i = Math.floor(w)
+  const a = walls[i].bi.origin()
+  const b = walls[(i + 1) % walls.length].bi.origin()
+  const tangent = b.clone().sub(a)
+  tangent.addScaledVector(worldZ, -tangent.dot(worldZ)).normalize()
+  return new Trsf().coordSystemChange(a.lerp(b, w - i), tangent, worldZ)
+}
+
+/** Smallest Y reached by a closed polyline within the X range [minX, maxX], walking out from segment i in both directions. */
+function polylineMinY(pts: Vector[], i: number, minX: number, maxX: number) {
+  const n = pts.length
+  const ys: number[] = []
+  const addClipped = (p: Vector, q: Vector) => {
+    const lo = Math.max(minX, Math.min(p.x, q.x))
+    const hi = Math.min(maxX, Math.max(p.x, q.x))
+    if (lo > hi) return
+    for (const x of [lo, hi]) ys.push(p.x == q.x ? Math.min(p.y, q.y) : p.y + (q.y - p.y) * (x - p.x) / (q.x - p.x))
+  }
+  // The wall runs towards +X from segment i. Stop where it passes the edge of the tray or turns back on itself.
+  for (let k = i, steps = 0; steps < n; k = (k + 1) % n, steps++) {
+    const p = pts[k], q = pts[(k + 1) % n]
+    addClipped(p, q)
+    if (q.x >= maxX || q.x < p.x) break
+  }
+  for (let k = i, steps = 0; steps < n; k = (k - 1 + n) % n, steps++) {
+    const p = pts[k], q = pts[(k - 1 + n) % n]
+    addClipped(p, q)
+    if (q.x <= minX || q.x > p.x) break
+  }
+  return ys.length ? Math.min(...ys) : 0
+}
+
+function rectInsidePolygon(rect: Vector2[], poly: Vector[]) {
+  const polyXY = poly.map(p => [p.x, p.y])
+  if (!rect.every(p => intersectPtPoly([p.x, p.y], polyXY))) return false
+  for (let i = 0; i < rect.length; i++) {
+    const a = new Vector(rect[i].x, rect[i].y, 0)
+    const b = new Vector(rect[(i + 1) % rect.length].x, rect[(i + 1) % rect.length].y, 0)
+    for (let j = 0; j < poly.length; j++) {
+      if (lineIntersection(a, b, poly[j], poly[(j + 1) % poly.length])) return false
+    }
+  }
+  return true
+}
+
+function rectHitsObstacle(minX: number, maxX: number, minY: number, maxY: number, points: Vector[], radius: number) {
+  if (points.length == 1) {
+    const p = points[0]
+    const dx = Math.max(minX - p.x, 0, p.x - maxX)
+    const dy = Math.max(minY - p.y, 0, p.y - maxY)
+    return dx * dx + dy * dy < radius * radius
+  }
+  const rect = [new Vector2(minX, minY), new Vector2(maxX, minY), new Vector2(maxX, maxY), new Vector2(minX, maxY)]
+  return intersectPolyPoly(rect, points.map(p => new Vector2(p.x, p.y)))
+}
+
+export interface BatteryPlacement {
+  /** Frame of the tray, following the convention of localBatteryBounds. */
+  origin: Trsf
+  /** Whether the cell lies with its long edge against the wall. Pass to localBatteryBounds. */
+  alongWall: boolean
+  /** Screws holding a separate tray, at the top of its arms. Empty for fused trays or when there is no room. */
+  screws: BatteryScrew[]
+}
+
+export interface BatteryScrew {
+  /** Position of the screw, at the top of the tray's arm, where its insert begins. */
+  position: Trsf
+  /** Index into geo.justScrewPositions when the arm shares a base screw instead of having its own insert. */
+  base?: number
+}
+
+export interface BatteryCandidate extends Omit<BatteryPlacement, 'screws'> {
+  /** Whether the tray avoids every obstacle and stays inside the case. */
+  fits: boolean
+  /** Distance used to rank candidates. Smaller is better. */
+  score: number
+}
+
+/** Every pose considered for the battery tray: along each wall, with the cell either pointing into the case or lying along the wall. */
+export function* batteryCandidates(c: Cuttleform, geo: Geometry): Generator<BatteryCandidate> {
+  if (!c.battery) return
+  const walls = geo.allWallCriticalPoints()
+  const worldZ = geo.worldZ
+  const top = BATTERY_PLATE_GAP + localBatteryBounds(c.battery.cell).maxz
+  const obstacles = batteryObstacles(c, geo)
+  const target = geo.connectorOrigin?.origin()
+
+  for (let i = 0; i < walls.length; i++) {
+    const length = walls[i].bi.origin().distanceTo(walls[(i + 1) % walls.length].bi.origin())
+    const subdivisions = Math.ceil(length / BATTERY_CANDIDATE_SPACING)
+    for (let s = 0; s < subdivisions; s++) {
+      const frame = batteryWallFrame(walls, i + s / subdivisions, worldZ)
+      const inv = frame.inverted()
+      // The inner wall, at the height of the plate and at the height of the top of the tray
+      const base = walls.map(w => inv.apply(w.bi.origin()))
+      const upper = walls.map((w, k) => {
+        const mi = inv.apply(w.mi.origin())
+        const t = mi.z > base[k].z ? Math.min(1, Math.max(0, (top - base[k].z) / (mi.z - base[k].z))) : 0
+        return base[k].clone().lerp(mi, t)
+      })
+      const localObstacles = obstacles.map(o => ({ points: o.points.map(p => inv.apply(p)), radius: o.radius }))
+
+      for (const alongWall of [false, true]) {
+        // Footprint of the tray in the wall frame, which shares its axes with the tray frame.
+        const bnd = localBatteryBounds(c.battery.cell, alongWall)
+        const halfX = bnd.maxx
+        const depth = -bnd.miny
+        const shift = Math.min(polylineMinY(base, i, -halfX, halfX), polylineMinY(upper, i, -halfX, halfX))
+        const maxY = shift, minY = shift - depth
+
+        const shrunk = [new Vector2(-halfX, minY), new Vector2(halfX, minY), new Vector2(halfX, maxY - BATTERY_WALL_TOUCH), new Vector2(-halfX, maxY - BATTERY_WALL_TOUCH)]
+        const inside = rectInsidePolygon(shrunk, base) && rectInsidePolygon(shrunk, upper)
+        const blocked = localObstacles.some(o =>
+          Math.min(...o.points.map(p => p.z)) < top + BATTERY_CLEARANCE
+          && rectHitsObstacle(-halfX - BATTERY_CLEARANCE, halfX + BATTERY_CLEARANCE, minY - BATTERY_CLEARANCE, maxY + BATTERY_CLEARANCE, o.points, o.radius + BATTERY_CLEARANCE)
+        )
+
+        const origin = frame.pretranslated(0, shift, BATTERY_PLATE_GAP)
+        const center = frame.apply(new Vector(0, (minY + maxY) / 2, 0))
+        const score = target ? center.distanceTo(target) : -center.dot(geo.worldY)
+        yield { origin, alongWall, fits: inside && !blocked, score }
+      }
+    }
+  }
+}
+
+/**
+ * Pose and orientation of the battery tray, in the frame described by localBatteryBounds.
+ * The tray is placed against the inside of a wall as close to the microcontroller as possible,
+ * then moved by the user's offset. Throws if no wall has room for it.
+ */
+/** Sample points along the walls where a screw insert for the battery tray could go, with the wall tall enough to hold it. */
+function batteryScrewSites(c: Cuttleform, geo: Geometry) {
+  const walls = geo.allWallCriticalPoints()
+  const { height, outerTopRadius } = screwInsertDimensions(c)
+  const needed = BATTERY_PLATE_GAP + BATTERY_EAR_THICKNESS + height + outerTopRadius
+  const sites: Trsf[] = []
+  for (let k = 0; k < walls.length * BATTERY_SCREW_SAMPLES; k++) {
+    const w = k / BATTERY_SCREW_SAMPLES
+    const i = Math.floor(w)
+    const ki = walls[i].ki.origin().lerp(walls[(i + 1) % walls.length].ki.origin(), w - i)
+    if (ki.dot(geo.worldZ) - geo.bottomZ < needed) continue
+    sites.push(screwOriginTrsf(c, w, walls, geo.worldZ).pretranslated(0, 0, BATTERY_PLATE_GAP + BATTERY_EAR_THICKNESS))
+  }
+  return sites
+}
+
+/**
+ * Screw positions for a separate tray, one past each end of its back edge, at the top of the tray's arms.
+ * Like the microcontroller holder, each side gets its own screw insert on the wall and a countersunk hole in the arm.
+ * Where there is no room for a new insert, the arm instead reaches further along the wall to a base screw, whose
+ * insert is raised to sit on the arm so the plate screw passes through it. Returns null if either side has neither.
+ */
+function batteryScrews(c: Cuttleform, geo: Geometry, origin: Trsf, alongWall: boolean, sites: Trsf[], obstacles: BatteryObstacle[]): BatteryScrew[] | null {
+  const bnd = localBatteryBounds(c.battery!.cell, alongWall)
+  const { outerBottomRadius: r, height } = screwInsertDimensions(c)
+  const inv = origin.inverted()
+  const top = BATTERY_EAR_THICKNESS + height + BATTERY_CLEARANCE
+  const localObstacles = obstacles
+    .map(o => ({ points: o.points.map(p => inv.apply(p)), radius: o.radius }))
+    .filter(o => Math.min(...o.points.map(p => p.z)) < top)
+  const lift = BATTERY_PLATE_GAP + BATTERY_EAR_THICKNESS
+  const options = [
+    ...sites.map(position => ({ position, base: undefined as number | undefined, reach: BATTERY_SCREW_REACH })),
+    ...geo.justScrewPositions.map((p, i) => ({ position: p.pretranslated(0, 0, lift), base: i, reach: BATTERY_ARM_REACH })),
+  ].map(o => ({ ...o, p: inv.apply(o.position.origin()) }))
+
+  const screws: BatteryScrew[] = []
+  for (const side of [-1, 1]) {
+    let best: (typeof options)[number] | undefined
+    let bestDist = Infinity
+    for (const option of options) {
+      const { p, base, reach } = option
+      // How far past the end of the tray the insert sits, and how far it strays from the line of the tray's back edge.
+      const along = side * p.x - (bnd.maxx + r + BATTERY_CLEARANCE)
+      const across = Math.abs(p.y + r)
+      if (along < 0 || along > reach || across > BATTERY_SCREW_DRIFT) continue
+      if (Math.abs(p.z - BATTERY_EAR_THICKNESS) > 1) continue // On a different level of the case
+      // Prefer a new insert of the tray's own, and only share a base screw when there is no room for one.
+      const dist = along + across + (base === undefined ? 0 : 1000)
+      if (dist >= bestDist) continue
+      const R = r + BATTERY_CLEARANCE
+      // The arm runs from the tray's side wall out to the insert, so its whole length must be clear too.
+      const armMin = side > 0 ? bnd.maxx - BATTERY_WALL_THICKNESS : p.x
+      const armMax = side > 0 ? p.x : bnd.minx + BATTERY_WALL_THICKNESS
+      const blocked = localObstacles.some(o => {
+        // A shared base screw is the obstacle the arm is reaching for.
+        if (base !== undefined && o.points.length == 1 && Math.hypot(o.points[0].x - p.x, o.points[0].y - p.y) < 1e-3) return false
+        return (o.points.length == 1
+          ? Math.hypot(o.points[0].x - p.x, o.points[0].y - p.y) < o.radius + R
+          : rectHitsObstacle(p.x - R, p.x + R, p.y - R, p.y + R, o.points, o.radius))
+          || rectHitsObstacle(armMin, armMax, p.y - R, p.y + R, o.points, o.radius)
+      })
+      if (blocked) continue
+      best = option
+      bestDist = dist
+    }
+    if (!best) return null
+    screws.push({ position: best.position, base: best.base })
+  }
+  return screws
+}
+
+/**
+ * Pose and orientation of the battery tray, in the frame described by localBatteryBounds.
+ * The tray is placed against the inside of a wall as close to the microcontroller as possible,
+ * then moved by the user's offset. Throws if no wall has room for it.
+ * Separate trays prefer spots with room to screw them down beside both ends; if there are none they get no screws.
+ */
+export function batteryPlacement(c: Cuttleform, geo: Geometry): BatteryPlacement | null {
+  if (!c.battery) return null
+  const offset = c.battery.offset
+  const hasOffset = !!offset && !!(offset.x || offset.y || offset.z || offset.rotation)
+  const separate = c.battery.mount == 'separate'
+
+  const candidates = [...batteryCandidates(c, geo)].sort((a, b) => a.score - b.score)
+  const fits = candidates.filter(f => f.fits)
+  // With a manual offset, the user is positioning the tray themselves, so start from the closest spot even if it collides.
+  const chosen = fits[0] ?? (hasOffset ? candidates[0] : undefined)
+  if (!chosen) {
+    throw new Error('Could not find a spot along the walls to place the battery tray. Try a smaller battery, or move it manually with the battery offset.')
+  }
+  const obstacles = separate ? batteryObstacles(c, geo) : []
+  const sites = separate ? batteryScrewSites(c, geo) : []
+
+  if (!hasOffset) {
+    if (separate) {
+      for (const { origin, alongWall } of fits) {
+        const screws = batteryScrews(c, geo, origin, alongWall, sites, obstacles)
+        if (screws) return { origin, alongWall, screws }
+      }
+    }
+    return { origin: chosen.origin, alongWall: chosen.alongWall, screws: [] }
+  }
+
+  const { alongWall } = chosen
+  const bnd = localBatteryBounds(c.battery.cell, alongWall)
+  const origin = chosen.origin
+    .pretranslated(offset!.x, offset!.y, offset!.z)
+    .multiply(new Trsf().rotate(offset!.rotation, [(bnd.minx + bnd.maxx) / 2, (bnd.miny + bnd.maxy) / 2, 0]))
+  const screws = separate ? batteryScrews(c, geo, origin, alongWall, sites, obstacles) ?? [] : []
+  return { origin, alongWall, screws }
 }
 
 export function triangleMap(triangles: [number, number, number][]) {

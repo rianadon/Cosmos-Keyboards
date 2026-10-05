@@ -115,6 +115,7 @@ export type CosmosKeyboard =
     mirrorConnectors: boolean
     plate: Cuttleform['plate']
     layout: Layout
+    battery: Cuttleform['battery']
   }
   & ScrewFlags
 
@@ -361,6 +362,7 @@ export function toCosmosConfig(conf: Cuttleform, side: KeyboardSide, overrideWri
     microcontroller: conf.microcontroller,
     microcontrollerAngle: conf.microcontrollerAngle || 0,
     fastenMicrocontroller: conf.fastenMicrocontroller,
+    battery: conf.battery ?? null,
     mirrorConnectors: true,
     verticalClearance: conf.verticalClearance,
     rounded: conf.rounded,
@@ -488,6 +490,9 @@ export function sideFromCosmosConfig(c: CosmosKeyboard, side: KeyboardSide, flip
     microcontroller: c.microcontroller,
     microcontrollerAngle: c.microcontrollerAngle,
     fastenMicrocontroller: c.fastenMicrocontroller,
+    // Like the wrist rest, the center piece never gets a battery. The battery is copied so the editor can change it
+    // in place without also changing configs that were derived from it earlier (the app compares them to re-render).
+    battery: side == 'center' || !c.battery ? null : JSON.parse(JSON.stringify(c.battery)),
     flipConnectors: side == 'left' && !c.mirrorConnectors,
     // Center piece never has a wrist rest.
     wristRestLeft: side != 'center' && c.wristRestEnable

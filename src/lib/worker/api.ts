@@ -17,7 +17,7 @@ import { getUser } from '../../routes/beta/lib/login'
 import { ITriangle, TriType } from '../loaders/simplekeys'
 import { type ConfError, type ConfErrors, isPro, keycapIntersections, partIntersections, socketIntersections } from './check'
 import { type Cuttleform, type CuttleKey, type Geometry, type KeyboardSide, newGeometry } from './config'
-import { boardHolder, cutWithConnector, keyHoles, makePlate, makePlateMesh, makerScrewInserts, makeWalls, type ScrewInsertTypes, webSolid } from './model'
+import { batteryHolder, boardHolder, cutWithConnector, keyHoles, makePlate, makePlateMesh, makerScrewInserts, makeWalls, type ScrewInsertTypes, webSolid } from './model'
 import { Assembly } from './modeling/assembly'
 import { blobSTL, combine, type ShapeMesh } from './modeling/index'
 import { meshVolume, supportMesh } from './modeling/supports'
@@ -208,6 +208,10 @@ export async function* generate(config: Cuttleform, geo: Geometry, stitchWalls: 
   assembly.add('Switch Holders', holes)
   // if (connector) assembly.add('Connector', connector)
   if (inserts) assembly.add('Screw Attachments', inserts)
+  if (config.battery?.mount == 'fused') {
+    const tray = batteryHolder(config, geo)
+    if (tray) assembly.add('Battery Tray', tray)
+  }
   // model = combine([walls, web, holes, connector, inserts]);
   // model = web //combine([connector]);
   // console.timeEnd('Putting everything together')
@@ -259,6 +263,16 @@ export async function generateBoardHolder(config: Cuttleform) {
   const holder = boardHolder(config, newGeometry(config))
   const result = meshWithVolume(holder)
   holder.delete()
+  return result
+}
+
+export async function generateBatteryHolder(config: Cuttleform) {
+  if (!config.battery) return null
+  await ensureOC()
+  const tray = batteryHolder(config, newGeometry(config))
+  if (!tray) return null
+  const result = meshWithVolume(tray)
+  tray.delete()
   return result
 }
 
@@ -323,6 +337,8 @@ async function getModel(conf: Cuttleform, name: string, stitchWalls: boolean, fl
     return bot ? (await bot()).translateZ(-geometry.floorZ) : undefined
   } else if (name == 'holder') {
     return boardHolder(conf, geometry).translateZ(-geometry.floorZ)
+  } else if (name == 'batteryholder') {
+    return batteryHolder(conf, geometry)?.translateZ(-geometry.floorZ)
   } else if (name == 'wristrest') {
     return wristRest(conf, geometry, flip ? 'wristRestLeft' : 'wristRestRight').translateZ(-geometry.floorZ)
   } else {
@@ -360,6 +376,11 @@ export async function* getSTEP(conf: Cuttleform, flip: boolean, stitchWalls: boo
   if (conf.microcontroller) {
     yield { progress: 0.8, task: 'Generating Microcontroller Holder' }
     assembly.add('Microcontroller Holder', boardHolder(conf, geometry))
+  }
+  if (conf.battery?.mount == 'separate') {
+    yield { progress: 0.85, task: 'Generating Battery Tray' }
+    const tray = batteryHolder(conf, geometry)
+    if (tray) assembly.add('Battery Tray', tray)
   }
 
   if (conf.wristRestRight && (await getUser()).sponsor) {

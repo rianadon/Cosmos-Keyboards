@@ -1,4 +1,5 @@
 import type { TopoDS_Shell } from '$assets/replicad_single'
+import { BATTERY_BRIDGE_DEPTH, BATTERY_EAR_THICKNESS, BATTERY_FLOOR_THICKNESS, BATTERY_WALL_THICKNESS, batteryTrayWallHeight, localBatteryBounds } from '$lib/geometry/batteries'
 import { BOARD_PROPERTIES, type BoardElement, boardElements, convertToCustomConnectors, holderOuterRadius, holderThickness, localHolderBounds, STOPPER_WIDTH } from '$lib/geometry/microcontrollers'
 import { SCREWS } from '$lib/geometry/screws'
 import { processPlate } from '@pro/art'
@@ -755,10 +756,14 @@ function makeScrewInserts(c: Cuttleform, geo: Geometry, types: ScrewInsertTypes)
   const holderThick = holderThickness(boardElements(c, false))
   const inserts: (Solid | undefined)[] = []
   if (types.includes('base')) {
+    const batteryScrews = c.battery?.mount == 'separate' ? geo.batteryPlacement?.screws ?? [] : []
+    // Base screws shared with the battery tray's arms are raised to sit on top of the arm.
+    const shared = new Map(batteryScrews.filter(s => s.base !== undefined).map(s => [s.base!, s.position]))
     inserts.push(
-      ...geo.justScrewPositions.map(p => makeScrewInsert(c, solidWallSurface, p, false)),
+      ...geo.justScrewPositions.map((p, i) => makeScrewInsert(c, solidWallSurface, shared.get(i) ?? p, false)),
       ...Object.values(geo.boardPositions).map(p => p.pretranslated(0, 0, holderThick))
         .map(p => makeScrewInsert(c, solidWallSurface, p, false)),
+      ...batteryScrews.filter(s => s.base === undefined).map(s => makeScrewInsert(c, solidWallSurface, s.position, false)),
     )
   }
   if (c.shell.type == 'tilt' && types.includes('plate')) {
@@ -782,7 +787,7 @@ function makeScrewInsert(c: Cuttleform, solidWallSurface: TopoDS_Shell, pos: Trs
 
   try {
     splitter.perform()
-    const m4 = pos.Matrix4().invert()
+    const m4 = pos.inverted().Matrix4() // Not pos.Matrix4().invert(), which would invert pos in place
     const split = splitter.takeBy(p => p.applyMatrix4(m4).x)
     for (const e of split?.edges || []) {
       // Avoid fly swatters by discarding the insert
@@ -1032,6 +1037,103 @@ function addRails(c: Cuttleform, solid: Solid, element: BoardElement): Solid {
     jig.delete()
   }
   return solid
+}
+
+function boxByBounds(minx: number, maxx: number, miny: number, maxy: number, minz: number, maxz: number) {
+  return drawRectangleByBounds(minx, maxx, miny, maxy).sketchOnPlane('XY', minz).extrude(maxz - minz) as Solid
+}
+
+/** Convex hull of 2D points, counterclockwise (Andrew's monotone chain). */
+function convexHull2D(points: [number, number][]) {
+  const pts = [...points].sort((a, b) => a[0] - b[0] || a[1] - b[1])
+  const cross = (o: [number, number], a: [number, number], b: [number, number]) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+  const half = (list: [number, number][]) => {
+    const h: [number, number][] = []
+    for (const p of list) {
+      while (h.length >= 2 && cross(h[h.length - 2], h[h.length - 1], p) <= 0) h.pop()
+      h.push(p)
+    }
+    h.pop()
+    return h
+  }
+  return [...half(pts), ...half([...pts].reverse())]
+}
+
+/**
+ * The battery tray: a floor with low walls around the cell, and a notch in the wall facing the microcontroller for the leads.
+ * When fused, a slab behind the tray fills the gap to the inner face of the case wall, and the tray reaches down to the
+ * bottom of the walls so it prints on the bed instead of hanging off the wall.
+ */
+export function batteryHolder(c: Cuttleform, geo: Geometry): Solid | null {
+  const placement = geo.batteryPlacement
+  if (!c.battery || !placement) return null
+  const { origin, alongWall } = placement
+  const fused = c.battery.mount == 'fused'
+  const { minx, maxx, miny, maxy } = localBatteryBounds(c.battery.cell, alongWall)
+  const height = batteryTrayWallHeight(c.battery.cell)
+  const W = BATTERY_WALL_THICKNESS
+  const base = fused ? -Math.max(0, origin.origin().dot(geo.worldZ) - geo.bottomZ) : 0
+
+  let tray = boxByBounds(minx, maxx, miny, maxy, base, height)
+    .cut(boxByBounds(minx + W, maxx - W, miny + W, maxy - W, BATTERY_FLOOR_THICKNESS, height + 1))
+
+  // LiPo leads leave the cell from one of its short ends, so open the whole inner span of a short end wall.
+  // When the cell points into the case, the only free short end is the front. When it lies along the wall,
+  // use the end nearer the microcontroller.
+  const top = height + 1
+  let notch: Solid
+  if (!alongWall) {
+    notch = boxByBounds(minx + W, maxx - W, miny - 1, miny + W + 1, BATTERY_FLOOR_THICKNESS, top)
+  } else {
+    const towardsRight = geo.connectorOrigin ? origin.inverted().apply(geo.connectorOrigin.origin()).x > 0 : true
+    notch = towardsRight
+      ? boxByBounds(maxx - W - 1, maxx + 1, miny + W, maxy - W, BATTERY_FLOOR_THICKNESS, top)
+      : boxByBounds(minx - 1, minx + W + 1, miny + W, maxy - W, BATTERY_FLOOR_THICKNESS, top)
+  }
+  tray = tray.cut(notch)
+
+  if (!fused) {
+    if (!placement.screws.length) return origin.transform(tray)
+    // Arms reaching out to the screw inserts, as on the microcontroller holder. Screws into the tray's own inserts
+    // go up through countersunk holes from below, before the plate is attached. Arms sharing a base screw get a
+    // plain hole, since the plate screw passes through them.
+    const inv = origin.inverted()
+    const r = screwInsertDimensions(c).outerBottomRadius
+    for (const { position } of placement.screws) {
+      const p = inv.apply(position.origin())
+      // The arm is the hull of the hole's disc and the tray's back corner on that side, so it grows out of the tray
+      // without stepping past its outline.
+      const edge = p.x > 0 ? maxx : minx
+      const corner: [number, number][] = [
+        [edge, maxy],
+        [edge, Math.max(miny, maxy - 2 * r)],
+        [edge - Math.sign(p.x) * W, maxy],
+        [edge - Math.sign(p.x) * W, Math.max(miny, maxy - 2 * r)],
+      ]
+      const disc = Array.from({ length: 32 }, (_, i) => [p.x + r * Math.cos(i * Math.PI / 16), p.y + r * Math.sin(i * Math.PI / 16)] as [number, number])
+      const hull = convexHull2D([...corner, ...disc])
+      let arm = draw(hull[0])
+      for (const pt of hull.slice(1)) arm = arm.lineTo(pt)
+      tray = tray.fuse(arm.close().sketchOnPlane('XY').extrude(BATTERY_EAR_THICKNESS) as Solid)
+    }
+    const countersunk = screwCountersunkProfile(c, BATTERY_EAR_THICKNESS).sketchOnPlane('XZ').revolve() as Solid
+    const through = screwStraightProfile(c, BATTERY_EAR_THICKNESS + 2).sketchOnPlane('XZ').revolve().translateZ(1) as Solid
+    const splitter = new Splitter()
+    splitter.addArgument(origin.transform(tray))
+    splitter.addTool(wallInnerSolidSurface(c, geo, BOARD_TOLERANCE_XY))
+    for (const { position, base } of placement.screws) splitter.addTool(position.transform(base === undefined ? countersunk : through))
+    splitter.perform()
+    return splitter.takeBiggest() ?? null
+  }
+
+  tray = tray.fuse(boxByBounds(minx, maxx, maxy - W, maxy + BATTERY_BRIDGE_DEPTH, base, height))
+  // Trim the slab where it meets the case wall, keeping the piece furthest into the case.
+  const splitter = new Splitter()
+  splitter.addArgument(origin.transform(tray))
+  splitter.addTool(wallInnerSolidSurface(c, geo, 0))
+  splitter.perform()
+  const inv = origin.inverted()
+  return splitter.takeBy(p => -inv.apply(p).y) ?? null
 }
 
 export function boardHolder(c: Cuttleform, geo: Geometry): Solid {

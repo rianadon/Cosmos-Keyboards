@@ -299,6 +299,7 @@
     ),
     cutPromise: pool.execute((w) => w.cutWall(conf), 'Cut wall'),
     holderPromise: pool.execute((w) => w.generateBoardHolder(conf), 'Holder'),
+    batteryPromise: pool.execute((w) => w.generateBatteryHolder(conf), 'Battery Tray'),
     screwPromise: pool.execute((w) => w.generateScrewInserts(conf), 'Inserts'),
     wristRestPromise: hasPro
       ? pool.execute((w) => w.generateWristRest(conf, side == 'left'), 'Wrist Rest')
@@ -452,6 +453,7 @@
             plateTopBuf: prom.plate.top.mesh,
             plateBotBuf: prom.plate.bottom.mesh || undefined,
             holderBuf: undefined,
+            batteryBuf: undefined,
             screwBaseBuf: undefined,
             screwPlateBuf: undefined,
           }
@@ -492,6 +494,8 @@
           } else if (renderNumber >= lastRenderNumber) {
             if (finished.prom == otherPromises[finished.i].holderPromise) {
               if (conf[finished.kbd]!.microcontroller) meshes[finished.kbd]!.holderBuf = result.mesh
+            } else if (finished.prom == otherPromises[finished.i].batteryPromise) {
+              meshes[finished.kbd]!.batteryBuf = result?.mesh
             } else if (finished.prom == otherPromises[finished.i].screwPromise) {
               meshes[finished.kbd]!.screwBaseBuf = result.baseInserts.mesh
               meshes[finished.kbd]!.screwPlateBuf = result.plateInserts.mesh
@@ -517,7 +521,8 @@
             quickResults[i].web.mass +
             quickResults[i].keys.mass +
             (await otherPromises[i].screwPromise).plateInserts.mass +
-            (await otherPromises[i].screwPromise).baseInserts.mass
+            (await otherPromises[i].screwPromise).baseInserts.mass +
+            ((await otherPromises[i].batteryPromise)?.mass ?? 0)
           supportVolume +=
             (await otherPromises[i].cutPromise).supports.volume +
             quickResults[i].web.supports.volume +

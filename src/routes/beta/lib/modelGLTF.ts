@@ -21,6 +21,7 @@ export async function modelAsScene(pool: WorkerPool<typeof import('$lib/worker/a
   const key = pool.execute((p) => p.generateKeysMesh(conf, side == 'left'))
   const plate = pool.execute((p) => p.generatePlate(conf, true))
   const holder = pool.execute((p) => p.generateBoardHolder(conf))
+  const battery = pool.execute((p) => p.generateBatteryHolder(conf))
   const inserts = pool.execute((p) => p.generateScrewInserts(conf))
 
   const keys = keyGeometries(geo.keyHolesTrsfs, conf.keys)
@@ -78,6 +79,8 @@ export async function modelAsScene(pool: WorkerPool<typeof import('$lib/worker/a
     group.add(microcontrollerGroup)
     group.add(node('Microcontroller Holder', fromGeometry((await holder)!.mesh)!, kbMaterial))
   }
+  const batteryResult = await battery
+  if (batteryResult) group.add(node('Battery Tray', fromGeometry(batteryResult.mesh)!, kbMaterial))
   const componentsGroup = new THREE.Group()
   componentsGroup.name = 'Components'
   group.add(componentsGroup)
@@ -182,6 +185,7 @@ export async function renderedModelAsGroup(geometry: FullGeometry, side: Keyboar
     group.add(microcontrollerGroup)
     group.add(node('Microcontroller Holder', fromGeometry(meshes.holderBuf)!, kbMaterial))
   }
+  if (meshes.batteryBuf) group.add(node('Battery Tray', fromGeometry(meshes.batteryBuf)!, kbMaterial))
   const componentsGroup = new THREE.Group()
   componentsGroup.name = 'Components'
   group.add(componentsGroup)

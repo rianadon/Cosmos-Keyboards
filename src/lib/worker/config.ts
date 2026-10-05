@@ -1,4 +1,5 @@
 import type manuform from '$assets/manuform.json'
+import type { Battery } from '$lib/geometry/batteries'
 import { DEFAULT_LAYOUT, rightCells } from '$lib/geometry/layouts'
 import { socketSize } from '$lib/geometry/socketsParts'
 import type { CuttleKey, CuttleTrackpadCirqueKey, Layout, MicrocontrollerName } from '$target/cosmosStructs'
@@ -103,6 +104,15 @@ export interface SpecificCuttleform<S> {
   /* Angle at which microcontroller should be placed */
   microcontrollerAngle: number
   fastenMicrocontroller: boolean
+  /** LiPo battery tray, attached to the inside of the case walls near the microcontroller. */
+  battery?: {
+    /** The cell to hold: a preset name like 'lipo-502030', or { custom: { length, width, thickness } } in mm. */
+    cell: Battery
+    /** Fuse the tray into the case walls, or generate it as a separate printable part. */
+    mount: 'fused' | 'separate'
+    /** Manual adjustment applied after automatic placement, in mm and degrees. */
+    offset?: { x: number; y: number; z: number; rotation: number }
+  } | null
   /** Flip connectors positions if true. */
   flipConnectors: boolean
   /** Additional height to add to the model. */

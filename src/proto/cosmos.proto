@@ -24,12 +24,22 @@ message Keyboard {
   optional KeyboardExtra extra = 14;
   optional int64 wrist_rest_position = 15; // For easy movement of the wrist rest
   optional uint32 layout_id = 19;
+  optional Battery battery = 20;
 
   oneof shell {
     BasicShell basic_shell = 30;
     TiltShell tilt_shell = 31;
     StiltsShell stilts_shell = 32;
   }
+}
+
+message Battery {
+  optional uint32 preset = 1; // Index into BATTERY_PROPERTIES. Append-only. Absent for custom cells.
+  optional uint32 length = 2; // Custom cell size, in tenths of a mm
+  optional uint32 width = 3;
+  optional uint32 thickness = 4;
+  optional bool separate = 5; // Generate the tray as a separate part instead of fusing it to the walls
+  optional int64 offset = 6; // Tuple of x, y, z (tenths of a mm) and rotation (1/45 degree)
 }
 
 message BasicShell {

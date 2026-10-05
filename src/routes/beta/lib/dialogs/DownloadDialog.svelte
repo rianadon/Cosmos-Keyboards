@@ -348,6 +348,20 @@
             </div>
           </div>
         {/if}
+        {#if Object.values(config).some((c) => c.battery?.mount == 'separate')}
+          <div class="break-inside-avoid">
+            <h3 class="mb-2 mt-4 text-lg semibold text-black dark:text-white">Battery Tray</h3>
+            <div class="inline-flex items-center gap-2 flex-wrap justify-center">
+              {#each configKeys.filter((kbd) => config[kbd]?.battery) as kbd}
+                <button
+                  class="button flex items-center gap-2"
+                  on:click={() => downloadSTL('batteryholder', kbd)}
+                  ><Icon path={iconPath(kbd)} />{kbdName(kbd)}</button
+                >
+              {/each}
+            </div>
+          </div>
+        {/if}
         {#if hasPro}
           <div class="break-inside-avoid">
             <h3 class="mb-2 mt-4 text-lg semibold text-black dark:text-white">Wrist Rest</h3>

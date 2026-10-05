@@ -130,6 +130,30 @@ test('Old URL without center cluster decodes cleanly', () => {
   const cosmos = decodeConfigIdk(encoded)
   expect(cosmos.clusters.find(c => c.side === 'center')).toBeUndefined()
   expect(cosmos.connectorCenterIndex).toBe(-1)
+  expect(cosmos.battery).toBeNull()
+})
+
+test('Battery encoding round-trip', () => {
+  const batteries: NonNullable<Cuttleform['battery']>[] = [
+    { cell: 'lipo-301230', mount: 'fused' },
+    { cell: 'lipo-603040', mount: 'separate', offset: { x: -4.5, y: 12.3, z: 1, rotation: 90 } },
+    { cell: { custom: { length: 52.5, width: 34, thickness: 7.2 } }, mount: 'fused', offset: { x: 0, y: 0, z: 0, rotation: -15 } },
+  ]
+  for (const battery of batteries) {
+    const config = { ...cuttleConf(defaultConfig.options as any), battery }
+    const cosmos = toCosmosConfig(config, 'right', true)
+    const decoded = decodeConfigIdk(serializeCosmosConfig(encodeCosmosConfig(cosmos)))
+    expect(decoded.battery).toEqual(battery)
+    expect(fromCosmosConfig(decoded).right!.battery).toEqual(battery)
+  }
+})
+
+test('Configs without a battery have no battery', () => {
+  const config = cuttleConf(defaultConfig.options as any)
+  const cosmos = toCosmosConfig(config, 'right', true)
+  const encoded = serializeCosmosConfig(encodeCosmosConfig(cosmos))
+  expect(encodeCosmosConfig(cosmos).battery).toBeUndefined()
+  expect(decodeConfigIdk(encoded).battery).toBeNull()
 })
 
 test('Encoding connectors', () => {
@@ -236,3 +260,11 @@ function preprocessCuttleform(c: Cuttleform, other?: Cuttleform) {
     rounded: trimUndefined(c.rounded),
   }
 }
+
+test('Configs get their own copy of the battery', () => {
+  const cosmos = toCosmosConfig({ ...cuttleConf(defaultConfig.options as any), battery: { cell: 'lipo-502030', mount: 'fused' } }, 'right', true)
+  const before = fromCosmosConfig(cosmos).right!
+  cosmos.battery!.mount = 'separate'
+  expect(before.battery!.mount).toBe('fused')
+  expect(fromCosmosConfig(cosmos).right!.battery!.mount).toBe('separate')
+})

@@ -120,6 +120,10 @@ vs the microcontroller without holders
 
 ![Microcontroller without holders](../../assets/microcontroller-without-holders.png)
 
+#### Battery
+
+Adds a tray for a LiPo pouch cell against the inside of the case wall, near the microcontroller. Pick a preset or enter a custom size, and choose whether the tray is fused to the case or printed as a separate part. Advanced mode can also move and rotate it. See [Battery Tray](../battery.md) for details.
+
 #### Base settings
 
 If you want to glue your base on (or fix it in any other way), turn off the fasten the base with screws setting. Below that you can choose how many, what screws and what fasteners you want to use (check [screws and inserts for that](../screws.md).
